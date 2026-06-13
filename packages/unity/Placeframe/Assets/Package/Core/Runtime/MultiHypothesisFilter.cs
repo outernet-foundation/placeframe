@@ -45,6 +45,7 @@ namespace Placeframe.Core
         {
             var supported = new HashSet<Hypothesis>();
             var bootstrapped = false;
+            var startId = _nextId;
 
             foreach (var measurement in measurements)
             {
@@ -57,8 +58,17 @@ namespace Placeframe.Core
                 bootstrapped |= wasLeaderless;
             }
 
+            // Every touched hypothesis is distinct (association excludes already-matched, spawns are new), so
+            // each Spawn bumped _nextId exactly once and the supported set splits cleanly into matched + spawned.
+            var spawnedCount = _nextId - startId;
+            var matchedCount = supported.Count - spawnedCount;
+            var rejectedCount = measurements.Count - supported.Count;
+
             if (supported.Count == 0)
+            {
+                LogBatch(measurements.Count, matchedCount, spawnedCount, rejectedCount, MeasurementOutcome.Rejected);
                 return MeasurementOutcome.Rejected;
+            }
 
             // Decay the unsupported hypotheses; prune below the floor, never the leader; drop a pruned challenger.
             foreach (var hypothesis in _hypotheses)
@@ -67,13 +77,33 @@ namespace Placeframe.Core
                     hypothesis.Score *= RelocalizationConfig.ScoreDecayPerMeasurement;
             }
 
-            _hypotheses.RemoveAll(hypothesis => hypothesis != _leader && hypothesis.Score < RelocalizationConfig.ScoreFloor);
+            var pruned = _hypotheses
+                .Where(hypothesis => hypothesis != _leader && hypothesis.Score < RelocalizationConfig.ScoreFloor)
+                .ToList();
+            foreach (var hypothesis in pruned)
+                VisualPositioningSystem.LogDebug($"step=reloc.prune reason=belowFloor id={hypothesis.Id} score={hypothesis.Score:F3}");
+
+            _hypotheses.RemoveAll(pruned.Contains);
             if (_challenger != null && !_hypotheses.Contains(_challenger))
                 _challenger = null;
 
             UpdateLeader(nowSeconds);
 
-            return bootstrapped ? MeasurementOutcome.Bootstrapped : MeasurementOutcome.Accepted;
+            var outcome = bootstrapped ? MeasurementOutcome.Bootstrapped : MeasurementOutcome.Accepted;
+            LogBatch(measurements.Count, matchedCount, spawnedCount, rejectedCount, outcome);
+            return outcome;
+        }
+
+        // One line per query: outcome, the matched/spawned/rejected split, the published leader and standing
+        // challenger, and the full post-batch score roster — the only marker delimiting one query's batch from
+        // the next, and the readout for watching an alias hypothesis accrue score across queries.
+        private void LogBatch(int measurements, int matched, int spawned, int rejected, MeasurementOutcome outcome)
+        {
+            var roster = string.Join(",", _hypotheses.Select(hypothesis => $"{hypothesis.Id}:{hypothesis.Score:F2}"));
+            VisualPositioningSystem.LogDebug(
+                $"step=reloc.batch outcome={outcome} measurements={measurements} matched={matched} spawned={spawned}"
+                    + $" rejected={rejected} leader={(_leader?.Id ?? -1)} challenger={(_challenger?.Id ?? -1)} roster=[{roster}]"
+            );
         }
 
         public MeasurementOutcome ApplyMeasurement(MapLocalization localizationResult, CameraFrame frame, float nowSeconds) =>
@@ -202,6 +232,9 @@ namespace Placeframe.Core
             var top = HighestScoring();
             if (top == null || top == _leader || top.Score <= _leader.Score + RelocalizationConfig.PromotionMargin)
             {
+                if (_challenger != null)
+                    VisualPositioningSystem.LogDebug($"step=reloc.challenger action=reset from={_challenger.Id}");
+
                 _challenger = null;
                 return;
             }
@@ -210,6 +243,9 @@ namespace Placeframe.Core
             {
                 _challenger = top;
                 _challengerSince = nowSeconds;
+                VisualPositioningSystem.LogDebug(
+                    $"step=reloc.challenger action=establish id={top.Id} gap={top.Score - _leader.Score:F3}"
+                );
                 return;
             }
 
@@ -232,6 +268,7 @@ namespace Placeframe.Core
             if (weakest == null)
                 return;
 
+            VisualPositioningSystem.LogDebug($"step=reloc.prune reason=capacity id={weakest.Id} score={weakest.Score:F3}");
             _hypotheses.Remove(weakest);
             if (_challenger == weakest)
                 _challenger = null;

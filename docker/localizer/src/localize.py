@@ -196,10 +196,26 @@ def localize_image_against_reconstruction(
             cluster_point3d_indices[label].append(int(point2D.point3D_id))
 
     # Solve PnP per cluster; a wrong-region cluster shows weak inlier support and is dropped here.
+    # Every cluster logs its geometry and outcome (solved or the gate that dropped it) so the
+    # correspondence/inlier floors and the linkage distance can be tuned from the logs alone.
     t = perf_counter()
     solved_clusters: list[tuple[int, Transform, LocalizationMetrics, list[int]]] = []
-    for label, query_keypoints in cluster_query_keypoints.items():
+    for label in range(num_clusters):
+        cluster_image_ids = [
+            matched_image_ids[i] for i in range(len(matched_image_ids)) if int(cluster_labels[i]) == label
+        ]
+        cluster_centers = retrieved_centers[cluster_labels == label]
+        centroid = cluster_centers.mean(axis=0)
+        cluster_offsets = cluster_centers[:, None, :] - cluster_centers[None, :, :]
+        cluster_span = float(sqrt((cluster_offsets**2).sum(axis=-1)).max())
+        query_keypoints = cluster_query_keypoints.get(label, [])
+        cluster_prefix = (
+            f"cluster {label}: images={len(cluster_image_ids)} span(m)={cluster_span:.2f}"
+            f" centroid=({centroid[0]:.1f},{centroid[1]:.1f},{centroid[2]:.1f}) corrs={len(query_keypoints)}"
+        )
+
         if len(query_keypoints) < MIN_CLUSTER_CORRESPONDENCES:
+            print(f"{cluster_prefix} reject=below_correspondences")
             continue
 
         points2D = keypoints["query"][query_keypoints].cpu().numpy()  # noqa: N806 — pycolmap CV notation
@@ -211,12 +227,19 @@ def localize_image_against_reconstruction(
             ),
         )
 
-        if pnp_result is None or int(pnp_result["num_inliers"]) < MIN_CLUSTER_INLIERS:
+        if pnp_result is None:
+            print(f"{cluster_prefix} reject=pnp_failed")
+            continue
+
+        num_inliers = int(pnp_result["num_inliers"])
+        if num_inliers < MIN_CLUSTER_INLIERS:
+            print(f"{cluster_prefix} reject=below_inliers num_inliers={num_inliers}")
             continue
 
         cam_from_world = cast(Rigid3d, pnp_result["cam_from_world"])
         translation = cam_from_world.translation
         rotation = cam_from_world.rotation.matrix()
+        camera_center_map = -rotation.T @ translation
         if axis_convention == AxisConvention.UNITY:
             translation, rotation = change_basis_unity_from_opencv_pose(translation, rotation)
         rotation = Rotation.from_matrix(rotation).as_quat()
@@ -237,10 +260,11 @@ def localize_image_against_reconstruction(
             calibration,
             map,
         )
-        cluster_image_ids = [
-            matched_image_ids[i] for i in range(len(matched_image_ids)) if int(cluster_labels[i]) == label
-        ]
-        solved_clusters.append((int(pnp_result["num_inliers"]), transform, metrics, cluster_image_ids))
+        print(
+            f"{cluster_prefix} solved inliers={num_inliers} ratio={num_inliers / len(query_keypoints):.3f}"
+            f" camPos=({camera_center_map[0]:.1f},{camera_center_map[1]:.1f},{camera_center_map[2]:.1f})"
+        )
+        solved_clusters.append((num_inliers, transform, metrics, cluster_image_ids))
     timings["pnp"] = perf_counter() - t
 
     if not solved_clusters:
@@ -249,11 +273,13 @@ def localize_image_against_reconstruction(
     # Keep the strongest clusters by inlier support for the client filter to arbitrate.
     solved_clusters.sort(key=lambda cluster: cluster[0], reverse=True)
     selected = solved_clusters[:MAX_CLUSTERS_PER_QUERY]
+    if len(solved_clusters) > len(selected):
+        print(
+            f"cluster truncation: survived={len(solved_clusters)} returned={len(selected)} cap={MAX_CLUSTERS_PER_QUERY}"
+        )
 
     timings["total"] = perf_counter() - t0
     print("localize timings(ms): " + " ".join(f"{k}={v * 1000:.0f}" for k, v in timings.items()))
-    for num_inliers, _, _, cluster_image_ids in selected:
-        print(f"cluster: inliers={num_inliers} images={cluster_image_ids}")
 
     return [(transform, metrics) for _, transform, metrics, _ in selected]
 
