@@ -31,6 +31,8 @@ namespace Placeframe.Core
             CurrentInverse = math.inverse(target);
             _slewing = false;
             ResetCorrectionReference(nowSeconds);
+
+            VisualPositioningSystem.LogDebug("step=reloc.frame action=set " + PositionFields("set", target.Position()));
         }
 
         public bool Observe(double4x4 bestEstimate, double3 vioPosition, quaternion vioRotation, float nowSeconds)
@@ -52,12 +54,22 @@ namespace Placeframe.Core
             var residual = Se3.Log(math.mul(CurrentInverse, bestEstimate));
             var residualRadians = math.length(new double3(residual[0], residual[1], residual[2]));
             var residualMeters = math.length(new double3(residual[3], residual[4], residual[5]));
+            var deadbandFields = DeadbandFields(residualMeters, residualRadians, translationThreshold, rotationThreshold, _metersWalked, _radiansTurned, seconds);
 
             if (residualMeters <= translationThreshold && residualRadians <= rotationThreshold)
+            {
+                VisualPositioningSystem.LogDebug("step=reloc.frame action=hold " + deadbandFields);
                 return false;
+            }
 
             // Re-anchor: ease the frame to the best estimate from where it sits now, and reset the
             // deadband to its widest so the next correction has to re-earn divergence from scratch.
+            VisualPositioningSystem.LogDebug(
+                "step=reloc.frame action=correct " + deadbandFields
+                    + " " + PositionFields("from", Current.Position())
+                    + " " + PositionFields("to", bestEstimate.Position())
+            );
+
             _slewStart = Current;
             _slewTarget = bestEstimate;
             _slewElapsed = 0f;
@@ -78,7 +90,10 @@ namespace Placeframe.Core
             CurrentInverse = math.inverse(Current);
 
             if (t >= 1f)
+            {
                 _slewing = false;
+                VisualPositioningSystem.LogDebug("step=reloc.frame action=slewDone " + PositionFields("at", Current.Position()));
+            }
 
             return true;
         }
@@ -106,5 +121,20 @@ namespace Placeframe.Core
         }
 
         private static double Threshold(double max, double min, double progress) => math.lerp(max, min, math.saturate(progress));
+
+        private static string DeadbandFields(
+            double residualMeters,
+            double residualRadians,
+            double translationThreshold,
+            double rotationThreshold,
+            double metersWalked,
+            double radiansTurned,
+            double seconds
+        ) =>
+            $"residM={residualMeters:F3} residRad={residualRadians:F4} transThresh={translationThreshold:F3}"
+                + $" rotThresh={rotationThreshold:F4} walked={metersWalked:F3} turned={radiansTurned:F4} since={seconds:F1}";
+
+        private static string PositionFields(string prefix, double3 position) =>
+            $"{prefix}Tx={position.x:F3} {prefix}Ty={position.y:F3} {prefix}Tz={position.z:F3}";
     }
 }
