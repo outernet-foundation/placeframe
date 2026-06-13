@@ -2,7 +2,7 @@ Shader "Placeframe/PointCloud"
 {
     Properties
     {
-        _PointSize ("Point Size (m)", Float) = 0.0075
+        _PointSize ("Point Size (m)", Float) = 0.02
         [HDR] _Tint ("Tint", Color) = (1, 1, 1, 1)
     }
 
