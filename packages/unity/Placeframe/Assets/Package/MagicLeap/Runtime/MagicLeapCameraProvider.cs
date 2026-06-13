@@ -73,6 +73,7 @@ namespace Placeframe.Core.MagicLeap
                             cancellationToken: cancellationToken
                         )
                 )
+                // TrackingState stays at the Unknown default — MLFrameData surfaces no session state.
                 .Select(jpgBytes => new CameraFrame()
                 {
                     ImageBytes = jpgBytes,

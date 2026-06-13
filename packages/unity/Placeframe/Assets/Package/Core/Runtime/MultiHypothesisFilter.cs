@@ -159,6 +159,7 @@ namespace Placeframe.Core
             var translation = vioPosition - math.mul(rotationUnityFromEcef, translationEcefFromCamera);
 
             var measurementMatrix = Double4x4.FromTranslationRotation(translation, rotationUnityFromEcef);
+            var cameraFields = CameraGeodeticFields(translationEcefFromCamera);
 
             if (_leader == null)
             {
@@ -166,7 +167,7 @@ namespace Placeframe.Core
                 _leader = seed;
                 VisualPositioningSystem.LogDebug(
                     $"step=reloc.measure action=spawn chosen={seed.Id} score={seed.Score:F3}"
-                        + $" {MeasurementFields(measurementMatrix.Position())} {QualityFields(metrics)}"
+                        + $" {MeasurementFields(measurementMatrix.Position())} {cameraFields} {QualityFields(metrics)}"
                 );
                 return seed;
             }
@@ -197,7 +198,8 @@ namespace Placeframe.Core
             {
                 redundant = true;
                 VisualPositioningSystem.LogDebug(
-                    $"step=reloc.measure action=redundant chosen={best.Hypothesis.Id} residM={best.ResidualMeters:F3} {QualityFields(metrics)}"
+                    $"step=reloc.measure action=redundant chosen={best.Hypothesis.Id} residM={best.ResidualMeters:F3}"
+                        + $" {cameraFields} {QualityFields(metrics)}"
                 );
                 return null;
             }
@@ -219,7 +221,7 @@ namespace Placeframe.Core
                     $"step=reloc.measure action=match chosen={matched.Id} score={matched.Score:F3}"
                         + $" residM={best.ResidualMeters:F3} residRad={best.ResidualRadians:F4}"
                         + $" gateThresh={best.Threshold:F3} vioDelta={best.VioDelta:F3}"
-                        + $" {MeasurementFields(measurementMatrix.Position())} {QualityFields(metrics)}"
+                        + $" {MeasurementFields(measurementMatrix.Position())} {cameraFields} {QualityFields(metrics)}"
                 );
                 return matched;
             }
@@ -230,7 +232,7 @@ namespace Placeframe.Core
             var spawned = Spawn(measurementMatrix, vioPosition, nowSeconds);
             VisualPositioningSystem.LogDebug(
                 $"step=reloc.measure action=spawn chosen={spawned.Id} score={spawned.Score:F3}"
-                    + $" {MeasurementFields(measurementMatrix.Position())} {QualityFields(metrics)}"
+                    + $" {MeasurementFields(measurementMatrix.Position())} {cameraFields} {QualityFields(metrics)}"
             );
             return spawned;
         }
@@ -321,5 +323,14 @@ namespace Placeframe.Core
 
         private static string MeasurementFields(double3 translation) =>
             $"measTx={translation.x:F3} measTy={translation.y:F3} measTz={translation.z:F3}";
+
+        // translationEcefFromCamera is in Unity basis; undo the basis change to get true ECEF so WGS84
+        // returns the camera's real-world geodetic position — "under the ground" is a height question.
+        private static string CameraGeodeticFields(double3 translationEcefFromCameraUnityBasis)
+        {
+            var (translationEcefFromCamera, _) = LocationUtilities.ChangeBasisEcefFromUnity(translationEcefFromCameraUnityBasis, double3x3.identity);
+            var geodetic = WGS84.EcefToCartographic(translationEcefFromCamera);
+            return $"camLat={geodetic.Latitude:F7} camLon={geodetic.Longitude:F7} camAlt={geodetic.Height:F2}";
+        }
     }
 }

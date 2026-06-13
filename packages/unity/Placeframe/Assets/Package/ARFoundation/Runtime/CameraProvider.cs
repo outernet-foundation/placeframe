@@ -296,8 +296,14 @@ namespace Placeframe.Core.ARFoundation
                 ImageBytes = bytes,
                 CameraTranslationUnityWorldFromCamera = cameraPosition,
                 CameraRotationUnityWorldFromCamera = cameraRotation,
+                TrackingState = SampleTrackingState(),
             };
         }
+
+        // Lost frames do not reach this method (the anchored path throws in GetCameraPose), so the
+        // non-Tracking case here is "session degraded but still emitting" — Limited, not Lost.
+        private static CameraTrackingState SampleTrackingState() =>
+            ARSession.state == ARSessionState.SessionTracking ? CameraTrackingState.Tracking : CameraTrackingState.Limited;
 
         private async UniTask<byte[]> EncodeToJpg(
             NativeArray<byte> bytes,

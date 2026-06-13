@@ -54,6 +54,9 @@ namespace Placeframe.Core
         private static readonly TimeSpan DiscoveryTimeout = TimeSpan.FromSeconds(15);
 
         private static float _lastAcceptedTime = -1f;
+        private static double3 _lastVioPosition;
+        private static float _lastVioLogTime;
+        private static bool _hasLastVio;
 
         public static DefaultApi Api { get; private set; }
         public static bool Localizing => _localizationSubscription != null;
@@ -214,6 +217,7 @@ namespace Placeframe.Core
             _filter.Reset();
             PublishIfChanged(true);
             _lastAcceptedTime = -1f;
+            _hasLastVio = false;
 
             _localizationSubscription = _cameraProvider
                 // Get camera configuration asynchronously
@@ -279,6 +283,20 @@ namespace Placeframe.Core
             await UniTask.SwitchToMainThread();
 
             var now = Time.realtimeSinceStartup;
+            var vioPosition = (double3)(float3)frame.CameraTranslationUnityWorldFromCamera;
+
+            // Per-query VIO snapshot — a large vioDelta between successive Localize calls when the user
+            // did not walk separates a VIO jump or session degradation from a stationary PnP sweep.
+            var vioDelta = _hasLastVio ? math.length(vioPosition - _lastVioPosition) : 0.0;
+            var vioElapsed = _hasLastVio ? now - _lastVioLogTime : 0f;
+            LogDebug(
+                $"step=reloc.vio trackingState={frame.TrackingState} vioDelta={vioDelta:F3} vioElapsed={vioElapsed:F3}"
+                    + $" vioTx={vioPosition.x:F3} vioTy={vioPosition.y:F3} vioTz={vioPosition.z:F3}"
+            );
+            _lastVioPosition = vioPosition;
+            _lastVioLogTime = now;
+            _hasLastVio = true;
+
             var outcome = _filter.ApplyMeasurements(localizationResults, frame, now);
 
             if (outcome != MeasurementOutcome.Rejected)
@@ -294,7 +312,6 @@ namespace Placeframe.Core
             }
             else if (outcome == MeasurementOutcome.Accepted)
             {
-                var vioPosition = (double3)(float3)frame.CameraTranslationUnityWorldFromCamera;
                 var vioRotation = (quaternion)frame.CameraRotationUnityWorldFromCamera;
                 _controller.Observe(_filter.BestEstimate, vioPosition, vioRotation, now);
             }
