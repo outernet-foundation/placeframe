@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections import defaultdict
 from collections.abc import Callable
 from os import environ
 from time import perf_counter
@@ -21,12 +20,10 @@ from core.opq import decode_descriptors
 from core.model_wrappers import RetrievalDim
 from core.tensor_types import TT
 from core.transform import Float3, Float4, Transform
-from numpy import asarray, float32, ndarray, sqrt, stack, vstack
+from numpy import asarray, float32, sqrt, stack, vstack
 from pycolmap import AbsolutePoseEstimationOptions, RANSACOptions
 from pycolmap import Camera as ColmapCamera
 from pycolmap._core import Rigid3d, estimate_and_refine_absolute_pose, set_random_seed  # type: ignore  # noqa: PLC2701 — no public API
-from scipy.sparse import csr_matrix
-from scipy.sparse.csgraph import connected_components
 from scipy.spatial.transform import Rotation
 from torch import Tensor, cuda, inference_mode, manual_seed, topk  # type: ignore
 
@@ -44,14 +41,6 @@ DEVICE = "cuda" if cuda.is_available() else "cpu"
 # CUBLAS_WORKSPACE_CONFIG are deliberately not enabled: the 10–30% latency cost outweighs
 # the residual non-determinism, which is below the discrete inlier-set threshold the fit cares about.
 LOCALIZER_RANDOM_SEED = 0
-
-# Retrieval can pull look-alike images from distinct map regions; clustering camera centers by
-# proximity lets each region be solved separately rather than blended into one wrong pose. A
-# cluster must clear both floors to yield a pose; at most MAX_CLUSTERS_PER_QUERY are returned.
-CLUSTER_LINKAGE_DISTANCE_METERS = 5.0
-MIN_CLUSTER_CORRESPONDENCES = 12
-MIN_CLUSTER_INLIERS = 30
-MAX_CLUSTERS_PER_QUERY = 2
 
 global_descriptor_extractor: Callable[[Tensor], TT[RetrievalDim]]
 local_feature_extractor: Callable[[Tensor], LocalFeatureOutput]
@@ -129,12 +118,14 @@ def localize_image_against_reconstruction(
     matched_image_ids = [map.ordered_image_ids[i] for i in top_k_image_indices]
     timings["retrieval"] = perf_counter() - t
 
-    # Cluster retrieved camera centers by proximity; a large span signals aliased multi-region retrieval.
+    # Pairwise span of retrieved camera centers; logged so an aliasing investigation can correlate
+    # a wide span with a divergent solve. PnP-RANSAC handles multi-region correspondence sets on
+    # its own — the inliers from the larger consistent set win and the rest fall out as outliers —
+    # so this is diagnostic only, not a gate.
     retrieved_centers = stack([map.images[image_id].projection_center().ravel() for image_id in matched_image_ids])
-    retrieval_span_meters, num_clusters, cluster_labels = cluster_retrieved_images(
-        retrieved_centers, CLUSTER_LINKAGE_DISTANCE_METERS
-    )
-    print(f"retrieval span(m): {retrieval_span_meters:.2f} clusters={num_clusters} image_ids={matched_image_ids}")
+    pairwise_offsets = retrieved_centers[:, None, :] - retrieved_centers[None, :, :]
+    retrieval_span_meters = float(sqrt((pairwise_offsets**2).sum(axis=-1)).max())
+    print(f"retrieval span(m): {retrieval_span_meters:.2f} image_ids={matched_image_ids}")
 
     t = perf_counter()
     # Decode descriptors of matched database images
@@ -166,7 +157,25 @@ def localize_image_against_reconstruction(
     _gpu_sync()
     timings["matching"] = perf_counter() - t
 
-    # Create the COLMAP camera model and shared RANSAC options once; every per-cluster solve reuses them.
+    # All 2D-3D correspondences from every retrieved image fed into a single PnP-RANSAC solve.
+    # RANSAC selects the largest consistent inlier set; correspondences from any aliased-region
+    # keyframes that retrieval happened to pull in fall out as outliers on their own.
+    num_matches = sum(match_indices[key][0].shape[0] for key in match_indices)
+    query_keypoint_indices: list[int] = []
+    point3d_indices: list[int] = []
+    for image_id in matched_image_ids:
+        for database_image_keypoint_index, query_image_keypoint_index in zip(*match_indices[(str(image_id), "query")]):
+            point2D = map.images[image_id].points2D[int(database_image_keypoint_index)]  # noqa: N806 — pycolmap CV notation
+
+            if not point2D.has_point3D():
+                continue
+
+            query_keypoint_indices.append(int(query_image_keypoint_index))
+            point3d_indices.append(int(point2D.point3D_id))
+
+    if not query_keypoint_indices:
+        raise LocalizationError("No matching keypoints found")
+
     width, height, *params = canonicalize_intrinsics(camera)
     pycolmap_camera = ColmapCamera(width=width, height=height, model="PINHOLE", params=params)  # noqa: N806 — pycolmap CV notation
 
@@ -175,121 +184,51 @@ def localize_image_against_reconstruction(
     estimation_options = AbsolutePoseEstimationOptions()
     estimation_options.ransac = ransac_options
 
-    # Group each cluster's 2D-3D correspondences and raw match count over its own images.
-    cluster_query_keypoints: dict[int, list[int]] = defaultdict(list)
-    cluster_point3d_indices: dict[int, list[int]] = defaultdict(list)
-    cluster_num_matches: dict[int, int] = defaultdict(int)
-    for image_index, image_id in enumerate(matched_image_ids):
-        label = int(cluster_labels[image_index])
-        database_keypoint_indices, query_keypoint_indices = match_indices[(str(image_id), "query")]
-        cluster_num_matches[label] += int(database_keypoint_indices.shape[0])
-
-        for database_image_keypoint_index, query_image_keypoint_index in zip(
-            database_keypoint_indices, query_keypoint_indices
-        ):
-            point2D = map.images[image_id].points2D[int(database_image_keypoint_index)]  # noqa: N806 — pycolmap CV notation
-
-            if not point2D.has_point3D():
-                continue
-
-            cluster_query_keypoints[label].append(int(query_image_keypoint_index))
-            cluster_point3d_indices[label].append(int(point2D.point3D_id))
-
-    # Solve PnP per cluster; a wrong-region cluster shows weak inlier support and is dropped here.
-    # Every cluster logs its geometry and outcome (solved or the gate that dropped it) so the
-    # correspondence/inlier floors and the linkage distance can be tuned from the logs alone.
     t = perf_counter()
-    solved_clusters: list[tuple[int, Transform, LocalizationMetrics, list[int]]] = []
-    for label in range(num_clusters):
-        cluster_image_ids = [
-            matched_image_ids[i] for i in range(len(matched_image_ids)) if int(cluster_labels[i]) == label
-        ]
-        cluster_centers = retrieved_centers[cluster_labels == label]
-        centroid = cluster_centers.mean(axis=0)
-        cluster_offsets = cluster_centers[:, None, :] - cluster_centers[None, :, :]
-        cluster_span = float(sqrt((cluster_offsets**2).sum(axis=-1)).max())
-        query_keypoints = cluster_query_keypoints.get(label, [])
-        cluster_prefix = (
-            f"cluster {label}: images={len(cluster_image_ids)} span(m)={cluster_span:.2f}"
-            f" centroid=({centroid[0]:.1f},{centroid[1]:.1f},{centroid[2]:.1f}) corrs={len(query_keypoints)}"
-        )
-
-        if len(query_keypoints) < MIN_CLUSTER_CORRESPONDENCES:
-            print(f"{cluster_prefix} reject=below_correspondences")
-            continue
-
-        points2D = keypoints["query"][query_keypoints].cpu().numpy()  # noqa: N806 — pycolmap CV notation
-        points3D = vstack([map.points3D[i].xyz for i in cluster_point3d_indices[label]])  # noqa: N806 — pycolmap CV notation
-        pnp_result = cast(
-            dict[str, Any] | None,
-            estimate_and_refine_absolute_pose(
-                points2D, points3D, pycolmap_camera, estimation_options, return_covariance=True
-            ),
-        )
-
-        if pnp_result is None:
-            print(f"{cluster_prefix} reject=pnp_failed")
-            continue
-
-        num_inliers = int(pnp_result["num_inliers"])
-        if num_inliers < MIN_CLUSTER_INLIERS:
-            print(f"{cluster_prefix} reject=below_inliers num_inliers={num_inliers}")
-            continue
-
-        cam_from_world = cast(Rigid3d, pnp_result["cam_from_world"])
-        translation = cam_from_world.translation
-        rotation = cam_from_world.rotation.matrix()
-        camera_center_map = -rotation.T @ translation
-        if axis_convention == AxisConvention.UNITY:
-            translation, rotation = change_basis_unity_from_opencv_pose(translation, rotation)
-        rotation = Rotation.from_matrix(rotation).as_quat()
-
-        transform = Transform(
-            translation=Float3(x=translation[0], y=translation[1], z=translation[2]),
-            rotation=Float4(x=rotation[0], y=rotation[1], z=rotation[2], w=rotation[3]),
-        )
-        metrics = build_localization_metrics(
-            pnp_result,
-            points2D,
-            points3D,
-            pycolmap_camera,
-            cluster_num_matches[label],
-            width,
-            height,
-            pipeline_version,
-            calibration,
-            map,
-        )
-        print(
-            f"{cluster_prefix} solved inliers={num_inliers} ratio={num_inliers / len(query_keypoints):.3f}"
-            f" camPos=({camera_center_map[0]:.1f},{camera_center_map[1]:.1f},{camera_center_map[2]:.1f})"
-        )
-        solved_clusters.append((num_inliers, transform, metrics, cluster_image_ids))
+    points2D = keypoints["query"][query_keypoint_indices].cpu().numpy()  # noqa: N806 — pycolmap CV notation
+    points3D = vstack([map.points3D[i].xyz for i in point3d_indices])  # noqa: N806 — pycolmap CV notation
+    pnp_result = cast(
+        dict[str, Any] | None,
+        estimate_and_refine_absolute_pose(
+            points2D, points3D, pycolmap_camera, estimation_options, return_covariance=True
+        ),
+    )
     timings["pnp"] = perf_counter() - t
 
-    if not solved_clusters:
-        raise LocalizationError("No retrieval cluster cleared the correspondence and inlier floors")
+    if pnp_result is None:
+        raise LocalizationError("Pose estimation failed")
 
-    # Keep the strongest clusters by inlier support for the client filter to arbitrate.
-    solved_clusters.sort(key=lambda cluster: cluster[0], reverse=True)
-    selected = solved_clusters[:MAX_CLUSTERS_PER_QUERY]
-    if len(solved_clusters) > len(selected):
-        print(
-            f"cluster truncation: survived={len(solved_clusters)} returned={len(selected)} cap={MAX_CLUSTERS_PER_QUERY}"
-        )
+    cam_from_world = cast(Rigid3d, pnp_result["cam_from_world"])
+    translation = cam_from_world.translation
+    rotation = cam_from_world.rotation.matrix()
+    camera_center_map = -rotation.T @ translation
+    if axis_convention == AxisConvention.UNITY:
+        translation, rotation = change_basis_unity_from_opencv_pose(translation, rotation)
+    rotation = Rotation.from_matrix(rotation).as_quat()
+
+    transform = Transform(
+        translation=Float3(x=translation[0], y=translation[1], z=translation[2]),
+        rotation=Float4(x=rotation[0], y=rotation[1], z=rotation[2], w=rotation[3]),
+    )
+    metrics = build_localization_metrics(
+        pnp_result,
+        points2D,
+        points3D,
+        pycolmap_camera,
+        num_matches,
+        width,
+        height,
+        pipeline_version,
+        calibration,
+        map,
+    )
+    num_inliers = int(pnp_result["num_inliers"])
+    print(
+        f"pnp solved inliers={num_inliers} ratio={num_inliers / len(query_keypoint_indices):.3f}"
+        f" camPos=({camera_center_map[0]:.1f},{camera_center_map[1]:.1f},{camera_center_map[2]:.1f})"
+    )
 
     timings["total"] = perf_counter() - t0
     print("localize timings(ms): " + " ".join(f"{k}={v * 1000:.0f}" for k, v in timings.items()))
 
-    return [(transform, metrics) for _, transform, metrics, _ in selected]
-
-
-# Single-linkage clustering of retrieved camera centers: images whose centers fall within
-# linkage_distance_meters land in one connected component. Returns (span, cluster count, per-image labels).
-def cluster_retrieved_images(retrieved_centers: ndarray, linkage_distance_meters: float) -> tuple[float, int, ndarray]:
-    pairwise_offsets = retrieved_centers[:, None, :] - retrieved_centers[None, :, :]
-    pairwise_distances = sqrt((pairwise_offsets**2).sum(axis=-1))
-    num_clusters, cluster_labels = connected_components(
-        csr_matrix(pairwise_distances < linkage_distance_meters), directed=False
-    )
-    return float(pairwise_distances.max()), num_clusters, cluster_labels
+    return [(transform, metrics)]
