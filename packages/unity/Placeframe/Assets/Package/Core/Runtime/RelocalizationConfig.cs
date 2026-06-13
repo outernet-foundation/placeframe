@@ -26,7 +26,9 @@ namespace Placeframe.Core
         public const double ScoreFloor = 0.05;
         public const double SpawnSeedScore = 0.1;
 
-        public const int MaxHypotheses = 3;
+        // Sized so one query's clusters (localizer caps at 2) plus the leader and a surviving challenger
+        // fit without pruning a live hypothesis mid-batch.
+        public const int MaxHypotheses = 4;
 
         // Promotion hysteresis: a challenger replaces the leader only after exceeding its score by the
         // margin AND holding that lead for the dwell.

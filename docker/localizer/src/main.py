@@ -97,7 +97,7 @@ async def localize_image(
 
         try:
             assert calibration is not None  # CODEGEN-guarded; runtime always has it
-            result = localize_image_against_reconstruction(
+            results = localize_image_against_reconstruction(
                 _maps[id],
                 data.camera_config,
                 data.axis_convention,
@@ -108,7 +108,8 @@ async def localize_image(
                 calibration,
             )
 
-            localizations.append(Localization(id=id, transform=result[0], metrics=result[1]))
+            for transform, metrics in results:
+                localizations.append(Localization(id=id, transform=transform, metrics=metrics))
         except LocalizationError as e:
             errors.append(f"Reconstruction {id}: {str(e)}")
 

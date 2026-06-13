@@ -276,13 +276,10 @@ namespace Placeframe.Core
             if (localizationResults.Count == 0)
                 throw new InvalidOperationException("Localization failed");
 
-            // TODO: Handle multiple results.
-            var localizationResult = localizationResults.FirstOrDefault();
-
             await UniTask.SwitchToMainThread();
 
             var now = Time.realtimeSinceStartup;
-            var outcome = _filter.ApplyMeasurement(localizationResult, frame, now);
+            var outcome = _filter.ApplyMeasurements(localizationResults, frame, now);
 
             if (outcome != MeasurementOutcome.Rejected)
                 _lastAcceptedTime = now;

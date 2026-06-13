@@ -39,13 +39,57 @@ namespace Placeframe.Core
         public int HypothesisCount => _hypotheses.Count;
         public int PublishedHypothesisId => _leader?.Id ?? -1;
 
-        public MeasurementOutcome ApplyMeasurement(MapLocalization localizationResult, CameraFrame frame, float nowSeconds)
+        // One batch per query: associate every measurement, then decay/prune/promote exactly once, so
+        // decay tracks query cadence rather than how many clusters a frame happened to produce.
+        public MeasurementOutcome ApplyMeasurements(IReadOnlyList<MapLocalization> measurements, CameraFrame frame, float nowSeconds)
+        {
+            var supported = new HashSet<Hypothesis>();
+            var bootstrapped = false;
+
+            foreach (var measurement in measurements)
+            {
+                var wasLeaderless = _leader == null;
+                var touched = AssociateMeasurement(measurement, frame, nowSeconds, supported);
+                if (touched == null)
+                    continue;
+
+                supported.Add(touched);
+                bootstrapped |= wasLeaderless;
+            }
+
+            if (supported.Count == 0)
+                return MeasurementOutcome.Rejected;
+
+            // Decay the unsupported hypotheses; prune below the floor, never the leader; drop a pruned challenger.
+            foreach (var hypothesis in _hypotheses)
+            {
+                if (!supported.Contains(hypothesis))
+                    hypothesis.Score *= RelocalizationConfig.ScoreDecayPerMeasurement;
+            }
+
+            _hypotheses.RemoveAll(hypothesis => hypothesis != _leader && hypothesis.Score < RelocalizationConfig.ScoreFloor);
+            if (_challenger != null && !_hypotheses.Contains(_challenger))
+                _challenger = null;
+
+            UpdateLeader(nowSeconds);
+
+            return bootstrapped ? MeasurementOutcome.Bootstrapped : MeasurementOutcome.Accepted;
+        }
+
+        public MeasurementOutcome ApplyMeasurement(MapLocalization localizationResult, CameraFrame frame, float nowSeconds) =>
+            ApplyMeasurements(new[] { localizationResult }, frame, nowSeconds);
+
+        // Associate one measurement to a hypothesis (or spawn one), without decaying or promoting — the
+        // batch owns those. Returns the matched/spawned hypothesis, or null if the quality gate rejects it.
+        // A hypothesis already matched earlier in the same batch is excluded so each measurement lands on a
+        // distinct hypothesis.
+        private Hypothesis AssociateMeasurement(MapLocalization localizationResult, CameraFrame frame, float nowSeconds, HashSet<Hypothesis> alreadyMatched)
         {
             var metrics = localizationResult.Metrics;
             if (metrics.InlierRatio < RelocalizationConfig.MinInlierRatio || metrics.NumInliers < RelocalizationConfig.MinInliers)
             {
                 VisualPositioningSystem.LogDebug($"step=reloc.measure action=reject reason=qualityGate {QualityFields(metrics)}");
-                return MeasurementOutcome.Rejected;
+                return null;
             }
 
             // Get the transform from the map to the camera (the inverse of the camera's pose in the map)
@@ -82,19 +126,20 @@ namespace Placeframe.Core
 
             if (_leader == null)
             {
-                var bootstrapped = Spawn(measurementMatrix, vioPosition, nowSeconds);
-                _leader = bootstrapped;
+                var seed = Spawn(measurementMatrix, vioPosition, nowSeconds);
+                _leader = seed;
                 VisualPositioningSystem.LogDebug(
-                    $"step=reloc.measure action=spawn chosen={bootstrapped.Id} score={bootstrapped.Score:F3}"
+                    $"step=reloc.measure action=spawn chosen={seed.Id} score={seed.Score:F3}"
                         + $" {MeasurementFields(measurementMatrix.Position())} {QualityFields(metrics)}"
                 );
-                return MeasurementOutcome.Bootstrapped;
+                return seed;
             }
 
             // Associate to the hypothesis with the smallest SE(3) residual inside the gate — a translation
             // bound that widens with distance walked, plus a fixed rotation bound. A measurement matching
             // none spawns a new hypothesis.
             var best = _hypotheses
+                .Where(hypothesis => !alreadyMatched.Contains(hypothesis))
                 .Select(hypothesis =>
                 {
                     var candidateVioDelta = math.length(vioPosition - hypothesis.LastSupportVioPosition);
@@ -112,11 +157,9 @@ namespace Placeframe.Core
                 .OrderBy(candidate => candidate.ResidualMeters)
                 .FirstOrDefault();
 
-            Hypothesis matched;
             if (best != null)
             {
-                matched = best.Hypothesis;
-
+                var matched = best.Hypothesis;
                 matched.Estimate = measurementMatrix;
                 matched.Score +=
                     RelocalizationConfig.SupportRewardBase
@@ -130,33 +173,18 @@ namespace Placeframe.Core
                         + $" gateThresh={best.Threshold:F3} vioDelta={best.VioDelta:F3}"
                         + $" {MeasurementFields(measurementMatrix.Position())} {QualityFields(metrics)}"
                 );
-            }
-            else
-            {
-                if (_hypotheses.Count >= RelocalizationConfig.MaxHypotheses)
-                    PruneWeakestNonLeader();
-
-                matched = Spawn(measurementMatrix, vioPosition, nowSeconds);
-                VisualPositioningSystem.LogDebug(
-                    $"step=reloc.measure action=spawn chosen={matched.Id} score={matched.Score:F3}"
-                        + $" {MeasurementFields(measurementMatrix.Position())} {QualityFields(metrics)}"
-                );
+                return matched;
             }
 
-            // Decay the unsupported hypotheses; prune below the floor, never the leader; drop a pruned challenger.
-            foreach (var hypothesis in _hypotheses)
-            {
-                if (hypothesis != matched)
-                    hypothesis.Score *= RelocalizationConfig.ScoreDecayPerMeasurement;
-            }
+            if (_hypotheses.Count >= RelocalizationConfig.MaxHypotheses)
+                PruneWeakestNonLeader();
 
-            _hypotheses.RemoveAll(hypothesis => hypothesis != _leader && hypothesis.Score < RelocalizationConfig.ScoreFloor);
-            if (_challenger != null && !_hypotheses.Contains(_challenger))
-                _challenger = null;
-
-            UpdateLeader(nowSeconds);
-
-            return MeasurementOutcome.Accepted;
+            var spawned = Spawn(measurementMatrix, vioPosition, nowSeconds);
+            VisualPositioningSystem.LogDebug(
+                $"step=reloc.measure action=spawn chosen={spawned.Id} score={spawned.Score:F3}"
+                    + $" {MeasurementFields(measurementMatrix.Position())} {QualityFields(metrics)}"
+            );
+            return spawned;
         }
 
         public void Reset()
