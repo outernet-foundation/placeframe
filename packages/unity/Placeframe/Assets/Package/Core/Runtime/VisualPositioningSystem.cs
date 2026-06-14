@@ -74,11 +74,11 @@ namespace Placeframe.Core
             _localizationMapManager?.SetVisible(visible);
         }
 
-        internal static void LogDebug(string message) => _logCallback?.Invoke(message);
+        public static void LogDebug(string message) => _logCallback?.Invoke(message);
 
-        internal static void LogWarn(string message) => _warnCallback?.Invoke(message);
+        public static void LogWarn(string message) => _warnCallback?.Invoke(message);
 
-        internal static void LogError(string message) => _errorCallback?.Invoke(message);
+        public static void LogError(string message) => _errorCallback?.Invoke(message);
 
         public static void Initialize(
             ICameraProvider cameraProvider,

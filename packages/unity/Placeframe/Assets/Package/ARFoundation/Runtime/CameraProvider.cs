@@ -157,14 +157,31 @@ namespace Placeframe.Core.ARFoundation
             XRCameraConfiguration? bestConfig = null;
             using (var configs = _cameraManager.GetConfigurations(Allocator.Temp))
             {
-                foreach (var config in configs)
+                for (var index = 0; index < configs.Length; index++)
                 {
+                    var config = configs[index];
+
+                    // Diagnostic: the device's full config menu with frame rates, so a Loki query can
+                    // tell whether selecting max resolution forces a lower frame rate than an alternative.
+                    var framerate = config.framerate?.ToString() ?? "null";
+                    VisualPositioningSystem.LogDebug(
+                        $"step=camera.config.available index={index} width={config.width} height={config.height} framerate={framerate}"
+                    );
+
                     if (
                         bestConfig == null
                         || (config.width * config.height) > (bestConfig.Value.width * bestConfig.Value.height)
                     )
                         bestConfig = config;
                 }
+            }
+
+            if (bestConfig.HasValue)
+            {
+                var selectedFramerate = bestConfig.Value.framerate?.ToString() ?? "null";
+                VisualPositioningSystem.LogDebug(
+                    $"step=camera.config.selected width={bestConfig.Value.width} height={bestConfig.Value.height} framerate={selectedFramerate}"
+                );
             }
 
             XRCameraIntrinsics intrinsics = default;
