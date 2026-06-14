@@ -9,7 +9,7 @@ from httpx import AsyncClient
 
 from placeframe_api_client import ApiClient, Configuration, DefaultApi, ServerInfo
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 @asynccontextmanager
