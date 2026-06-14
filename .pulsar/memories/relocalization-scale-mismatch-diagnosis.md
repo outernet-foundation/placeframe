@@ -11,13 +11,42 @@ showed content that is "off when I shift perspective, then re-aligns" as the use
 analysis decomposed the felt instability into a slow, **position-locked** swing (not fast jitter,
 not VIO drift) consistent with a **~7–10% metric-scale mismatch** between map and device. The
 question driving this memory was *which side* the mismatch is on — device VIO, or local map warp.
-**That question is now answered: it is the device (ARFoundation outdoor VIO), not the map.** The
-remaining work is *how to fix it* — two complementary threads (online compensation, and a
-source-side camera-config change).
+**That question is now answered: it is the device (ARFoundation outdoor VIO), not the map.** A
+follow-up question — could the bias be an artifact of a poorly-chosen (frame-rate-throttling)
+camera config? — is **also now answered: no, not on this hardware (Pixel 9).** The remaining work is
+the one fix that's left: **online per-session scale compensation (Thread A).**
 
 ## State
 
-### Decisive second device run — answers "map or device?" (NEW, this session)
+### Camera-config diagnostic run — rules out Thread B on Pixel 9 (NEW, this session)
+
+- The camera-config diagnostic (Thread B's first step from the prior memory) was **implemented and
+  shipped in a new APK**, then run on a **Pixel 9**.
+- Diagnostic logic lives in `CameraProvider.cs` `PrepareCamera`: it logs **every** available
+  `XRCameraConfiguration` as `step=camera.config.available index=N width=W height=H framerate=F`,
+  plus a `step=camera.config.selected` line. To reach Loki alongside `scaleRatio` (the package's
+  single log facade), `VisualPositioningSystem.LogDebug/LogWarn/LogError` were widened from
+  `internal` to `public` so the sibling `Placeframe.Core.ARFoundation` assembly can log to the same
+  sink (no `InternalsVisibleTo` exists; widening the three levels together keeps the facade
+  coherent).
+- **Loki result:** 9 available configs — three resolutions (640×480, 1280×720, 1920×1080), each
+  exposed 3 times (ARCore's usual triplication for CPU-image/GPU-texture/depth combos) — and
+  **EVERY config reports framerate=30.** Selected config was **1920×1080@30**.
+- **DECISIVE — Thread B is empirically RULED OUT on Pixel 9:** max resolution costs **zero** frame
+  rate (all configs are 30 fps; there is no higher-fps config to switch to). A frame-rate-aware
+  selection change would be a **no-op** here, and dropping resolution would only lose detail (some of
+  which survives the server's 1024 px downsample) for **no** fps gain. The premise behind Thread B
+  ("max-res throttles tracking fps") is false on this device.
+- **Consequence:** this confirms the ~7% scale bias is the **fundamental ARFoundation outdoor
+  monocular-inertial scale limitation**, NOT an artifact of a throttled-tracking-fps config choice.
+  → **Thread A (online per-session EMA scale compensation) is now THE fix**, not just the
+  device-agnostic catch-all. There is no cheaper source-side win hiding behind it on this hardware.
+- **Caveat to preserve:** this is **Pixel-9-specific** evidence. A different ARCore phone *could*
+  expose a 1080p@30-vs-720p@60 split where Thread B would matter — the diagnostic is now
+  **permanently in the build** to catch that if it shows up. On ML2 the question is moot (different
+  tracker entirely).
+
+### Decisive second device run — answers "map or device?"
 
 - A **second device run** was captured with the new `scaleRatio` diagnostic baked into the filter
   (new APK). 133 new-format match lines, ~189 s, ~131 m walked across a ~28 m (X) × 30 m (Z) flat
@@ -61,9 +90,15 @@ source-side camera-config change).
   `triangulation_minimum_angle = 3.0°` → metric structure only within ~2.3 m, only 114/2773 matches
   stereo-verified) was the *warp* mechanism — now ruled out by the flat `scaleRatio`.
 
-### Code shipped this session (already committed)
+### Code shipped this session
 
-- `scaleRatio` per-measurement diagnostic in `MultiHypothesisFilter.cs` + a `SPEC.md` note.
+- `scaleRatio` per-measurement diagnostic in `MultiHypothesisFilter.cs` + a `SPEC.md` note
+  (committed earlier).
+- Camera-config diagnostic in `CameraProvider.cs` `PrepareCamera` (logs every available config's
+  width/height/framerate + the selected one), and the `internal`→`public` widening of
+  `VisualPositioningSystem.LogDebug/LogWarn/LogError` so `CameraProvider` (sibling
+  `Placeframe.Core.ARFoundation` assembly) can log to the Loki sink. **This is a retained probe**, not
+  scaffolding — keep it in the build to catch a fps-split on a different ARCore device.
 
 ## Decisions
 
@@ -73,8 +108,10 @@ source-side camera-config change).
 - Smoothing/EMA stays demoted for *jitter* — but an EMA **of the scale ratio** is now the core of
   the proposed online fix (Thread A below), a different use entirely.
 
-### Thread A — online VIO-scale compensation (PROPOSED, not built)
+### Thread A — online VIO-scale compensation (THE fix; not yet built)
 
+- **This is now the primary/next action** — Thread B is ruled out on Pixel 9, so there is no
+  source-side win to take first; online compensation is the only lever left.
 - The filter already computes `scaleRatio` per segment. The fix: maintain a **per-session EMA** of
   it and scale VIO motion deltas by **1/ratio** (≈ 1.075 here) when `DriftCorrectionController`
   propagates the published frame between corrections.
@@ -82,44 +119,41 @@ source-side camera-config change).
   constant: it is **device-agnostic**. This phone converges to ~7%; a Magic Leap 2 (better tracker)
   converges to ~1.0 and does nothing; it adapts per device and per environment. A hardcoded ~1.075
   would be this-phone-specific and *wrong* on ML2 and other hardware.
-- Status: PROPOSED. Diagnose-first; not implemented.
+- Status: designed, not implemented.
 
-### Thread B — theorized source-side fix to camera-config selection (PROPOSED, not built)
+### Thread B — source-side camera-config/frame-rate fix (RULED OUT on Pixel 9; diagnostic shipped)
 
-- Audit of `CameraProvider.cs` config selection (`PrepareCamera`, lines ~156–184): it picks purely
-  the **highest resolution** (max `width*height`), **ignoring frame rate**.
-- On ARCore the max-res config often runs at a **lower fps**, and ARCore tracking/scale
-  observability is **better at higher fps** — so we may be throttling tracking fps for **no benefit**,
-  because the **server downsamples every image to a 1024 px shorter side anyway**
-  (`canonicalize_intrinsics`).
-- **Proposed source fix:** select the config that is just big enough to survive the 1024 px
-  downsample but at the **highest available frame rate**.
+- The original audit of `CameraProvider.cs` config selection (`PrepareCamera`, ~lines 156–184): it
+  picks purely the **highest resolution** (max `width*height`), **ignoring frame rate**. The theory
+  was that on ARCore the max-res config might run at a **lower fps**, throttling tracking/scale
+  observability for **no benefit** (the server downsamples every image to a 1024 px shorter side
+  anyway, `canonicalize_intrinsics`).
+- **This theory is now empirically dead on Pixel 9** (see State above): all 9 available configs are
+  30 fps, so there is no higher-fps config to switch to. The fps-aware selection change would be a
+  no-op. The diagnostic that proved this is **retained in the build** as a probe for other ARCore
+  devices that *might* have a fps split.
 - Ruled NOT-the-cause but worth recording from the audit:
   - Auto-focus is disabled — **correct** (keeps intrinsics stable; minor far-scene blur risk only).
   - pose↔image timing lag (reads `Camera.main` pose after acquiring the image) → motion-proportional
     *noise*, not a scale bias.
   - The live-localization path correctly uses the raw full-6DoF `Camera.main` pose, **not** the
     level-reference anchored path (that anchored path is disk-recording only).
-- **Honest caveat:** outdoor monocular-inertial scale bias is partly **fundamental** (far scenes,
-  little parallax). The fps fix would likely **shrink** the 7% but not zero it.
-
-### How A and B relate
-
-- **Complementary, not either/or.** Do the source fix (B) first to shrink the bias, then compensate
-  the residual (A). Only compensation (A) covers ML2 and other devices.
 
 ## Open questions
 
-- Does the max-res config actually cost fps on the *target ARCore device*? (Decides whether Thread B
-  is real for this hardware.) — see immediate next step.
 - For Thread A: EMA time constant / warm-up behavior, and how to gate the ratio estimate during
   standstill (`mapDelta` ≈ 0 segments are meaningless and must be filtered).
 
 ## Key files
 
 - `packages/unity/Placeframe/Assets/Package/ARFoundation/Runtime/CameraProvider.cs` — `PrepareCamera`
-  config selection at lines ~156–184: currently max `width*height`, ignores frame rate (Thread B
-  target). Auto-focus disabled here too.
+  config selection at lines ~156–184: picks max `width*height`, ignores frame rate. Now also carries
+  the retained camera-config diagnostic (`step=camera.config.available` per config +
+  `step=camera.config.selected`). Auto-focus disabled here too. Lives in the
+  `Placeframe.Core.ARFoundation` assembly.
+- `packages/unity/Placeframe/Assets/Package/Core/Runtime/VisualPositioningSystem.cs` — the package's
+  log facade; `LogDebug/LogWarn/LogError` are now `public` (were `internal`) so the sibling
+  ARFoundation assembly can log to the same Loki sink.
 - `packages/unity/Placeframe/Assets/Package/Core/Runtime/MultiHypothesisFilter.cs` — the filter;
   carries the `scaleRatio` diagnostic (map-frame camera position + `mapDelta` + `scaleRatio` per
   measurement). Source of the per-segment ratio that Thread A's EMA would consume.
@@ -139,14 +173,15 @@ source-side camera-config change).
 
 ## Pending threads
 
-1. **Immediate next step (before either fix):** add a diagnostic log of available camera configs +
-   their frame rates in `CameraProvider.cs`, to verify whether max-res actually costs fps on the
-   target ARCore device. This decides whether Thread B is worth doing on this hardware.
-2. **Thread B (source fix):** select the smallest config that survives the 1024 px server
-   downsample at the highest available frame rate; re-run, re-measure `scaleRatio` (expect it to
-   shrink toward 1.0 but not reach it).
-3. **Thread A (online compensation):** per-session EMA of `scaleRatio`, scale VIO deltas by 1/ratio
-   in `DriftCorrectionController` between corrections; device-agnostic, covers the residual + ML2.
+1. **Thread A (online compensation) — THE next action:** per-session EMA of `scaleRatio`, scale VIO
+   deltas by 1/ratio in `DriftCorrectionController` between corrections; gate against standstill
+   (`mapDelta` ≈ 0) segments. Device-agnostic — covers the ~7% on this phone and does nothing on a
+   well-scaled tracker (ML2). This is now the only fix left after Thread B was ruled out.
+2. **Commit the diagnostic code** (uncommitted in the working tree at memory-write time):
+   `CameraProvider.cs` config logging + the `internal`→`public` widening of the three
+   `VisualPositioningSystem.Log*` methods. Keep it — it is a retained probe, not scaffolding.
+3. **Thread B — closed on Pixel 9, no action.** Reopen only if the retained camera-config diagnostic
+   ever shows a fps split (e.g. 1080p@30 vs 720p@60) on a different ARCore device.
 4. The two-reconstruction calibration / held-out re-localization check from the multi-hypothesis
    plan's calibration chapter — still a useful independent map-scale probe, now lower priority since
    the map is exonerated.
