@@ -2,14 +2,14 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from os import environ
 from pathlib import Path
 from typing import cast
 
+from build_scripts.placeframe.modes import parse_env_file
 from httpx import AsyncClient
 
 from placeframe_api_client import ApiClient, Configuration, DefaultApi, ServerInfo
-
-REPO_ROOT = Path(__file__).resolve().parents[4]
 
 
 @asynccontextmanager
@@ -30,11 +30,21 @@ async def authenticated_api_client() -> AsyncIterator[DefaultApi]:
 
 
 def _read_public_url() -> str:
-    for line in (REPO_ROOT / ".env").read_text().splitlines():
-        stripped = line.strip()
-        if stripped.startswith("PUBLIC_URL=") and not stripped.startswith("#"):
-            return stripped.split("=", 1)[1].strip()
-    raise RuntimeError("PUBLIC_URL not found in .env")
+    public_url = environ.get("PUBLIC_URL")
+    if not public_url:
+        public_url = parse_env_file(_find_env_file()).get("PUBLIC_URL")
+
+    if not public_url:
+        raise RuntimeError("PUBLIC_URL not found in environment or .env")
+    return public_url
+
+
+def _find_env_file() -> Path:
+    for directory in (Path.cwd(), *Path.cwd().parents):
+        candidate = directory / ".env"
+        if candidate.is_file():
+            return candidate
+    raise RuntimeError("No .env found in the current directory or any parent; run from inside the repo")
 
 
 async def _fetch_keycloak_token(server_info: ServerInfo) -> str:
