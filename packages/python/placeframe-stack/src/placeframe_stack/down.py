@@ -10,10 +10,11 @@ from .modes import resolve_auth_mode
 
 ENV_FILE = Path(".env")
 LOCK_FILE = Path(".env.lock")
+BAKE_FILE = Path("compose.bake.yml")
 
 
 def _resolve_service_shas() -> None:
-    os.environ.update(compute_service_shas(Path.cwd(), Path("compose.bake.yml")))
+    os.environ.update(compute_service_shas(Path.cwd(), BAKE_FILE))
 
 
 app = typer.Typer(add_completion=False)
@@ -26,13 +27,21 @@ def down(
     compose_file: Path = typer.Option(
         Path("compose.yml"),
         "--compose-file",
-        help=("Base compose file. Default compose.yml. Use compose.makeitsing.yml to tear down the makeitsing stack."),
+        help=(
+            "Base compose file. In the placeframe repo (where compose.bake.yml lives) the default compose.yml "
+            "tears down the native multi-file stack. A consumer stack — e.g. make-it-sing's compose.yml — is torn "
+            "down as the single graph it was brought up as."
+        ),
     ),
 ) -> None:
+    # Mirror up: native multi-file teardown only inside the placeframe repo (compose.bake.yml
+    # present) with the default compose.yml. A consumer stack tears down its single graph.
+    native = compose_file == Path("compose.yml") and BAKE_FILE.exists()
+
     if not ENV_FILE.exists():
         raise RuntimeError("No .env file found")
 
-    if not LOCK_FILE.exists():
+    if native and not LOCK_FILE.exists():
         raise RuntimeError("No lock file found; run 'uv run build --lock-only' first")
 
     if gpu == "auto":
@@ -40,9 +49,10 @@ def down(
 
     resolve_auth_mode(ENV_FILE)
 
-    _resolve_service_shas()
+    if BAKE_FILE.exists():
+        _resolve_service_shas()
 
-    if compose_file == Path("compose.yml"):
+    if native:
         compose_files = (
             "-f compose.yml "
             "-f compose.postgres.yml "
@@ -52,12 +62,15 @@ def down(
     else:
         compose_files = f"-f {compose_file} "
 
+    # .env.lock keeps compose from erroring on missing placeframe-internal vars; it only
+    # exists in the native repo, so a consumer stack tears down with .env alone.
+    lock_flag = f"--env-file {LOCK_FILE} " if LOCK_FILE.exists() else ""
     command = (
         "docker compose "
         f"{compose_files}"
         "--profile keycloak "  # Always include so any keycloak containers from a previous AUTH_MODE=keycloak run get torn down
         "--env-file .env "
-        f"--env-file {LOCK_FILE} "  # Needed so compose won't error on missing variables, even though they are irrelevant for 'down'
+        f"{lock_flag}"
         "down --remove-orphans"
     )
 

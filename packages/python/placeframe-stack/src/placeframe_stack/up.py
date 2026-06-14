@@ -11,10 +11,11 @@ from .modes import resolve_auth_mode
 
 ENV_FILE = Path(".env")
 LOCK_FILE = Path(".env.lock")
+BAKE_FILE = Path("compose.bake.yml")
 
 
 def _resolve_service_shas() -> None:
-    os.environ.update(compute_service_shas(Path.cwd(), Path("compose.bake.yml")))
+    os.environ.update(compute_service_shas(Path.cwd(), BAKE_FILE))
 
 
 app = typer.Typer(add_completion=False)
@@ -38,21 +39,30 @@ def up(
         Path("compose.yml"),
         "--compose-file",
         help=(
-            "Base compose file. Default compose.yml. Use compose.makeitsing.yml for the makeitsing stack, "
-            "which OCI-pulls the published placeframe artifact and adds LiveKit on top."
+            "Base compose file. In the placeframe repo (where compose.bake.yml lives) the default compose.yml "
+            "triggers the native multi-file assembly. A consumer stack — e.g. make-it-sing's compose.yml, which "
+            "OCI-pulls the published placeframe artifact and adds LiveKit on top — is run as the complete graph "
+            "with only --env-file .env."
         ),
     ),
 ) -> None:
-    if not LOCK_FILE.exists():
-        raise RuntimeError("No lock file found; run 'uv run build --lock-only' first")
+    # The placeframe repo carries compose.bake.yml and builds its own images, so the
+    # default compose.yml means the native multi-file stack (postgres + gpu + dev layers,
+    # per-service SHA injection, .env.lock). A consumer repo has no bake file: its
+    # --compose-file is the whole graph (placeframe arrives baked via OCI include or a
+    # sibling-checkout include), so SHA resolution and .env.lock don't apply.
+    native = compose_file == Path("compose.yml") and BAKE_FILE.exists()
 
     if not ENV_FILE.exists():
         raise RuntimeError("No .env file found; create one first (e.g., copy .env.example)")
 
-    if compose_file != Path("compose.yml") and build:
+    if native and not LOCK_FILE.exists():
+        raise RuntimeError("No lock file found; run 'uv run build --lock-only' first")
+
+    if build and not native:
         raise typer.BadParameter(
-            "--build is only supported with the default --compose-file; non-default stacks consume images "
-            "from the OCI-included placeframe artifact and have no local build graph."
+            "--build is only supported for the native placeframe stack; a consumer stack consumes images "
+            "from the OCI-included placeframe artifact and has no local build graph."
         )
 
     if gpu == "auto":
@@ -63,10 +73,11 @@ def up(
     if build:
         run_build(gpu=gpu)
 
-    _resolve_service_shas()
+    if BAKE_FILE.exists():
+        _resolve_service_shas()
 
     profile_flag = "--profile keycloak " if auth_mode == "keycloak" else ""
-    if compose_file == Path("compose.yml"):
+    if native:
         gpu_file = f"-f compose.{gpu}.yml " if gpu != "none" else ""
         dev_file = "" if no_dev else "-f compose.dev.yml "
         compose_args = (
@@ -74,7 +85,8 @@ def up(
             f"--env-file .env --env-file {LOCK_FILE}"
         )
     else:
-        compose_args = f"-f {compose_file} {profile_flag}--env-file .env --env-file {LOCK_FILE}"
+        lock_flag = f"--env-file {LOCK_FILE} " if LOCK_FILE.exists() else ""
+        compose_args = f"-f {compose_file} {profile_flag}--env-file .env {lock_flag}".rstrip()
 
     up_command = f"docker compose {compose_args} up"
     if not build:
