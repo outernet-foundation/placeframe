@@ -22,7 +22,7 @@ The repo uses a two-tier docs model: `CLAUDE.md` for always-loaded rules (prescr
 
 ## Commands
 
-Top-level commands are `uv run <name>` from the repo root. See `build/SPEC.md` for the stack-lifecycle / Cesium catalog (`up`, `down`, `build`, `generate-clients`, `generate-datamodels`, `lock-python`, `deptry-check`, `preflight`, …) and `packages/python/placeframe-unity/SPEC.md` for the Unity catalog (`compile-unity`, `lock-unity`, `test-unity`, …), including per-command flags. See `scripts/SPEC.md` for operator utilities (`install`, `install-zed`, `fit-calibration`, debug-attach helpers). Every command accepts `--help`.
+Top-level commands are `uv run <name>` from the repo root. See `packages/python/placeframe-stack/SPEC.md` for the stack-lifecycle catalog (`up`, `down`, `build`), `build/SPEC.md` for the codegen / Cesium catalog (`generate-clients`, `generate-datamodels`, `lock-python`, `deptry-check`, `preflight`, …), and `packages/python/placeframe-unity/SPEC.md` for the Unity catalog (`compile-unity`, `lock-unity`, `test-unity`, …), including per-command flags. See `scripts/SPEC.md` for operator utilities (`install`, `install-zed`, `fit-calibration`, debug-attach helpers). Every command accepts `--help`.
 
 **Linting and type checking** (from repo root):
 
@@ -46,6 +46,7 @@ The repo is a `uv` monorepo. Shared Python code lives in `packages/python/`:
 
 - **`common`** — utilities for boto/MinIO, Docker SDK, Litestar, JWT
 - **`placeframe-bash`** — zero-dependency shell-exec helpers (`bash()` and friends); separate from `common` so git-referenced consumers don't drag in `common`'s dependencies
+- **`placeframe-stack`** — Docker-stack lifecycle commands (`up`/`down`/`build`) and helpers (`detect_gpu`, `modes`, `context_sha`); standalone so consumer repos (e.g. make-it-sing) can git-reference just the bring-up/tear-down machinery without the codegen dependency surface
 - **`placeframe-unity`** — Unity build toolkit (manifest discovery, `compile-unity`/`build-unity`, license, ORAS cache); standalone so other repos can git-reference it for Unity CI
 - **`core`** — domain logic: camera configs, coordinate transforms, metrics
 - **`neural-networks`** — PyTorch models with conditional extras (`cpu`, `cuda`, `rocm`)

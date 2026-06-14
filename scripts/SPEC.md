@@ -154,7 +154,8 @@ Deterministic, scales to capture length, gives even temporal spacing → roughly
 
 ## See also
 
-- `build/` (the `build-scripts` workspace package) — sibling Python CLI package holding the Docker-stack lifecycle and codegen entry points (`up`, `down`, `build`, `generate-clients`, `generate-datamodels`, `lock-python`, `deptry-check`, `preflight`). `scripts/` imports from it (`build_scripts.placeframe.context_sha.compute_service_shas` in `install_zed.py`); the inverse does not hold.
+- `packages/python/placeframe-stack/` — the workspace package holding the Docker-stack lifecycle (`up`, `down`, `build`) and the SHA/auth helpers. `scripts/` imports from it (`placeframe_stack.context_sha.compute_service_shas` in `install_zed/orchestrator.py`, `placeframe_stack.modes.parse_env_file` in `api_auth.py`); the inverse does not hold.
+- `build/` (the `build-scripts` workspace package) — sibling Python CLI package holding the codegen entry points (`generate-clients`, `generate-datamodels`, `lock-python`, `deptry-check`, `preflight`).
 - `packages/python/placeframe-unity/SPEC.md` — the Unity build toolkit, which also hosts the `install` command. `scripts/` no longer imports from it; the dependency was dropped when `install.py` moved.
 - `docker/localizer/SPEC.md` — defines the `/version` and `/localize` endpoints that `fit-calibration` consumes and the `pipeline_version` baked into the localizer image.
 - `docker/reconstructor/SPEC.md` — defines the single-anchor truth-frame alignment and the Procrustes-residual diagnostic metrics that Algorithm 1 step 2 relies on.
