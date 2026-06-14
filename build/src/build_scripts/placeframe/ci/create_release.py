@@ -10,7 +10,7 @@ from placeframe_bash import bash, bash_output
 from pydantic_settings import BaseSettings
 
 from placeframe_unity.ci_step import ci_step
-from ..context_sha import compute_service_shas
+from placeframe_stack.context_sha import compute_service_shas
 from placeframe_unity.git_tags import get_latest_tag_version
 from .git_tags import APP_TAG_PREFIXES
 

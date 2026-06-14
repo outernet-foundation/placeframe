@@ -4,6 +4,7 @@ version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [
   "placeframe-bash",
+  "placeframe-stack",
   "placeframe-unity",
   "datamodel-code-generator>=0.33.0",
   "psycopg[binary]>=3.2.10",
@@ -13,8 +14,6 @@ dependencies = [
   "sqlacodegen==3.2.0",
   "sqlalchemy>=2.0.45",
   "typer>=0.17.4",
-  "pyyaml>=6.0",
-  "pathspec>=1.0.4",
 ]
 
 [tool.deptry]
@@ -31,7 +30,6 @@ build-backend = "hatchling.build"
 packages = ["src/build_scripts"]
 
 [project.scripts]
-build = "build_scripts.placeframe.build_docker:app"
 build-cesium = "build_scripts.cesium.build:app"
 build-docker = "build_scripts.placeframe.ci.build_docker:ci_app"
 codegen-cesium = "build_scripts.cesium.codegen:app"
@@ -40,7 +38,6 @@ create-release = "build_scripts.placeframe.ci.create_release:app"
 deptry-check = "build_scripts.placeframe.deptry_check:main"
 ensure-release-pr = "build_scripts.placeframe.ci.ensure_release_pr:app"
 fetch-ci-artifacts = "build_scripts.placeframe.ci.fetch_ci_artifacts:app"
-down = "build_scripts.placeframe.down:app"
 generate-clients = "build_scripts.placeframe.generate_clients:app"
 generate-datamodels = "build_scripts.placeframe.generate_datamodels:main"
 lock-python = "build_scripts.placeframe.lock_python:app"
@@ -48,4 +45,3 @@ preflight = "build_scripts.placeframe.ci.preflight:app"
 protect-branches = "build_scripts.placeframe.protect_branches:app"
 publish-compose = "build_scripts.placeframe.ci.publish_compose:ci_app"
 publish-packages = "build_scripts.placeframe.ci.publish_packages:app"
-up = "build_scripts.placeframe.up:app"

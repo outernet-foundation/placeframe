@@ -7,7 +7,7 @@ import typer
 from placeframe_bash import bash, bash_output
 
 from placeframe_unity.ci_step import ci_step
-from ..context_sha import compute_service_shas
+from placeframe_stack.context_sha import compute_service_shas
 from ..lock_python import lock_python
 
 app = typer.Typer(add_completion=False, pretty_exceptions_show_locals=False)

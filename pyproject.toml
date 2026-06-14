@@ -23,6 +23,7 @@ members = [
     "packages/python/core",
     "packages/python/common",
     "packages/python/placeframe-bash",
+    "packages/python/placeframe-stack",
     "packages/python/placeframe-unity",
     "packages/python/neural-networks",
     "packages/python/neural-networks/third-party/deep-image-retrieval",
@@ -43,6 +44,7 @@ config-settings-package.placeframe-localizer-client = { editable_mode = "compat"
 [tool.uv.sources]
 common = { workspace = true }
 placeframe-bash = { workspace = true }
+placeframe-stack = { workspace = true }
 placeframe-unity = { workspace = true }
 core = { workspace = true }
 neural-networks = { workspace = true }
@@ -71,4 +73,4 @@ include = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["build/tests", "packages/python/common/tests", "packages/python/placeframe-bash/tests", "scripts/tests"]
+testpaths = ["build/tests", "packages/python/common/tests", "packages/python/placeframe-bash/tests", "packages/python/placeframe-stack/tests", "scripts/tests"]
