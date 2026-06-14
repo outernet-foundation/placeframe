@@ -5,5 +5,5 @@ remote_addr = "{{ control_endpoint }}"
 [client.services.{{ engineer_name }}-{{ service.name }}]
 type = "{{ service.protocol }}"
 token = "{{ token }}"
-local_addr = "{{ forward_address }}:{{ service.port }}"
+local_addr = "{{ service.host }}:{{ service.port }}"
 {% endfor %}

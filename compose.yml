@@ -205,19 +205,18 @@ services:
     environment:
       NGROK_AUTHTOKEN: "${NGROK_AUTHTOKEN:-}"
 
-  # network_mode: host so local_addr can reach gateway and host-bound sibling
-  # ports (e.g. makeitsing's LiveKit) via docker0. Downstream stacks override
-  # RATHOLE_SERVICES to register more services.
+  # Forwards each relayed service to a sibling container by Docker DNS name over
+  # the compose network. Downstream stacks override RATHOLE_SERVICES to register
+  # more services (each entry is name:protocol:host:port).
   rathole-client:
     image: "ghcr.io/outernet-foundation/placeframe/rathole-client:${RATHOLE_CLIENT_SHA:?err}"
     profiles: [tunnel-rathole]
-    network_mode: host
     restart: on-failure
     environment:
       ENGINEER_NAME: "${ENGINEER_NAME:-}"
       TUNNEL_CONTROL_ENDPOINT: "${TUNNEL_CONTROL_ENDPOINT:-}"
       TUNNEL_TOKEN: "${TUNNEL_TOKEN:-}"
-      RATHOLE_SERVICES: "gateway:tcp:${GATEWAY_PORT:?err}"
+      RATHOLE_SERVICES: "gateway:tcp:gateway:8443"
 
   database-migrator:
     image: "ghcr.io/outernet-foundation/placeframe/database-migrator:${DATABASE_MIGRATOR_SHA:?err}"
