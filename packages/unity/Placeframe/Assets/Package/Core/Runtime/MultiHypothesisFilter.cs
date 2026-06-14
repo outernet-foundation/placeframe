@@ -11,6 +11,7 @@ namespace Placeframe.Core
         public double4x4 Estimate;
         public double Score;
         public double3 LastSupportVioPosition;
+        public double3 LastSupportMapPosition;
         public float LastSupportTime;
     }
 
@@ -163,11 +164,11 @@ namespace Placeframe.Core
 
             if (_leader == null)
             {
-                var seed = Spawn(measurementMatrix, vioPosition, nowSeconds);
+                var seed = Spawn(measurementMatrix, vioPosition, translationMapFromCamera, nowSeconds);
                 _leader = seed;
                 VisualPositioningSystem.LogDebug(
                     $"step=reloc.measure action=spawn chosen={seed.Id} score={seed.Score:F3}"
-                        + $" {MeasurementFields(measurementMatrix.Position())} {cameraFields} {QualityFields(metrics)}"
+                        + $" {MeasurementFields(measurementMatrix.Position())} {MapPositionFields(translationMapFromCamera)} {cameraFields} {QualityFields(metrics)}"
                 );
                 return seed;
             }
@@ -207,6 +208,15 @@ namespace Placeframe.Core
             if (best != null)
             {
                 var matched = best.Hypothesis;
+
+                // Scale-warp discriminator: map-frame motion of the camera since this hypothesis was
+                // last supported, paired with the VIO motion over the same interval. scaleRatio is the
+                // device-vs-map metric scale on that segment. A ratio that holds constant across map
+                // regions is a uniform device/VIO scale offset; one that varies with map position is
+                // local map warp. mapDelta near zero (standstill) makes the ratio meaningless.
+                var mapDelta = math.length(translationMapFromCamera - matched.LastSupportMapPosition);
+                var scaleRatio = mapDelta > 1e-3 ? best.VioDelta / mapDelta : 0.0;
+
                 matched.Estimate = measurementMatrix;
                 matched.Score = math.min(
                     matched.Score
@@ -215,13 +225,15 @@ namespace Placeframe.Core
                     RelocalizationConfig.ScoreCap
                 );
                 matched.LastSupportVioPosition = vioPosition;
+                matched.LastSupportMapPosition = translationMapFromCamera;
                 matched.LastSupportTime = nowSeconds;
 
                 VisualPositioningSystem.LogDebug(
                     $"step=reloc.measure action=match chosen={matched.Id} score={matched.Score:F3}"
                         + $" residM={best.ResidualMeters:F3} residRad={best.ResidualRadians:F4}"
                         + $" gateThresh={best.Threshold:F3} vioDelta={best.VioDelta:F3}"
-                        + $" {MeasurementFields(measurementMatrix.Position())} {cameraFields} {QualityFields(metrics)}"
+                        + $" mapDelta={mapDelta:F3} scaleRatio={scaleRatio:F3}"
+                        + $" {MeasurementFields(measurementMatrix.Position())} {MapPositionFields(translationMapFromCamera)} {cameraFields} {QualityFields(metrics)}"
                 );
                 return matched;
             }
@@ -229,10 +241,10 @@ namespace Placeframe.Core
             if (_hypotheses.Count >= RelocalizationConfig.MaxHypotheses)
                 PruneStalestNonLeader();
 
-            var spawned = Spawn(measurementMatrix, vioPosition, nowSeconds);
+            var spawned = Spawn(measurementMatrix, vioPosition, translationMapFromCamera, nowSeconds);
             VisualPositioningSystem.LogDebug(
                 $"step=reloc.measure action=spawn chosen={spawned.Id} score={spawned.Score:F3}"
-                    + $" {MeasurementFields(measurementMatrix.Position())} {cameraFields} {QualityFields(metrics)}"
+                    + $" {MeasurementFields(measurementMatrix.Position())} {MapPositionFields(translationMapFromCamera)} {cameraFields} {QualityFields(metrics)}"
             );
             return spawned;
         }
@@ -301,7 +313,7 @@ namespace Placeframe.Core
                 _challenger = null;
         }
 
-        private Hypothesis Spawn(double4x4 measurementMatrix, double3 vioPosition, float nowSeconds)
+        private Hypothesis Spawn(double4x4 measurementMatrix, double3 vioPosition, double3 mapPosition, float nowSeconds)
         {
             var hypothesis = new Hypothesis
             {
@@ -309,6 +321,7 @@ namespace Placeframe.Core
                 Estimate = measurementMatrix,
                 Score = RelocalizationConfig.SpawnSeedScore,
                 LastSupportVioPosition = vioPosition,
+                LastSupportMapPosition = mapPosition,
                 LastSupportTime = nowSeconds,
             };
             _hypotheses.Add(hypothesis);
@@ -323,6 +336,11 @@ namespace Placeframe.Core
 
         private static string MeasurementFields(double3 translation) =>
             $"measTx={translation.x:F3} measTy={translation.y:F3} measTz={translation.z:F3}";
+
+        // Camera position in the reconstruction's own (map) frame — the region coordinate that
+        // scaleRatio is binned against to separate a uniform device/VIO scale offset from local warp.
+        private static string MapPositionFields(double3 mapPosition) =>
+            $"mapX={mapPosition.x:F3} mapY={mapPosition.y:F3} mapZ={mapPosition.z:F3}";
 
         // translationEcefFromCamera is in Unity basis; undo the basis change to get true ECEF so WGS84
         // returns the camera's real-world geodetic position — "under the ground" is a height question.
