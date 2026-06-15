@@ -297,6 +297,16 @@ namespace Placeframe.Core
             _lastVioLogTime = now;
             _hasLastVio = true;
 
+            // Device GNSS fix (ARFoundation only) — the one geodetic independent of the filter's belief.
+            // Cross-checked offline against each hypothesis's implied camLat/camLon to tell which lock is real.
+            if (frame.DeviceLocation is GnssFix fix)
+                LogDebug(
+                    $"step=reloc.gnss lat={fix.Coordinates.Latitude:F7} lon={fix.Coordinates.Longitude:F7}"
+                        + $" alt={fix.Coordinates.Height:F2} hAcc={fix.HorizontalAccuracyMeters:F1} fixTime={fix.TimestampSeconds:F1}"
+                );
+            else
+                LogDebug("step=reloc.gnss fix=none");
+
             var outcome = _filter.ApplyMeasurements(localizationResults, frame, now);
 
             if (outcome != MeasurementOutcome.Rejected)

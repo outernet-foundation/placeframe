@@ -98,6 +98,12 @@ namespace Placeframe.Core.ARFoundation
             }
         }
 
+        // GNSS is a diagnostic, not a localization input: a coarse outdoor accuracy is enough to tell
+        // which competing hypothesis matches reality, and updates need only track walking.
+        private const float GnssDesiredAccuracyMeters = 5f;
+        private const float GnssUpdateDistanceMeters = 1f;
+        private const float LocationStartTimeoutSeconds = 15f;
+
         private readonly ARCameraManager _cameraManager;
         private readonly ARAnchorManager _anchorManager;
 
@@ -149,6 +155,10 @@ namespace Placeframe.Core.ARFoundation
 
         public async UniTask<PinholeCameraConfig> PrepareCamera(CancellationToken cancellationToken)
         {
+            // Bring up the device GNSS diagnostic in the background; it must not delay camera setup, and
+            // its absence (denied, disabled, no hardware) is non-fatal — frames just carry no fix.
+            StartLocationService().Forget();
+
             // Ensure we have camera permission (this should be requested at the app level)
             if (!Permission.HasUserAuthorizedPermission(Permission.Camera))
                 throw new Exception("Camera permission not granted");
@@ -314,6 +324,7 @@ namespace Placeframe.Core.ARFoundation
                 CameraTranslationUnityWorldFromCamera = cameraPosition,
                 CameraRotationUnityWorldFromCamera = cameraRotation,
                 TrackingState = SampleTrackingState(),
+                DeviceLocation = SampleDeviceLocation(),
             };
         }
 
@@ -321,6 +332,50 @@ namespace Placeframe.Core.ARFoundation
         // non-Tracking case here is "session degraded but still emitting" — Limited, not Lost.
         private static CameraTrackingState SampleTrackingState() =>
             ARSession.state == ARSessionState.SessionTracking ? CameraTrackingState.Tracking : CameraTrackingState.Limited;
+
+        private static GnssFix? SampleDeviceLocation()
+        {
+            if (Input.location.status != LocationServiceStatus.Running)
+                return null;
+
+            var data = Input.location.lastData;
+            return new GnssFix(
+                CartographicCoordinates.FromLatitudeLongitudeHeight(data.latitude, data.longitude, data.altitude),
+                data.horizontalAccuracy,
+                data.timestamp
+            );
+        }
+
+        // Best-effort GNSS bring-up. Requests location permission, waits out the user dialog, then
+        // starts the service — bailing (frames carry no fix) on denial, a disabled service, or timeout.
+        private static async UniTask StartLocationService()
+        {
+            if (!Permission.HasUserAuthorizedPermission(Permission.FineLocation))
+                Permission.RequestUserPermission(Permission.FineLocation);
+
+            var permissionDeadline = Time.realtimeSinceStartup + LocationStartTimeoutSeconds;
+            await UniTask.WaitUntil(() =>
+                Permission.HasUserAuthorizedPermission(Permission.FineLocation)
+                || Time.realtimeSinceStartup > permissionDeadline
+            );
+
+            if (!Permission.HasUserAuthorizedPermission(Permission.FineLocation) || !Input.location.isEnabledByUser)
+            {
+                VisualPositioningSystem.LogDebug("step=reloc.gnss action=unavailable reason=permissionOrDisabled");
+                return;
+            }
+
+            Input.location.Start(GnssDesiredAccuracyMeters, GnssUpdateDistanceMeters);
+
+            var runDeadline = Time.realtimeSinceStartup + LocationStartTimeoutSeconds;
+            await UniTask.WaitUntil(() =>
+                Input.location.status == LocationServiceStatus.Running
+                || Input.location.status == LocationServiceStatus.Failed
+                || Time.realtimeSinceStartup > runDeadline
+            );
+
+            VisualPositioningSystem.LogDebug($"step=reloc.gnss action=start status={Input.location.status}");
+        }
 
         private async UniTask<byte[]> EncodeToJpg(
             NativeArray<byte> bytes,
