@@ -7,10 +7,12 @@ import typer
 from placeframe_api_client import (
     ApiException,
     CaptureSessionRead,
+    DefaultApi,
     ReconstructionReadWithQueue,
 )
 
 from .api_auth import authenticated_api_client
+from .tar_naming import export_destination
 
 app = typer.Typer(add_completion=False, no_args_is_help=True)
 
@@ -33,7 +35,7 @@ class ReconstructionRow(NamedTuple):
 def export(
     reconstruction_id: Annotated[UUID, typer.Argument(help="Reconstruction to export")],
     output: Annotated[
-        Path | None, typer.Argument(help="Path to write the .tar to (default: ./reconstruction-<id>.tar)")
+        Path | None, typer.Argument(help="Path to write the .tar to (default: ./<name>.tar in cwd)")
     ] = None,
     no_capture: Annotated[
         bool,
@@ -42,8 +44,8 @@ def export(
         ),
     ] = False,
 ) -> None:
-    tar_bytes = run(_export(reconstruction_id, include_capture=not no_capture))
-    destination = output or Path.cwd() / f"reconstruction-{reconstruction_id}.tar"
+    tar_bytes, name = run(_export(reconstruction_id, include_capture=not no_capture, need_name=output is None))
+    destination = output or export_destination(name or str(reconstruction_id), reconstruction_id, Path.cwd())
     destination.write_bytes(tar_bytes)
     typer.echo(f"Exported reconstruction {reconstruction_id} to {destination} ({len(tar_bytes)} bytes)")
 
@@ -62,14 +64,26 @@ def list_reconstructions() -> None:
     typer.echo(_render_table(rows))
 
 
-async def _export(reconstruction_id: UUID, include_capture: bool) -> bytes:
+async def _export(reconstruction_id: UUID, include_capture: bool, need_name: bool) -> tuple[bytes, str | None]:
     async with authenticated_api_client() as api:
         try:
-            return await api.export_reconstruction_tar(
+            tar_bytes = await api.export_reconstruction_tar(
                 id=reconstruction_id, include_capture=include_capture, _request_timeout=REQUEST_TIMEOUT
             )
+            name = await _capture_name(api, reconstruction_id) if need_name else None
+            return tar_bytes, name
         except ApiException as exception:
             _fail(exception)
+
+
+async def _capture_name(api: DefaultApi, reconstruction_id: UUID) -> str | None:
+    reconstructions = await api.get_reconstructions(ids=[reconstruction_id], _request_timeout=REQUEST_TIMEOUT)
+    capture_session_id = reconstructions[0].capture_session_id if reconstructions else None
+    if capture_session_id is None:
+        return None
+
+    captures = await api.get_capture_sessions(ids=[capture_session_id], _request_timeout=REQUEST_TIMEOUT)
+    return captures[0].name if captures else None
 
 
 async def _import(tar_bytes: bytes, tar_name: str) -> UUID:

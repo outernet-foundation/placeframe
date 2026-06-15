@@ -7,6 +7,7 @@ import typer
 from placeframe_api_client import ApiException, CaptureSessionRead
 
 from .api_auth import authenticated_api_client
+from .tar_naming import export_destination
 
 app = typer.Typer(add_completion=False, no_args_is_help=True)
 
@@ -26,11 +27,11 @@ class CaptureRow(NamedTuple):
 def export(
     capture_session_id: Annotated[UUID, typer.Argument(help="Capture session to export")],
     output: Annotated[
-        Path | None, typer.Argument(help="Path to write the .tar to (default: ./capture-<id>.tar)")
+        Path | None, typer.Argument(help="Path to write the .tar to (default: ./<name>.tar in cwd)")
     ] = None,
 ) -> None:
-    tar_bytes = run(_export(capture_session_id))
-    destination = output or Path.cwd() / f"capture-{capture_session_id}.tar"
+    tar_bytes, name = run(_export(capture_session_id, need_name=output is None))
+    destination = output or export_destination(name or str(capture_session_id), capture_session_id, Path.cwd())
     destination.write_bytes(tar_bytes)
     typer.echo(f"Exported capture session {capture_session_id} to {destination} ({len(tar_bytes)} bytes)")
 
@@ -49,10 +50,15 @@ def list_captures() -> None:
     typer.echo(_render_table(rows))
 
 
-async def _export(capture_session_id: UUID) -> bytes:
+async def _export(capture_session_id: UUID, need_name: bool) -> tuple[bytes, str | None]:
     async with authenticated_api_client() as api:
         try:
-            return await api.export_capture_session(id=capture_session_id, _request_timeout=REQUEST_TIMEOUT)
+            tar_bytes = await api.export_capture_session(id=capture_session_id, _request_timeout=REQUEST_TIMEOUT)
+            name = None
+            if need_name:
+                captures = await api.get_capture_sessions(ids=[capture_session_id], _request_timeout=REQUEST_TIMEOUT)
+                name = captures[0].name if captures else None
+            return tar_bytes, name
         except ApiException as exception:
             _fail(exception)
 
