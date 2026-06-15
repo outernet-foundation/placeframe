@@ -302,18 +302,22 @@ namespace Placeframe.Core
             if (outcome != MeasurementOutcome.Rejected)
                 _lastAcceptedTime = now;
 
+            // Only a Tracking-state segment carries a trustworthy scale ratio; under Limited/Lost the
+            // estimate is frozen (null) rather than poisoned by a degraded VIO reading.
+            var scaleRatio = frame.TrackingState == CameraTrackingState.Tracking ? _filter.LastValidScaleRatio : null;
+
             // Bootstrap sets the rendered frame outright; thereafter the controller decides — against its
             // motion-decaying deadband — whether the new belief has drifted far enough to ease toward. A
             // quality-gate rejection touches neither.
             if (outcome == MeasurementOutcome.Bootstrapped)
             {
-                _controller.Set(_filter.BestEstimate, now);
+                _controller.Set(_filter.BestEstimate, vioPosition, now);
                 PublishIfChanged(true);
             }
             else if (outcome == MeasurementOutcome.Accepted)
             {
                 var vioRotation = (quaternion)frame.CameraRotationUnityWorldFromCamera;
-                _controller.Observe(_filter.BestEstimate, vioPosition, vioRotation, now);
+                _controller.Observe(_filter.BestEstimate, vioPosition, vioRotation, scaleRatio, now);
             }
 
             return Unit.Default;
@@ -322,7 +326,8 @@ namespace Placeframe.Core
         public static void SetEcefToUnityTransform(double4x4 ecefToUnityTransform)
         {
             _filter.Reset();
-            _controller.Set(ecefToUnityTransform, Time.realtimeSinceStartup);
+            var vioPosition = _hasLastVio ? _lastVioPosition : double3.zero;
+            _controller.Set(ecefToUnityTransform, vioPosition, Time.realtimeSinceStartup);
             PublishIfChanged(true);
         }
 

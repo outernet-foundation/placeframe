@@ -64,5 +64,48 @@ namespace Placeframe.Core
         // Seconds without an accepted measurement after which localization is reported lost (drives
         // the lost indicator in consuming UIs).
         public const float LocalizationLostSeconds = 5.0f;
+
+        // Online VIO-scale compensation. The device's tracker under-reports motion by a roughly
+        // constant factor (outdoor monocular-inertial VIO measures ~0.93 m per metre walked), so the
+        // published frame is shifted by (1 - 1/ema) of the distance walked since the last re-anchor to
+        // keep rendered camera-to-content distances metric. The factor is estimated live from the
+        // filter's per-segment scaleRatio (vioDelta / mapDelta), so it self-tunes per device and per
+        // environment — a tracker with no bias converges to 1.0 and the offset vanishes.
+        //
+        // Off on Magic Leap 2: its stereo tracker is expected to provide metric scale, its scaleRatio
+        // distribution has not been characterised, and on a near-zero-bias device the estimate would be
+        // dominated by map/PnP noise rather than real bias. It stays off there until a diagnostic run
+        // confirms whether compensation is warranted. The scaleRatio diagnostics still log on ML2.
+#if MAGIC_LEAP
+        public const bool CompEnabled = false;
+#else
+        public const bool CompEnabled = true;
+#endif
+
+        // Below this estimated bias the offset is suppressed entirely, so a device whose tracker already
+        // provides metric scale gets exactly zero compensation rather than chasing measurement noise
+        // around 1.0. A real bias like the ~7% outdoor monocular case clears it comfortably.
+        public const double CompDeadzone = 0.03;
+
+        // The estimate holds at identity (no offset) until this many in-band ratio samples have been
+        // folded in, so a cold session never applies a half-formed correction.
+        public const int CompWarmupSamples = 6;
+
+        // EMA weight per in-band sample. Low enough to reject per-measurement noise, high enough to
+        // converge within a short walk.
+        public const double CompEmaAlpha = 0.1;
+
+        // Ratios outside this band are treated as VIO jumps / spurious segments and never reach the
+        // EMA, so a tracking glitch cannot poison the estimate.
+        public const double CompScaleRatioMin = 0.80;
+        public const double CompScaleRatioMax = 1.25;
+
+        // Safety rail on the applied offset magnitude. Normal walking stays well under this; it only
+        // catches runaway from a poisoned estimate or an unbounded uncorrected stretch.
+        public const double CompMaxOffsetMeters = 3.0;
+
+        // The offset target is recomputed at localization cadence; the published offset eases toward
+        // it over this duration each frame so it tracks smoothly between measurements.
+        public const float CompOffsetEaseSeconds = 0.25f;
     }
 }

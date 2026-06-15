@@ -34,11 +34,18 @@ namespace Placeframe.Core
         private Hypothesis _challenger;
         private float _challengerSince;
         private int _nextId;
+        private double? _lastValidScaleRatio;
 
         public bool HasLeader => _leader != null;
         public double4x4 BestEstimate => _leader?.Estimate ?? double4x4.identity;
         public int HypothesisCount => _hypotheses.Count;
         public int PublishedHypothesisId => _leader?.Id ?? -1;
+
+        // The most recent per-segment device-vs-map scale ratio (vioDelta / mapDelta) from a matched
+        // measurement with real motion, or null when the latest batch had no such segment (standstill,
+        // spawn-only, or reject). The consumer reads this once after ApplyMeasurements to drive online
+        // scale compensation; it is the EMA input, not a published value.
+        public double? LastValidScaleRatio => _lastValidScaleRatio;
 
         // One batch per query: associate every measurement, then decay/prune/promote exactly once, so
         // decay tracks query cadence rather than how many clusters a frame happened to produce.
@@ -48,6 +55,7 @@ namespace Placeframe.Core
             var bootstrapped = false;
             var startId = _nextId;
             var redundantCount = 0;
+            _lastValidScaleRatio = null;
 
             foreach (var measurement in measurements)
             {
@@ -217,6 +225,9 @@ namespace Placeframe.Core
                 var mapDelta = math.length(translationMapFromCamera - matched.LastSupportMapPosition);
                 var scaleRatio = mapDelta > 1e-3 ? best.VioDelta / mapDelta : 0.0;
 
+                if (mapDelta > 1e-3)
+                    _lastValidScaleRatio = scaleRatio;
+
                 matched.Estimate = measurementMatrix;
                 matched.Score = math.min(
                     matched.Score
@@ -254,6 +265,7 @@ namespace Placeframe.Core
             _hypotheses.Clear();
             _leader = null;
             _challenger = null;
+            _lastValidScaleRatio = null;
         }
 
         // Referee: the leader hands off to the top-scoring challenger only once that challenger leads by
