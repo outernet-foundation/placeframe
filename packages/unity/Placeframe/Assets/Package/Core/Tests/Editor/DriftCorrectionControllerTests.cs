@@ -1,11 +1,15 @@
 using NUnit.Framework;
 using Unity.Mathematics;
+using static Placeframe.Core.Tests.RelocalizationTestHelpers;
 
 namespace Placeframe.Core.Tests
 {
     public class DriftCorrectionControllerTests
     {
         private const double Tolerance = 1e-3;
+
+        private static double4x4 Translation(double x) =>
+            Double4x4.FromTranslationRotation(new double3(x, 0, 0), quaternion.identity);
 
         // Walk the device along +x feeding a constant in-band scale ratio, holding the best estimate on
         // the base so no correction fires, then settle the eased offset. Returns the controller.
@@ -104,6 +108,82 @@ namespace Placeframe.Core.Tests
             controller.Advance(1f);
             Assert.That(math.abs(controller.Current.c3.x), Is.GreaterThan(0.5), "offset should be substantial");
             Assert.That(math.abs(controller.Current.c3.x), Is.LessThanOrEqualTo(RelocalizationConfig.CompMaxOffsetMeters + Tolerance));
+        }
+
+        [Test]
+        public void Set_IsInstantaneousAndConsistent()
+        {
+            var controller = new DriftCorrectionController();
+            var target = Double4x4.FromTranslationRotation(new double3(7, 8, 9), quaternion.identity);
+
+            controller.Set(target, double3.zero, 0f);
+
+            AssertMatricesEqual(controller.Current, target);
+            AssertMatricesEqual(math.mul(controller.Current, controller.CurrentInverse), double4x4.identity);
+        }
+
+        [Test]
+        public void Observe_WithinDeadband_DoesNotTriggerOrMove()
+        {
+            var controller = new DriftCorrectionController();
+            controller.Set(double4x4.identity, double3.zero, 0f);
+
+            // 0.5 m of divergence sits inside the widest translation bar, so nothing is armed.
+            var triggered = controller.Observe(Translation(0.5), double3.zero, quaternion.identity, null, 0f);
+
+            Assert.That(triggered, Is.False);
+            Assert.That(controller.Advance(1f), Is.False);
+            AssertNearIdentity(controller.Current);
+        }
+
+        [Test]
+        public void Observe_BeyondDeadband_ArmsSlewThatEasesToTarget()
+        {
+            var controller = new DriftCorrectionController();
+            controller.Set(double4x4.identity, double3.zero, 0f);
+
+            var triggered = controller.Observe(Translation(2), double3.zero, quaternion.identity, null, 0f);
+
+            // Observe only arms the correction; the frame has not moved yet.
+            Assert.That(triggered, Is.True);
+            AssertNearIdentity(controller.Current);
+
+            // A full slew duration lands exactly on the estimate.
+            Assert.That(controller.Advance(RelocalizationConfig.CorrectionSlewSeconds), Is.True);
+            Assert.That(controller.Current.c3.x, Is.EqualTo(2.0).Within(1e-6));
+            AssertMatricesEqual(math.mul(controller.Current, controller.CurrentInverse), double4x4.identity);
+        }
+
+        [Test]
+        public void Advance_MovesGraduallyNeverSnaps()
+        {
+            var controller = new DriftCorrectionController();
+            controller.Set(double4x4.identity, double3.zero, 0f);
+            controller.Observe(Translation(2), double3.zero, quaternion.identity, null, 0f);
+
+            // A fraction of the slew duration moves the frame only part of the way — a slew, not a snap.
+            controller.Advance(RelocalizationConfig.CorrectionSlewSeconds * 0.2f);
+
+            Assert.That(controller.Current.c3.x, Is.GreaterThan(0.0));
+            Assert.That(controller.Current.c3.x, Is.LessThan(2.0));
+        }
+
+        [Test]
+        public void Threshold_DecaysWithDistance_AllowsSmallerCorrection()
+        {
+            // Fresh, a 0.3 m divergence is inside the widest deadband and does not trip a correction.
+            var still = new DriftCorrectionController();
+            still.Set(double4x4.identity, double3.zero, 0f);
+            Assert.That(still.Observe(Translation(0.3), double3.zero, quaternion.identity, null, 0f), Is.False);
+
+            // Walking far enough collapses the translation bar to its floor, so the same 0.3 m
+            // divergence now trips a correction.
+            var walked = new DriftCorrectionController();
+            walked.Set(double4x4.identity, double3.zero, 0f);
+            walked.Observe(double4x4.identity, double3.zero, quaternion.identity, null, 0f);
+            var farVio = new double3(RelocalizationConfig.CorrectionDistanceToMinMeters * 2.0, 0, 0);
+
+            Assert.That(walked.Observe(Translation(0.3), farVio, quaternion.identity, null, 0f), Is.True);
         }
     }
 }
