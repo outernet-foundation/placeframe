@@ -13,6 +13,8 @@ namespace Placeframe.Core
         public double3 LastSupportVioPosition;
         public double3 LastSupportMapPosition;
         public float LastSupportTime;
+        public double LastInlierRatio;
+        public int LastNumInliers;
     }
 
     public enum MeasurementOutcome
@@ -172,7 +174,7 @@ namespace Placeframe.Core
 
             if (_leader == null)
             {
-                var seed = Spawn(measurementMatrix, vioPosition, translationMapFromCamera, nowSeconds);
+                var seed = Spawn(measurementMatrix, vioPosition, translationMapFromCamera, metrics, nowSeconds);
                 _leader = seed;
                 VisualPositioningSystem.LogDebug(
                     $"step=reloc.measure action=spawn chosen={seed.Id} score={seed.Score:F3}"
@@ -238,6 +240,8 @@ namespace Placeframe.Core
                 matched.LastSupportVioPosition = vioPosition;
                 matched.LastSupportMapPosition = translationMapFromCamera;
                 matched.LastSupportTime = nowSeconds;
+                matched.LastInlierRatio = metrics.InlierRatio;
+                matched.LastNumInliers = metrics.NumInliers;
 
                 VisualPositioningSystem.LogDebug(
                     $"step=reloc.measure action=match chosen={matched.Id} score={matched.Score:F3}"
@@ -252,7 +256,7 @@ namespace Placeframe.Core
             if (_hypotheses.Count >= RelocalizationConfig.MaxHypotheses)
                 PruneStalestNonLeader();
 
-            var spawned = Spawn(measurementMatrix, vioPosition, translationMapFromCamera, nowSeconds);
+            var spawned = Spawn(measurementMatrix, vioPosition, translationMapFromCamera, metrics, nowSeconds);
             VisualPositioningSystem.LogDebug(
                 $"step=reloc.measure action=spawn chosen={spawned.Id} score={spawned.Score:F3}"
                     + $" {MeasurementFields(measurementMatrix.Position())} {MapPositionFields(translationMapFromCamera)} {cameraFields} {QualityFields(metrics)}"
@@ -268,18 +272,21 @@ namespace Placeframe.Core
             _lastValidScaleRatio = null;
         }
 
-        // Referee: the leader hands off to the top-scoring challenger only once that challenger leads by
-        // the margin AND holds the lead for the dwell. Evaluated on each accepted measurement, not on a
-        // clock, so a stalled measurement stream never promotes a challenger on stale evidence.
+        // Referee: the leader hands off to the top-scoring challenger only once it qualifies AND holds the
+        // lead for the dwell. Two qualifying paths: the motion-margin path (leads by PromotionMargin) is
+        // the anti-aliasing core that adjudicates between comparable-quality hypotheses; the
+        // quality-dominance path lets a much-stronger lock unseat a much-weaker incumbent without the full
+        // margin (still requiring real motion, so a single-viewpoint alias never qualifies). Evaluated on
+        // each accepted measurement, not a clock, so a stalled stream never promotes on stale evidence.
         private void UpdateLeader(float nowSeconds)
         {
             var top = HighestScoring();
-            if (top == null || top == _leader || top.Score <= _leader.Score + RelocalizationConfig.PromotionMargin)
-            {
-                if (_challenger != null)
-                    VisualPositioningSystem.LogDebug($"step=reloc.challenger action=reset from={_challenger.Id}");
+            var marginCleared = top != null && top != _leader && top.Score > _leader.Score + RelocalizationConfig.PromotionMargin;
+            var qualityCleared = top != null && top != _leader && QualityDominates(top, _leader);
 
-                _challenger = null;
+            if (!marginCleared && !qualityCleared)
+            {
+                ClearChallenger();
                 return;
             }
 
@@ -296,11 +303,37 @@ namespace Placeframe.Core
             if (nowSeconds - _challengerSince >= RelocalizationConfig.PromotionDwellSeconds)
             {
                 VisualPositioningSystem.LogDebug(
-                    $"step=reloc.promote from={_leader.Id} to={top.Id} gap={top.Score - _leader.Score:F3}"
+                    $"step=reloc.promote from={_leader.Id} to={top.Id} reason={(marginCleared ? "margin" : "qualityDominance")}"
+                        + $" gap={top.Score - _leader.Score:F3} leaderInliers={_leader.LastNumInliers} topInliers={top.LastNumInliers}"
+                        + $" leaderRatio={_leader.LastInlierRatio:F3} topRatio={top.LastInlierRatio:F3}"
                 );
                 _leader = top;
                 _challenger = null;
             }
+        }
+
+        private void ClearChallenger()
+        {
+            if (_challenger != null)
+                VisualPositioningSystem.LogDebug($"step=reloc.challenger action=reset from={_challenger.Id}");
+
+            _challenger = null;
+        }
+
+        // True when the challenger overwhelmingly out-evidences the leader (inlier count and ratio) and has
+        // earned real motion credit. The motion floor is the largest possible seed plus the minimum motion
+        // reward, so a freshly-spawned strong lock — seeded high but unwalked — never qualifies; only one
+        // confirmed across a walk does. This is the weak-partial-vs-strong case, not two comparable aliases.
+        private static bool QualityDominates(Hypothesis challenger, Hypothesis leader)
+        {
+            var inlierDominance = challenger.LastNumInliers >= RelocalizationConfig.PromotionQualityDominanceFactor * leader.LastNumInliers;
+            var ratioDominance = challenger.LastInlierRatio >= leader.LastInlierRatio + RelocalizationConfig.PromotionInlierRatioMargin;
+            var motionFloor =
+                RelocalizationConfig.SpawnSeedScore
+                + RelocalizationConfig.SpawnQualityBonusMax
+                + RelocalizationConfig.PromotionQualityMotionMinScore;
+            var hasMotion = challenger.Score >= motionFloor;
+            return inlierDominance && ratioDominance && hasMotion;
         }
 
         // Evict the stalest non-leader (oldest since last support, ties broken by score), never the lowest
@@ -325,20 +358,31 @@ namespace Placeframe.Core
                 _challenger = null;
         }
 
-        private Hypothesis Spawn(double4x4 measurementMatrix, double3 vioPosition, double3 mapPosition, float nowSeconds)
+        // Seed scales with how far the measurement clears the quality gate so a much-stronger lock survives
+        // the decay window long enough for motion to adjudicate it, instead of being pruned at the flat
+        // seed before it can earn a second confirmation. The bonus stays below PromotionMargin, so a fresh
+        // spawn still cannot promote on quality alone.
+        private Hypothesis Spawn(double4x4 measurementMatrix, double3 vioPosition, double3 mapPosition, LocalizationMetrics metrics, float nowSeconds)
         {
             var hypothesis = new Hypothesis
             {
                 Id = _nextId++,
                 Estimate = measurementMatrix,
-                Score = RelocalizationConfig.SpawnSeedScore,
+                Score = RelocalizationConfig.SpawnSeedScore + (RelocalizationConfig.SpawnQualityBonusMax * QualityFraction(metrics)),
                 LastSupportVioPosition = vioPosition,
                 LastSupportMapPosition = mapPosition,
                 LastSupportTime = nowSeconds,
+                LastInlierRatio = metrics.InlierRatio,
+                LastNumInliers = metrics.NumInliers,
             };
             _hypotheses.Add(hypothesis);
             return hypothesis;
         }
+
+        // Relative quality in [0,1]: inlier count above the gate floor, saturating at
+        // QualityBonusSaturationInliers. A calibration-free ordering between locks from the same localizer.
+        private static double QualityFraction(LocalizationMetrics metrics) =>
+            math.saturate((double)metrics.NumInliers / RelocalizationConfig.QualityBonusSaturationInliers);
 
         private Hypothesis HighestScoring() =>
             _hypotheses.OrderByDescending(hypothesis => hypothesis.Score).FirstOrDefault();

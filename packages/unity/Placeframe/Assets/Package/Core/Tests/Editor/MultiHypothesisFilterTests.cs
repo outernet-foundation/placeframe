@@ -268,5 +268,87 @@ namespace Placeframe.Core.Tests
             Assert.That(filter.PublishedHypothesisId, Is.EqualTo(1));
             Assert.That(filter.BestEstimate.c3.x, Is.EqualTo(25.0).Within(1e-6));
         }
+
+        [Test]
+        public void Spawn_QualitySeedsSurvivalButNeverPromotesAlone()
+        {
+            var strong = NewFilter();
+            Apply(strong, alignmentX: 0, cameraX: 0, 0f, inlierRatio: 0.9, numInliers: 100);
+            // A far, much-stronger lock spawns as a non-leader; its seed must exceed a weak spawn's...
+            Apply(strong, alignmentX: 25, cameraX: 0, 1f, inlierRatio: 0.9, numInliers: 3000);
+            var strongOnlyHypotheses = strong.HypothesisCount;
+
+            var weak = NewFilter();
+            Apply(weak, alignmentX: 0, cameraX: 0, 0f, inlierRatio: 0.9, numInliers: 100);
+            Apply(weak, alignmentX: 25, cameraX: 0, 1f, inlierRatio: 0.3, numInliers: 60);
+
+            // ...yet a fresh strong spawn, never walked, must not seize the lead on its seed alone.
+            Assert.That(strong.PublishedHypothesisId, Is.EqualTo(0));
+            Assert.That(strong.BestEstimate.c3.x, Is.EqualTo(0.0).Within(1e-6));
+            Assert.That(strongOnlyHypotheses, Is.EqualTo(2));
+
+            // The strong spawn outlives the decay-and-prune window the weak one falls inside.
+            for (var i = 0; i < 12; i++)
+            {
+                Apply(strong, alignmentX: 0, cameraX: 0, 2f + i, numInliers: 100);
+                Apply(weak, alignmentX: 0, cameraX: 0, 2f + i, numInliers: 100);
+            }
+
+            Assert.That(strong.HypothesisCount, Is.EqualTo(2), "high-quality spawn survives the decay window");
+            Assert.That(weak.HypothesisCount, Is.EqualTo(1), "low-quality spawn decays below the floor and is pruned");
+        }
+
+        [Test]
+        public void QualityDominance_StrongChallengerPromotesEarlierThanMarginAlone()
+        {
+            // Same weak incumbent and same walk in both filters; only the challenger's quality differs.
+            // Identical motion means the pure score-margin path would promote at the same query, so any
+            // difference in outcome isolates the quality-dominance path.
+            var dominant = NewFilter();
+            var control = NewFilter();
+
+            foreach (var filter in new[] { dominant, control })
+            {
+                Apply(filter, alignmentX: 0, cameraX: 0, 0f, inlierRatio: 0.48, numInliers: 600);
+                Apply(filter, alignmentX: 0, cameraX: 2, 1f, inlierRatio: 0.48, numInliers: 600);
+            }
+
+            // A far lock appears and is confirmed across a walk — strongly out-evidencing the incumbent in
+            // the dominant filter, merely equal-quality in the control.
+            var camera = 4;
+            for (var t = 2; t <= 5; t++)
+            {
+                Apply(dominant, alignmentX: 25, cameraX: camera, t, inlierRatio: 0.80, numInliers: 3000);
+                Apply(control, alignmentX: 25, cameraX: camera, t, inlierRatio: 0.48, numInliers: 600);
+                camera += 2;
+            }
+
+            // The dominant challenger established its lead two queries earlier — on quality, while still
+            // below the score margin — so it clears the dwell and promotes; the control, established only
+            // once the margin finally cleared, is still inside its dwell.
+            Assert.That(dominant.PublishedHypothesisId, Is.EqualTo(1));
+            Assert.That(dominant.BestEstimate.c3.x, Is.EqualTo(25.0).Within(1e-6));
+            Assert.That(control.PublishedHypothesisId, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void QualityDominance_StrongChallengerWithoutMotion_DoesNotPromote()
+        {
+            var filter = NewFilter();
+            Apply(filter, alignmentX: 0, cameraX: 0, 0f, inlierRatio: 0.48, numInliers: 600);
+
+            // A much-stronger lock is re-confirmed many times, but always from the same spot (no motion),
+            // so it is a single-viewpoint alias: the dominance path's motion requirement excludes it and the
+            // belief stays anchored to the incumbent — the anti-aliasing core is preserved.
+            var now = 0f;
+            for (var i = 0; i < 30; i++)
+            {
+                now += 0.1f;
+                Apply(filter, alignmentX: 25, cameraX: 0, now, inlierRatio: 0.85, numInliers: 3000);
+            }
+
+            Assert.That(filter.PublishedHypothesisId, Is.EqualTo(0));
+            Assert.That(filter.BestEstimate.c3.x, Is.EqualTo(0.0).Within(1e-6));
+        }
     }
 }

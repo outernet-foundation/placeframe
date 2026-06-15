@@ -43,6 +43,29 @@ namespace Placeframe.Core
         public const double PromotionMargin = 2.0;
         public const float PromotionDwellSeconds = 2.0f;
 
+        // Measurement quality protects survival and breaks a lopsided quality gap, without ceding the
+        // motion-diversity core (which adjudicates between comparable-quality hypotheses). Motion-only
+        // accounting otherwise lets a weak partial lock hold the published frame while a much stronger
+        // candidate decays from its seed and is pruned before it can earn motion credit.
+        //
+        // A spawn's seed gains up to this bonus, scaled by how far its inlier count clears the gate. Kept
+        // below PromotionMargin so a fresh strong spawn survives the decay window but cannot promote on the
+        // seed alone — only motion promotes it.
+        public const double SpawnQualityBonusMax = 0.5;
+
+        // Inlier count at which the spawn quality bonus saturates (the gate floor is MinInliers = 50).
+        public const double QualityBonusSaturationInliers = 1000.0;
+
+        // A challenger may promote without the full score margin when it dominates the leader on quality by
+        // these factors AND has earned real motion credit. The gap is deliberately large — the
+        // weak-partial-vs-strong case, not two comparable aliases (which the margin path still arbitrates).
+        public const double PromotionQualityDominanceFactor = 2.0;
+        public const double PromotionInlierRatioMargin = 0.15;
+
+        // Motion reward a quality-dominant challenger must hold above the largest possible seed before it
+        // can promote — ~1 m of confirmed walk, so a single-viewpoint alias never takes the dominance path.
+        public const double PromotionQualityMotionMinScore = 1.0;
+
         // Drift-correction deadband: the widest and narrowest divergence the published frame tolerates
         // before re-anchoring. The bar starts at max and collapses toward min with motion and time.
         public const double CorrectionTranslationMaxMeters = 1.0;
