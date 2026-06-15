@@ -32,7 +32,9 @@ class ReconstructionRow(NamedTuple):
 @app.command()
 def export(
     reconstruction_id: Annotated[UUID, typer.Argument(help="Reconstruction to export")],
-    output: Annotated[Path, typer.Argument(help="Path to write the .tar to")],
+    output: Annotated[
+        Path | None, typer.Argument(help="Path to write the .tar to (default: ./reconstruction-<id>.tar)")
+    ] = None,
     no_capture: Annotated[
         bool,
         typer.Option(
@@ -41,8 +43,9 @@ def export(
     ] = False,
 ) -> None:
     tar_bytes = run(_export(reconstruction_id, include_capture=not no_capture))
-    output.write_bytes(tar_bytes)
-    typer.echo(f"Exported reconstruction {reconstruction_id} to {output} ({len(tar_bytes)} bytes)")
+    destination = output or Path.cwd() / f"reconstruction-{reconstruction_id}.tar"
+    destination.write_bytes(tar_bytes)
+    typer.echo(f"Exported reconstruction {reconstruction_id} to {destination} ({len(tar_bytes)} bytes)")
 
 
 @app.command(name="import")

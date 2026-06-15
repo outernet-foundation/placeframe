@@ -25,11 +25,14 @@ class CaptureRow(NamedTuple):
 @app.command()
 def export(
     capture_session_id: Annotated[UUID, typer.Argument(help="Capture session to export")],
-    output: Annotated[Path, typer.Argument(help="Path to write the .tar to")],
+    output: Annotated[
+        Path | None, typer.Argument(help="Path to write the .tar to (default: ./capture-<id>.tar)")
+    ] = None,
 ) -> None:
     tar_bytes = run(_export(capture_session_id))
-    output.write_bytes(tar_bytes)
-    typer.echo(f"Exported capture session {capture_session_id} to {output} ({len(tar_bytes)} bytes)")
+    destination = output or Path.cwd() / f"capture-{capture_session_id}.tar"
+    destination.write_bytes(tar_bytes)
+    typer.echo(f"Exported capture session {capture_session_id} to {destination} ({len(tar_bytes)} bytes)")
 
 
 @app.command(name="import")
