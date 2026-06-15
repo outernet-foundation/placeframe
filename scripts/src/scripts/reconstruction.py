@@ -33,8 +33,14 @@ class ReconstructionRow(NamedTuple):
 def export(
     reconstruction_id: Annotated[UUID, typer.Argument(help="Reconstruction to export")],
     output: Annotated[Path, typer.Argument(help="Path to write the .tar to")],
+    no_capture: Annotated[
+        bool,
+        typer.Option(
+            "--no-capture", help="Emit a reconstruction-only (v1) tar instead of bundling the source capture and map"
+        ),
+    ] = False,
 ) -> None:
-    tar_bytes = run(_export(reconstruction_id))
+    tar_bytes = run(_export(reconstruction_id, include_capture=not no_capture))
     output.write_bytes(tar_bytes)
     typer.echo(f"Exported reconstruction {reconstruction_id} to {output} ({len(tar_bytes)} bytes)")
 
@@ -53,10 +59,12 @@ def list_reconstructions() -> None:
     typer.echo(_render_table(rows))
 
 
-async def _export(reconstruction_id: UUID) -> bytes:
+async def _export(reconstruction_id: UUID, include_capture: bool) -> bytes:
     async with authenticated_api_client() as api:
         try:
-            return await api.export_reconstruction_tar(id=reconstruction_id, _request_timeout=REQUEST_TIMEOUT)
+            return await api.export_reconstruction_tar(
+                id=reconstruction_id, include_capture=include_capture, _request_timeout=REQUEST_TIMEOUT
+            )
         except ApiException as exception:
             _fail(exception)
 

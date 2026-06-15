@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-import tarfile
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterator
 from io import BytesIO
 from logging import getLogger
 from struct import pack
@@ -25,11 +24,15 @@ from core.reconstruction_metrics import ReconstructionMetrics
 from core.reconstruction_options import ReconstructionOptions
 from datamodels.public_dtos import (
     CaptureSessionCreate,
+    CaptureSessionRead,
     LocalizationMapCreate,
+    LocalizationMapRead,
     ReconstructionCreate,
     ReconstructionRead,
     capture_session_from_dto,
+    capture_session_to_dto,
     localization_map_from_dto,
+    localization_map_to_dto,
     reconstruction_from_dto,
     reconstruction_to_dto,
 )
@@ -54,6 +57,15 @@ from sqlalchemy import Select, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..camera_positions import sync_camera_positions
+from ..capture_io import (
+    ARTIFACT_CHUNK,
+    CAPTURE_MEMBER,
+    CAPTURES_BUCKET,
+    TAR_BLOCK,
+    capture_row_from_read,
+    iter_capture_member,
+    tar_member,
+)
 from ..database import get_session
 from ..settings import get_settings
 from ..storage import get_storage
@@ -63,11 +75,14 @@ settings = get_settings()
 BUCKET = "dev-reconstructions"
 logger = getLogger(__name__)
 
-TAR_VERSION = 1
+# v2 bundles the source capture (its tar + row) and the real localization map alongside the
+# reconstruction so an import reproduces the whole capture->reconstruction->map graph with its
+# original ids and links. v1 carried the reconstruction alone; those tars still import via the
+# stand-in path that synthesises a capture session and an identity-pose map.
+TAR_VERSION = 2
+LEGACY_TAR_VERSION = 1
 METADATA_MEMBER = "metadata.json"
 DATABASE_ARTIFACT = "database.db"
-TAR_BLOCK = 512
-ARTIFACT_CHUNK = 1024 * 1024
 
 
 s3_client = create_s3_client(
@@ -92,12 +107,15 @@ class ReconstructionReadWithQueue(ReconstructionRead):
     queue_depth: int | None = None
 
 
-# Carries only the reconstruction row; its relocalization inputs live in the MinIO prefix, and the
-# capture session, localization map, camera positions and evaluations are per-backend state recreated
-# after import rather than transported.
+# A v2 bundle carries the reconstruction row plus its source capture session and real localization
+# map so the import recreates the graph faithfully (real ids, real map georegistration). capture_session
+# and localization_map are absent on a legacy v1 (reconstruction-only) tar. Camera positions are
+# re-derived from the map on import; evaluations are genuinely per-backend and never transported.
 class ReconstructionTarManifest(BaseModel):
     tar_version: int = TAR_VERSION
     reconstruction: ReconstructionRead
+    capture_session: Optional[CaptureSessionRead] = None
+    localization_map: Optional[LocalizationMapRead] = None
 
 
 class ReconstructionTarUploadRequest(MultipartRequestModel):
@@ -403,6 +421,10 @@ async def get_reconstruction_metrics(session: AsyncSession, id: UUID) -> Reconst
 async def export_reconstruction_tar(
     session: AsyncSession,
     id: UUID,
+    include_capture: Annotated[
+        bool,
+        Parameter(description="Bundle the source capture and real map (v2). False emits a v1 reconstruction-only tar."),
+    ] = True,
 ) -> Stream:
     reconstruction = await session.get(Reconstruction, id)
     if reconstruction is None:
@@ -415,11 +437,32 @@ async def export_reconstruction_tar(
             " only succeeded reconstructions can be exported",
         )
 
-    manifest = ReconstructionTarManifest(reconstruction=reconstruction_to_dto(reconstruction))
+    capture_dto: CaptureSessionRead | None = None
+    map_dto: LocalizationMapRead | None = None
+    capture_id: UUID | None = None
+    if include_capture and reconstruction.capture_session_id is not None:
+        capture_row = await session.get(CaptureSession, reconstruction.capture_session_id)
+        if capture_row is not None:
+            capture_dto = capture_session_to_dto(capture_row)
+            capture_id = capture_row.id
+
+        map_row = (
+            await session.execute(select(LocalizationMap).where(LocalizationMap.reconstruction_id == id))
+        ).scalar_one_or_none()
+        if map_row is not None:
+            map_dto = localization_map_to_dto(map_row)
+
+    bundled = capture_dto is not None
+    manifest = ReconstructionTarManifest(
+        tar_version=TAR_VERSION if bundled else LEGACY_TAR_VERSION,
+        reconstruction=reconstruction_to_dto(reconstruction),
+        capture_session=capture_dto,
+        localization_map=map_dto,
+    )
     metadata_bytes = manifest.model_dump_json().encode("utf-8")
 
     return Stream(
-        iter_reconstruction_tar(id, metadata_bytes),
+        iter_reconstruction_tar(id, metadata_bytes, capture_id),
         media_type="application/x-tar",
         headers={"Content-Disposition": f'attachment; filename="reconstruction-{id}.tar"'},
     )
@@ -450,17 +493,125 @@ async def import_reconstruction_tar(
             status_code=HTTP_422_UNPROCESSABLE_ENTITY, detail=f"Malformed tar metadata: {error}"
         ) from error
 
-    if manifest.tar_version != TAR_VERSION:
+    if manifest.tar_version == TAR_VERSION:
+        reconstruction_id = await _import_bundle(session, fileobj, manifest)
+    elif manifest.tar_version == LEGACY_TAR_VERSION:
+        import_name = (data.data.filename or str(manifest.reconstruction.id)).removesuffix(".tar")
+        reconstruction_id = await _import_legacy(session, fileobj, manifest, import_name)
+    else:
         raise HTTPException(
             status_code=HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Unsupported tar_version {manifest.tar_version}; expected {TAR_VERSION}",
+            detail=f"Unsupported tar_version {manifest.tar_version}; expected {TAR_VERSION} or {LEGACY_TAR_VERSION}",
         )
 
+    result = await session.execute(select_reconstructions_with_queue().where(Reconstruction.id == reconstruction_id))
+    return to_reconstruction_with_queue(*result.one())
+
+
+# Recreates the full capture->reconstruction->map graph from a v2 bundle, preserving the source ids,
+# the reconstruction's capture foreign key and the map's real georegistration. Uploads every artifact
+# (and the nested capture tar, when the capture is new here) before inserting rows, removing what it
+# uploaded if any insert fails so a failed import never leaves a row pointing at missing storage.
+async def _import_bundle(session: AsyncSession, fileobj: BinaryIO, manifest: ReconstructionTarManifest) -> UUID:
+    reconstruction = manifest.reconstruction
+    capture = manifest.capture_session
+    localization_map = manifest.localization_map
+    if capture is None:
+        raise HTTPException(
+            status_code=HTTP_422_UNPROCESSABLE_ENTITY, detail="v2 bundle tar is missing capture_session metadata"
+        )
+
+    if await session.get(Reconstruction, reconstruction.id) is not None:
+        raise HTTPException(
+            status_code=HTTP_409_CONFLICT, detail=f"Reconstruction with id {reconstruction.id} already exists"
+        )
+
+    if localization_map is not None and await session.get(LocalizationMap, localization_map.id) is not None:
+        raise HTTPException(
+            status_code=HTTP_409_CONFLICT, detail=f"Localization map with id {localization_map.id} already exists"
+        )
+
+    storage = get_storage()
+    reconstruction_prefix = f"{reconstruction.id}/"
+    capture_key = f"{capture.id}.tar"
+    capture_exists = await session.get(CaptureSession, capture.id) is not None
+
+    fileobj.seek(0)
+    uploaded_capture = False
+    for name, member in iter_tar_file_members(fileobj):
+        if name == METADATA_MEMBER:
+            continue
+
+        if name == CAPTURE_MEMBER:
+            if not capture_exists:
+                storage.upload_fileobj(CAPTURES_BUCKET, capture_key, cast(BinaryIO, member), "application/x-tar")
+                uploaded_capture = True
+            continue
+
+        storage.upload_fileobj(
+            settings.reconstructions_bucket,
+            f"{reconstruction_prefix}{name}",
+            cast(BinaryIO, member),
+            "application/octet-stream",
+        )
+
+    inserted = False
+    try:
+        if not capture_exists:
+            session.add(capture_row_from_read(capture))
+            await session.flush()
+
+        reconstruction_row = reconstruction_from_dto(
+            ReconstructionCreate(id=reconstruction.id, capture_session_id=capture.id)
+        )
+        reconstruction_row.status = ReconstructionStatus.SUCCEEDED
+        reconstruction_row.manifest = reconstruction.manifest
+        reconstruction_row.manifest_version = reconstruction.manifest_version
+        session.add(reconstruction_row)
+        await session.flush()
+
+        if localization_map is not None:
+            map_row = localization_map_from_dto(
+                LocalizationMapCreate(
+                    id=localization_map.id,
+                    reconstruction_id=reconstruction.id,
+                    name=localization_map.name,
+                    position_x=localization_map.position_x,
+                    position_y=localization_map.position_y,
+                    position_z=localization_map.position_z,
+                    rotation_x=localization_map.rotation_x,
+                    rotation_y=localization_map.rotation_y,
+                    rotation_z=localization_map.rotation_z,
+                    rotation_w=localization_map.rotation_w,
+                    color=localization_map.color,
+                    active=localization_map.active,
+                    lighting=localization_map.lighting,
+                )
+            )
+            session.add(map_row)
+            await session.flush()
+            await sync_camera_positions(session, map_row)
+
+        inserted = True
+        return reconstruction.id
+    finally:
+        if not inserted:
+            storage.delete_prefix(settings.reconstructions_bucket, reconstruction_prefix)
+            if uploaded_capture:
+                storage.delete_prefix(CAPTURES_BUCKET, capture_key)
+
+
+# A legacy v1 (reconstruction-only) tar has no source capture here. The capture tool only discovers
+# reconstructions that hang off a capture session and only offers them for validation once a map
+# exists, so synthesize a stand-in capture session and an identity-pose map (named from the tar
+# filename) to make the imported map immediately selectable.
+async def _import_legacy(
+    session: AsyncSession, fileobj: BinaryIO, manifest: ReconstructionTarManifest, import_name: str
+) -> UUID:
     reconstruction = manifest.reconstruction
     reconstruction_id = reconstruction.id
 
-    existing = await session.get(Reconstruction, reconstruction_id)
-    if existing is not None:
+    if await session.get(Reconstruction, reconstruction_id) is not None:
         raise HTTPException(
             status_code=HTTP_409_CONFLICT, detail=f"Reconstruction with id {reconstruction_id} already exists"
         )
@@ -478,12 +629,6 @@ async def import_reconstruction_tar(
             settings.reconstructions_bucket, f"{prefix}{name}", cast(BinaryIO, member), "application/octet-stream"
         )
 
-    # An imported reconstruction has no source capture on this backend, but the capture tool only
-    # discovers reconstructions that hang off a capture session (via /capture_sessions/expanded) and
-    # only offers them for validation once a localization map exists. Synthesize a stand-in capture
-    # session and an identity-pose map so an imported map is immediately selectable on the validation
-    # page. The map name and capture-session name come from the uploaded tar's filename.
-    import_name = (data.data.filename or str(reconstruction_id)).removesuffix(".tar")
     inserted = False
     try:
         capture_session_row = capture_session_from_dto(
@@ -518,21 +663,25 @@ async def import_reconstruction_tar(
         await session.flush()
         await sync_camera_positions(session, map_row)
         inserted = True
+        return reconstruction_id
     finally:
         if not inserted:
             storage.delete_prefix(settings.reconstructions_bucket, prefix)
 
-    result = await session.execute(select_reconstructions_with_queue().where(Reconstruction.id == reconstruction_id))
-    return to_reconstruction_with_queue(*result.one())
 
-
-# Frames each member by hand (not tarfile.addfile, which buffers a whole member) so a large artifact
-# never lands in memory. Runs after the request transaction closes: storage only, no DB session.
-def iter_reconstruction_tar(reconstruction_id: UUID, metadata_bytes: bytes) -> Iterator[bytes]:
+# Frames the metadata, the optional nested capture tar, then each reconstruction artifact by hand (not
+# tarfile.addfile, which buffers a whole member) so a large artifact never lands in memory. Runs after
+# the request transaction closes: storage only, no DB session.
+def iter_reconstruction_tar(
+    reconstruction_id: UUID, metadata_bytes: bytes, capture_session_id: UUID | None
+) -> Iterator[bytes]:
     storage = get_storage()
     prefix = f"{reconstruction_id}/"
 
-    yield from _tar_member(METADATA_MEMBER, len(metadata_bytes), [metadata_bytes])
+    yield from tar_member(METADATA_MEMBER, len(metadata_bytes), [metadata_bytes])
+
+    if capture_session_id is not None:
+        yield from iter_capture_member(storage, capture_session_id)
 
     for key, size in storage.list_objects(settings.reconstructions_bucket, prefix):
         relative = key[len(prefix) :]
@@ -540,22 +689,9 @@ def iter_reconstruction_tar(reconstruction_id: UUID, metadata_bytes: bytes) -> I
             continue
 
         body = storage.get_object(settings.reconstructions_bucket, key)["Body"]
-        yield from _tar_member(relative, size, body.iter_chunks(ARTIFACT_CHUNK))
+        yield from tar_member(relative, size, body.iter_chunks(ARTIFACT_CHUNK))
 
     yield b"\x00" * (TAR_BLOCK * 2)
-
-
-def _tar_member(name: str, size: int, chunks: Iterable[bytes]) -> Iterator[bytes]:
-    info = tarfile.TarInfo(name)
-    info.size = size
-    info.mtime = 0
-
-    yield info.tobuf(format=tarfile.GNU_FORMAT)
-    yield from chunks
-
-    remainder = size % TAR_BLOCK
-    if remainder:
-        yield b"\x00" * (TAR_BLOCK - remainder)
 
 
 router = Router(

@@ -1,7 +1,8 @@
 import csv
 import io
 import tarfile
-from typing import IO, Annotated, BinaryIO, cast
+from collections.abc import Iterator
+from typing import IO, Annotated, Any, BinaryIO, cast
 from uuid import UUID
 
 from botocore.exceptions import ReadTimeoutError
@@ -22,27 +23,37 @@ from datamodels.public_dtos import (
 )
 from datamodels.public_tables import CaptureSession, DeviceType, LocalizationMap, Reconstruction
 
+from ..capture_io import (
+    CAPTURE_MEMBER,
+    CAPTURES_BUCKET,
+    TAR_BLOCK,
+    capture_row_from_read,
+    iter_capture_member,
+    tar_member,
+)
 from .reconstructions import (
     ReconstructionReadWithQueue,
     select_reconstructions_with_queue,
     to_reconstruction_with_queue,
 )
-from litestar import Router, delete, get, patch, post
+from litestar import Request, Router, delete, get, patch, post
 from litestar.datastructures import UploadFile
 from litestar.di import Provide
 from litestar.enums import RequestEncodingType
-from litestar.exceptions import HTTPException, InternalServerException, NotFoundException
+from litestar.exceptions import HTTPException, InternalServerException, NotFoundException, PermissionDeniedException
 from litestar.params import Body, Parameter
 from litestar.response import Stream
 from litestar.status_codes import HTTP_409_CONFLICT, HTTP_422_UNPROCESSABLE_ENTITY, HTTP_504_GATEWAY_TIMEOUT
-from pydantic import AwareDatetime, BaseModel
+from pydantic import AwareDatetime, BaseModel, ValidationError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_session
 from ..storage import get_storage
 
-BUCKET = "dev-captures"
+BUCKET = CAPTURES_BUCKET
+CAPTURE_TAR_VERSION = 1
+CAPTURE_METADATA_MEMBER = "metadata.json"
 MIN_TEMPORAL_COVERAGE = 0.5
 
 
@@ -355,6 +366,122 @@ async def download_capture_session_tar(session: AsyncSession, id: UUID) -> Strea
     )
 
 
+# A capture export tar carries the DB row (name, device type, recording time, size) alongside the
+# stored capture tar, since the raw tar holds none of those — they are needed to recreate the row
+# faithfully on another backend.
+class CaptureTarManifest(BaseModel):
+    tar_version: int = CAPTURE_TAR_VERSION
+    capture_session: CaptureSessionRead
+
+
+class CaptureTarUploadRequest(MultipartRequestModel):
+    data: UploadFile
+
+
+@get(
+    "/{id:uuid}/export",
+    media_type="application/x-tar",
+    content_encoding="binary",
+    content_media_type="application/x-tar",
+)
+async def export_capture_session(session: AsyncSession, id: UUID) -> Stream:
+    row = await session.get(CaptureSession, id)
+    if row is None:
+        raise NotFoundException(f"Capture session {id} not found")
+
+    manifest = CaptureTarManifest(capture_session=capture_session_to_dto(row))
+    metadata_bytes = manifest.model_dump_json().encode("utf-8")
+
+    return Stream(
+        iter_capture_export_tar(id, metadata_bytes),
+        media_type="application/x-tar",
+        headers={"Content-Disposition": f'attachment; filename="capture-{id}.tar"'},
+    )
+
+
+@post("/import", operation_class=MultipartRequestOperation)
+async def import_capture_session(
+    session: AsyncSession,
+    request: Request[str, dict[str, Any], Any],
+    data: Annotated[CaptureTarUploadRequest, Body(media_type=RequestEncodingType.MULTI_PART)],
+) -> CaptureSessionRead:
+    if request.auth and request.auth.get("azp") == "placeframe-worker":
+        raise PermissionDeniedException("Capture import requires a user identity, not a worker token")
+
+    fileobj = cast(BinaryIO, data.data.file)
+    manifest = _read_capture_tar_manifest(fileobj)
+
+    capture = manifest.capture_session
+    if await session.get(CaptureSession, capture.id) is not None:
+        raise HTTPException(
+            status_code=HTTP_409_CONFLICT, detail=f"Capture session with id {capture.id} already exists"
+        )
+
+    row = await _recreate_capture_session(session, fileobj, capture)
+    return capture_session_to_dto(row)
+
+
+def _read_capture_tar_manifest(fileobj: BinaryIO) -> CaptureTarManifest:
+    fileobj.seek(0)
+    metadata_bytes = next(
+        (entry.read() for name, entry in iter_tar_file_members(fileobj) if name == CAPTURE_METADATA_MEMBER), None
+    )
+    if metadata_bytes is None:
+        raise HTTPException(
+            status_code=HTTP_422_UNPROCESSABLE_ENTITY, detail=f"{CAPTURE_METADATA_MEMBER} not found in tar"
+        )
+
+    try:
+        manifest = CaptureTarManifest.model_validate_json(metadata_bytes)
+    except ValidationError as error:
+        raise HTTPException(
+            status_code=HTTP_422_UNPROCESSABLE_ENTITY, detail=f"Malformed tar metadata: {error}"
+        ) from error
+
+    if manifest.tar_version != CAPTURE_TAR_VERSION:
+        raise HTTPException(
+            status_code=HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Unsupported tar_version {manifest.tar_version}; expected {CAPTURE_TAR_VERSION}",
+        )
+
+    return manifest
+
+
+# Uploads the capture's nested tar to storage, then inserts the row, removing the upload if the
+# insert fails so a failed import never leaves an orphaned object behind a missing row.
+async def _recreate_capture_session(
+    session: AsyncSession, fileobj: BinaryIO, capture: CaptureSessionRead
+) -> CaptureSession:
+    storage = get_storage()
+    key = f"{capture.id}.tar"
+
+    fileobj.seek(0)
+    member = next((entry for name, entry in iter_tar_file_members(fileobj) if name == CAPTURE_MEMBER), None)
+    if member is None:
+        raise HTTPException(status_code=HTTP_422_UNPROCESSABLE_ENTITY, detail=f"{CAPTURE_MEMBER} not found in tar")
+
+    storage.upload_fileobj(BUCKET, key, cast(BinaryIO, member), "application/x-tar")
+
+    inserted = False
+    try:
+        row = capture_row_from_read(capture)
+        session.add(row)
+        await session.flush()
+        await session.refresh(row)
+        inserted = True
+        return row
+    finally:
+        if not inserted:
+            storage.delete_prefix(BUCKET, key)
+
+
+def iter_capture_export_tar(capture_id: UUID, metadata_bytes: bytes) -> Iterator[bytes]:
+    storage = get_storage()
+    yield from tar_member(CAPTURE_METADATA_MEMBER, len(metadata_bytes), [metadata_bytes])
+    yield from iter_capture_member(storage, capture_id)
+    yield b"\x00" * (TAR_BLOCK * 2)
+
+
 @get(
     "/{id:uuid}/manifest.json",
     media_type="application/json",
@@ -458,6 +585,8 @@ router = Router(
         update_capture_session,
         update_capture_sessions,
         download_capture_session_tar,
+        export_capture_session,
+        import_capture_session,
         get_capture_session_manifest_file,
         get_capture_session_frames_csv,
         get_capture_session_image,
