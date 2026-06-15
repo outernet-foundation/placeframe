@@ -1,4 +1,5 @@
 from asyncio import run
+from json import JSONDecodeError, loads
 from pathlib import Path
 from typing import Annotated, NamedTuple, NoReturn
 from uuid import UUID
@@ -8,8 +9,12 @@ from placeframe_api_client import (
     ApiException,
     CaptureSessionRead,
     DefaultApi,
+    ReconstructionCreate,
+    ReconstructionCreateWithOptions,
+    ReconstructionOptions,
     ReconstructionReadWithQueue,
 )
+from pydantic import ValidationError
 
 from .api_auth import authenticated_api_client
 from .tar_naming import export_destination
@@ -64,6 +69,22 @@ def list_reconstructions() -> None:
     typer.echo(_render_table(rows))
 
 
+@app.command()
+def create(
+    capture: Annotated[str, typer.Argument(help="Capture session name or UUID to reconstruct")],
+    options_json: Annotated[
+        str | None,
+        typer.Option(
+            "--options-json",
+            help="JSON object of ReconstructionOptions overrides; omitted keys keep server defaults",
+        ),
+    ] = None,
+) -> None:
+    options = _parse_options(options_json)
+    reconstruction_id, queue_position = run(_create(capture, options))
+    typer.echo(f"Queued reconstruction {reconstruction_id} for {capture} (queue position {queue_position})")
+
+
 async def _export(reconstruction_id: UUID, include_capture: bool, need_name: bool) -> tuple[bytes, str | None]:
     async with authenticated_api_client() as api:
         try:
@@ -73,7 +94,7 @@ async def _export(reconstruction_id: UUID, include_capture: bool, need_name: boo
             name = await _capture_name(api, reconstruction_id) if need_name else None
             return tar_bytes, name
         except ApiException as exception:
-            _fail(exception)
+            _fail(f"Request failed: {exception}")
 
 
 async def _capture_name(api: DefaultApi, reconstruction_id: UUID) -> str | None:
@@ -94,7 +115,7 @@ async def _import(tar_bytes: bytes, tar_name: str) -> UUID:
             )
             return reconstruction.id
         except ApiException as exception:
-            _fail(exception)
+            _fail(f"Request failed: {exception}")
 
 
 async def _list() -> list[ReconstructionRow]:
@@ -103,7 +124,7 @@ async def _list() -> list[ReconstructionRow]:
             reconstructions = await api.get_reconstructions(_request_timeout=REQUEST_TIMEOUT)
             capture_sessions = await api.get_capture_sessions(_request_timeout=REQUEST_TIMEOUT)
         except ApiException as exception:
-            _fail(exception)
+            _fail(f"Request failed: {exception}")
 
     sessions_by_id = {session.id: session for session in capture_sessions}
     ordered = sorted(reconstructions, key=lambda reconstruction: reconstruction.created_at, reverse=True)
@@ -143,8 +164,55 @@ def _render_table(rows: list[ReconstructionRow]) -> str:
     )
 
 
-def _fail(exception: ApiException) -> NoReturn:
-    typer.echo(f"Request failed: {exception}", err=True)
+async def _create(capture: str, options: ReconstructionOptions) -> tuple[UUID, int | None]:
+    async with authenticated_api_client() as api:
+        try:
+            capture_session_id = await _resolve_capture_session(api, capture)
+            reconstruction = await api.create_reconstruction(
+                ReconstructionCreateWithOptions(
+                    create=ReconstructionCreate(capture_session_id=capture_session_id),
+                    options=options,
+                ),
+                _request_timeout=REQUEST_TIMEOUT,
+            )
+            return reconstruction.id, reconstruction.queue_position
+        except ApiException as exception:
+            _fail(f"Request failed: {exception}")
+
+
+async def _resolve_capture_session(api: DefaultApi, capture: str) -> UUID:
+    explicit_id = _as_uuid(capture)
+    if explicit_id is not None:
+        return explicit_id
+
+    sessions = await api.get_capture_sessions(_request_timeout=REQUEST_TIMEOUT)
+    matches = [session for session in sessions if session.name == capture]
+    if not matches:
+        _fail(f"No capture session named {capture!r}")
+    if len(matches) > 1:
+        _fail(f"Multiple capture sessions named {capture!r}; pass a UUID instead")
+    return matches[0].id
+
+
+def _as_uuid(value: str) -> UUID | None:
+    try:
+        return UUID(value)
+    except ValueError:
+        return None
+
+
+def _parse_options(options_json: str | None) -> ReconstructionOptions:
+    if options_json is None:
+        return ReconstructionOptions()
+
+    try:
+        return ReconstructionOptions.model_validate(loads(options_json))
+    except (JSONDecodeError, ValidationError) as exception:
+        _fail(f"Invalid --options-json: {exception}")
+
+
+def _fail(message: str) -> NoReturn:
+    typer.echo(message, err=True)
     raise typer.Exit(1)
 
 
