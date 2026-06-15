@@ -18,6 +18,8 @@ Registered in `scripts/pyproject.toml`:
 | `loki-query` | `loki_query.py` | Run a LogQL query against the local Loki via `docker exec placeframe-loki-1 wget`, formatting each entry as `HH:MM:SS LEVEL [logGroup] message` (plus exception chain when present). Flags: `--limit`, `--direction`, `--since`, `--raw`. Use this instead of hand-rolling URL-encoded `wget` invocations — the URL encoding is fragile (`+`/`%7C`/quote-escapes) and easy to get subtly wrong. |
 | `tune-reconstruction` | `tune_reconstruction.py` | Plackett-Burman sweep over `ReconstructionOptions` per capture. One reconstruction per cell. Aggregates map-quality metrics into a JSON report. |
 | `fit-calibration` | `fit_calibration.py` | Algorithm 1: pick held-out frames, build/reuse reconstructions, localize each held-out frame, fit logistic+isotonic for tight/loose success probability, fit Σ_meas `(α, β)`, write `docker/localizer/calibration/global.json`. |
+| `reconstruction` | `reconstruction.py` | `list` / `export` / `import` reconstructions. `export` writes a self-contained bundle tar — the reconstruction artifacts plus the source capture and its real localization map — so another backend reproduces the whole capture→reconstruction→map graph with the original ids; `--no-capture` emits a reconstruction-only (legacy) tar. |
+| `capture` | `capture.py` | `list` / `export` / `import` capture sessions. `export` bundles the stored capture tar with its DB row (name, device, recording time, size); `import` recreates the row faithfully on another backend, preserving the original id. |
 
 `api_auth.py` (shared) and `held_out_selection.py` (consumed by `fit-calibration`) are library modules, not entry points.
 
