@@ -11,7 +11,7 @@ class ReconstructionOptions(BaseModel):
         description="PRNG seed and single-threaded gate for reproducible reconstructions; None means non-deterministic.",
     )
     keyframe_min_distance_m: float = Field(
-        default=1.0,
+        default=0.5,
         description="Minimum VIO-translation distance (meters) between successive kept keyframes; frames closer to the last kept frame than this are dropped before feature extraction.",
     )
     sequential_window_m: float = Field(
