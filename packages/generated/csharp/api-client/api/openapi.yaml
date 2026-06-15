@@ -320,6 +320,63 @@ paths:
       summary: DownloadCaptureSessionTar
       tags:
       - Default
+  /capture_sessions/{id}/export:
+    get:
+      deprecated: false
+      operationId: export_capture_session
+      parameters:
+      - deprecated: false
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/x-tar:
+              schema:
+                format: binary
+                type: string
+          description: Stream Response
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: ExportCaptureSession
+      tags:
+      - Default
+  /capture_sessions/import:
+    post:
+      deprecated: false
+      operationId: import_capture_session
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/CaptureTarUploadRequest"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CaptureSessionRead"
+          description: "Document created, URL follows"
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: ImportCaptureSession
+      tags:
+      - Default
   /capture_sessions/{id}/manifest.json:
     get:
       deprecated: false
@@ -788,6 +845,21 @@ paths:
           format: uuid
           type: string
         style: simple
+      - allowEmptyValue: false
+        allowReserved: false
+        deprecated: false
+        description: Bundle the source capture and real map (v2). False emits a v1
+          reconstruction-only tar.
+        explode: true
+        in: query
+        name: include_capture
+        required: false
+        schema:
+          default: true
+          description: Bundle the source capture and real map (v2). False emits a
+            v1 reconstruction-only tar.
+          type: boolean
+        style: form
       responses:
         "200":
           content:
@@ -2195,6 +2267,15 @@ components:
       required:
       - capture_sessions
       title: CaptureSessionsExpanded
+      type: object
+    CaptureTarUploadRequest:
+      properties:
+        data:
+          format: binary
+          type: string
+      required:
+      - data
+      title: CaptureTarUploadRequest
       type: object
     CreateGraphRequest:
       example:

@@ -365,12 +365,31 @@ namespace PlaceframeApiClient.Api
         /// <returns>ApiResponse of FileParameter</returns>
         ApiResponse<FileParameter> DownloadCaptureSessionTarWithHttpInfo(Guid id);
         /// <summary>
-        /// ExportReconstructionTar
+        /// ExportCaptureSession
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
         /// <returns>FileParameter</returns>
-        FileParameter ExportReconstructionTar(Guid id);
+        FileParameter ExportCaptureSession(Guid id);
+
+        /// <summary>
+        /// ExportCaptureSession
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <returns>ApiResponse of FileParameter</returns>
+        ApiResponse<FileParameter> ExportCaptureSessionWithHttpInfo(Guid id);
+        /// <summary>
+        /// ExportReconstructionTar
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="includeCapture">Bundle the source capture and real map (v2). False emits a v1 reconstruction-only tar. (optional, default to true)</param>
+        /// <returns>FileParameter</returns>
+        FileParameter ExportReconstructionTar(Guid id, bool? includeCapture = default);
 
         /// <summary>
         /// ExportReconstructionTar
@@ -380,8 +399,9 @@ namespace PlaceframeApiClient.Api
         /// </remarks>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
+        /// <param name="includeCapture">Bundle the source capture and real map (v2). False emits a v1 reconstruction-only tar. (optional, default to true)</param>
         /// <returns>ApiResponse of FileParameter</returns>
-        ApiResponse<FileParameter> ExportReconstructionTarWithHttpInfo(Guid id);
+        ApiResponse<FileParameter> ExportReconstructionTarWithHttpInfo(Guid id, bool? includeCapture = default);
         /// <summary>
         /// GetCaptureSession
         /// </summary>
@@ -782,6 +802,24 @@ namespace PlaceframeApiClient.Api
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <returns>ApiResponse of ServerInfo</returns>
         ApiResponse<ServerInfo> GetServerInfoWithHttpInfo();
+        /// <summary>
+        /// ImportCaptureSession
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="data"></param>
+        /// <returns>CaptureSessionRead</returns>
+        CaptureSessionRead ImportCaptureSession(FileParameter data);
+
+        /// <summary>
+        /// ImportCaptureSession
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="data"></param>
+        /// <returns>ApiResponse of CaptureSessionRead</returns>
+        ApiResponse<CaptureSessionRead> ImportCaptureSessionWithHttpInfo(FileParameter data);
         /// <summary>
         /// ImportReconstructionTar
         /// </summary>
@@ -1462,7 +1500,7 @@ namespace PlaceframeApiClient.Api
         /// <returns>Task of ApiResponse (FileParameter)</returns>
         Cysharp.Threading.Tasks.UniTask<ApiResponse<FileParameter>> DownloadCaptureSessionTarWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
-        /// ExportReconstructionTar
+        /// ExportCaptureSession
         /// </summary>
         /// <remarks>
         /// 
@@ -1471,7 +1509,31 @@ namespace PlaceframeApiClient.Api
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of FileParameter</returns>
-        Cysharp.Threading.Tasks.UniTask<FileParameter> ExportReconstructionTarAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<FileParameter> ExportCaptureSessionAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// ExportCaptureSession
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (FileParameter)</returns>
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<FileParameter>> ExportCaptureSessionWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+        /// <summary>
+        /// ExportReconstructionTar
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="includeCapture">Bundle the source capture and real map (v2). False emits a v1 reconstruction-only tar. (optional, default to true)</param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of FileParameter</returns>
+        Cysharp.Threading.Tasks.UniTask<FileParameter> ExportReconstructionTarAsync(Guid id, bool? includeCapture = default, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// ExportReconstructionTar
@@ -1481,9 +1543,10 @@ namespace PlaceframeApiClient.Api
         /// </remarks>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
+        /// <param name="includeCapture">Bundle the source capture and real map (v2). False emits a v1 reconstruction-only tar. (optional, default to true)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (FileParameter)</returns>
-        Cysharp.Threading.Tasks.UniTask<ApiResponse<FileParameter>> ExportReconstructionTarWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<FileParameter>> ExportReconstructionTarWithHttpInfoAsync(Guid id, bool? includeCapture = default, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// GetCaptureSession
         /// </summary>
@@ -1989,6 +2052,29 @@ namespace PlaceframeApiClient.Api
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (ServerInfo)</returns>
         Cysharp.Threading.Tasks.UniTask<ApiResponse<ServerInfo>> GetServerInfoWithHttpInfoAsync(System.Threading.CancellationToken cancellationToken = default);
+        /// <summary>
+        /// ImportCaptureSession
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="data"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of CaptureSessionRead</returns>
+        Cysharp.Threading.Tasks.UniTask<CaptureSessionRead> ImportCaptureSessionAsync(FileParameter data, System.Threading.CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// ImportCaptureSession
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="data"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (CaptureSessionRead)</returns>
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<CaptureSessionRead>> ImportCaptureSessionWithHttpInfoAsync(FileParameter data, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// ImportReconstructionTar
         /// </summary>
@@ -4629,24 +4715,24 @@ namespace PlaceframeApiClient.Api
         }
 
         /// <summary>
-        /// ExportReconstructionTar 
+        /// ExportCaptureSession 
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
         /// <returns>FileParameter</returns>
-        public FileParameter ExportReconstructionTar(Guid id)
+        public FileParameter ExportCaptureSession(Guid id)
         {
-            PlaceframeApiClient.Client.ApiResponse<FileParameter> localVarResponse = ExportReconstructionTarWithHttpInfo(id);
+            PlaceframeApiClient.Client.ApiResponse<FileParameter> localVarResponse = ExportCaptureSessionWithHttpInfo(id);
             return localVarResponse.Data;
         }
 
         /// <summary>
-        /// ExportReconstructionTar 
+        /// ExportCaptureSession 
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
         /// <returns>ApiResponse of FileParameter</returns>
-        public PlaceframeApiClient.Client.ApiResponse<FileParameter> ExportReconstructionTarWithHttpInfo(Guid id)
+        public PlaceframeApiClient.Client.ApiResponse<FileParameter> ExportCaptureSessionWithHttpInfo(Guid id)
         {
             PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
 
@@ -4669,11 +4755,11 @@ namespace PlaceframeApiClient.Api
 
 
             // make the HTTP request
-            var localVarResponse = this.Client.Get<FileParameter>("/reconstructions/{id}/tar", localVarRequestOptions, this.Configuration);
+            var localVarResponse = this.Client.Get<FileParameter>("/capture_sessions/{id}/export", localVarRequestOptions, this.Configuration);
 
             if (this.ExceptionFactory != null)
             {
-                Exception _exception = this.ExceptionFactory("ExportReconstructionTar", localVarResponse);
+                Exception _exception = this.ExceptionFactory("ExportCaptureSession", localVarResponse);
                 if (_exception != null) throw _exception;
             }
 
@@ -4681,26 +4767,26 @@ namespace PlaceframeApiClient.Api
         }
 
         /// <summary>
-        /// ExportReconstructionTar 
+        /// ExportCaptureSession 
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of FileParameter</returns>
-        public async Cysharp.Threading.Tasks.UniTask<FileParameter> ExportReconstructionTarAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<FileParameter> ExportCaptureSessionAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlaceframeApiClient.Client.ApiResponse<FileParameter> localVarResponse = await ExportReconstructionTarWithHttpInfoAsync(id, cancellationToken);
+            PlaceframeApiClient.Client.ApiResponse<FileParameter> localVarResponse = await ExportCaptureSessionWithHttpInfoAsync(id, cancellationToken);
             return localVarResponse.Data;
         }
 
         /// <summary>
-        /// ExportReconstructionTar 
+        /// ExportCaptureSession 
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (FileParameter)</returns>
-        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<FileParameter>> ExportReconstructionTarWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<FileParameter>> ExportCaptureSessionWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
         {
 
             PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
@@ -4722,6 +4808,127 @@ namespace PlaceframeApiClient.Api
             if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
 
             localVarRequestOptions.PathParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id)); // path parameter
+
+
+            // make the HTTP request
+
+            var localVarResponse = await this.AsynchronousClient.GetAsync<FileParameter>("/capture_sessions/{id}/export", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("ExportCaptureSession", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// ExportReconstructionTar 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="includeCapture">Bundle the source capture and real map (v2). False emits a v1 reconstruction-only tar. (optional, default to true)</param>
+        /// <returns>FileParameter</returns>
+        public FileParameter ExportReconstructionTar(Guid id, bool? includeCapture = default)
+        {
+            PlaceframeApiClient.Client.ApiResponse<FileParameter> localVarResponse = ExportReconstructionTarWithHttpInfo(id, includeCapture);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// ExportReconstructionTar 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="includeCapture">Bundle the source capture and real map (v2). False emits a v1 reconstruction-only tar. (optional, default to true)</param>
+        /// <returns>ApiResponse of FileParameter</returns>
+        public PlaceframeApiClient.Client.ApiResponse<FileParameter> ExportReconstructionTarWithHttpInfo(Guid id, bool? includeCapture = default)
+        {
+            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/x-tar",
+                "application/json"
+            };
+
+            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.PathParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id)); // path parameter
+            if (includeCapture != null)
+            {
+                localVarRequestOptions.QueryParameters.Add(PlaceframeApiClient.Client.ClientUtils.ParameterToMultiMap("", "include_capture", includeCapture));
+            }
+
+
+            // make the HTTP request
+            var localVarResponse = this.Client.Get<FileParameter>("/reconstructions/{id}/tar", localVarRequestOptions, this.Configuration);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("ExportReconstructionTar", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// ExportReconstructionTar 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="includeCapture">Bundle the source capture and real map (v2). False emits a v1 reconstruction-only tar. (optional, default to true)</param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of FileParameter</returns>
+        public async Cysharp.Threading.Tasks.UniTask<FileParameter> ExportReconstructionTarAsync(Guid id, bool? includeCapture = default, System.Threading.CancellationToken cancellationToken = default)
+        {
+            PlaceframeApiClient.Client.ApiResponse<FileParameter> localVarResponse = await ExportReconstructionTarWithHttpInfoAsync(id, includeCapture, cancellationToken);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// ExportReconstructionTar 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="includeCapture">Bundle the source capture and real map (v2). False emits a v1 reconstruction-only tar. (optional, default to true)</param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (FileParameter)</returns>
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<FileParameter>> ExportReconstructionTarWithHttpInfoAsync(Guid id, bool? includeCapture = default, System.Threading.CancellationToken cancellationToken = default)
+        {
+
+            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/x-tar",
+                "application/json"
+            };
+
+
+            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.PathParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id)); // path parameter
+            if (includeCapture != null)
+            {
+                localVarRequestOptions.QueryParameters.Add(PlaceframeApiClient.Client.ClientUtils.ParameterToMultiMap("", "include_capture", includeCapture));
+            }
 
 
             // make the HTTP request
@@ -7154,6 +7361,123 @@ namespace PlaceframeApiClient.Api
             if (this.ExceptionFactory != null)
             {
                 Exception _exception = this.ExceptionFactory("GetServerInfo", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// ImportCaptureSession 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="data"></param>
+        /// <returns>CaptureSessionRead</returns>
+        public CaptureSessionRead ImportCaptureSession(FileParameter data)
+        {
+            PlaceframeApiClient.Client.ApiResponse<CaptureSessionRead> localVarResponse = ImportCaptureSessionWithHttpInfo(data);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// ImportCaptureSession 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="data"></param>
+        /// <returns>ApiResponse of CaptureSessionRead</returns>
+        public PlaceframeApiClient.Client.ApiResponse<CaptureSessionRead> ImportCaptureSessionWithHttpInfo(FileParameter data)
+        {
+            // verify the required parameter 'data' is set
+            if (data == null)
+                throw new PlaceframeApiClient.Client.ApiException(400, "Missing required parameter 'data' when calling DefaultApi->ImportCaptureSession");
+
+            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+                "multipart/form-data"
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.FileParameters.Add("data", data);
+
+
+            // make the HTTP request
+            var localVarResponse = this.Client.Post<CaptureSessionRead>("/capture_sessions/import", localVarRequestOptions, this.Configuration);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("ImportCaptureSession", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// ImportCaptureSession 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="data"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of CaptureSessionRead</returns>
+        public async Cysharp.Threading.Tasks.UniTask<CaptureSessionRead> ImportCaptureSessionAsync(FileParameter data, System.Threading.CancellationToken cancellationToken = default)
+        {
+            PlaceframeApiClient.Client.ApiResponse<CaptureSessionRead> localVarResponse = await ImportCaptureSessionWithHttpInfoAsync(data, cancellationToken);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// ImportCaptureSession 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="data"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (CaptureSessionRead)</returns>
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<CaptureSessionRead>> ImportCaptureSessionWithHttpInfoAsync(FileParameter data, System.Threading.CancellationToken cancellationToken = default)
+        {
+            // verify the required parameter 'data' is set
+            if (data == null)
+                throw new PlaceframeApiClient.Client.ApiException(400, "Missing required parameter 'data' when calling DefaultApi->ImportCaptureSession");
+
+
+            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+                "multipart/form-data"
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+
+            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.FileParameters.Add("data", data);
+
+
+            // make the HTTP request
+
+            var localVarResponse = await this.AsynchronousClient.PostAsync<CaptureSessionRead>("/capture_sessions/import", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("ImportCaptureSession", localVarResponse);
                 if (_exception != null) throw _exception;
             }
 

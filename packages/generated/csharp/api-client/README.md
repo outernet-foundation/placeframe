@@ -147,6 +147,7 @@ Class | Method | HTTP request | Description
 *DefaultApi* | [**DeleteNodes**](docs/DefaultApi.md#deletenodes) | **DELETE** /nodes | DeleteNodes
 *DefaultApi* | [**DeleteReconstruction**](docs/DefaultApi.md#deletereconstruction) | **DELETE** /reconstructions/{id} | DeleteReconstruction
 *DefaultApi* | [**DownloadCaptureSessionTar**](docs/DefaultApi.md#downloadcapturesessiontar) | **GET** /capture_sessions/{id}/tar | DownloadCaptureSessionTar
+*DefaultApi* | [**ExportCaptureSession**](docs/DefaultApi.md#exportcapturesession) | **GET** /capture_sessions/{id}/export | ExportCaptureSession
 *DefaultApi* | [**ExportReconstructionTar**](docs/DefaultApi.md#exportreconstructiontar) | **GET** /reconstructions/{id}/tar | ExportReconstructionTar
 *DefaultApi* | [**GetCaptureSession**](docs/DefaultApi.md#getcapturesession) | **GET** /capture_sessions/{id} | GetCaptureSession
 *DefaultApi* | [**GetCaptureSessionFramesCsv**](docs/DefaultApi.md#getcapturesessionframescsv) | **GET** /capture_sessions/{id}/frames.csv | GetCaptureSessionFramesCsv
@@ -169,6 +170,7 @@ Class | Method | HTTP request | Description
 *DefaultApi* | [**GetReconstructionPoints**](docs/DefaultApi.md#getreconstructionpoints) | **GET** /reconstructions/{id}/points | GetReconstructionPoints
 *DefaultApi* | [**GetReconstructions**](docs/DefaultApi.md#getreconstructions) | **GET** /reconstructions | GetReconstructions
 *DefaultApi* | [**GetServerInfo**](docs/DefaultApi.md#getserverinfo) | **GET** /server-info | GetServerInfo
+*DefaultApi* | [**ImportCaptureSession**](docs/DefaultApi.md#importcapturesession) | **POST** /capture_sessions/import | ImportCaptureSession
 *DefaultApi* | [**ImportReconstructionTar**](docs/DefaultApi.md#importreconstructiontar) | **POST** /reconstructions/tar | ImportReconstructionTar
 *DefaultApi* | [**ListLocalizationEvaluations**](docs/DefaultApi.md#listlocalizationevaluations) | **GET** /reconstructions/{reconstruction_id}/localization-evaluations | ListLocalizationEvaluations
 *DefaultApi* | [**LocalizeImage**](docs/DefaultApi.md#localizeimage) | **POST** /localize | LocalizeImage

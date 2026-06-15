@@ -762,6 +762,157 @@
         "deprecated": false
       }
     },
+    "/capture_sessions/{id}/export": {
+      "get": {
+        "tags": [
+          "Capture Sessions"
+        ],
+        "summary": "ExportCaptureSession",
+        "operationId": "export_capture_session",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "deprecated": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Stream Response",
+            "headers": {},
+            "content": {
+              "application/x-tar": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request syntax or unsupported method",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status_code": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "anyOf": [
+                        {
+                          "type": "object"
+                        },
+                        {
+                          "type": "array",
+                          "items": {}
+                        }
+                      ],
+                      "nullable": true
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "description": "Validation Exception",
+                  "example": {
+                    "status_code": 400,
+                    "detail": "Bad Request",
+                    "extra": {}
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/capture_sessions/import": {
+      "post": {
+        "tags": [
+          "Capture Sessions"
+        ],
+        "summary": "ImportCaptureSession",
+        "operationId": "import_capture_session",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/CaptureTarUploadRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Document created, URL follows",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaptureSessionRead"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request syntax or unsupported method",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status_code": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "anyOf": [
+                        {
+                          "type": "object"
+                        },
+                        {
+                          "type": "array",
+                          "items": {}
+                        }
+                      ],
+                      "nullable": true
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "description": "Validation Exception",
+                  "example": {
+                    "status_code": 400,
+                    "detail": "Bad Request",
+                    "extra": {}
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
     "/capture_sessions/{id}/manifest.json": {
       "get": {
         "tags": [
@@ -1836,6 +1987,20 @@
             },
             "required": true,
             "deprecated": false
+          },
+          {
+            "name": "include_capture",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "description": "Bundle the source capture and real map (v2). False emits a v1 reconstruction-only tar.",
+              "default": true
+            },
+            "description": "Bundle the source capture and real map (v2). False emits a v1 reconstruction-only tar.",
+            "required": false,
+            "deprecated": false,
+            "allowEmptyValue": false,
+            "allowReserved": false
           }
         ],
         "responses": {
@@ -4409,6 +4574,19 @@
           "capture_sessions"
         ],
         "title": "CaptureSessionsExpanded"
+      },
+      "CaptureTarUploadRequest": {
+        "properties": {
+          "data": {
+            "type": "string",
+            "format": "binary"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "CaptureTarUploadRequest"
       },
       "CreateGraphRequest": {
         "properties": {
