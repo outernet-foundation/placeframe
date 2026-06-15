@@ -95,13 +95,38 @@ enhancement flag on it was part of the expunge.
 - **Image enhancement is ruled out** for this corpus. Do not revisit CLAHE/denoise without new
   evidence.
 - **Expunge, don't shelve.** The user chose full removal over keeping the option default-off.
-- We **cannot improve the capture/map-construction process** right now (no new scans) — only
-  reconstruction-time tuning of the existing corpus is on the table.
+- **Tier 1 ran and WON — adopted.** `keyframe_min_distance_m` 1.0 → 0.5 lifted `vinl_med` on **5/5**
+  night captures (+10% to +28%, mean ~+18%), track-length mean +18%, point count ~doubled (+69% to
+  +113%), at a trivial reproj cost (every variant rose +0.03–0.06 px, all still sub-pixel). The two
+  *thinnest* baselines (night-4 162→207, night-5 134.5→160) gained the most — the lever helps the
+  maps that needed it most. The default was changed 1.0 → 0.5 in
+  `core/reconstruction_options.py` (commit `8ddf0925`) + codegen (`6b35be50`).
+- **`sequential_window_m` 3.0 → 5.0 is inert-to-harmful — NOT adopted, left at 3.0.** The Phase-A
+  decomposition (night-3 2×2: baseline / kfd-only / window-only / both) showed kfd is the *entire*
+  effect (+8.7% `vinl_med` alone) while the window alone *dropped* `vinl_med` −2% and, stacked on
+  kfd, added only +1.3% (noise) **and produced the worst reproj of the four cells** (0.851 → 0.887).
+  Bonus reason to drop it: fewer pairs = less aliasing exposure.
+- **Don't push kfd below 0.5 — near frame-count saturation.** At 0.5 we already register **76–86% of
+  every raw frame** (raw frame counts: n1 253 / n2 402 / n3 135 / n4 238 / n5 317; registered =
+  mapped-images ÷ 2 since stereo). kfd 0.25 buys at most ~15–24% more frames, all near-stationary
+  duplicates the 3° triangulation gate culls. The 1.0→0.5 win was a one-time doubling of frame
+  utilization (~40% → ~80%); there is no second doubling available.
+- **Verdict scope:** all of the above is validated on **map richness only** (`vinl_med`, track
+  length, points) — NOT on localization / false-lock robustness. The 5×5 cross-localization +
+  cycle-consistency test is still the real gate before calling kfd=0.5 a *localization* win. Daytime
+  impact is also untested (the day regression was skipped — `demo-site` had no capture tar), and the
+  default change is global (no day/night flag in the pipeline; ~2× keyframes ≈ ~2× reconstruct compute).
+- **Capture-side tuning is now on the table** (it was previously deemed off-limits). The night
+  bottleneck is gain-noise from photon starvation, which is a *capture* problem; the device-side
+  camera knobs (ZED X / ML2 / ARFoundation) are captured in
+  `.pulsar/memories/night-camera-tuning-knobs.md`. Capture changes can't be A/B'd on the existing
+  corpus — they need new scans.
 
 ## Open questions
 
-- Does **Tier 1 (denser views)** actually lift `vinl_med` / track length without adding aliasing?
-  This is the only untested lever with expected upside. (See odds below.)
+- **Does kfd=0.5 hold up on the *localization* axis** (success rate, false-lock robustness), not just
+  map richness? Answered "yes" on richness 5/5; the 5×5 cross-localization is the localization gate.
+- Does kfd=0.5 help or hurt **daytime**? Untested (no daytime capture tar present).
 - For the 5×5 cross-localization / cycle-consistency "are these the same place / which map is broken"
   experiment: can the localizer be aimed at an arbitrary map in a batch call? (Map-selection wiring
   in the localizer/API was never confirmed.) All five maps have **identity georeg**, so every check
@@ -111,19 +136,20 @@ enhancement flag on it was part of the expunge.
 
 ## Pending threads
 
-- **Run the Tier-1 reconstruction A/B next.** `keyframe_min_distance_m` 1.0 → 0.5 (denser keyframes
-  → longer tracks) + `sequential_window_m` 3.0 → 5.0 (more temporal pairs, still RANSAC-verified).
-  These are the only levers that add *views of the same points* (strengthening points) rather than
-  diluting matches, so they push track length / reliable-point count the *good* way. The
-  reconstruction `create` script command is the tool; it would need the two flags added first. GPU
-  is currently clear (localizer-cuda was left stopped to avoid VRAM OOM — running localizer +
-  reconstructor together OOMs the GPU).
-- The full tuning menu, re-ranked by the CLAHE lesson, with calibrated odds (≥10% move in
-  localization-relevant metrics, or noticeable false-lock change; n=5 corpus, treat as guesses):
-  - **Tier 1 — denser views** (above): **~45% help / ~40% neutral / ~15% hurt.** Best bet, capped
-    ceiling. New in-between keyframes sit at shorter baselines so marginal points are narrow-angle
-    (the `triangulation_minimum_angle=3°` gate filters the worst). Lifts track length / point count
-    more than `vinl_med` (per-pair inliers are repeatability-bound, not view-count-bound).
+- **Tier 1 is DONE** (kfd=0.5 adopted, window rejected — see Decisions). The reusable A/B tool now
+  exists: `uv run reconstruction create <capture-name-or-uuid> --options-json '{...}'` (commit
+  `181d2036`) — enqueues a re-reconstruction with arbitrary `ReconstructionOptions` overrides,
+  validated through the client model; the running CUDA reconstructor leases the queued row. GPU stays
+  clear by keeping `localizer-cuda` stopped (localizer + reconstructor co-resident OOMs the 8 GiB GPU).
+- **Density-curve trace (proposed, NOT run):** kfd 1.5 + 2.0 on night-2 (densest capture) to map the
+  density→quality curve. We know 1.0→0.5 is still climbing steeply (+18%); tracing the sparser end
+  tells us whether the curve is plateauing — i.e. whether *denser capture* (new scans) would keep
+  paying or just saturate. This informs the capture-side decision (see camera memory).
+- **5×5 cross-localization validation** of kfd=0.5 (the localization gate) — see below.
+- The remaining reconstruction tuning menu, re-ranked by the CLAHE lesson + the kfd result, with
+  calibrated odds (≥10% move in localization-relevant metrics; n=5 corpus, treat as guesses). Note
+  the reconstruction-side vein is now **largely mined out** — kfd was the big win and is saturated,
+  window is dead; further upside likely comes from *capture-side* changes, not these knobs:
   - **Tier 2 — looser thresholds** (`two_view_min_num_inliers` 30→20, `triangulation_minimum_angle`
     lower, retrieval loosening `retrieval_min_score`↓ / `retrieval_neighbors` 20→30): **~25% / ~25%
     / ~50% — weighted toward harm.** The CLAHE run was a natural experiment in "more, weaker matches"
