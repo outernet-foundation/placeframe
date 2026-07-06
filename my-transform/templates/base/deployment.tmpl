@@ -64,14 +64,14 @@ spec:
 {{ if $target }}
 {{ if eq $dep.condition "service_completed_successfully" }}
         - name: wait-for-{{ $depName | safe }}
-          image: groundnuty/k8s-wait-for:v2.0
+          image: {{ index $ "x-wait-images" "job-wait" }}
           args: [ "job", "{{ $depName }}" ]
 {{ else }}
 {{ $waitPort := "" }}
 {{ if $target.ports }}{{ $waitPort = (index $target.ports 0).target }}{{ else if $target.expose }}{{ $waitPort = index $target.expose 0 }}{{ end }}
 {{ if $waitPort }}
         - name: wait-for-{{ $depName | safe }}
-          image: busybox:1.36.1
+          image: {{ index $ "x-wait-images" "tcp-probe" }}
           command: [ "sh", "-c", "until nc -z -w 2 {{ $depName }} {{ $waitPort }}; do echo 'waiting for {{ $depName }}'; sleep 2; done" ]
 {{ end }}
 {{ end }}
