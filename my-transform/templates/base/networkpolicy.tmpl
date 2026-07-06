@@ -1,0 +1,22 @@
+{{ $project := .name }}
+{{ range $name, $network := .networks }}
+---
+#! {{ $name }}-network-policy.yaml
+# Generated code, do not edit
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ $name | safe }}-network-policy
+  namespace: {{ $project | safe }}
+spec:
+  podSelector:
+    matchLabels:
+      com.docker.compose.network.{{ $name }}: "true"
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+      - podSelector:
+          matchLabels:
+            com.docker.compose.network.{{ $name }}: "true"
+{{ end }}

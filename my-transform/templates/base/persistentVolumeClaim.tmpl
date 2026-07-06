@@ -1,0 +1,26 @@
+{{ $project := .name }}
+{{ range $name, $service := .services }}
+{{ range $volume := $service.volumes }}
+{{ if eq $volume.type "volume" }}
+---
+#! {{ $name }}-{{ $volume.source | safe }}-persistentVolumeClaim.yaml
+# Generated code, do not edit
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ $name }}-{{ $volume.source | safe }}
+  namespace: {{ $project | safe }}
+  labels:
+    com.docker.compose.service: {{ $name }}
+    com.docker.compose.volume: {{ $volume.source }}
+spec:
+  accessModes:
+    # TODO would need to check which services use this volume
+    - {{ if $volume.read_only }}ReadOnlyMany{{ else }}ReadWriteOnce{{ end }}
+  volumeMode: Filesystem
+  resources:
+    requests:
+      storage: 100Mi
+{{ end }}
+{{ end }}
+{{ end }}

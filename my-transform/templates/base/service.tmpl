@@ -1,0 +1,40 @@
+{{ $project := .name }}
+{{ range $name, $service := .services }}
+{{ $publishedPort  := false }}
+{{ if $service.ports }}
+# check if there is at least one published port
+{{ range $port := $service.ports}}
+    {{ if $port.published }}
+        {{ $publishedPort = true }}
+        {{ break }}
+    {{ end }}
+{{ end }}
+{{ end }}
+{{ if $publishedPort }}
+---
+#! {{ $name }}-service.yaml
+# Generated code, do not edit
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name | safe }}-published
+  namespace: {{ $project | safe }}
+  labels:
+    com.docker.compose.project: {{ $project }}
+    com.docker.compose.service: {{ $name }}
+spec:
+  selector:
+    com.docker.compose.project: {{ $project }}
+    com.docker.compose.service: {{ $name }}
+  ports:
+{{ range $port := $service.ports}}
+    {{ if $port.published }}
+    - name: {{ if $port.name }}{{ slice $port.name 0 14 }}{{ else }}{{ portName $name $port.published }}{{ end }}
+      port: {{ $port.published }}
+      protocol:  {{ $port.protocol | uppercase }}
+      targetPort: {{ portName $name $port.target }}
+    {{ end }}
+{{ end }}
+
+{{ end }}
+{{ end }}
