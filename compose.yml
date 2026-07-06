@@ -258,19 +258,21 @@ services:
       DATABASE_NAME: "${DATABASE_NAME:?err}"
       DATABASE_API_USER: "${DATABASE_NAME:?err}_api_user"
       DATABASE_AUTH_USER: "${DATABASE_NAME:?err}_auth_user"
-      DATABASE_API_USER_PASSWORD: "${DATABASE_API_USER_PASSWORD:?err}"
-      DATABASE_AUTH_USER_PASSWORD: "${DATABASE_AUTH_USER_PASSWORD:?err}"
       DATABASE_ORCHESTRATION_USER: "${DATABASE_NAME:?err}_orchestration_user"
-      DATABASE_ORCHESTRATION_USER_PASSWORD: "${DATABASE_ORCHESTRATION_USER_PASSWORD:?err}"
       MINIO_ENDPOINT_URL: "http://minio:9000"
       MINIO_ACCESS_KEY: "${MINIO_ACCESS_KEY:?err}"
-      MINIO_SECRET_KEY: "${MINIO_SECRET_KEY:?err}"
       RECONSTRUCTIONS_BUCKET: dev-reconstructions
       LOCALIZER_CONTAINER_URL: http://localizer:8000
       LOKI_URL: http://loki:3100
       DEPLOYMENT_ENVIRONMENT: "${DEPLOYMENT_ENVIRONMENT:-development}"
       SERVICE_VERSION: "${API_SHA:?err}"
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://alloy:4317"
+    secrets:
+      - database_api_user_password
+      - database_auth_user_password
+      - database_orchestration_user_password
+      - minio_secret_key
+      #keep these secrets lowercase. Pydantic will not find it without them being lowercase.
 
   lease-server:
     image: "ghcr.io/outernet-foundation/placeframe/lease-server:${LEASE_SERVER_SHA:?err}"
@@ -370,3 +372,13 @@ services:
       GF_AUTH_GENERIC_OAUTH_TOKEN_URL: "${PUBLIC_URL:?err}/auth/realms/placeframe-dev/protocol/openid-connect/token"
       GF_AUTH_GENERIC_OAUTH_API_URL: "${PUBLIC_URL:?err}/auth/realms/placeframe-dev/protocol/openid-connect/userinfo"
       GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_PATH: "'Admin'"
+
+secrets:
+  database_api_user_password:
+    environment: DATABASE_API_USER_PASSWORD
+  database_auth_user_password:
+    environment: DATABASE_AUTH_USER_PASSWORD
+  database_orchestration_user_password:
+    environment: DATABASE_ORCHESTRATION_USER_PASSWORD
+  minio_secret_key:
+    environment: MINIO_SECRET_KEY
