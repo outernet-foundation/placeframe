@@ -191,6 +191,10 @@ def run_build(
         if "x-image-ref" in config
     }
 
+    # Images injected into generated Kubernetes manifests by the compose-bridge transform.
+    # Declared already keyed by env var name (vs. derived from a service name).
+    third_party_images.update(cast(dict[str, str], bake_data.get("x-runtime-images", {})))
+
     def _needs_resolve(image: str, ref: str) -> bool:
         if upgrade or image not in lock_data:
             return True

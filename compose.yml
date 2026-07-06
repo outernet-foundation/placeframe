@@ -1,5 +1,12 @@
 name: placeframe
 
+# Digest-pinned images the compose-bridge transform injects into generated manifests
+# (see my-transform/templates/base/deployment.tmpl). Values resolve from .env.lock, which
+# pins them via compose.bake.yml's x-runtime-images.
+x-wait-images:
+  tcp-probe: "${BUSYBOX_IMAGE:?err}"
+  job-wait: "${K8S_WAIT_FOR_IMAGE:?err}"
+
 volumes:
   uv_cache:
   minio_data:
