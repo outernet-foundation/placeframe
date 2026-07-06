@@ -1,10 +1,12 @@
 {{ $project := .name }}
 {{ range $name, $service := .services }}
 ---
-#! {{ $name }}-deployment.yaml
+#! {{ $name }}-{{ if eq $service.restart "no" }}job{{ else }}deployment{{ end }}.yaml
 # Generated code, do not edit
-apiVersion: apps/v1
-{{ if eq $service.deploy.mode "global" }}
+apiVersion: {{ if eq $service.restart "no" }}batch/v1{{ else }}apps/v1{{ end }}
+{{ if eq $service.restart "no" }}
+kind: Job
+{{ else if eq $service.deploy.mode "global" }}
 kind: DaemonSet
 {{ else }}
 kind: Deployment
@@ -16,6 +18,9 @@ metadata:
     com.docker.compose.project: {{ $project }}
     com.docker.compose.service: {{ $name }}
 spec:
+{{ if eq $service.restart "no" }}
+  backoffLimit: 6
+{{ else }}
   replicas: {{ if $service.scale }} {{ $service.scale }} {{ else }} 1 {{ end }}
   selector:
     matchLabels:
@@ -23,6 +28,7 @@ spec:
       com.docker.compose.service: {{$name}}
   strategy:
     type: Recreate
+{{ end }}
   template:
     metadata:
       labels:
@@ -32,8 +38,45 @@ spec:
         com.docker.compose.network.{{ $name }}: "true"
 {{ end }}
     spec:
-{{ if $service.restart }}
-      restartPolicy : {{ map $service.restart "always->Always" "on-failure->OnFailure" "no->Never"}}
+{{ if eq $service.restart "no" }}
+      restartPolicy: Never
+{{ end }}
+{{ $needsServiceAccount := false }}
+{{ range $depName, $dep := $service.depends_on }}{{ if and (index $.services $depName) (eq $dep.condition "service_completed_successfully") }}{{ $needsServiceAccount = true }}{{ end }}{{ end }}
+{{ if $needsServiceAccount }}
+      serviceAccountName: wait-for
+{{ end }}
+{{ $hasInitContainers := false }}
+{{ range $depName, $dep := $service.depends_on }}
+{{ $target := index $.services $depName }}
+{{ if $target }}{{ if eq $dep.condition "service_completed_successfully" }}{{ $hasInitContainers = true }}{{ else if or $target.expose $target.ports }}{{ $hasInitContainers = true }}{{ end }}{{ end }}
+{{ end }}
+{{ range $depName, $dep := $service.depends_on }}
+{{ $target := index $.services $depName }}
+{{ if and $target (ne $dep.condition "service_completed_successfully") (not (or $target.expose $target.ports)) }}
+      # No readiness wait generated for dependency '{{ $depName }}' ({{ $dep.condition }}): it declares no ports or expose, so it has no Service to probe.
+{{ end }}
+{{ end }}
+{{ if $hasInitContainers }}
+      initContainers:
+{{ range $depName, $dep := $service.depends_on }}
+{{ $target := index $.services $depName }}
+{{ if $target }}
+{{ if eq $dep.condition "service_completed_successfully" }}
+        - name: wait-for-{{ $depName | safe }}
+          image: groundnuty/k8s-wait-for:v2.0
+          args: [ "job", "{{ $depName }}" ]
+{{ else }}
+{{ $waitPort := "" }}
+{{ if $target.ports }}{{ $waitPort = (index $target.ports 0).target }}{{ else if $target.expose }}{{ $waitPort = index $target.expose 0 }}{{ end }}
+{{ if $waitPort }}
+        - name: wait-for-{{ $depName | safe }}
+          image: busybox:1.36.1
+          command: [ "sh", "-c", "until nc -z -w 2 {{ $depName }} {{ $waitPort }}; do echo 'waiting for {{ $depName }}'; sleep 2; done" ]
+{{ end }}
+{{ end }}
+{{ end }}
+{{ end }}
 {{ end }}
       containers:
         - name: {{ if $service.container_name }}{{ $service.container_name | safe }}{{ else }}{{ $name | safe }}{{ end }}
