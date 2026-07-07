@@ -37,13 +37,11 @@ services:
       minio:
         condition: service_healthy
     restart: "no"
-    entrypoint: >
-      /bin/sh -c "
-        mc alias set local http://minio:9000 '${MINIO_ACCESS_KEY:?err}' '${MINIO_SECRET_KEY:?err}' && \
-        mc mb --ignore-existing local/dev-captures && \
-        mc mb --ignore-existing local/dev-reconstructions && \
-        mc mb --ignore-existing local/loki
-      "
+    entrypoint:
+      - /bin/sh
+      - -c
+      - >-
+        mc alias set local http://minio:9000 '${MINIO_ACCESS_KEY:?err}' '${MINIO_SECRET_KEY:?err}' && mc mb --ignore-existing local/dev-captures && mc mb --ignore-existing local/dev-reconstructions && mc mb --ignore-existing local/loki
     environment:
       MINIO_ACCESS_KEY: "${MINIO_ACCESS_KEY:?err}"
       MINIO_SECRET_KEY: "${MINIO_SECRET_KEY:?err}"
@@ -54,12 +52,11 @@ services:
     depends_on:
       minio:
         condition: service_healthy
-    entrypoint: >
-      /bin/sh -c "
-        set -e
-        mc alias set local http://minio:9000 '${MINIO_ACCESS_KEY:?err}' '${MINIO_SECRET_KEY:?err}'
-        mc admin trace --verbose --all local
-      "
+    entrypoint:
+      - /bin/sh
+      - -c
+      - >-
+        set -e; mc alias set local http://minio:9000 '${MINIO_ACCESS_KEY:?err}' '${MINIO_SECRET_KEY:?err}'; mc admin trace --verbose --all local
     environment:
       MINIO_ACCESS_KEY: "${MINIO_ACCESS_KEY:?err}"
       MINIO_SECRET_KEY: "${MINIO_SECRET_KEY:?err}"
@@ -93,8 +90,6 @@ services:
         mode: ingress
     volumes:
       - cloudbeaver_data:/opt/cloudbeaver/workspace
-    environment:
-      CLOUDBEAVER_ROOT_URI: "/cloudbeaver"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     healthcheck:
@@ -102,6 +97,8 @@ services:
       interval: 1s
       timeout: 1s
       retries: 90
+    environment:
+      CLOUDBEAVER_ROOT_URI: "/cloudbeaver"
 
   create-database:
     image: "ghcr.io/outernet-foundation/placeframe/database-manager:${DATABASE_MANAGER_SHA:?err}"
@@ -125,19 +122,19 @@ services:
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://alloy:4317"
 
   auth-initializer:
-    image: "ghcr.io/outernet-foundation/placeframe/auth-initializer:${AUTH_INITIALIZER_SHA:?err}"
     profiles:
       - keycloak
+    image: "ghcr.io/outernet-foundation/placeframe/auth-initializer:${AUTH_INITIALIZER_SHA:?err}"
     restart: "no"
     volumes:
       - auth_data:/auth_data
       - keycloak_import:/keycloak_import
 
   keycloak:
-    x-image-ref: quay.io/keycloak/keycloak:26.3.5
-    image: "${KEYCLOAK_IMAGE:?err}"
     profiles:
       - keycloak
+    x-image-ref: quay.io/keycloak/keycloak:26.3.5
+    image: "${KEYCLOAK_IMAGE:?err}"
     depends_on:
       auth-initializer:
         condition: service_completed_successfully
@@ -187,9 +184,9 @@ services:
   # `:-` (not `:?err`): docker compose interpolates regardless of profile, so
   # `:?err` on NGROK_* would break rathole-only operators.
   ngrok:
+    profiles: [ tunnel-ngrok ]
     x-image-ref: ngrok/ngrok:alpine
     image: "${NGROK_IMAGE:?err}"
-    profiles: [tunnel-ngrok]
     depends_on:
       - gateway
     restart: on-failure
@@ -209,8 +206,8 @@ services:
   # the compose network. Downstream stacks override RATHOLE_SERVICES to register
   # more services (each entry is name:protocol:host:port).
   rathole-client:
+    profiles: [ tunnel-rathole ]
     image: "ghcr.io/outernet-foundation/placeframe/rathole-client:${RATHOLE_CLIENT_SHA:?err}"
-    profiles: [tunnel-rathole]
     restart: on-failure
     environment:
       ENGINEER_NAME: "${ENGINEER_NAME:-}"
@@ -310,7 +307,7 @@ services:
     restart: "no"
     volumes:
       - loki_data:/loki
-    entrypoint: ["/bin/sh", "-c", "chown -R 10001:10001 /loki"]
+    entrypoint: [ "/bin/sh", "-c", "chown -R 10001:10001 /loki" ]
 
   loki:
     image: "ghcr.io/outernet-foundation/placeframe/loki:${LOKI_SHA:?err}"
@@ -339,9 +336,9 @@ services:
         condition: service_healthy
     expose:
       - "4317"
+    command: run /etc/alloy/config.alloy
     environment:
       LOKI_WRITE_ENDPOINT: "http://loki:3100/loki/api/v1/push"
-    command: run /etc/alloy/config.alloy
 
   grafana:
     image: "ghcr.io/outernet-foundation/placeframe/grafana:${GRAFANA_SHA:?err}"
