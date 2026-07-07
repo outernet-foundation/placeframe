@@ -38,6 +38,9 @@ spec:
         com.docker.compose.network.{{ $name }}: "true"
 {{ end }}
     spec:
+      # Compose does not expose the docker-link env vars ({SVC}_PORT=tcp://ip:port, etc.)
+      # that Kubernetes injects by default; those collide with app config like POSTGRES_PORT.
+      enableServiceLinks: false
 {{ if eq $service.restart "no" }}
       restartPolicy: Never
 {{ end }}
@@ -158,7 +161,12 @@ spec:
                 - -c
                 - {{ $service.healthcheck.test | truncate 1 | join " "}}
 {{ else }}
-              command: {{ $service.healthcheck.test | truncate 1 }}
+              command:
+{{ range $index, $argument := $service.healthcheck.test }}
+{{ if gt $index 0 }}
+                - {{ printf "%q" $argument }}
+{{ end }}
+{{ end }}
 {{ end }}
 {{ if $service.healthcheck.interval }}
             periodSeconds: {{ $service.healthcheck.interval | seconds }}{{ end }}
@@ -249,7 +257,7 @@ spec:
         - name: {{ $volume.target | safe }}
 {{ if eq $volume.type "volume" }}
           persistentVolumeClaim:
-            claimName: {{$name | safe }}-{{ $volume.source | safe }}
+            claimName: {{ $volume.source | safe }}
 {{ else if eq $volume.type "bind" }}
           hostPath:
             path: {{ $volume.source }}
