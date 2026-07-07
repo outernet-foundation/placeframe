@@ -1,0 +1,77 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: create-database
+  namespace: placeframe
+  labels:
+    com.docker.compose.project: placeframe
+    com.docker.compose.service: create-database
+spec:
+  backoffLimit: 6
+  template:
+    metadata:
+      labels:
+        com.docker.compose.project: placeframe
+        com.docker.compose.service: create-database
+        com.docker.compose.network.default: 'true'
+    spec:
+      enableServiceLinks: false
+      restartPolicy: Never
+      serviceAccountName: wait-for
+      initContainers:
+      - name: wait-for-initialize-cloudbeaver
+        image: docker.io/groundnuty/k8s-wait-for:v2.0@sha256:c14d7271e4013b24b34ef0d7144c4610577d0e9110ccc26b163fa28089fa1f4e
+        args:
+        - job
+        - initialize-cloudbeaver
+      - name: wait-for-postgres
+        image: docker.io/library/busybox:1.36.1@sha256:73aaf090f3d85aa34ee199857f03fa3a95c8ede2ffd4cc2cdb5b94e566b11662
+        command:
+        - sh
+        - -c
+        - until nc -z -w 2 postgres 5432; do echo 'waiting for postgres'; sleep 2; done
+      containers:
+      - name: create-database
+        image: ghcr.io/outernet-foundation/placeframe/database-manager:tree-fb027ea674d00a8c9079aa26c13bac5550f263f9
+        imagePullPolicy: IfNotPresent
+        command:
+        - uv
+        - run
+        - --no-sync
+        - python
+        - -m
+        - src.main
+        - --op
+        - create
+        - --name
+        - placeframe
+        - --owner-password
+        - password
+        - --api-user-password
+        - password
+        - --auth-user-password
+        - password
+        - --orchestration-user-password
+        - password
+        env:
+        - name: CLOUDBEAVER_SERVICE_ID
+          value: placeframe-cloudbeaver-1
+        - name: DEPLOYMENT_ENVIRONMENT
+          value: development
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: http://alloy:4317
+        - name: POSTGRES_ADMIN_PASSWORD
+          value: password
+        - name: POSTGRES_ADMIN_USER
+          value: postgres
+        - name: POSTGRES_HOST
+          value: postgres
+        - name: SERVICE_VERSION
+          value: tree-fb027ea674d00a8c9079aa26c13bac5550f263f9
+        volumeMounts:
+        - name: mnt-efs
+          mountPath: /mnt/efs
+      volumes:
+      - name: mnt-efs
+        persistentVolumeClaim:
+          claimName: cloudbeaver-data

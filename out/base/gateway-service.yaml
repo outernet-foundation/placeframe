@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: gateway-published
+  namespace: placeframe
+  labels:
+    com.docker.compose.project: placeframe
+    com.docker.compose.service: gateway
+spec:
+  selector:
+    com.docker.compose.project: placeframe
+    com.docker.compose.service: gateway
+  ports:
+  - name: gateway-58080
+    port: 58080
+    protocol: TCP
+    targetPort: gateway-8443

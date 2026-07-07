@@ -1,0 +1,13 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: wait-for
+  namespace: placeframe
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: wait-for
+subjects:
+- kind: ServiceAccount
+  name: wait-for
+  namespace: placeframe

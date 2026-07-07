@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: lease-server
+  namespace: placeframe
+  labels:
+    com.docker.compose.project: placeframe
+    com.docker.compose.service: lease-server
+spec:
+  selector:
+    com.docker.compose.project: placeframe
+    com.docker.compose.service: lease-server
+  ports:
+  - name: lease-serv-8000
+    port: 8000
+    targetPort: lease-serv-8000

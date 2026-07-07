@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: loki
+  namespace: placeframe
+  labels:
+    com.docker.compose.project: placeframe
+    com.docker.compose.service: loki
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      com.docker.compose.project: placeframe
+      com.docker.compose.service: loki
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        com.docker.compose.project: placeframe
+        com.docker.compose.service: loki
+        com.docker.compose.network.default: 'true'
+    spec:
+      enableServiceLinks: false
+      serviceAccountName: wait-for
+      initContainers:
+      - name: wait-for-initialize-loki
+        image: docker.io/groundnuty/k8s-wait-for:v2.0@sha256:c14d7271e4013b24b34ef0d7144c4610577d0e9110ccc26b163fa28089fa1f4e
+        args:
+        - job
+        - initialize-loki
+      - name: wait-for-initialize-minio
+        image: docker.io/groundnuty/k8s-wait-for:v2.0@sha256:c14d7271e4013b24b34ef0d7144c4610577d0e9110ccc26b163fa28089fa1f4e
+        args:
+        - job
+        - initialize-minio
+      containers:
+      - name: loki
+        image: ghcr.io/outernet-foundation/placeframe/loki:tree-2bb8dbae5ec2bbb526064822cc43efdc84a9169d
+        imagePullPolicy: IfNotPresent
+        args:
+        - -config.file=/etc/loki/config.yaml
+        - -config.expand-env=true
+        env:
+        - name: MINIO_ACCESS_KEY
+          value: admin
+        - name: MINIO_SECRET_KEY
+          value: password
+        livenessProbe:
+          exec:
+            command:
+            - wget
+            - --quiet
+            - --tries=1
+            - --output-document=-
+            - http://localhost:3100/ready
+          periodSeconds: 5
+          initialDelaySeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 20
+        ports:
+        - name: loki-3100
+          containerPort: 3100
+        volumeMounts:
+        - name: loki
+          mountPath: /loki
+      volumes:
+      - name: loki
+        persistentVolumeClaim:
+          claimName: loki-data

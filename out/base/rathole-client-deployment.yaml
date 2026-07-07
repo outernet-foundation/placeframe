@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rathole-client
+  namespace: placeframe
+  labels:
+    com.docker.compose.project: placeframe
+    com.docker.compose.service: rathole-client
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      com.docker.compose.project: placeframe
+      com.docker.compose.service: rathole-client
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        com.docker.compose.project: placeframe
+        com.docker.compose.service: rathole-client
+        com.docker.compose.network.default: 'true'
+    spec:
+      enableServiceLinks: false
+      containers:
+      - name: rathole-client
+        image: ghcr.io/outernet-foundation/placeframe/rathole-client:tree-e2151e2223b1cc043eda755abb23882e415fa79b
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: ENGINEER_NAME
+          value: josh
+        - name: RATHOLE_SERVICES
+          value: gateway:tcp:gateway:8443
+        - name: TUNNEL_CONTROL_ENDPOINT
+          value: 5.78.27.198:2333
+        - name: TUNNEL_TOKEN
+          value: 8swuOvcYRKEnpa2KIThFyIo6Z0pOMP8t

@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: placeframe
+  labels:
+    com.docker.compose.project: placeframe
+    com.docker.compose.service: grafana
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      com.docker.compose.project: placeframe
+      com.docker.compose.service: grafana
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        com.docker.compose.project: placeframe
+        com.docker.compose.service: grafana
+        com.docker.compose.network.default: 'true'
+    spec:
+      enableServiceLinks: false
+      initContainers:
+      - name: wait-for-loki
+        image: docker.io/library/busybox:1.36.1@sha256:73aaf090f3d85aa34ee199857f03fa3a95c8ede2ffd4cc2cdb5b94e566b11662
+        command:
+        - sh
+        - -c
+        - until nc -z -w 2 loki 3100; do echo 'waiting for loki'; sleep 2; done
+      containers:
+      - name: grafana
+        image: ghcr.io/outernet-foundation/placeframe/grafana:tree-38c1d29837b66ef2c952f71af4286335450b5ca4
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: GF_AUTH_ANONYMOUS_ENABLED
+          value: 'true'
+        - name: GF_AUTH_ANONYMOUS_ORG_ROLE
+          value: Admin
+        - name: GF_AUTH_GENERIC_OAUTH_API_URL
+          value: http://5.78.28.175:58080/auth/realms/placeframe-dev/protocol/openid-connect/userinfo
+        - name: GF_AUTH_GENERIC_OAUTH_AUTH_URL
+          value: http://5.78.28.175:58080/auth/realms/placeframe-dev/protocol/openid-connect/auth
+        - name: GF_AUTH_GENERIC_OAUTH_CLIENT_ID
+          value: placeframe-grafana
+        - name: GF_AUTH_GENERIC_OAUTH_ENABLED
+          value: 'true'
+        - name: GF_AUTH_GENERIC_OAUTH_NAME
+          value: Keycloak
+        - name: GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_PATH
+          value: '''Admin'''
+        - name: GF_AUTH_GENERIC_OAUTH_SCOPES
+          value: openid email profile
+        - name: GF_AUTH_GENERIC_OAUTH_TOKEN_URL
+          value: http://5.78.28.175:58080/auth/realms/placeframe-dev/protocol/openid-connect/token
+        - name: GF_SERVER_ROOT_URL
+          value: http://5.78.28.175:58080/grafana/
+        - name: GF_SERVER_SERVE_FROM_SUB_PATH
+          value: 'true'
+        livenessProbe:
+          exec:
+            command:
+            - wget
+            - --quiet
+            - --tries=1
+            - --output-document=-
+            - http://localhost:3000/grafana/api/health
+          periodSeconds: 5
+          initialDelaySeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 20
+        ports:
+        - name: grafana-3000
+          containerPort: 3000

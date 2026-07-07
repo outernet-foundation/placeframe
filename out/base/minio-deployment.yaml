@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minio
+  namespace: placeframe
+  labels:
+    com.docker.compose.project: placeframe
+    com.docker.compose.service: minio
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      com.docker.compose.project: placeframe
+      com.docker.compose.service: minio
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        com.docker.compose.project: placeframe
+        com.docker.compose.service: minio
+        com.docker.compose.network.default: 'true'
+    spec:
+      enableServiceLinks: false
+      containers:
+      - name: minio
+        image: docker.io/minio/minio:latest@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
+        imagePullPolicy: IfNotPresent
+        args:
+        - server
+        - /data
+        - --console-address
+        - :9001
+        env:
+        - name: MINIO_ROOT_PASSWORD
+          value: password
+        - name: MINIO_ROOT_USER
+          value: admin
+        livenessProbe:
+          exec:
+            command:
+            - curl
+            - -f
+            - http://localhost:9000/minio/health/ready
+          periodSeconds: 1
+          failureThreshold: 60
+        ports:
+        - name: minio-9000
+          containerPort: 9000
+        - name: minio-9001
+          containerPort: 9001
+        volumeMounts:
+        - name: data
+          mountPath: /data
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: minio-data

@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-published
+  namespace: placeframe
+  labels:
+    com.docker.compose.project: placeframe
+    com.docker.compose.service: postgres
+spec:
+  selector:
+    com.docker.compose.project: placeframe
+    com.docker.compose.service: postgres
+  ports:
+  - name: postgres-55432
+    port: 55432
+    protocol: TCP
+    targetPort: postgres-5432

@@ -1,0 +1,40 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: initialize-loki
+  namespace: placeframe
+  labels:
+    com.docker.compose.project: placeframe
+    com.docker.compose.service: initialize-loki
+spec:
+  backoffLimit: 6
+  template:
+    metadata:
+      labels:
+        com.docker.compose.project: placeframe
+        com.docker.compose.service: initialize-loki
+        com.docker.compose.network.default: 'true'
+    spec:
+      enableServiceLinks: false
+      restartPolicy: Never
+      containers:
+      - name: initialize-loki
+        image: ghcr.io/outernet-foundation/placeframe/loki:tree-2bb8dbae5ec2bbb526064822cc43efdc84a9169d
+        imagePullPolicy: IfNotPresent
+        command:
+        - /bin/sh
+        - -c
+        - chown -R 10001:10001 /loki
+        securityContext:
+          runAsUser: 0
+          runAsGroup: 0
+        ports:
+        - name: initialize-3100
+          containerPort: 3100
+        volumeMounts:
+        - name: loki
+          mountPath: /loki
+      volumes:
+      - name: loki
+        persistentVolumeClaim:
+          claimName: loki-data

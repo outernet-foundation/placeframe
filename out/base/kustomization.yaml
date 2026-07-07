@@ -1,0 +1,63 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- 0-placeframe-namespace.yaml
+- alloy-deployment.yaml
+- alloy-expose.yaml
+- api-deployment.yaml
+- api-expose.yaml
+- cloudbeaver-data-persistentVolumeClaim.yaml
+- cloudbeaver-deployment.yaml
+- cloudbeaver-expose.yaml
+- cloudbeaver-service.yaml
+- create-database-job.yaml
+- database-migrator-job.yaml
+- default-network-policy.yaml
+- gateway-deployment.yaml
+- gateway-expose.yaml
+- gateway-service.yaml
+- grafana-deployment.yaml
+- grafana-expose.yaml
+- grafana-service.yaml
+- initialize-cloudbeaver-expose.yaml
+- initialize-cloudbeaver-job.yaml
+- initialize-loki-expose.yaml
+- initialize-loki-job.yaml
+- initialize-minio-job.yaml
+- lease-server-deployment.yaml
+- lease-server-expose.yaml
+- loki-data-persistentVolumeClaim.yaml
+- loki-deployment.yaml
+- loki-expose.yaml
+- minio-data-persistentVolumeClaim.yaml
+- minio-deployment.yaml
+- minio-expose.yaml
+- minio-logger-deployment.yaml
+- minio-service.yaml
+- postgres-data-persistentVolumeClaim.yaml
+- postgres-deployment.yaml
+- postgres-expose.yaml
+- postgres-service.yaml
+- rathole-client-deployment.yaml
+- wait-for-role.yaml
+- wait-for-rolebinding.yaml
+- wait-for-serviceaccount.yaml
+secretGenerator:
+- name: database-api-user-password
+  namespace: placeframe
+  files:
+  - database_api_user_password=.secrets/database_api_user_password
+- name: database-auth-user-password
+  namespace: placeframe
+  files:
+  - database_auth_user_password=.secrets/database_auth_user_password
+- name: database-orchestration-user-password
+  namespace: placeframe
+  files:
+  - database_orchestration_user_password=.secrets/database_orchestration_user_password
+- name: minio-secret-key
+  namespace: placeframe
+  files:
+  - minio_secret_key=.secrets/minio_secret_key
+generatorOptions:
+  disableNameSuffixHash: true

@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: loki
+  namespace: placeframe
+  labels:
+    com.docker.compose.project: placeframe
+    com.docker.compose.service: loki
+spec:
+  selector:
+    com.docker.compose.project: placeframe
+    com.docker.compose.service: loki
+  ports:
+  - name: loki-3100
+    port: 3100
+    targetPort: loki-3100
