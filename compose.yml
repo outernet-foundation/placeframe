@@ -239,6 +239,7 @@ services:
 
   api:
     image: "ghcr.io/outernet-foundation/placeframe/api:${API_SHA:?err}"
+    expose: [ "8000" ]
     depends_on:
       keycloak:
         condition: service_healthy
@@ -283,6 +284,7 @@ services:
 
   lease-server:
     image: "ghcr.io/outernet-foundation/placeframe/lease-server:${LEASE_SERVER_SHA:?err}"
+    expose: [ "8000" ]
     depends_on:
       database-migrator:
         condition: service_completed_successfully
