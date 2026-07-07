@@ -22,6 +22,14 @@ Deploy: run `uv run generate-k3s` on a host holding the target `.env`, then `kub
 
 ## Constraints
 
+### The transform inherits Compose's mental model
+
+**Context:** `docker compose bridge convert` takes the merged Compose model as its only input, and Compose has exactly one primitive — the container. Every dependency (database, object store, cache) is therefore a peer container on a shared network, and the transform can only emit what that model contains.
+
+**Constraint:** The transform cannot express a *platform-provisioned* or *external* dependency. There is no way, from `compose.yml`, to say "in production Postgres is a managed endpoint, not a container" — the bridge always emits an in-cluster `postgres` Deployment/Service/PVC because that is what the source describes. The same holds for external object storage, a managed cache, or anything you would not run yourself in a real deployment. This is a ceiling of sourcing Kubernetes from Compose, not a template defect: no template change can add a concept the input model lacks.
+
+**Consequences:** Environment-specific dependency binding lives *downstream* of the transform, in Kustomize overlays — e.g. a prod overlay deletes the `postgres` Deployment + PVC and replaces the `postgres` Service with an `ExternalName` pointing at the managed endpoint, so consumers keep resolving `postgres:5432` unchanged. Declaring that intent once in the source is possible only by piggybacking on Compose extension fields (`x-*`, which the templates already read for `x-wait-images`) and branching on them — which amounts to reimplementing a workload/dependency-separation model on top of Compose. Native separation of a workload from its resources (so one definition binds a dependency to a container locally and a managed service in production) is outside what a Compose-sourced transform can represent.
+
 ### The template function set is custom, not Sprig
 
 The transformer registers a bespoke function map (`safe`, `indent`, `base64`, `title`, `uppercase`, `seconds`, `truncate`, `join`, `portName`, `isString`, `hasAttribute`, `getAttribute`). Some names overlap Sprig (`indent`, `title`, `join`) but the set is **not** Sprig — `splitList`, `dict`, `set`, `hasKey`, and `atoi` are all absent and fail the build with `function "X" not defined`. Any transform step that needs string splitting or a mutable set cannot be done in a template. Two consequences below (runAsUser, PVC dedup) exist because of this.
