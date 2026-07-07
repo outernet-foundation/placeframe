@@ -105,14 +105,18 @@ def _project_namespace(base: Path) -> str:
         raise RuntimeError(f"No namespace manifest found under {base}.")
 
     document: Yaml = yaml.safe_load(namespace_files[0].read_text(encoding="utf-8"))
-    if isinstance(document, dict):
-        metadata = document.get("metadata")
-        if isinstance(metadata, dict):
-            name = metadata.get("name")
-            if isinstance(name, str):
-                return name
+    if not isinstance(document, dict):
+        raise TypeError(f"{namespace_files[0]} did not parse to a mapping.")
 
-    raise RuntimeError(f"Could not read the project name from {namespace_files[0]}.")
+    metadata = document.get("metadata")
+    if not isinstance(metadata, dict):
+        raise TypeError(f"{namespace_files[0]} has no metadata mapping.")
+
+    name = metadata.get("name")
+    if not isinstance(name, str):
+        raise TypeError(f"{namespace_files[0]} has no string metadata.name.")
+
+    return name
 
 
 def _environment_secrets() -> dict[str, str]:
@@ -169,9 +173,6 @@ def _normalize_run_as_user(node: Yaml) -> None:
         run_as_user = node.get("runAsUser")
         if isinstance(run_as_user, str):
             user, _, group = run_as_user.partition(":")
-            if not user.isdigit() or (group and not group.isdigit()):
-                raise RuntimeError(f"Non-numeric user '{run_as_user}' cannot map to a Kubernetes runAsUser.")
-
             node["runAsUser"] = int(user)
             if group:
                 node["runAsGroup"] = int(group)
