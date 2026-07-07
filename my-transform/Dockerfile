@@ -1,0 +1,3 @@
+FROM docker/compose-bridge-transformer@sha256:d9fae556ffe0551b446090865b66227341d9b871b863f4eca90a9bbb1e0e519b
+LABEL com.docker.compose.bridge=transformation
+COPY templates /templates

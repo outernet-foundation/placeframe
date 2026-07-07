@@ -1,0 +1,44 @@
+{{ $project := .name }}
+{{ $anyJobWait := false }}
+{{ range $svcName, $service := .services }}{{ range $depName, $dep := $service.depends_on }}{{ if and (index $.services $depName) (eq $dep.condition "service_completed_successfully") }}{{ $anyJobWait = true }}{{ end }}{{ end }}{{ end }}
+{{ if $anyJobWait }}
+---
+#! wait-for-serviceaccount.yaml
+# Generated code, do not edit
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: wait-for
+  namespace: {{ $project | safe }}
+---
+#! wait-for-role.yaml
+# Generated code, do not edit
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: wait-for
+  namespace: {{ $project | safe }}
+rules:
+  - apiGroups: [ "batch" ]
+    resources: [ "jobs" ]
+    verbs: [ "get", "list", "watch" ]
+  - apiGroups: [ "" ]
+    resources: [ "pods" ]
+    verbs: [ "get", "list", "watch" ]
+---
+#! wait-for-rolebinding.yaml
+# Generated code, do not edit
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: wait-for
+  namespace: {{ $project | safe }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: wait-for
+subjects:
+  - kind: ServiceAccount
+    name: wait-for
+    namespace: {{ $project | safe }}
+{{ end }}

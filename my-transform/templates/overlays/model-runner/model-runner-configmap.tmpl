@@ -1,0 +1,18 @@
+{{ $project := .name }}
+{{ if .models }}
+---
+#! model-runner-configmap.yaml
+# Generated code, do not edit
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: docker-model-runner-init
+  namespace: {{ $project | safe }}
+  labels:
+    com.docker.compose.project: {{ $project }}
+    com.docker.model.runner: "true"
+data:
+  models: |{{ range $name, $model := .models }}
+{{ indent $model.model 4 }}
+{{ end }}
+{{ end }}

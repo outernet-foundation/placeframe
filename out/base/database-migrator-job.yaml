@@ -1,0 +1,45 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: database-migrator
+  namespace: placeframe
+  labels:
+    com.docker.compose.project: placeframe
+    com.docker.compose.service: database-migrator
+spec:
+  backoffLimit: 6
+  template:
+    metadata:
+      labels:
+        com.docker.compose.project: placeframe
+        com.docker.compose.service: database-migrator
+        com.docker.compose.network.default: 'true'
+    spec:
+      enableServiceLinks: false
+      restartPolicy: Never
+      serviceAccountName: wait-for
+      initContainers:
+      - name: wait-for-create-database
+        image: docker.io/groundnuty/k8s-wait-for:v2.0@sha256:c14d7271e4013b24b34ef0d7144c4610577d0e9110ccc26b163fa28089fa1f4e
+        args:
+        - job
+        - create-database
+      containers:
+      - name: database-migrator
+        image: ghcr.io/outernet-foundation/placeframe/database-migrator:tree-0e358a9da5301a6399d56b4f9248d95edcd8f0c7
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: ALLOWED_HAZARDS
+          value: HAS_UNTRACKABLE_DEPENDENCIES
+        - name: DATABASE_SCHEMA_DIR
+          value: database
+        - name: DB_HOST
+          value: postgres
+        - name: DB_NAME
+          value: placeframe
+        - name: DB_PASSWORD
+          value: password
+        - name: DB_PORT
+          value: '5432'
+        - name: DB_USER
+          value: placeframe_owner

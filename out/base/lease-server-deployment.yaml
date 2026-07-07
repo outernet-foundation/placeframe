@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lease-server
+  namespace: placeframe
+  labels:
+    com.docker.compose.project: placeframe
+    com.docker.compose.service: lease-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      com.docker.compose.project: placeframe
+      com.docker.compose.service: lease-server
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        com.docker.compose.project: placeframe
+        com.docker.compose.service: lease-server
+        com.docker.compose.network.default: 'true'
+    spec:
+      enableServiceLinks: false
+      serviceAccountName: wait-for
+      initContainers:
+      - name: wait-for-database-migrator
+        image: docker.io/groundnuty/k8s-wait-for:v2.0@sha256:c14d7271e4013b24b34ef0d7144c4610577d0e9110ccc26b163fa28089fa1f4e
+        args:
+        - job
+        - database-migrator
+      containers:
+      - name: lease-server
+        image: ghcr.io/outernet-foundation/placeframe/lease-server:tree-afcc37506a2bdc482d4d2d4153a9dcf7eb0fe586
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: DATABASE_NAME
+          value: placeframe
+        - name: DATABASE_ORCHESTRATION_USER
+          value: placeframe_orchestration_user
+        - name: DATABASE_ORCHESTRATION_USER_PASSWORD
+          value: password
+        - name: DEPLOYMENT_ENVIRONMENT
+          value: development
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: http://alloy:4317
+        - name: POSTGRES_HOST
+          value: postgres
+        - name: SERVICE_VERSION
+          value: tree-afcc37506a2bdc482d4d2d4153a9dcf7eb0fe586
+        livenessProbe:
+          exec:
+            command:
+            - python
+            - -c
+            - import urllib.request; urllib.request.urlopen('http://localhost:8000/health')
+          periodSeconds: 5
+          initialDelaySeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 3
+        ports:
+        - name: lease-serv-8000
+          containerPort: 8000

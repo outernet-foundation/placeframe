@@ -3,10 +3,12 @@ from os import environ
 from typing import Literal
 
 from pydantic import AnyHttpUrl, Field, model_validator
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(secrets_dir="/run/secrets")
+
     public_url: AnyHttpUrl = Field()
 
     auth_mode: Literal["keycloak", "disabled"] = "keycloak"

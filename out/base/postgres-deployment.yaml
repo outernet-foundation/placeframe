@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: placeframe
+  labels:
+    com.docker.compose.project: placeframe
+    com.docker.compose.service: postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      com.docker.compose.project: placeframe
+      com.docker.compose.service: postgres
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        com.docker.compose.project: placeframe
+        com.docker.compose.service: postgres
+        com.docker.compose.network.default: 'true'
+    spec:
+      enableServiceLinks: false
+      containers:
+      - name: postgres
+        image: ghcr.io/outernet-foundation/placeframe/postgres:tree-2805e66eb8f946b3ff6fb0dc220b080d9bb0d984
+        imagePullPolicy: IfNotPresent
+        command:
+        - /usr/local/bin/entrypoint-wrapper.sh
+        env:
+        - name: POSTGRES_PASSWORD
+          value: password
+        - name: POSTGRES_USER
+          value: postgres
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - pg_isready -q -h localhost -p 5432 -U ${POSTGRES_USER} -d postgres
+          periodSeconds: 1
+          timeoutSeconds: 1
+          failureThreshold: 30
+        ports:
+        - name: postgres-5432
+          containerPort: 5432
+        volumeMounts:
+        - name: var-lib-postgresql-data
+          mountPath: /var/lib/postgresql/data
+      volumes:
+      - name: var-lib-postgresql-data
+        persistentVolumeClaim:
+          claimName: postgres-data

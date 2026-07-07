@@ -1,0 +1,37 @@
+{{ $project := .name }}
+{{ range $name, $service := .services }}
+{{ range $volume := $service.volumes }}
+{{ if eq $volume.type "volume" }}
+{{ $isOwner := true }}
+{{ range $otherName, $other := $.services }}
+{{ if lt $otherName $name }}
+{{ range $otherVolume := $other.volumes }}
+{{ if and (eq $otherVolume.type "volume") (eq $otherVolume.source $volume.source) }}
+{{ $isOwner = false }}
+{{ end }}
+{{ end }}
+{{ end }}
+{{ end }}
+{{ if $isOwner }}
+---
+#! {{ $volume.source | safe }}-persistentVolumeClaim.yaml
+# Generated code, do not edit
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ $volume.source | safe }}
+  namespace: {{ $project | safe }}
+  labels:
+    com.docker.compose.project: {{ $project }}
+    com.docker.compose.volume: {{ $volume.source }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  volumeMode: Filesystem
+  resources:
+    requests:
+      storage: 10Gi
+{{ end }}
+{{ end }}
+{{ end }}
+{{ end }}

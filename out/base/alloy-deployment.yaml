@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alloy
+  namespace: placeframe
+  labels:
+    com.docker.compose.project: placeframe
+    com.docker.compose.service: alloy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      com.docker.compose.project: placeframe
+      com.docker.compose.service: alloy
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        com.docker.compose.project: placeframe
+        com.docker.compose.service: alloy
+        com.docker.compose.network.default: 'true'
+    spec:
+      enableServiceLinks: false
+      initContainers:
+      - name: wait-for-loki
+        image: docker.io/library/busybox:1.36.1@sha256:73aaf090f3d85aa34ee199857f03fa3a95c8ede2ffd4cc2cdb5b94e566b11662
+        command:
+        - sh
+        - -c
+        - until nc -z -w 2 loki 3100; do echo 'waiting for loki'; sleep 2; done
+      containers:
+      - name: alloy
+        image: ghcr.io/outernet-foundation/placeframe/alloy:tree-bdd10ca8937f0a0258d004d32fbdbd6c7ccdc9db
+        imagePullPolicy: IfNotPresent
+        args:
+        - run
+        - /etc/alloy/config.alloy
+        env:
+        - name: LOKI_WRITE_ENDPOINT
+          value: http://loki:3100/loki/api/v1/push
+        ports:
+        - name: alloy-4317
+          containerPort: 4317

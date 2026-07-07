@@ -1,0 +1,14 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- ../../base
+patches:
+- path: cloudbeaver-data-persistentVolumeClaim.yaml
+- path: cloudbeaver-service.yaml
+- path: gateway-service.yaml
+- path: grafana-service.yaml
+- path: loki-data-persistentVolumeClaim.yaml
+- path: minio-data-persistentVolumeClaim.yaml
+- path: minio-service.yaml
+- path: postgres-data-persistentVolumeClaim.yaml
+- path: postgres-service.yaml

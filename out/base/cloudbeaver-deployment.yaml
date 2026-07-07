@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudbeaver
+  namespace: placeframe
+  labels:
+    com.docker.compose.project: placeframe
+    com.docker.compose.service: cloudbeaver
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      com.docker.compose.project: placeframe
+      com.docker.compose.service: cloudbeaver
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        com.docker.compose.project: placeframe
+        com.docker.compose.service: cloudbeaver
+        com.docker.compose.network.default: 'true'
+    spec:
+      enableServiceLinks: false
+      serviceAccountName: wait-for
+      initContainers:
+      - name: wait-for-create-database
+        image: docker.io/groundnuty/k8s-wait-for:v2.0@sha256:c14d7271e4013b24b34ef0d7144c4610577d0e9110ccc26b163fa28089fa1f4e
+        args:
+        - job
+        - create-database
+      containers:
+      - name: cloudbeaver
+        image: docker.io/dbeaver/cloudbeaver:25.1.4@sha256:a904a0c11f92ae4244793fcf5a6f00b9ec1d112a076415f18d4879e54d3f4dfc
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: CLOUDBEAVER_ROOT_URI
+          value: /cloudbeaver
+        livenessProbe:
+          exec:
+            command:
+            - curl
+            - -f
+            - http://localhost:8978/cloudbeaver/
+          periodSeconds: 1
+          timeoutSeconds: 1
+          failureThreshold: 90
+        ports:
+        - name: cloudbeave-8978
+          containerPort: 8978
+        volumeMounts:
+        - name: opt-cloudbeaver-workspace
+          mountPath: /opt/cloudbeaver/workspace
+      volumes:
+      - name: opt-cloudbeaver-workspace
+        persistentVolumeClaim:
+          claimName: cloudbeaver-data

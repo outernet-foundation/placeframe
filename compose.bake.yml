@@ -11,6 +11,13 @@ x-base-images:
   GRAFANA_DIGEST: "grafana/grafana:11.6.0"
   POSTGIS_DIGEST: "postgis/postgis:16-3.4-alpine"
 
+# Third-party images injected into generated Kubernetes manifests by the compose-bridge
+# transform (my-transform), not built here and not base layers. Resolved to full pinned
+# refs (ref@sha256:...) in .env.lock and consumed via compose.yml's x-wait-images.
+x-runtime-images:
+  BUSYBOX_IMAGE: "docker.io/library/busybox:1.36.1"
+  K8S_WAIT_FOR_IMAGE: "docker.io/groundnuty/k8s-wait-for:v2.0"
+
 x-base-args: &base-args
   UV_BASE_DIGEST: "${UV_BASE_DIGEST:-}"
   DOTNET_SDK_DIGEST: "${DOTNET_SDK_DIGEST:-}"

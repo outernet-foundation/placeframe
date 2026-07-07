@@ -1,0 +1,136 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: placeframe
+  labels:
+    com.docker.compose.project: placeframe
+    com.docker.compose.service: api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      com.docker.compose.project: placeframe
+      com.docker.compose.service: api
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        com.docker.compose.project: placeframe
+        com.docker.compose.service: api
+        com.docker.compose.network.default: 'true'
+    spec:
+      enableServiceLinks: false
+      serviceAccountName: wait-for
+      initContainers:
+      - name: wait-for-database-migrator
+        image: docker.io/groundnuty/k8s-wait-for:v2.0@sha256:c14d7271e4013b24b34ef0d7144c4610577d0e9110ccc26b163fa28089fa1f4e
+        args:
+        - job
+        - database-migrator
+      - name: wait-for-initialize-minio
+        image: docker.io/groundnuty/k8s-wait-for:v2.0@sha256:c14d7271e4013b24b34ef0d7144c4610577d0e9110ccc26b163fa28089fa1f4e
+        args:
+        - job
+        - initialize-minio
+      containers:
+      - name: api
+        image: ghcr.io/outernet-foundation/placeframe/api:tree-70fd47ea882fbc08321b1646ed9fd3c7f8801807
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: AUTH_AUDIENCE
+          value: placeframe-api
+        - name: AUTH_CERTS_URL
+          value: http://keycloak:8080/realms/placeframe-dev/protocol/openid-connect/certs
+        - name: AUTH_ISSUER_URL
+          value: http://5.78.28.175:58080/auth/realms/placeframe-dev
+        - name: AUTH_MODE
+          value: disabled
+        - name: AUTH_TOKEN_URL
+          value: http://5.78.28.175:58080/auth/realms/placeframe-dev/protocol/openid-connect/token
+        - name: AUTH_URL
+          value: http://5.78.28.175:58080/auth/realms/placeframe-dev/protocol/openid-connect/auth
+        - name: DATABASE_API_USER
+          value: placeframe_api_user
+        - name: DATABASE_AUTH_USER
+          value: placeframe_auth_user
+        - name: DATABASE_NAME
+          value: placeframe
+        - name: DATABASE_ORCHESTRATION_USER
+          value: placeframe_orchestration_user
+        - name: DEPLOYMENT_ENVIRONMENT
+          value: development
+        - name: LOCALIZER_CONTAINER_URL
+          value: http://localizer:8000
+        - name: LOKI_URL
+          value: http://loki:3100
+        - name: MINIO_ACCESS_KEY
+          value: admin
+        - name: MINIO_ENDPOINT_URL
+          value: http://minio:9000
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: http://alloy:4317
+        - name: POSTGRES_HOST
+          value: postgres
+        - name: PUBLIC_URL
+          value: http://5.78.28.175:58080
+        - name: RECONSTRUCTIONS_BUCKET
+          value: dev-reconstructions
+        - name: SERVICE_VERSION
+          value: tree-70fd47ea882fbc08321b1646ed9fd3c7f8801807
+        livenessProbe:
+          exec:
+            command:
+            - python
+            - -c
+            - import urllib.request; urllib.request.urlopen('http://localhost:8000/health')
+          periodSeconds: 5
+          initialDelaySeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 3
+        ports:
+        - name: api-8000
+          containerPort: 8000
+        volumeMounts:
+        - name: run-secrets-database-api-user-password
+          mountPath: /run/secrets/database_api_user_password
+          subPath: database_api_user_password
+          readOnly: true
+        - name: run-secrets-database-auth-user-password
+          mountPath: /run/secrets/database_auth_user_password
+          subPath: database_auth_user_password
+          readOnly: true
+        - name: run-secrets-database-orchestration-user-password
+          mountPath: /run/secrets/database_orchestration_user_password
+          subPath: database_orchestration_user_password
+          readOnly: true
+        - name: run-secrets-minio-secret-key
+          mountPath: /run/secrets/minio_secret_key
+          subPath: minio_secret_key
+          readOnly: true
+      volumes:
+      - name: run-secrets-database-api-user-password
+        secret:
+          secretName: database-api-user-password
+          items:
+          - key: database_api_user_password
+            path: database_api_user_password
+      - name: run-secrets-database-auth-user-password
+        secret:
+          secretName: database-auth-user-password
+          items:
+          - key: database_auth_user_password
+            path: database_auth_user_password
+      - name: run-secrets-database-orchestration-user-password
+        secret:
+          secretName: database-orchestration-user-password
+          items:
+          - key: database_orchestration_user_password
+            path: database_orchestration_user_password
+      - name: run-secrets-minio-secret-key
+        secret:
+          secretName: minio-secret-key
+          items:
+          - key: minio_secret_key
+            path: minio_secret_key

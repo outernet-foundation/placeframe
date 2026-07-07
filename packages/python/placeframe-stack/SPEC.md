@@ -6,13 +6,14 @@
 
 ## Shape
 
-Entry points (`[project.scripts]`): `up` → `up.py:app`, `down` → `down.py:app`, `build` → `build_docker.py:app`. All accept `--help`.
+Entry points (`[project.scripts]`): `up` → `up.py:app`, `down` → `down.py:app`, `build` → `build_docker.py:app`, `generate-k3s` → `generate_k3s.py:app`. All accept `--help`.
 
 | Module | Role |
 |---|---|
 | `up.py` | `docker compose up`. Flags: `--attached`/`-a`, `--quiet-pull`/`-q`, `--build`, `--gpu auto\|cuda\|rocm\|none`, `--no-dev`, `--compose-file`. |
 | `down.py` | `docker compose down`. Flags: `--volumes`/`-v` (also removes named volumes), `--gpu`, `--compose-file`. |
 | `build_docker.py` | `run_build()` + the `build` command — builds the local stack's images, auto-detecting CUDA/ROCm. |
+| `generate_k3s.py` | `generate-k3s` command — runs the Compose Bridge transform (`my-transform/`) and post-processes the emitted `out/` Kustomize tree. Flag: `--output`. See `my-transform/SPEC.md`. |
 | `detect_gpu.py` | `detect_gpu()` → `cuda`/`rocm`/`none` from host devices; the `Gpu` literal. |
 | `modes.py` | `resolve_auth_mode()` — validates `PUBLIC_URL` + `AUTH_MODE` from `.env`, rejecting `keycloak` over cleartext `http://`. |
 | `context_sha.py` | `compute_service_shas()` — per-service `tree-<hash>` image tags over the `.dockerignore`-allowlisted git tree. Also imported by `build-scripts`' CI commands. |

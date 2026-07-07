@@ -1,0 +1,279 @@
+{{ $project := .name }}
+{{ range $name, $service := .services }}
+---
+#! {{ $name }}-{{ if eq $service.restart "no" }}job{{ else }}deployment{{ end }}.yaml
+# Generated code, do not edit
+apiVersion: {{ if eq $service.restart "no" }}batch/v1{{ else }}apps/v1{{ end }}
+{{ if eq $service.restart "no" }}
+kind: Job
+{{ else if eq $service.deploy.mode "global" }}
+kind: DaemonSet
+{{ else }}
+kind: Deployment
+{{ end }}
+metadata:
+  name: {{ $name | safe }}
+  namespace: {{ $project | safe }}
+  labels:
+    com.docker.compose.project: {{ $project }}
+    com.docker.compose.service: {{ $name }}
+spec:
+{{ if eq $service.restart "no" }}
+  backoffLimit: 6
+{{ else }}
+  replicas: {{ if $service.scale }} {{ $service.scale }} {{ else }} 1 {{ end }}
+  selector:
+    matchLabels:
+      com.docker.compose.project: {{ $project }}
+      com.docker.compose.service: {{$name}}
+  strategy:
+    type: Recreate
+{{ end }}
+  template:
+    metadata:
+      labels:
+        com.docker.compose.project: {{ $project }}
+        com.docker.compose.service: {{ $name }}
+{{ range $name, $config := $service.networks}}
+        com.docker.compose.network.{{ $name }}: "true"
+{{ end }}
+    spec:
+      # Compose does not expose the docker-link env vars ({SVC}_PORT=tcp://ip:port, etc.)
+      # that Kubernetes injects by default; those collide with app config like POSTGRES_PORT.
+      enableServiceLinks: false
+{{ if eq $service.restart "no" }}
+      restartPolicy: Never
+{{ end }}
+{{ $needsServiceAccount := false }}
+{{ range $depName, $dep := $service.depends_on }}{{ if and (index $.services $depName) (eq $dep.condition "service_completed_successfully") }}{{ $needsServiceAccount = true }}{{ end }}{{ end }}
+{{ if $needsServiceAccount }}
+      serviceAccountName: wait-for
+{{ end }}
+{{ $hasInitContainers := false }}
+{{ range $depName, $dep := $service.depends_on }}
+{{ $target := index $.services $depName }}
+{{ if $target }}{{ if eq $dep.condition "service_completed_successfully" }}{{ $hasInitContainers = true }}{{ else if or $target.expose $target.ports }}{{ $hasInitContainers = true }}{{ end }}{{ end }}
+{{ end }}
+{{ range $depName, $dep := $service.depends_on }}
+{{ $target := index $.services $depName }}
+{{ if and $target (ne $dep.condition "service_completed_successfully") (not (or $target.expose $target.ports)) }}
+      # No readiness wait generated for dependency '{{ $depName }}' ({{ $dep.condition }}): it declares no ports or expose, so it has no Service to probe.
+{{ end }}
+{{ end }}
+{{ if $hasInitContainers }}
+      initContainers:
+{{ range $depName, $dep := $service.depends_on }}
+{{ $target := index $.services $depName }}
+{{ if $target }}
+{{ if eq $dep.condition "service_completed_successfully" }}
+        - name: wait-for-{{ $depName | safe }}
+          image: {{ index $ "x-wait-images" "job-wait" }}
+          args: [ "job", "{{ $depName }}" ]
+{{ else }}
+{{ $waitPort := "" }}
+{{ if $target.ports }}{{ $waitPort = (index $target.ports 0).target }}{{ else if $target.expose }}{{ $waitPort = index $target.expose 0 }}{{ end }}
+{{ if $waitPort }}
+        - name: wait-for-{{ $depName | safe }}
+          image: {{ index $ "x-wait-images" "tcp-probe" }}
+          command: [ "sh", "-c", "until nc -z -w 2 {{ $depName }} {{ $waitPort }}; do echo 'waiting for {{ $depName }}'; sleep 2; done" ]
+{{ end }}
+{{ end }}
+{{ end }}
+{{ end }}
+{{ end }}
+      containers:
+        - name: {{ if $service.container_name }}{{ $service.container_name | safe }}{{ else }}{{ $name | safe }}{{ end }}
+          image: {{ if $service.image }}{{ $service.image }}{{ else }}{{ $project }}-{{ $name }}{{ end }}
+          imagePullPolicy: {{ if $service.pull_policy }}{{ $service.pull_policy | title }}{{ else }}IfNotPresent{{ end }}
+{{ if $service.entrypoint }}
+          command:
+{{ range $service.entrypoint }}
+            - {{ . }}
+{{ end }}{{ end }}
+{{ if $service.command }}
+          args:
+{{ range $service.command }}
+            - {{ . }}
+{{ end }}{{ end }}
+{{ if $service.working_dir }}
+          workingDir: {{ $service.working_dir }}{{ end }}
+{{ if or $service.environment $service.models }}
+          env:
+{{ range $key, $value := $service.environment }}
+            - name: {{ $key }}
+              value: {{ printf "%q" $value }}{{ end }}
+{{ range $key, $value := $service.models }}
+{{- if or (isString $value) (not $value) }}
+            - name: {{ if isString $value }}{{ $value | uppercase }}{{ else }}{{ $key | uppercase }}{{ end }}_URL
+              value: "http://docker-model-runner/engines/v1/"
+            - name: {{ if isString $value }}{{ $value | uppercase }}{{ else }}{{ $key | uppercase }}{{ end }}_MODEL
+              value: "{{ if isString $value }}{{ or (index $.models $value).model $value }}{{ else }}{{ or (index $.models $key).model $key }}{{ end }}"
+{{- else }}
+            - name: {{ if hasAttribute $value "endpoint_var" }}{{ getAttribute $value "endpoint_var" }}{{ else }}{{ $key | uppercase }}_URL{{ end }}
+              value: "http://docker-model-runner/engines/v1/"
+            - name: {{ if hasAttribute $value "model_var" }}{{ getAttribute $value "model_var" }}{{ else }}{{ $key | uppercase }}_MODEL{{ end }}
+              value: "{{ or (index $.models $key).model $key }}"
+{{- end }}{{ end }}
+{{ end }}
+
+{{ if or $service.user $service.group_add $service.sysctls $service.read_only $service.privileged $service.cap_add $service.cap_drop }}
+          securityContext:
+{{ if $service.user }}
+            runAsUser: {{ $service.user }} {{ end }}
+{{ if $service.group_add }}
+            supplementalGroups: {{ $service.group_add }} {{ end }}
+{{ if $service.sysctls }}
+            sysctls:
+{{ range $name, $value := $service.sysctls }}
+              name: {{ $name }}
+              value: {{ $value }}
+{{ end }}
+{{ end }}
+
+{{ if $service.read_only }}
+            readOnlyRootFilesystem: {{ $service.read_only }} {{ end }}
+{{ if $service.privileged }}
+            privileged: {{ $service.privileged }} {{ end }}
+{{ if or $service.cap_add $service.cap_drop }}
+            capabilities:
+{{ if $service.cap_add }}
+              add: {{ $service.cap_add }} {{ end }}
+{{ if  $service.cap_drop }}
+              drop: {{ $service.cap_drop }} {{ end }}
+{{ end }}
+{{ end }}
+
+{{ if or $service.cpu $service.memory }}
+         resources:
+           limits:
+{{ if $service.cpus }}
+             cpu: {{ $service.cpus }} {{ end }}
+{{ if $service.memory }}
+             memory: {{ $service.memory }} {{ end }}
+{{ end }}
+
+{{ if $service.healthcheck }}
+          livenessProbe:
+            exec:
+{{ if eq "CMD-SHELL" (index $service.healthcheck.test 0)}}
+              command:
+                - /bin/sh
+                - -c
+                - {{ $service.healthcheck.test | truncate 1 | join " "}}
+{{ else }}
+              command:
+{{ range $index, $argument := $service.healthcheck.test }}
+{{ if gt $index 0 }}
+                - {{ printf "%q" $argument }}
+{{ end }}
+{{ end }}
+{{ end }}
+{{ if $service.healthcheck.interval }}
+            periodSeconds: {{ $service.healthcheck.interval | seconds }}{{ end }}
+{{ if $service.healthcheck.start_period }}
+            initialDelaySeconds: {{ $service.healthcheck.start_period | seconds }}{{ end }}
+{{ if $service.healthcheck.timeout }}
+            timeoutSeconds: {{ $service.healthcheck.timeout | seconds }}{{ end }}
+{{ if $service.healthcheck.retries }}
+            failureThreshold: {{ $service.healthcheck.retries }}{{ end }}
+{{ end }}
+
+
+{{ if $service.expose }}
+          ports:
+    {{ range $port := $service.expose }}
+            - name: {{ portName $name $port }}
+              containerPort: {{ $port }}
+    {{ end }}
+{{ end }}
+
+{{ if or $service.volumes $service.secrets $service.configs }}
+          volumeMounts:
+{{ range $volume := $service.volumes }}
+            - name: {{ $volume.target | safe }}
+              mountPath: {{ $volume.target }}
+{{ if $volume.read_only }}
+              readOnly: true{{ end }}
+{{ end }}
+          {{ range $secret := $service.secrets }}
+            - name: {{ $secret.target | safe }}
+              mountPath: {{ $secret.target }}
+              subPath: {{ $secret.source }}
+              readOnly: true
+          {{ end }}
+          {{ range $config := $service.configs }}
+            - name: {{ $config.target | safe }}
+              mountPath: {{ $config.target }}
+              subPath: {{ $config.source }}
+              readOnly: true
+          {{ end }}
+{{ end }}
+
+
+{{ if or $service.dns $service.dns_search $service.dns_opt }}
+      dnsConfig:
+    {{ if $service.dns }}
+        nameservers:
+        {{ range $service.dns }}
+            - {{ . }}
+        {{ end }}
+    {{ end }}
+    {{ if $service.dns_search }}
+        searches:
+        {{ range $service.dns_search }}
+            - {{ . }}
+        {{ end }}
+    {{ end }}
+    {{ if $service.dns_opt }}
+        options:
+        {{ range $service.dns_opt }}
+            - name: {{ . }}
+        {{ end }}
+    {{ end }}
+{{ end }}
+
+
+{{ if or $service.volumes $service.secrets $service.configs }}
+      volumes:
+{{ range $secret := $service.secrets }}
+        - name: {{ $secret.target | safe }}
+          secret:
+            secretName: {{ $secret.source | safe}}
+            items:
+              - key: {{ $secret.source }}
+                path: {{ $secret.source }}
+{{ end }}
+
+{{ range $config := $service.configs }}
+        - name: {{ $config.target | safe }}
+          configMap:
+            name: {{ $project | safe }}
+            items:
+              - key: {{ $config.source }}
+                path: {{ $config.source }}
+{{ end }}
+
+{{ range $volume := $service.volumes }}
+        - name: {{ $volume.target | safe }}
+{{ if eq $volume.type "volume" }}
+          persistentVolumeClaim:
+            claimName: {{ $volume.source | safe }}
+{{ else if eq $volume.type "bind" }}
+          hostPath:
+            path: {{ $volume.source }}
+{{ else if eq $volume.type "image" }}            
+          image:
+            reference: {{ $volume.source }}
+            pullPolicy: IfNotPresent
+{{ else if eq $volume.type "tmpfs" }}
+          emptyDir:
+{{ if $volume.tmpfs.size }}
+            sizeLimit: {{ $volume.tmpfs.size }}{{ end }}
+{{ end }}
+
+{{ if $volume.read_only }}
+          readOnly: true{{ end }}
+
+{{ end }}
+{{ end }}
+{{ end }}

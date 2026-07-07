@@ -1,0 +1,10 @@
+{{ $project := .name }}
+---
+#! 0-{{ $project | safe }}-namespace.yaml
+# Generated code, do not edit
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ $project | safe }}
+  labels:
+    com.docker.compose.project: {{ $project }}

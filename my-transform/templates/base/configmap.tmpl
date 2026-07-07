@@ -1,0 +1,18 @@
+{{ $project := .name }}
+{{ if .configs }}
+---
+#! {{ $project }}-configs.yaml
+# Generated code, do not edit
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $project | safe }}
+  namespace: {{ $project | safe }}
+  labels:
+    com.docker.compose.project: {{ $project }}
+data:
+{{ range $name, $config := .configs }}
+  {{ $name | safe }}: |
+{{ indent $config.content 4 }}
+{{ end }}
+{{ end }}

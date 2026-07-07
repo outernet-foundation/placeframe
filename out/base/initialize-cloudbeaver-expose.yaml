@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: initialize-cloudbeaver
+  namespace: placeframe
+  labels:
+    com.docker.compose.project: placeframe
+    com.docker.compose.service: initialize-cloudbeaver
+spec:
+  selector:
+    com.docker.compose.project: placeframe
+    com.docker.compose.service: initialize-cloudbeaver
+  ports:
+  - name: initialize-5432
+    port: 5432
+    targetPort: initialize-5432

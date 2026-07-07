@@ -1,0 +1,21 @@
+{{ $project := .name }}
+{{ if .models }}
+---
+#! model-runner-volume-claim.yaml
+# Generated code, do not edit
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: model-storage
+  namespace: {{ $project | safe }}
+  labels:
+    com.docker.compose.project: {{ $project }}
+    com.docker.model.runner: "true"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  volumeMode: Filesystem
+  resources:
+    requests:
+      storage: 100Gi
+{{ end }}

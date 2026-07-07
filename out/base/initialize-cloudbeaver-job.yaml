@@ -1,0 +1,51 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: initialize-cloudbeaver
+  namespace: placeframe
+  labels:
+    com.docker.compose.project: placeframe
+    com.docker.compose.service: initialize-cloudbeaver
+spec:
+  backoffLimit: 6
+  template:
+    metadata:
+      labels:
+        com.docker.compose.project: placeframe
+        com.docker.compose.service: initialize-cloudbeaver
+        com.docker.compose.network.default: 'true'
+    spec:
+      enableServiceLinks: false
+      restartPolicy: Never
+      initContainers:
+      - name: wait-for-postgres
+        image: docker.io/library/busybox:1.36.1@sha256:73aaf090f3d85aa34ee199857f03fa3a95c8ede2ffd4cc2cdb5b94e566b11662
+        command:
+        - sh
+        - -c
+        - until nc -z -w 2 postgres 5432; do echo 'waiting for postgres'; sleep 2; done
+      containers:
+      - name: initialize-cloudbeaver
+        image: ghcr.io/outernet-foundation/placeframe/cloudbeaver-initializer:tree-dd4c6a0ecc46eec464d5cfc8f9deea1cf43b1ade
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: CB_ADMIN_NAME
+          value: cbadmin
+        - name: CB_ADMIN_PASSWORD
+          value: password
+        - name: POSTGRES_ADMIN_PASSWORD
+          value: password
+        - name: POSTGRES_ADMIN_USER
+          value: postgres
+        - name: POSTGRES_HOST
+          value: postgres
+        ports:
+        - name: initialize-5432
+          containerPort: 5432
+        volumeMounts:
+        - name: opt-cloudbeaver-workspace
+          mountPath: /opt/cloudbeaver/workspace
+      volumes:
+      - name: opt-cloudbeaver-workspace
+        persistentVolumeClaim:
+          claimName: cloudbeaver-data

@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gateway
+  namespace: placeframe
+  labels:
+    com.docker.compose.project: placeframe
+    com.docker.compose.service: gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      com.docker.compose.project: placeframe
+      com.docker.compose.service: gateway
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        com.docker.compose.project: placeframe
+        com.docker.compose.service: gateway
+        com.docker.compose.network.default: 'true'
+    spec:
+      enableServiceLinks: false
+      initContainers:
+      - name: wait-for-api
+        image: docker.io/library/busybox:1.36.1@sha256:73aaf090f3d85aa34ee199857f03fa3a95c8ede2ffd4cc2cdb5b94e566b11662
+        command:
+        - sh
+        - -c
+        - until nc -z -w 2 api 8000; do echo 'waiting for api'; sleep 2; done
+      containers:
+      - name: gateway
+        image: ghcr.io/outernet-foundation/placeframe/gateway:tree-f265a9765c3b05b6ec5603e7c4e2e9e629785d35
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: AUTH_MODE
+          value: disabled
+        - name: PUBLIC_URL
+          value: http://5.78.28.175:58080
+        ports:
+        - name: gateway-80
+          containerPort: 80
+        - name: gateway-443
+          containerPort: 443
+        - name: gateway-2019
+          containerPort: 2019
+        - name: gateway-8443
+          containerPort: 8443
