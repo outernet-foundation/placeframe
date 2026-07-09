@@ -1,0 +1,25 @@
+apiVersion: score.dev/v1b1
+metadata:
+  name: lease-server
+containers:
+  lease-server:
+    image: ghcr.io/outernet-foundation/placeframe/lease-server:tree-afcc37506a2bdc482d4d2d4153a9dcf7eb0fe586
+    variables:
+      POSTGRES_HOST: ${resources.db.host}
+      DATABASE_NAME: ${resources.db.name}
+      DATABASE_ORCHESTRATION_USER: ${resources.db.username}
+      DATABASE_ORCHESTRATION_USER_PASSWORD: ${resources.db.password}
+      DEPLOYMENT_ENVIRONMENT: development
+    livenessProbe:
+      httpGet:
+        path: /health
+        port: 8000
+service:
+  ports:
+    http:
+      port: 8000
+      targetPort: 8000
+resources:
+  db:
+    type: postgres
+    id: placeframe-db

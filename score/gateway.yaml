@@ -1,0 +1,14 @@
+apiVersion: score.dev/v1b1
+metadata:
+  name: gateway
+containers:
+  gateway:
+    image: ghcr.io/outernet-foundation/placeframe/gateway:tree-f265a9765c3b05b6ec5603e7c4e2e9e629785d35
+    variables:
+      PUBLIC_URL: http://localhost:8443
+      AUTH_MODE: disabled
+service:
+  ports:
+    gateway:
+      port: 8443
+      targetPort: 8443
