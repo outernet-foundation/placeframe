@@ -6,20 +6,24 @@ and generate both a runnable Docker `compose.yaml` **and** Kubernetes manifests 
 that single description — so the project can move toward a Kubernetes/SaaS deployment
 without hand-maintaining two definitions that drift apart.
 
-It is a proof-of-concept covering one slice: the **api**, its **postgres** database,
-and its **MinIO** object storage. From the single file `api.yaml`, `score-compose`
-produces Docker output and `score-k8s` produces Kubernetes output; the api boots and
-serves `/health` on both.
+It is a proof-of-concept covering a slice of the stack: **api**, **lease-server**, and
+the **gateway** (Caddy), backed by a **postgres** database and **MinIO** object storage.
+From the authored workload files, `score-compose` produces Docker output and `score-k8s`
+produces Kubernetes output; the services boot and serve `/health` on both, reachable
+through the gateway. See `FINDINGS.md` for what was proven, what was not ported, and the
+open infra decision.
 
 ## What's in this directory
 
-`api.yaml` is the only hand-written workload file. `restart-policy.tpl` is a small
-compose patch (explained under Setup). Everything else is generated or tool-managed:
+The authored workload files (`api.yaml`, `lease-server.yaml`, `gateway.yaml`) and the
+`restart-policy.tpl` compose patch are the source. Everything else is generated or
+tool-managed:
 
 | Path | Origin | In git? |
 |------|--------|---------|
-| `api.yaml` | authored — the workload contract | yes |
+| `api.yaml`, `lease-server.yaml`, `gateway.yaml` | authored — the workload contracts | yes |
 | `restart-policy.tpl` | authored — compose-only patch template | yes |
+| `FINDINGS.md` | authored — the evaluation decision record | yes |
 | `compose.yaml` | `score-compose generate` | no — gitignored (resolved secrets) |
 | `manifests.yaml` | `score-k8s generate` | no — gitignored (resolved secrets) |
 | `.score-compose/`, `.score-k8s/` | `init` | state gitignored; provisioner catalogs regenerable |
@@ -61,11 +65,13 @@ score-k8s init --no-sample
 
 ```bash
 cd score
-score-compose generate api.yaml --publish 8000:api:8000
+score-compose generate api.yaml lease-server.yaml gateway.yaml \
+  --publish 8000:api:8000 --publish 8443:gateway:8443
 docker compose -p score-poc up -d
 ```
 
-Then connect on **`http://localhost:8000`**:
+Then connect through the **gateway** on **`http://localhost:8443`** (the real front
+door — Caddy reverse-proxying to the api), or the api directly on `http://localhost:8000`:
 
 - `/health` → `{"status":"ok"}`
 - `/schema/swagger` → interactive API explorer
@@ -80,7 +86,7 @@ Stop it: `docker compose -p score-poc down -v`
 
 ```bash
 cd score
-score-k8s generate api.yaml
+score-k8s generate api.yaml lease-server.yaml gateway.yaml
 k3d cluster create score-poc --no-lb --k3s-arg "--disable=traefik@server:0"
 k3d image import ghcr.io/outernet-foundation/placeframe/api:<API_SHA> -c score-poc
 kubectl apply -f manifests.yaml
