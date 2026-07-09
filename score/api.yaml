@@ -33,5 +33,7 @@ service:
 resources:
   db:
     type: postgres
+    id: placeframe-db
   bucket:
     type: s3
+    id: placeframe-bucket
