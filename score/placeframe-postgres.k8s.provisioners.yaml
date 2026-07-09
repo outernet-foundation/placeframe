@@ -1,0 +1,124 @@
+# Kubernetes twin of placeframe-postgres.provisioners.yaml. Same resource type
+# (placeframe-postgres), but emits Kubernetes manifests instead of compose services:
+# a Secret + StatefulSet (real Placeframe postgres) + Service, plus a Job that runs the
+# real database-manager to create the placeframe_* roles. Register via:
+# score-k8s init --provisioners <this file>.
+- uri: template://placeframe/postgres-k8s
+  type: placeframe-postgres
+  description: Placeframe postgres with placeframe_* roles created by database-manager (Kubernetes).
+  init: |
+    dbName: placeframe
+    adminPassword: {{ randAlphaNum 24 | quote }}
+    ownerPassword: {{ randAlphaNum 24 | quote }}
+    apiPassword: {{ randAlphaNum 24 | quote }}
+    authPassword: {{ randAlphaNum 24 | quote }}
+    orchestrationPassword: {{ randAlphaNum 24 | quote }}
+  state: |
+    service: pf-postgres
+    dbName: {{ dig "dbName" .Init.dbName .State | quote }}
+    adminPassword: {{ dig "adminPassword" .Init.adminPassword .State | quote }}
+    ownerPassword: {{ dig "ownerPassword" .Init.ownerPassword .State | quote }}
+    apiPassword: {{ dig "apiPassword" .Init.apiPassword .State | quote }}
+    authPassword: {{ dig "authPassword" .Init.authPassword .State | quote }}
+    orchestrationPassword: {{ dig "orchestrationPassword" .Init.orchestrationPassword .State | quote }}
+  outputs: |
+    host: {{ .State.service }}
+    port: 5432
+    name: {{ .State.dbName }}
+    owner_username: {{ .State.dbName }}_owner
+    api_username: {{ .State.dbName }}_api_user
+    auth_username: {{ .State.dbName }}_auth_user
+    orchestration_username: {{ .State.dbName }}_orchestration_user
+    api_password: {{ encodeSecretRef .State.service "api_password" }}
+    auth_password: {{ encodeSecretRef .State.service "auth_password" }}
+    orchestration_password: {{ encodeSecretRef .State.service "orchestration_password" }}
+  manifests: |
+    - apiVersion: v1
+      kind: Secret
+      metadata:
+        name: {{ .State.service }}
+      data:
+        adminPassword: {{ .State.adminPassword | b64enc }}
+        api_password: {{ .State.apiPassword | b64enc }}
+        auth_password: {{ .State.authPassword | b64enc }}
+        orchestration_password: {{ .State.orchestrationPassword | b64enc }}
+    - apiVersion: v1
+      kind: Service
+      metadata:
+        name: {{ .State.service }}
+      spec:
+        selector:
+          app.kubernetes.io/instance: {{ .State.service }}
+        ports:
+        - port: 5432
+          targetPort: 5432
+    - apiVersion: apps/v1
+      kind: StatefulSet
+      metadata:
+        name: {{ .State.service }}
+      spec:
+        replicas: 1
+        serviceName: {{ .State.service }}
+        selector:
+          matchLabels:
+            app.kubernetes.io/instance: {{ .State.service }}
+        template:
+          metadata:
+            labels:
+              app.kubernetes.io/instance: {{ .State.service }}
+          spec:
+            containers:
+            - name: postgres-db
+              image: ghcr.io/outernet-foundation/placeframe/postgres:tree-2805e66eb8f946b3ff6fb0dc220b080d9bb0d984
+              ports:
+              - containerPort: 5432
+              env:
+              - name: PGDATA
+                value: /var/lib/postgresql/data/pgdata
+              - name: POSTGRES_USER
+                value: postgres
+              - name: POSTGRES_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: {{ .State.service }}
+                    key: adminPassword
+              volumeMounts:
+              - name: pv-data
+                mountPath: /var/lib/postgresql/data
+        volumeClaimTemplates:
+        - metadata:
+            name: pv-data
+          spec:
+            accessModes: [ReadWriteOnce]
+            resources:
+              requests:
+                storage: 1Gi
+    - apiVersion: batch/v1
+      kind: Job
+      metadata:
+        name: {{ .State.service }}-create
+      spec:
+        backoffLimit: 30
+        template:
+          spec:
+            restartPolicy: OnFailure
+            containers:
+            - name: create
+              image: ghcr.io/outernet-foundation/placeframe/database-manager:tree-fb027ea674d00a8c9079aa26c13bac5550f263f9
+              command: ["uv","run","--no-sync","python","-m","src.main","--op","create","--name","{{ .State.dbName }}","--owner-password","{{ .State.ownerPassword }}","--api-user-password","{{ .State.apiPassword }}","--auth-user-password","{{ .State.authPassword }}","--orchestration-user-password","{{ .State.orchestrationPassword }}"]
+              env:
+              - name: POSTGRES_HOST
+                value: {{ .State.service }}
+              - name: POSTGRES_ADMIN_USER
+                value: postgres
+              - name: POSTGRES_ADMIN_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: {{ .State.service }}
+                    key: adminPassword
+              volumeMounts:
+              - name: efs
+                mountPath: /mnt/efs
+            volumes:
+            - name: efs
+              emptyDir: {}

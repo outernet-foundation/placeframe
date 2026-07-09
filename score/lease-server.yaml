@@ -7,8 +7,8 @@ containers:
     variables:
       POSTGRES_HOST: ${resources.db.host}
       DATABASE_NAME: ${resources.db.name}
-      DATABASE_ORCHESTRATION_USER: ${resources.db.username}
-      DATABASE_ORCHESTRATION_USER_PASSWORD: ${resources.db.password}
+      DATABASE_ORCHESTRATION_USER: ${resources.db.orchestration_username}
+      DATABASE_ORCHESTRATION_USER_PASSWORD: ${resources.db.orchestration_password}
       DEPLOYMENT_ENVIRONMENT: development
     livenessProbe:
       httpGet:
@@ -21,5 +21,5 @@ service:
       targetPort: 8000
 resources:
   db:
-    type: postgres
+    type: placeframe-postgres
     id: placeframe-db
