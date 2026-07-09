@@ -9,12 +9,12 @@ containers:
       AUTH_MODE: disabled
       POSTGRES_HOST: ${resources.db.host}
       DATABASE_NAME: ${resources.db.name}
-      DATABASE_API_USER: ${resources.db.username}
-      DATABASE_API_USER_PASSWORD: ${resources.db.password}
-      DATABASE_AUTH_USER: ${resources.db.username}
-      DATABASE_AUTH_USER_PASSWORD: ${resources.db.password}
-      DATABASE_ORCHESTRATION_USER: ${resources.db.username}
-      DATABASE_ORCHESTRATION_USER_PASSWORD: ${resources.db.password}
+      DATABASE_API_USER: ${resources.db.api_username}
+      DATABASE_API_USER_PASSWORD: ${resources.db.api_password}
+      DATABASE_AUTH_USER: ${resources.db.auth_username}
+      DATABASE_AUTH_USER_PASSWORD: ${resources.db.auth_password}
+      DATABASE_ORCHESTRATION_USER: ${resources.db.orchestration_username}
+      DATABASE_ORCHESTRATION_USER_PASSWORD: ${resources.db.orchestration_password}
       LOCALIZER_CONTAINER_URL: http://localhost:8000
       LOKI_URL: http://localhost:3100
       MINIO_ENDPOINT_URL: ${resources.bucket.endpoint}
@@ -32,7 +32,7 @@ service:
       targetPort: 8000
 resources:
   db:
-    type: postgres
+    type: placeframe-postgres
     id: placeframe-db
   bucket:
     type: s3
