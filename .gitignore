@@ -19,6 +19,8 @@
 .env
 .env.shas
 .secrets
+score/compose.yaml
+score/manifests.yaml
 score/.score-compose/state.yaml
 score/.score-compose/mounts/
 score/.score-k8s/state.yaml
