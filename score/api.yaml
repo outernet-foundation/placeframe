@@ -5,11 +5,22 @@ containers:
   api:
     image: ghcr.io/outernet-foundation/placeframe/api:tree-70fd47ea882fbc08321b1646ed9fd3c7f8801807
     variables:
+      PUBLIC_URL: http://localhost:8000
+      AUTH_MODE: disabled
       POSTGRES_HOST: ${resources.db.host}
       DATABASE_NAME: ${resources.db.name}
       DATABASE_API_USER: ${resources.db.username}
       DATABASE_API_USER_PASSWORD: ${resources.db.password}
-      AUTH_MODE: none
+      DATABASE_AUTH_USER: ${resources.db.username}
+      DATABASE_AUTH_USER_PASSWORD: ${resources.db.password}
+      DATABASE_ORCHESTRATION_USER: ${resources.db.username}
+      DATABASE_ORCHESTRATION_USER_PASSWORD: ${resources.db.password}
+      LOCALIZER_CONTAINER_URL: http://localhost:8000
+      LOKI_URL: http://localhost:3100
+      MINIO_ENDPOINT_URL: ${resources.bucket.endpoint}
+      MINIO_ACCESS_KEY: ${resources.bucket.access_key_id}
+      MINIO_SECRET_KEY: ${resources.bucket.secret_key}
+      RECONSTRUCTIONS_BUCKET: ${resources.bucket.bucket}
     livenessProbe:
       httpGet:
         path: /health
@@ -22,3 +33,5 @@ service:
 resources:
   db:
     type: postgres
+  bucket:
+    type: s3
