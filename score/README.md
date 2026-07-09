@@ -10,8 +10,8 @@ It is a proof-of-concept covering a slice of the stack: **api**, **lease-server*
 the **gateway** (Caddy), backed by a **postgres** database and **MinIO** object storage.
 From the authored workload files, `score-compose` produces Docker output and `score-k8s`
 produces Kubernetes output; the services boot and serve `/health` on both, reachable
-through the gateway. See `FINDINGS.md` for what was proven, what was not ported, and the
-open infra decision.
+through the gateway. See `.pulsar/memories/score-poc.md` for what was proven, what was not
+ported, and the open infra decision.
 
 ## What's in this directory
 
@@ -23,7 +23,6 @@ tool-managed:
 |------|--------|---------|
 | `api.yaml`, `lease-server.yaml`, `gateway.yaml` | authored — the workload contracts | yes |
 | `restart-policy.tpl` | authored — compose-only patch template | yes |
-| `FINDINGS.md` | authored — the evaluation decision record | yes |
 | `compose.yaml` | `score-compose generate` | no — gitignored (resolved secrets) |
 | `manifests.yaml` | `score-k8s generate` | no — gitignored (resolved secrets) |
 | `.score-compose/`, `.score-k8s/` | `init` | state gitignored; provisioner catalogs regenerable |
