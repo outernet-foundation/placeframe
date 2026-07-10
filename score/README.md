@@ -122,7 +122,7 @@ NODE=k3d-score-poc-server-0
 for img in \
   rancher/local-path-provisioner:v0.0.36 \
   rancher/mirrored-library-busybox:1.37.0 \
-  quay.io/minio/minio:latest \
+  quay.io/minio/minio \
   ghcr.io/outernet-foundation/placeframe/api:<API_SHA> \
   ghcr.io/outernet-foundation/placeframe/lease-server:<LEASE_SERVER_SHA> \
   ghcr.io/outernet-foundation/placeframe/gateway:<GATEWAY_SHA> \
@@ -138,7 +138,9 @@ kubectl -n kube-system rollout restart deploy/local-path-provisioner   # pick up
 Verify with `docker exec $NODE crictl images`. The system-image versions
 (`local-path-provisioner`, `busybox`) track the k3s release — read the exact tags from
 `kubectl -n kube-system get deploy local-path-provisioner -o yaml` and the
-`local-path-config` ConfigMap if they differ.
+`local-path-config` ConfigMap if they differ. `quay.io/minio/minio` is the default `s3`
+provisioner's own image and is intentionally unpinned by that provisioner (see the Image
+pinning gap below); preload whatever ref it currently emits.
 
 ## What the provisioners stand up (and the one real gap)
 
