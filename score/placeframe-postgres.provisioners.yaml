@@ -42,6 +42,7 @@
   services: |
     {{ .Init.serviceName }}:
       image: ghcr.io/outernet-foundation/placeframe/postgres:tree-2805e66eb8f946b3ff6fb0dc220b080d9bb0d984
+      entrypoint: /usr/local/bin/entrypoint-wrapper.sh
       restart: always
       environment:
         POSTGRES_USER: postgres
@@ -75,3 +76,17 @@
         --api-user-password {{ .State.apiPassword }}
         --auth-user-password {{ .State.authPassword }}
         --orchestration-user-password {{ .State.orchestrationPassword }}
+    {{ .Init.serviceName }}-migrate:
+      image: ghcr.io/outernet-foundation/placeframe/database-migrator:tree-0e358a9da5301a6399d56b4f9248d95edcd8f0c7
+      depends_on:
+        {{ .Init.serviceName }}-create:
+          condition: service_completed_successfully
+      restart: "no"
+      environment:
+        DB_HOST: {{ .Init.serviceName }}
+        DB_PORT: "5432"
+        DB_NAME: {{ .State.dbName }}
+        DB_USER: {{ .State.dbName }}_owner
+        DB_PASSWORD: {{ .State.ownerPassword | quote }}
+        DATABASE_SCHEMA_DIR: database
+        ALLOWED_HAZARDS: HAS_UNTRACKABLE_DEPENDENCIES
