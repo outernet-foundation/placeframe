@@ -103,6 +103,43 @@ Stop it: `k3d cluster delete score-poc`
 `k3d image import` is needed because the api image is private and not in the cluster's
 registry — a production cluster with ghcr credentials pulls it normally.
 
+### If pods hang `Pending` or `ImagePullBackOff` (Docker Hub rate limit)
+
+Repeated `k3d cluster create` cycles can exhaust Docker Hub's anonymous pull limit, and
+then a fresh k3d node cannot pull **its own k3s system images** — most visibly
+`rancher/local-path-provisioner` and its `rancher/mirrored-library-busybox` volume
+helper. Without the storage provisioner, every PVC stays `Pending` and the postgres /
+minio StatefulSets never schedule (the api/gateway Deployments still run, which makes
+it look like only "half" the stack came up).
+
+`k3d image import` is unreliable for these (it can report success without the image
+landing in the node's containerd). The dependable fix is to load every needed image
+straight into the node's containerd via `ctr`, right after creating the cluster and
+before applying — so deploy time needs zero Docker Hub:
+
+```bash
+NODE=k3d-score-poc-server-0
+for img in \
+  rancher/local-path-provisioner:v0.0.36 \
+  rancher/mirrored-library-busybox:1.37.0 \
+  quay.io/minio/minio:latest \
+  ghcr.io/outernet-foundation/placeframe/api:<API_SHA> \
+  ghcr.io/outernet-foundation/placeframe/lease-server:<LEASE_SERVER_SHA> \
+  ghcr.io/outernet-foundation/placeframe/gateway:<GATEWAY_SHA> \
+  ghcr.io/outernet-foundation/placeframe/postgres:<POSTGRES_SHA> \
+  ghcr.io/outernet-foundation/placeframe/database-manager:<DATABASE_MANAGER_SHA> \
+  ghcr.io/outernet-foundation/placeframe/database-migrator:<DATABASE_MIGRATOR_SHA> ; do
+  docker pull "$img"   # host is not rate-limited the same way; skip if already local
+  docker save "$img" | docker exec -i $NODE ctr -n k8s.io images import -
+done
+kubectl -n kube-system rollout restart deploy/local-path-provisioner   # pick up the image
+```
+
+Verify with `docker exec $NODE crictl images`. The system-image versions
+(`local-path-provisioner`, `busybox`) track the k3s release — read the exact tags from
+`kubectl -n kube-system get deploy local-path-provisioner -o yaml` and the
+`local-path-config` ConfigMap if they differ.
+
 ## What the provisioners stand up (and the one real gap)
 
 - **`db` (type: postgres)** — a **vanilla** `postgres` (StatefulSet + PVC on k8s;
