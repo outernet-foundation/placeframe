@@ -7,29 +7,32 @@ that single description — so the project can move toward a Kubernetes/SaaS dep
 without hand-maintaining two definitions that drift apart.
 
 It is a proof-of-concept covering a slice of the stack: **api**, **lease-server**, and
-the **gateway** (Caddy), backed by a **postgres** database and **MinIO** object storage.
-From the authored workload files, `score-compose` produces Docker output and `score-k8s`
-produces Kubernetes output; the services boot and serve `/health` on both, reachable
-through the gateway. See `.pulsar/memories/score-poc.md` for what was proven, what was not
-ported, and the open infra decision.
+the **gateway** (Caddy), backed by a **postgres** database (real `placeframe_*` roles and
+schema, via a custom provisioner) and **MinIO** object storage. From the authored
+workload files, `score-compose` produces Docker output and `score-k8s` produces
+Kubernetes output; the services boot, serve `/health`, and handle real data operations on
+both, reachable through the gateway. See `.pulsar/memories/score-poc.md` for what was
+proven, what was not ported, and the open infra decision.
 
 ## What's in this directory
 
-The authored workload files (`api.yaml`, `lease-server.yaml`, `gateway.yaml`) and the
+The authored workload files, the two custom-provisioner files, and the
 `restart-policy.tpl` compose patch are the source. Everything else is generated or
 tool-managed:
 
 | Path | Origin | In git? |
 |------|--------|---------|
 | `api.yaml`, `lease-server.yaml`, `gateway.yaml` | authored — the workload contracts | yes |
+| `placeframe-postgres.provisioners.yaml` | authored — custom postgres provisioner (Docker) | yes |
+| `placeframe-postgres.k8s.provisioners.yaml` | authored — custom postgres provisioner (Kubernetes) | yes |
 | `restart-policy.tpl` | authored — compose-only patch template | yes |
 | `compose.yaml` | `score-compose generate` | no — gitignored (resolved secrets) |
 | `manifests.yaml` | `score-k8s generate` | no — gitignored (resolved secrets) |
 | `.score-compose/`, `.score-k8s/` | `init` | state gitignored; provisioner catalogs regenerable |
 
-Secret values (the generated DB password, MinIO keys) appear only in the generated
-output and the `state.yaml` files — never in `api.yaml`. Those paths are gitignored,
-so nothing sensitive is committed.
+Secret values (the generated DB/role passwords, MinIO keys) appear only in the generated
+output and the `state.yaml` files — never in the authored files. Those paths are
+gitignored, so nothing sensitive is committed.
 
 > **Run every `score-*` command from inside `score/`.** `generate` looks for the
 > `.score-compose/` / `.score-k8s/` state directory in the current directory; running
@@ -42,23 +45,32 @@ so nothing sensitive is committed.
 - **Docker** — for the Docker target.
 - **[`k3d`](https://k3d.io) 5.x** and **`kubectl`** — for the Kubernetes target (any
   conformant cluster works; k3d is the throwaway local option).
-- The `api` image available locally (via `uv run build`/`up`) or registry access. It
-  is private on `ghcr.io`, so a cluster without ghcr credentials needs it imported
+- The service images (`api`, `lease-server`, `gateway`, `postgres`, `database-manager`,
+  `database-migrator`) available locally (via `uv run build`) or registry access. They
+  are private on `ghcr.io`, so a cluster without ghcr credentials needs them imported
   (see the Kubernetes section).
 
 ## First-time setup
 
 The `.score-compose/` and `.score-k8s/` state directories are gitignored, so after a
-fresh clone you initialise both projects once. The compose project also registers
-`restart-policy.tpl` — a patch that adds `restart: unless-stopped` to the api service.
-That is a compose-only concern: Kubernetes restarts crashed pods natively, so the k8s
-side needs no equivalent.
+fresh clone you initialise both projects once. Each `init` **registers the custom
+`placeframe-postgres` provisioner** for that target — this is mandatory: the workloads
+declare `resources.db.type: placeframe-postgres`, so without it `generate` fails with an
+"unknown resource type" error. The compose project additionally registers
+`restart-policy.tpl`, a patch adding `restart: unless-stopped` to the api service (a
+compose-only concern: Kubernetes restarts crashed pods natively).
 
 ```bash
 cd score
-score-compose init --project placeframe --no-sample --patch-templates ./restart-policy.tpl
-score-k8s init --no-sample
+score-compose init --project placeframe --no-sample \
+  --provisioners ./placeframe-postgres.provisioners.yaml \
+  --patch-templates ./restart-policy.tpl
+score-k8s init --no-sample \
+  --provisioners ./placeframe-postgres.k8s.provisioners.yaml
 ```
+
+Editing a provisioner or the patch later? Re-run its `init` to re-register the updated
+file (the tool copies it into the state dir; it does not track the file live).
 
 ## Run on Docker
 
@@ -86,22 +98,36 @@ Stop it: `docker compose -p score-poc down -v`
 ```bash
 cd score
 score-k8s generate api.yaml lease-server.yaml gateway.yaml
+
 k3d cluster create score-poc --no-lb --k3s-arg "--disable=traefik@server:0"
-k3d image import ghcr.io/outernet-foundation/placeframe/api:<API_SHA> -c score-poc
+
+# Every service image is private on ghcr, so import them all (a cluster with ghcr
+# credentials pulls them instead and you can skip this). postgres, database-manager
+# and database-migrator are what the custom placeframe-postgres provisioner needs.
+for svc in api lease-server gateway postgres database-manager database-migrator ; do
+  k3d image import ghcr.io/outernet-foundation/placeframe/$svc:<SHA> -c score-poc
+done
+
 kubectl apply -f manifests.yaml
+kubectl wait --for=condition=complete job/pf-postgres-create  --timeout=150s
+kubectl wait --for=condition=complete job/pf-postgres-migrate --timeout=150s   # applies the schema
 kubectl rollout status deployment/api --timeout=150s
 ```
+
+The `pf-postgres` StatefulSet plus the `pf-postgres-create` and `pf-postgres-migrate`
+Jobs all come from the custom postgres provisioner. The Jobs self-order by retrying
+until postgres is ready (there is no `depends_on` in Kubernetes), then complete.
 
 Then connect via a port-forward (leave it running in its own terminal):
 
 ```bash
-kubectl port-forward deploy/api 8000:8000        # -> http://localhost:8000/health
+kubectl port-forward deploy/gateway 8443:8443    # -> http://localhost:8443/health
 ```
 
 Stop it: `k3d cluster delete score-poc`
 
-`k3d image import` is needed because the api image is private and not in the cluster's
-registry — a production cluster with ghcr credentials pulls it normally.
+The import step is needed because these images are private and not in the cluster's
+registry — a production cluster with ghcr credentials pulls them normally.
 
 ### If pods hang `Pending` or `ImagePullBackOff` (Docker Hub rate limit)
 
@@ -142,39 +168,49 @@ Verify with `docker exec $NODE crictl images`. The system-image versions
 provisioner's own image and is intentionally unpinned by that provisioner (see the Image
 pinning gap below); preload whatever ref it currently emits.
 
-## What the provisioners stand up (and the one real gap)
+## What the provisioners stand up
 
-- **`db` (type: postgres)** — a **vanilla** `postgres` (StatefulSet + PVC on k8s;
-  service + volume on compose) with a single generated role and an **empty database**.
-  It is *not* the custom placeframe postgres image, and it has none of the
-  `placeframe_*` roles or schema that `create-database` / `database-migrator` produce.
-  So the api boots and serves `/health`, but any endpoint that queries real tables
-  will fail. Closing this needs a **custom `postgres` provisioner** — the one
-  substantial piece of work remaining.
-- **`bucket` (type: s3)** — a real MinIO (`quay.io/minio/minio`) with a service
-  account, access/secret keys, and a bucket, created by an init step (a
-  `restart: "no"` service on compose, a `Job` on k8s). No custom provisioner needed —
-  object storage works out of the box.
+- **`db` (type: placeframe-postgres)** — a **custom** provisioner (in the two
+  `placeframe-postgres.*.provisioners.yaml` files) that stands up the **real Placeframe
+  postgres image** (PostGIS, SHA-pinned) and runs the **real placeframe tooling** to set
+  it up, rather than a vanilla empty database:
+  1. `database-manager` (the `create-database` op) creates the database and the four
+     `placeframe_*` roles (`owner`, `api_user`, `auth_user`, `orchestration_user`);
+  2. `database-migrator` (`pg-schema-diff`) applies the schema — the actual tables.
+
+  On compose these are the `pf-postgres` service plus `pf-postgres-create` and
+  `pf-postgres-migrate` (`restart: "no"`) services; on k8s, a Secret + StatefulSet +
+  Service plus two Jobs. The postgres runs its image's `entrypoint-wrapper.sh` so PostGIS
+  is trusted and `placeframe_owner` (a non-superuser) can create the extension during
+  migration. Each workload consumes role-specific outputs
+  (`${resources.db.api_username}`, `${resources.db.api_password}`, …); `api` and
+  `lease-server` share one database via a common resource `id` (`placeframe-db`).
+  **Result:** real data operations work, not just `/health`.
+- **`bucket` (type: s3)** — the **default** provisioner: a real MinIO
+  (`quay.io/minio/minio`) with a service account, access/secret keys, and a bucket,
+  created by an init step (a `restart: "no"` service on compose, a `Job` on k8s). No
+  custom provisioner needed — object storage works out of the box.
 
 ## Image pinning gap
 
-The `api` image is pinned by content-addressed SHA tag, but the images the **default
-provisioners** inject are **moving references**, which violate the repo-wide "pin
-everything / no `:latest`" rule:
+Every image *we* author or provision is SHA-pinned: the workload images (`api`,
+`lease-server`, `gateway`) and — because postgres now uses the custom provisioner — the
+`postgres`, `database-manager`, and `database-migrator` images too. The remaining
+unpinned references all come from the **default `s3` provisioner** and the
+compose-side resource-wait gate, which violate the repo-wide "pin everything / no
+`:latest`" rule:
 
-- `mirror.gcr.io/postgres:17-alpine` — moving tag
 - `quay.io/minio/minio` — no tag (effectively `:latest`)
 - `alpine` (the compose resource-wait gate) — no tag, no registry host
 
-Pinning these means overriding the default provisioners with custom ones that
-reference images by digest (`@sha256:...`), or rewriting the image fields at generate
-time from `.env.shas` / `.env.lock`. Acceptable for a throwaway PoC; a blocker for
-real adoption.
+Closing these means giving MinIO the same custom-provisioner treatment postgres got
+(referencing a digest-pinned image), or rewriting the image fields at generate time
+from `.env.lock`. Acceptable for a throwaway PoC; a blocker for real adoption.
 
 ## Regenerating
 
-`api.yaml` is the source of truth. After editing it, re-run the matching `generate`
-command; the generated `compose.yaml` / `manifests.yaml` are overwritten in place.
-Resource outputs (the generated password, MinIO keys, bucket name) are cached in the
-`state.yaml` files and reused across runs, so credentials stay stable until the state
-directory is deleted.
+The authored files (the workloads + provisioners) are the source of truth. After editing
+one, re-run the matching `generate` command; the generated `compose.yaml` /
+`manifests.yaml` are overwritten in place. Resource outputs (the generated role
+passwords, MinIO keys, bucket name) are cached in the `state.yaml` files and reused
+across runs, so credentials stay stable until the state directory is deleted.
