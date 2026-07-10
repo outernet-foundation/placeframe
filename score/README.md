@@ -14,6 +14,37 @@ Kubernetes output; the services boot, serve `/health`, and handle real data oper
 both, reachable through the gateway. See `.pulsar/memories/score-poc.md` for what was
 proven, what was not ported, and the open infra decision.
 
+## Quick start (the `score-up` / `score-down` wrappers)
+
+Two `uv run` commands wrap this entire runbook — first-time setup, generate, and
+bring-up/tear-down — so you don't run the raw `score-compose` / `k3d` / `kubectl`
+commands by hand (they still need the prerequisites below installed):
+
+```bash
+uv run score-up                  # Docker (default): spin up
+uv run score-up --target k3s     # Kubernetes (throwaway k3d cluster): spin up
+uv run score-down                # Docker: stop and wipe volumes
+uv run score-down --target k3s   # Kubernetes: delete the cluster
+```
+
+- **Docker** publishes the gateway to your machine — open `http://localhost:8443/schema/swagger`.
+- **k3s** has no published host port; after `score-up --target k3s`, connect with
+  `kubectl port-forward deploy/gateway 8443:8443`, then open `http://localhost:8443`.
+- The first run does the one-time `init` automatically; later runs skip it. `score-up`
+  is re-runnable — it only creates the k3d cluster if one isn't already there.
+
+How the wrappers work, at a glance:
+
+| | `score-up --target docker` | `score-up --target k3s` |
+|---|---|---|
+| generate | `score-compose generate` → `compose.yaml` | `score-k8s generate` → `manifests.yaml` |
+| bring up | `docker compose up -d` | create k3d cluster → preload images → `kubectl apply` → wait for the migrate Job + api |
+| images | already local | preloaded into the node's containerd (list scraped from the manifest + k3s system images), so no Docker Hub pull is needed at deploy time |
+
+The commands live in `placeframe-stack` (`score_up.py` / `score_down.py`) — a thin driver
+over the steps documented below, which remain the reference for *what* the wrappers run
+and for any manual or one-off work.
+
 ## What's in this directory
 
 The authored workload files, the two custom-provisioner files, and the
