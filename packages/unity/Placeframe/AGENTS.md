@@ -1,4 +1,4 @@
-# packages/unity/Placeframe/SPEC.md
+# packages/unity/Placeframe/
 
 ## What this is
 
@@ -136,7 +136,7 @@ The contract (`Assets/Package/Core/Runtime/ICameraProvider.cs`):
 
 **Three asmdefs, not one.** Pulling ARFoundation into a MagicLeap-only build (or vice versa) creates compile-time conflicts and binary bloat. Per-stack camera providers in their own asmdefs compile only when their platform is the target. Core has zero AR/XR refs and can be tested in pure C#. The cost is three `package.json` files to keep version-aligned and three asmdefs to keep ref-correct.
 
-**Bayesian filter in tangent space with chi-squared gate.** A naive moving average over the measurement transform is wrong on SE(3) -- averaging rotation matrices isn't a rotation. Working in se(3) tangent (the Lie algebra) makes the Kalman update linear-to-first-order around the current mean, and lets the innovation gate use a standard Mahalanobis distance against the analytic measurement covariance the server returns (`MeasurementCovariance = alpha * PnP + beta * I`, see `docker/localizer/SPEC.md`). The trade-off: tangent-space accuracy degrades for large innovations, which is why large posterior shifts snap rather than slew.
+**Bayesian filter in tangent space with chi-squared gate.** A naive moving average over the measurement transform is wrong on SE(3) -- averaging rotation matrices isn't a rotation. Working in se(3) tangent (the Lie algebra) makes the Kalman update linear-to-first-order around the current mean, and lets the innovation gate use a standard Mahalanobis distance against the analytic measurement covariance the server returns (`MeasurementCovariance = alpha * PnP + beta * I`, see `docker/localizer/AGENTS.md`). The trade-off: tangent-space accuracy degrades for large innovations, which is why large posterior shifts snap rather than slew.
 
 **Camera-anchored measurement translation.** The earlier "compose `tMap` directly" formulation pivoted the alignment around the ECEF origin: any rotation noise produced a position offset that scaled linearly with `|t_ecefFromCamera|`, so a 0.5-degree rotation error displaced the rendered camera by ~50cm at 50m from origin. Anchoring the measurement translation on the camera (`tMeas = t_unityWorldCamera - R_unityFromEcef * t_ecefFromCamera`) makes the camera position correct by construction at the moment of measurement, and lets the Kalman update propagate rotation refinements through the camera anchor instead of the ECEF origin. A briefly-explored 4 DOF filter parameterisation (`d1e15fbb`..`a7f6336c`) was reverted in favor of keeping the full SO(3) state with camera anchoring.
 
@@ -144,7 +144,7 @@ The contract (`Assets/Package/Core/Runtime/ICameraProvider.cs`):
 
 **Diagnostic bypass switches over per-build feature flags.** `BypassInnovationGate` and `BypassKalman` are `public static bool` flags toggleable at runtime through the metrics dialog. Flipping them in the field lets a tester A/B individual pipeline stages against the same camera feed without an APK rebuild and a re-walk of the space. The cost is two always-checked branches in the hot path, which are predictable enough that the cost is negligible.
 
-**Server-computed measurement covariance.** Earlier versions of the filter applied a client-side confidence gate; commit `06bff440` dropped it in favor of consuming the calibrated `MeasurementCovariance` directly. The localizer's `fit_calibration` pipeline now solves for the alpha/beta formula at build time, and the client filter stays calibration-agnostic -- see `docker/localizer/SPEC.md` Calibration runtime.
+**Server-computed measurement covariance.** Earlier versions of the filter applied a client-side confidence gate; commit `06bff440` dropped it in favor of consuming the calibrated `MeasurementCovariance` directly. The localizer's `fit_calibration` pipeline now solves for the alpha/beta formula at build time, and the client filter stays calibration-agnostic -- see `docker/localizer/AGENTS.md` Calibration runtime.
 
 **Keycloak ROPC over OAuth code flow.** Resource Owner Password Credentials is deprecated by OAuth 2.1 but is what Placeframe ships, because XR clients typing a username and password into a Unity-rendered text box is the lowest-friction path. A browser-redirect code flow would require an external WebView or platform browser handoff, which is awkward on Magic Leap and inappropriate for headless Capture Tool runs. The cost is the static `Password` property holding the plaintext for the process lifetime.
 
@@ -152,5 +152,5 @@ The contract (`Assets/Package/Core/Runtime/ICameraProvider.cs`):
 
 ## See also
 
-- `docker/localizer/SPEC.md` -- server side of the `/localize` contract; documents the `MeasurementCovariance = alpha * PnP + beta * I` formula this filter consumes and the calibration runtime that produces it.
-- `docker/SPEC.md` -- multi-service stack the Unity client talks to, including the Keycloak realm and the Loki log-shipping path the static log callbacks plug into.
+- `docker/localizer/AGENTS.md` -- server side of the `/localize` contract; documents the `MeasurementCovariance = alpha * PnP + beta * I` formula this filter consumes and the calibration runtime that produces it.
+- `docker/AGENTS.md` -- multi-service stack the Unity client talks to, including the Keycloak realm and the Loki log-shipping path the static log callbacks plug into.

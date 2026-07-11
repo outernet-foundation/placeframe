@@ -1,14 +1,14 @@
-# build/SPEC.md
+# build/
 
 ## What this is
 
-`build/` is a Python workspace member (`build-scripts`) that ships the placeframe-wide CLI commands invoked via `uv run <name>` from the repo root. It owns two cohorts of commands: codegen + workspace tooling (`generate-clients`, `generate-datamodels`, `lock-python`, `deptry-check`, `preflight`) and the Cesium asset pipeline (`build-cesium`, `codegen-cesium`, `combine-cesium`). A third cohort under `placeframe/ci/` exists to be invoked from `.github/workflows/`; those commands are not intended for operator use locally. The Docker-stack lifecycle commands (`up`, `down`, `build`) and their helpers (`detect_gpu`, `modes`, `context_sha`) live in the standalone `placeframe-stack` package — see `packages/python/placeframe-stack/SPEC.md` — which this package depends on for `compute_service_shas` / `run_build` in its CI commands. The Unity build commands (`compile-unity`, `lock-unity`, `test-unity`, `build-unity`, `unity-matrix`, license helpers) live in the standalone `placeframe-unity` package — see `packages/python/placeframe-unity/SPEC.md` — which this package depends on for its shared CI helpers (`ci_step`, ORAS cache, runner setup). The sibling `scripts/` package holds operator utilities (calibration, debug attach, capture-tool install, ZED Box deploy) — see `scripts/SPEC.md` for that catalog.
+`build/` is a Python workspace member (`build-scripts`) that ships the placeframe-wide CLI commands invoked via `uv run <name>` from the repo root. It owns two cohorts of commands: codegen + workspace tooling (`generate-clients`, `generate-datamodels`, `lock-python`, `deptry-check`, `preflight`) and the Cesium asset pipeline (`build-cesium`, `codegen-cesium`, `combine-cesium`). A third cohort under `placeframe/ci/` exists to be invoked from `.github/workflows/`; those commands are not intended for operator use locally. The Docker-stack lifecycle commands (`up`, `down`, `build`) and their helpers (`detect_gpu`, `modes`, `context_sha`) live in the standalone `placeframe-stack` package — see `packages/python/placeframe-stack/AGENTS.md` — which this package depends on for `compute_service_shas` / `run_build` in its CI commands. The Unity build commands (`compile-unity`, `lock-unity`, `test-unity`, `build-unity`, `unity-matrix`, license helpers) live in the standalone `placeframe-unity` package — see `packages/python/placeframe-unity/AGENTS.md` — which this package depends on for its shared CI helpers (`ci_step`, ORAS cache, runner setup). The sibling `scripts/` package holds operator utilities (calibration, debug attach, capture-tool install, ZED Box deploy) — see `scripts/AGENTS.md` for that catalog.
 
 ## Shape
 
 ### Stack lifecycle (operator-facing)
 
-`up`, `down`, and `build` now live in the `placeframe-stack` package — see `packages/python/placeframe-stack/SPEC.md` for their flags and the native-vs-consumer-stack behavior.
+`up`, `down`, and `build` now live in the `placeframe-stack` package — see `packages/python/placeframe-stack/AGENTS.md` for their flags and the native-vs-consumer-stack behavior.
 
 ### Codegen + workspace tooling (operator-facing)
 
@@ -61,5 +61,5 @@ Defined in `build/pyproject.toml`'s `[project.scripts]`. All commands accept `--
 
 ## See also
 
-- `packages/python/placeframe-stack/SPEC.md` — the stack-lifecycle (`up`/`down`/`build`) package this one depends on for `compute_service_shas` / `run_build`.
-- `packages/python/placeframe-unity/SPEC.md` — the Unity build toolkit this package depends on for `ci_step`, the ORAS cache, and runner setup; also home of the Unity entry points and their workflow contract.
+- `packages/python/placeframe-stack/AGENTS.md` — the stack-lifecycle (`up`/`down`/`build`) package this one depends on for `compute_service_shas` / `run_build`.
+- `packages/python/placeframe-unity/AGENTS.md` — the Unity build toolkit this package depends on for `ci_step`, the ORAS cache, and runner setup; also home of the Unity entry points and their workflow contract.

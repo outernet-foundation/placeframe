@@ -12,11 +12,11 @@ The repo also hosts a Unity app that consumes Placeframe: `apps/CaptureTool/`. I
 
 ## Linear
 
-The `uv run linear` CLI (source: `scripts/src/scripts/linear_tool/`) is placeframe's Linear write path; see `AGENTS-SHARED.md` (Trackable work) for the workflow. **Before creating or editing any Linear ticket or project, read `scripts/src/scripts/linear_tool/SPEC.md`** — it holds the team/label taxonomy (team PLE; the `repo` and `type` label groups) and the ticket-authoring conventions (declarative outcome-tickets, imperative titles, `blocks`-for-sequence, just-in-time sub-issues, no file lists in tickets).
+The `uv run linear` CLI (source: `scripts/src/scripts/linear_tool/`) is placeframe's Linear write path; see `AGENTS-SHARED.md` (Trackable work) for the workflow. **Before creating or editing any Linear ticket or project, read `scripts/src/scripts/linear_tool/AGENTS.md`** — it holds the team/label taxonomy (team PLE; the `repo` and `type` label groups) and the ticket-authoring conventions (declarative outcome-tickets, imperative titles, `blocks`-for-sequence, just-in-time sub-issues, no file lists in tickets).
 
 ## Commands
 
-Top-level commands are `uv run <name>` from the repo root. See `packages/python/placeframe-stack/SPEC.md` for the stack-lifecycle catalog (`up`, `down`, `build`), `build/SPEC.md` for the codegen / Cesium catalog (`generate-clients`, `generate-datamodels`, `lock-python`, `deptry-check`, `preflight`, …), and `packages/python/placeframe-unity/SPEC.md` for the Unity catalog (`compile-unity`, `lock-unity`, `test-unity`, …), including per-command flags. See `scripts/SPEC.md` for operator utilities (`install`, `install-zed`, `fit-calibration`, debug-attach helpers). Every command accepts `--help`.
+Top-level commands are `uv run <name>` from the repo root. See `packages/python/placeframe-stack/AGENTS.md` for the stack-lifecycle catalog (`up`, `down`, `build`), `build/AGENTS.md` for the codegen / Cesium catalog (`generate-clients`, `generate-datamodels`, `lock-python`, `deptry-check`, `preflight`, …), and `packages/python/placeframe-unity/AGENTS.md` for the Unity catalog (`compile-unity`, `lock-unity`, `test-unity`, …), including per-command flags. See `scripts/AGENTS.md` for operator utilities (`install`, `install-zed`, `fit-calibration`, debug-attach helpers). Every command accepts `--help`.
 
 **Linting and type checking** (from repo root):
 
@@ -32,7 +32,7 @@ uv run basedpyright          # Type check (strict mode)
 
 ## Server stack
 
-The server stack (API, localizer, reconstructor, Keycloak, MinIO, Postgres, Loki/Alloy/Grafana) is a set of Docker microservices under `docker/`. The reconstructor pulls work via API lease endpoints — there is no separate orchestrator service. See `docker/SPEC.md` for service inventory, data flow, and authentication model. For debugging — querying Loki, inspecting MinIO buckets, hitting Postgres directly — see `.pulsar/debugging.md`.
+The server stack (API, localizer, reconstructor, Keycloak, MinIO, Postgres, Loki/Alloy/Grafana) is a set of Docker microservices under `docker/`. The reconstructor pulls work via API lease endpoints — there is no separate orchestrator service. See `docker/AGENTS.md` for service inventory, data flow, and authentication model. For debugging — querying Loki, inspecting MinIO buckets, hitting Postgres directly — see `.pulsar/debugging.md`.
 
 ## Python Workspace
 
@@ -60,7 +60,7 @@ Auto-generated packages in `packages/generated/` should not be edited directly �
 2. `uv sync --all-packages` then `uv run lock-python` (sync first if any `pyproject.toml` changed; lock files must precede generate-clients)
 3. `uv run generate-clients --config build/openapi-projects.json` (dumps updated OpenAPI spec, generates clients)
 
-All three scripts live in `build/src/build_scripts/placeframe/` — see `build/SPEC.md` for per-command flag details.
+All three scripts live in `build/src/build_scripts/placeframe/` — see `build/AGENTS.md` for per-command flag details.
 
 **Codegen commit hygiene**: Regenerated artifacts under `packages/generated/` always live in their own dedicated commit, separate from any source change. The codegen commit's message must be exactly `Run generate-clients`, `Run generate-datamodels`, or `Run generate-clients and generate-datamodels` — no body, no rationale, no reference to the source change or repo state. The reason: codegen output is not reviewed; reviewers must be able to spot and skip these commits at a glance, which only works if they're (a) always separate and (b) always have the same canonical message. A single codegen commit may cover multiple preceding source commits — there is no requirement of a 1:1 source↔codegen pairing. The only constraint is that the codegen commit's contents must reflect the cumulative source state at its position (i.e. running `generate-clients` / `generate-datamodels` against that tree must produce a no-op diff).
 

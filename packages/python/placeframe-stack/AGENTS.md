@@ -1,4 +1,4 @@
-# placeframe-stack/SPEC.md
+# placeframe-stack/
 
 ## What this is
 
@@ -43,5 +43,5 @@ Lifecycle (`up`/`down`/`build`) and codegen (`generate-clients`/`generate-datamo
 
 ## See also
 
-- `build/SPEC.md` — the `build-scripts` package that owns codegen + Cesium + CI and depends on this package for `compute_service_shas` / `run_build`.
-- `docker/SPEC.md` — the service inventory and data flow of the stack these commands bring up.
+- `build/AGENTS.md` — the `build-scripts` package that owns codegen + Cesium + CI and depends on this package for `compute_service_shas` / `run_build`.
+- `docker/AGENTS.md` — the service inventory and data flow of the stack these commands bring up.

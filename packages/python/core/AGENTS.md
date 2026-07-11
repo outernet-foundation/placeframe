@@ -1,8 +1,8 @@
-# packages/python/core/SPEC.md
+# packages/python/core/
 
 ## What this is
 
-`core` is the workspace Python package that holds the vocabulary shared between Placeframe's backend services. It contains the Pydantic schemas that travel over HTTP and through Postgres JSONB columns, the coordinate-frame primitives that bridge OpenCV-space (reconstructor / COLMAP) and Unity-space (phone clients / localizer responses), the image and intrinsics canonicalization used by both the map-builder and the query path, the HDF5 / FAISS-OPQ on-disk artifact formats, and the global confidence-calibration model. The distribution name is `core` and every import is `from core.<module>`. `docker/api/`, `docker/localizer/`, `docker/reconstructor/`, `docker/zed-capture/`, and `scripts/` declare it as a workspace dep. See `docker/SPEC.md` for the service mesh that consumes these types.
+`core` is the workspace Python package that holds the vocabulary shared between Placeframe's backend services. It contains the Pydantic schemas that travel over HTTP and through Postgres JSONB columns, the coordinate-frame primitives that bridge OpenCV-space (reconstructor / COLMAP) and Unity-space (phone clients / localizer responses), the image and intrinsics canonicalization used by both the map-builder and the query path, the HDF5 / FAISS-OPQ on-disk artifact formats, and the global confidence-calibration model. The distribution name is `core` and every import is `from core.<module>`. `docker/api/`, `docker/localizer/`, `docker/reconstructor/`, `docker/zed-capture/`, and `scripts/` declare it as a workspace dep. See `docker/AGENTS.md` for the service mesh that consumes these types.
 
 ## Shape
 
@@ -97,6 +97,6 @@ Flipping `LOCAL_FEATURE_RESIZE_SHORTER_SIDE`, `RETRIEVAL_TILE_OVERLAP_FRACTION`,
 
 ## See also
 
-- `docker/SPEC.md` -- the service mesh that consumes these types. Core is the vocabulary on the arrows between services; that SPEC describes the arrows.
+- `docker/AGENTS.md` -- the service mesh that consumes these types. Core is the vocabulary on the arrows between services; that doc describes the arrows.
 - `scripts/src/scripts/fit_calibration.py` -- the producer of `docker/localizer/calibration/global.json`. Reads `core.calibration`, `core.capture_session_manifest`, and `core.localization_metrics`'s defaults.
 - `packages/generated/` -- the OpenAPI client packages (Python and C#) generated from API routes that respond with `core` schemas. A schema change here requires running `generate-clients`.

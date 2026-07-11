@@ -1,4 +1,4 @@
-# packages/python/placeframe-unity/SPEC.md
+# packages/python/placeframe-unity/
 
 ## What this is
 
@@ -37,5 +37,5 @@ Supporting modules: `projects.py` (manifest schema + discovery), `unity.py` (edi
 
 ## See also
 
-- `build/SPEC.md` — the `build-scripts` package that remains: docker-stack lifecycle, codegen, release machinery, cesium. It imports this package's `ci_step`/`cache`/setup helpers.
+- `build/AGENTS.md` — the `build-scripts` package that remains: docker-stack lifecycle, codegen, release machinery, cesium. It imports this package's `ci_step`/`cache`/setup helpers.
 - `.github/workflows/CLAUDE.md` — how `unity-build.yml` is wired and why it must stay self-contained.

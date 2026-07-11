@@ -2,7 +2,7 @@
 
 ## What this is
 
-A Litestar ASGI service that answers `POST /localization`: given a query image plus one or more target reconstruction IDs, it returns each camera's 6-DOF pose in that reconstruction's coordinate frame, with a calibrated confidence pair and a 6x6 measurement covariance for the downstream Bayesian filter. Also exposes `GET /version` returning the build-time git SHA as the pipeline version. The phone client never reaches this service directly — it's behind `docker/api/`, which proxies via the generated `placeframe_localizer_client`. Stack-level context (where the localizer sits in the capture -> reconstruct -> localize flow, log query patterns, MinIO bucket layout) lives in `docker/SPEC.md`; this file covers the subsystem.
+A Litestar ASGI service that answers `POST /localization`: given a query image plus one or more target reconstruction IDs, it returns each camera's 6-DOF pose in that reconstruction's coordinate frame, with a calibrated confidence pair and a 6x6 measurement covariance for the downstream Bayesian filter. Also exposes `GET /version` returning the build-time git SHA as the pipeline version. The phone client never reaches this service directly — it's behind `docker/api/`, which proxies via the generated `placeframe_localizer_client`. Stack-level context (where the localizer sits in the capture -> reconstruct -> localize flow, log query patterns, MinIO bucket layout) lives in `docker/AGENTS.md`; this file covers the subsystem.
 
 ## Shape
 
@@ -193,7 +193,7 @@ The Dockerfile bakes `LOCALIZER_SHA` in the *last* `ENV` layer, so only that lay
 
 ## See also
 
-- `docker/SPEC.md` — stack-level data flow, log query patterns, MinIO bucket layout, reconstructor lease lifecycle. The localizer is one consumer of `dev-reconstructions/`; this file does not restate the bucket schema.
+- `docker/AGENTS.md` — stack-level data flow, log query patterns, MinIO bucket layout, reconstructor lease lifecycle. The localizer is one consumer of `dev-reconstructions/`; this file does not restate the bucket schema.
 - `packages/python/core/` — `calibration.py` (Features / CalibrationArtifact / apply_global_calibration), `h5.py`, `opq.py`, `image_preprocess.py`, `model_wrappers.py`, `localization_metrics.py` carry the shared domain types and the canonical hyperparameter defaults the localizer reads.
 - `scripts/src/scripts/fit_calibration.py` — produces `docker/localizer/calibration/global.json` from a labeled corpus. The localizer is strictly a consumer; refits land as commits to that file plus a paired image rebuild at the same `LOCALIZER_SHA`.
 - `packages/python/placeframe-stack/src/placeframe_stack/context_sha.py` — defines `compute_service_shas`, which derives `LOCALIZER_SHA` (and one such SHA per service) from the localizer image's build context per the `.dockerignore` allowlist convention described in the repo `CLAUDE.md`.

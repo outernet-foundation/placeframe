@@ -2,7 +2,7 @@
 
 ## What this is
 
-The reconstructor is a single-process GPU worker that turns capture sessions into sparse 3D maps. It pulls jobs over a Postgres-backed lease API, downloads a tar of images and VIO truth poses from MinIO, runs a six-phase pipeline (extract features, generate pairs, train OPQ/PQ, encode, match, verify two-view geometry, run COLMAP incremental SfM), and writes the resulting artifacts back to MinIO at `dev-reconstructions/<reconstruction_id>/`. Stack-level data flow and the recovery gap that motivates this SPEC's failure-mode section are in `docker/SPEC.md`.
+The reconstructor is a single-process GPU worker that turns capture sessions into sparse 3D maps. It pulls jobs over a Postgres-backed lease API, downloads a tar of images and VIO truth poses from MinIO, runs a six-phase pipeline (extract features, generate pairs, train OPQ/PQ, encode, match, verify two-view geometry, run COLMAP incremental SfM), and writes the resulting artifacts back to MinIO at `dev-reconstructions/<reconstruction_id>/`. Stack-level data flow and the recovery gap that motivates this SPEC's failure-mode section are in `docker/AGENTS.md`.
 
 ## Shape
 
@@ -208,7 +208,7 @@ The full lease state machine lives in `docker/lease-server/src/routers/leases.py
 
 ## See also
 
-- `docker/SPEC.md` -- stack-level data flow, MinIO bucket layout, and the multi-service relationships this reconstructor sits inside.
+- `docker/AGENTS.md` -- stack-level data flow, MinIO bucket layout, and the multi-service relationships this reconstructor sits inside.
 - `.pulsar/debugging.md` -- operator runbook including the "`sfm_model/` presence means SfM completed regardless of DB status" recovery hazard.
 - `docker/lease-server/src/routers/leases.py` -- the lease state machine (request, progress, succeed, fail, reaper). Read this when reasoning about timeout or recovery behavior.
 - `packages/python/core/src/core/reconstruction_options.py` and `reconstruction_metrics.py` -- the shared option / metric schema. The reconstructor reads options, writes metrics; both flow through the row's `manifest` column.

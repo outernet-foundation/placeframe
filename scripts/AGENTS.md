@@ -1,4 +1,4 @@
-# scripts/SPEC.md
+# scripts/
 
 ## What this is
 
@@ -18,7 +18,7 @@ Registered in `scripts/pyproject.toml`:
 | `loki-query` | `loki_query.py` | Run a LogQL query against the local Loki via `docker exec placeframe-loki-1 wget`, formatting each entry as `HH:MM:SS LEVEL [logGroup] message` (plus exception chain when present). Flags: `--limit`, `--direction`, `--since`, `--raw`. Use this instead of hand-rolling URL-encoded `wget` invocations — the URL encoding is fragile (`+`/`%7C`/quote-escapes) and easy to get subtly wrong. |
 | `tune-reconstruction` | `tune_reconstruction.py` | Plackett-Burman sweep over `ReconstructionOptions` per capture. One reconstruction per cell. Aggregates map-quality metrics into a JSON report. |
 | `fit-calibration` | `fit_calibration.py` | Algorithm 1: pick held-out frames, build/reuse reconstructions, localize each held-out frame, fit logistic+isotonic for tight/loose success probability, fit Σ_meas `(α, β)`, write `docker/localizer/calibration/global.json`. |
-| `linear` | `linear_tool/` | Audited write path into the team's Linear workspace: create/update issues, projects, labels, and blocking relations via the GraphQL API. See `linear_tool/SPEC.md` for the tool and the team's ticketing conventions. |
+| `linear` | `linear_tool/` | Audited write path into the team's Linear workspace: create/update issues, projects, labels, and blocking relations via the GraphQL API. See `linear_tool/AGENTS.md` for the tool and the team's ticketing conventions. |
 
 `api_auth.py` (shared) and `held_out_selection.py` (consumed by `fit-calibration`) are library modules, not entry points.
 
@@ -34,7 +34,7 @@ Registered in `scripts/pyproject.toml`:
         tune_reconstruction.py                    -- PB sweep over ReconstructionOptions
         fit_calibration.py                        -- Algorithm 1 calibration pipeline
         held_out_selection.py                     -- HeldOutFrameSelector Protocol + stride impl
-        linear_tool/                              -- `uv run linear`: audited Linear GraphQL write path (see linear_tool/SPEC.md)
+        linear_tool/                              -- `uv run linear`: audited Linear GraphQL write path (see linear_tool/AGENTS.md)
       tests/
         test_fit_calibration.py                   -- the only test file in the directory
 
@@ -95,7 +95,7 @@ The two scripts share `api_auth.authenticated_api_client` and the `localization_
 The procedure `fit-calibration` runs per capture (`fit_calibration.py` and the reconstructor working in concert):
 
 1. **Hold out frames at map-build time.** `HeldOutFrameSelector` (default stride) picks ~100 timestamps from `frames.csv`. Those go into `ReconstructionOptions.held_out_frame_timestamps`; the reconstructor filters them out of `frames.csv` and skips the matching images. The COLMAP map is built from the remaining frames.
-2. **Reconstructor aligns the map to truth.** The reconstructor pins the first registered frame's COLMAP pose to its `frames.csv` truth pose via single-anchor `Sim3d`; this places the rebuilt map in the capture's truth frame. Separately and only as a diagnostic, the reconstructor solves rigid (no-scale) Procrustes over all registered frames and emits per-capture residuals (`truth_alignment_rms_residual_m`, `truth_alignment_max_residual_m`); these ride the manifest and the operator (or the fit script) uses them to filter unreliable captures. The Procrustes transform itself is not applied to the reconstruction. See `docker/reconstructor/SPEC.md`.
+2. **Reconstructor aligns the map to truth.** The reconstructor pins the first registered frame's COLMAP pose to its `frames.csv` truth pose via single-anchor `Sim3d`; this places the rebuilt map in the capture's truth frame. Separately and only as a diagnostic, the reconstructor solves rigid (no-scale) Procrustes over all registered frames and emits per-capture residuals (`truth_alignment_rms_residual_m`, `truth_alignment_max_residual_m`); these ride the manifest and the operator (or the fit script) uses them to filter unreliable captures. The Procrustes transform itself is not applied to the reconstruction. See `docker/reconstructor/AGENTS.md`.
 3. **Per held-out frame.** Run the localizer; the map is already in truth-frame so the localizer's `camera_from_map` doubles as `camera_from_world`. Invert to get the estimated camera pose. Compute `err_t = ||truth_position - estimated_position||` and `err_r = || log(R_truth * R_estimated^-1) ||` (degrees, via `scipy.spatial.transform.Rotation.magnitude`). Record `(metrics, map_features, recon_config, loc_config, device, err_t, err_r, se3_residual, pnp_covariance)` to `localization_evaluations`.
 4. **Pool across all captures and configs**, add binary labels: `success_tight = err_t < 5cm AND err_r < 1deg`, `success_loose = err_t < 30cm AND err_r < 5deg`.
 5. **Fit logistic regression** (`LogisticRegression(class_weight='balanced')`) on the 9-feature vector (`log(num_inliers+1)`, `inlier_ratio`, `reproj_err / image_diagonal_pixels`, `inlier_coverage`, `log(num_matches+1)`, `log(map_image_count+1)`, `log(map_point_count+1)`, `map_avg_track_length`, `map_viewpoint_diversity`).
@@ -103,7 +103,7 @@ The procedure `fit-calibration` runs per capture (`fit_calibration.py` and the r
 7. **Fit Σ_meas scaling.** For each held-out localization, compute SE(3) residual `e = log(P_truth_in_map * P_estimated^-1) ∈ R^6`. Solve scalar `α, β` that maximize `sum_i log N(e_i; 0, alpha * PnP_cov_i + beta * I)` via `scipy.optimize.minimize(L-BFGS-B)`. The scalars carry the empirical "actual pose-error spread relative to PnP_cov" signal that PnP_cov alone misses.
 8. **Optional 10% holdout** for Brier score and reliability diagram in fit metadata.
 
-Output: `CalibrationArtifact(tight, loose, sigma_meas_alpha, sigma_meas_beta, loose_min, tight_min, ...)` written to `docker/localizer/calibration/global.json` by default. Schema: `packages/python/core/SPEC.md` "Calibration".
+Output: `CalibrationArtifact(tight, loose, sigma_meas_alpha, sigma_meas_beta, loose_min, tight_min, ...)` written to `docker/localizer/calibration/global.json` by default. Schema: `packages/python/core/AGENTS.md` "Calibration".
 
 ### Driver-side localization
 
@@ -158,9 +158,9 @@ Deterministic, scales to capture length, gives even temporal spacing → roughly
 
 - `packages/python/placeframe-stack/` — the workspace package holding the Docker-stack lifecycle (`up`, `down`, `build`) and the SHA/auth helpers. `scripts/` imports from it (`placeframe_stack.context_sha.compute_service_shas` in `install_zed/orchestrator.py`, `placeframe_stack.modes.parse_env_file` in `api_auth.py`); the inverse does not hold.
 - `build/` (the `build-scripts` workspace package) — sibling Python CLI package holding the codegen entry points (`generate-clients`, `generate-datamodels`, `lock-python`, `deptry-check`, `preflight`).
-- `packages/python/placeframe-unity/SPEC.md` — the Unity build toolkit, which also hosts the `install` command. `scripts/` no longer imports from it; the dependency was dropped when `install.py` moved.
-- `docker/localizer/SPEC.md` — defines the `/version` and `/localize` endpoints that `fit-calibration` consumes and the `pipeline_version` baked into the localizer image.
-- `docker/reconstructor/SPEC.md` — defines the single-anchor truth-frame alignment and the Procrustes-residual diagnostic metrics that Algorithm 1 step 2 relies on.
-- `packages/python/core/SPEC.md` "Calibration" — schema of `CalibrationArtifact`, `Features`, `ToleranceModel`, `RawMapMetrics`, `RawLocalizationMetrics`.
+- `packages/python/placeframe-unity/AGENTS.md` — the Unity build toolkit, which also hosts the `install` command. `scripts/` no longer imports from it; the dependency was dropped when `install.py` moved.
+- `docker/localizer/AGENTS.md` — defines the `/version` and `/localize` endpoints that `fit-calibration` consumes and the `pipeline_version` baked into the localizer image.
+- `docker/reconstructor/AGENTS.md` — defines the single-anchor truth-frame alignment and the Procrustes-residual diagnostic metrics that Algorithm 1 step 2 relies on.
+- `packages/python/core/AGENTS.md` "Calibration" — schema of `CalibrationArtifact`, `Features`, `ToleranceModel`, `RawMapMetrics`, `RawLocalizationMetrics`.
 - `docker/aoa-bridge/CLAUDE.md` — AOA-bridge protocol, USB host/accessory roles, and the phone-side counterpart files that the on-box `aoa_bridge.py` handshake binds against.
-- `scripts/src/scripts/linear_tool/SPEC.md` — the `uv run linear` tool and the team's Linear ticketing conventions (declarative outcome-tickets, imperative titles, `blocks`-for-sequence, JIT sub-issues).
+- `scripts/src/scripts/linear_tool/AGENTS.md` — the `uv run linear` tool and the team's Linear ticketing conventions (declarative outcome-tickets, imperative titles, `blocks`-for-sequence, JIT sub-issues).

@@ -1,4 +1,4 @@
-# packages/python/neural-networks/SPEC.md
+# packages/python/neural-networks/
 
 ## What this is
 
