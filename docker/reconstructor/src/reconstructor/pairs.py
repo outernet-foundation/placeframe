@@ -8,7 +8,7 @@ from pathlib import Path
 import torch
 from numpy import float32, where
 from numpy.linalg import norm
-from numpy.typing import NDArray  # noqa: TID251 — Phase T piece 3 follow-up migration
+from numpy.typing import NDArray  # noqa: TID251 — tracked in PLE-233
 from torch import from_numpy, topk  # type: ignore
 
 from .rig import Rig

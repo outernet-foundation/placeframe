@@ -31,7 +31,7 @@ from numpy import (
     uint32,
 )
 from numpy.linalg import det, norm, svd
-from numpy.typing import NDArray  # noqa: TID251 — Phase T piece 3 follow-up migration
+from numpy.typing import NDArray  # noqa: TID251 — tracked in PLE-233
 from pycolmap import Camera as ColmapCamera
 from pycolmap import (
     Database,

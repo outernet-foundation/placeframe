@@ -11,7 +11,7 @@ from core.opq import OPQ_MATRIX_FILE, PQ_QUANTIZER_FILE, read_opq_matrix, read_p
 from core.reconstruction_metrics import ReconstructionMetrics
 from faiss import OPQMatrix, ProductQuantizer  # type: ignore
 from numpy import dtype, float32, ndarray, stack, uint8
-from numpy.typing import NDArray  # noqa: TID251 — Phase T piece 3 follow-up migration
+from numpy.typing import NDArray  # noqa: TID251 — tracked in PLE-233
 from pycolmap import Reconstruction
 from pycolmap._core import ImageMap, Point3DMap
 

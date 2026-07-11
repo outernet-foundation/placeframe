@@ -7,7 +7,7 @@ from typing import Any, Iterable, List, Optional, Sequence, cast
 from core.reconstruction_metrics import ReconstructionMetrics
 from numpy import asarray, float64, percentile
 from numpy.linalg import norm
-from numpy.typing import NDArray  # noqa: TID251 — Phase T piece 3 follow-up migration
+from numpy.typing import NDArray  # noqa: TID251 — tracked in PLE-233
 from pycolmap import Database, Frame, ImageMap, Point3D, Point3DMap, Reconstruction, Rigid3d
 from pycolmap import Image as ColmapImage
 
