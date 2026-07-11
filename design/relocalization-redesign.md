@@ -13,9 +13,8 @@ infrastructure that was originally built around the current single-Gaussian
 filter.
 
 It is *not* a phased plan — no ordering, no scoping into units of work, no
-sequencing decisions. The migration sequencing, the Phase-0 `scripts/`
-reorganization, and the step-by-step tuning recipe live in
-`relocalization-plan.md`.
+sequencing decisions. The migration sequencing lives in the Linear project's
+`blocks` graph (the *Calibrated, aliasing-robust relocalization* project).
 
 ## Why a redesign
 
@@ -140,7 +139,7 @@ never surface tracking-state transitions to the filter.
 | `database` `localization_evaluations` table | Corpus cache. Keyed by `(reconstruction_id, frame_timestamp, retrieval_top_k, ransac_threshold, pipeline_version)`. Stores PnP covariance + truth-residual SE(3). | Empty in production. |
 | `docker/localizer/src/build_metrics.py` | Emits `confidence_tight`, `confidence_loose`, `measurement_covariance` per localization. `measurement_covariance = α · pnp_covariance + β · I`. | Live in the pipeline. Confidences are no-ops because the placeholder thresholds leave the gate barely active. |
 | `docker/localizer/src/localize.py:232` | Server-side rejection gate: raises `LocalizationError` if `confidence_loose < loose_min` or `confidence_tight < tight_min`. | Active. Kicks in only on extreme low-inlier cases under the current placeholder thresholds. |
-| `.pulsar/bugs/fit-calibration-localization-map-placeholder-pose.md` | Latent bug: `fit_calibration` writes localization maps at identity pose. | Only matters if the reconstructor adopts non-identity ECEF placement. |
+| `scripts/src/scripts/fit_calibration.py` | Latent bug: `fit_calibration` writes localization maps at identity pose. | Only matters if the reconstructor adopts non-identity ECEF placement. |
 
 `packages/csharp/` does not exist, and the repo contains no non-Unity
 .NET projects. The portable filter library is a from-scratch creation
@@ -893,7 +892,7 @@ joint search at our corpus size.
 
 The step-by-step recipe for actually running this loop — corpus gather,
 Σ_meas fit, filter-threshold sweep, reconstruction-options sweep, field
-validation — lives in `relocalization-plan.md`.
+validation — is left to the implementer to work out at pickup.
 
 ### Two corpus phases — bootstrap and field
 

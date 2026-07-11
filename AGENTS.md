@@ -32,7 +32,7 @@ uv run basedpyright          # Type check (strict mode)
 
 ## Server stack
 
-The server stack (API, localizer, reconstructor, Keycloak, MinIO, Postgres, Loki/Alloy/Grafana) is a set of Docker microservices under `docker/`. The reconstructor pulls work via API lease endpoints — there is no separate orchestrator service. See `docker/AGENTS.md` for service inventory, data flow, and authentication model. For debugging — querying Loki, inspecting MinIO buckets, hitting Postgres directly — see `.pulsar/debugging.md`.
+The server stack (API, localizer, reconstructor, Keycloak, MinIO, Postgres, Loki/Alloy/Grafana) is a set of Docker microservices under `docker/`. The reconstructor pulls work via API lease endpoints — there is no separate orchestrator service. See `docker/AGENTS.md` for service inventory, data flow, and authentication model. For debugging — querying Loki, inspecting MinIO buckets, hitting Postgres directly — see the Debugging section in `docker/AGENTS.md` (and `scripts/AGENTS.md` for zed-box SSH access).
 
 ## Python Workspace
 

@@ -209,6 +209,6 @@ The full lease state machine lives in `docker/lease-server/src/routers/leases.py
 ## See also
 
 - `docker/AGENTS.md` -- stack-level data flow, MinIO bucket layout, and the multi-service relationships this reconstructor sits inside.
-- `.pulsar/debugging.md` -- operator runbook including the "`sfm_model/` presence means SfM completed regardless of DB status" recovery hazard.
+- `docker/AGENTS.md` (Debugging) -- operator runbook including the "`sfm_model/` presence means SfM completed regardless of DB status" recovery hazard.
 - `docker/lease-server/src/routers/leases.py` -- the lease state machine (request, progress, succeed, fail, reaper). Read this when reasoning about timeout or recovery behavior.
 - `packages/python/core/src/core/reconstruction_options.py` and `reconstruction_metrics.py` -- the shared option / metric schema. The reconstructor reads options, writes metrics; both flow through the row's `manifest` column.

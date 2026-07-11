@@ -37,7 +37,7 @@ is a BA local-minimum teleport.
 
 1. Pull the recon's `sfm_model/{frames.txt, images.txt}` and the
    capture's `rig*/frames.csv` from MinIO (the pull recipe is in
-   `.pulsar/debugging.md`, "Reconstruction audit").
+   `docker/AGENTS.md`, "Reconstruction audit").
 2. Run `uv run displacement-check` (tree-stored at
    `scripts/src/scripts/displacement_check.py`) against the recon's
    `frames.txt` and the capture's `frames.csv`.
@@ -151,7 +151,7 @@ small / dense captures fall off a coverage cliff.
 
 ## Operational recipes
 
-Promoted to `.pulsar/debugging.md` ("Reconstruction audit"): the MinIO artifact pull, the Postgres options/metrics inspect, the queue-a-rerun and single-field-override recipes, and the SfM frame-file layouts.
+Promoted to `docker/AGENTS.md` ("Reconstruction audit"): the MinIO artifact pull, the Postgres options/metrics inspect, the queue-a-rerun and single-field-override recipes, and the SfM frame-file layouts.
 
 ## How we got here in three sentences
 

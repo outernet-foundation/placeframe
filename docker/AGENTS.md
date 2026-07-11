@@ -78,7 +78,111 @@ The fourth combination, `http://…` + `keycloak`, is rejected at compose startu
 - **MinIO instead of a filesystem volume** for blobs: the same S3 API ports to a managed object store later, and Loki, captures, and reconstructions can all share one storage backend in dev without a migration when the stack moves out of compose.
 - **Allowlist `.dockerignore`** (`*` then `!` entries) is the single source of truth for what affects image builds and the `CONTEXT_SHA` tag. BuildKit does not expose which context files a build actually used ([moby/buildkit#1181](https://github.com/moby/buildkit/issues/1181), open since 2019), so the allowlist is how we keep image identity deterministic. Adding a `COPY` for a path missing from the allowlist fails loudly; extra entries cause only spurious rebuilds.
 
+## Debugging
+
+Operational commands for investigating "what did the system actually do?" — DB, blob, and log queries. (The zed-box SSH / sandbox-key access path lives in `scripts/AGENTS.md`.)
+
+### Postgres
+
+The application user is `placeframe_owner` (RLS policies are scoped to it), not `postgres`:
+
+```bash
+docker exec placeframe-postgres-1 psql -U placeframe_owner -d placeframe -c "<query>"
+```
+
+A bare `psql -U postgres` lands in a default schema with no app tables visible.
+
+### MinIO
+
+Configure the `mc` alias inside the MinIO container using the credentials from `.env` (`MINIO_ACCESS_KEY` / `MINIO_SECRET_KEY` — `admin` / `password` in dev):
+
+```bash
+docker exec placeframe-minio-1 mc alias set local http://localhost:9000 admin password
+docker exec placeframe-minio-1 mc ls --recursive local/dev-captures/
+docker exec placeframe-minio-1 mc ls --recursive local/dev-reconstructions/
+```
+
+Bucket schema and what each prefix contains is the MinIO bucket layout under `## Constraints` above. The operationally relevant gotcha: presence of `sfm_model/` under `dev-reconstructions/<id>/` means SfM completed, regardless of what the DB says — the final `/succeed` PUT can fail and orphan a reconstruction at `uploading`.
+
+### Reconstruction audit
+
+Pull a reconstruction's SfM artifacts and its capture's priors side by side to check a finished map against its capture — the input to the consecutive-frame displacement check (`uv run displacement-check`) and the held-out-frame protocol described in `design/reconstruction-validation.md`.
+
+**Pull SfM artifacts + capture priors from MinIO** (after the `mc alias set` above):
+
+```bash
+RID=<recon_id>; CID=<capture_session_id>; WORK=/tmp/recon_audit/$RID
+mkdir -p "$WORK/sfm" "$WORK/cap"
+for f in frames.txt frame_poses.npz rigs.txt cameras.txt images.txt; do
+  docker exec placeframe-minio-1 mc cp local/dev-reconstructions/$RID/sfm_model/$f /tmp/$f
+  docker cp placeframe-minio-1:/tmp/$f "$WORK/sfm/$f"
+done
+docker exec placeframe-minio-1 mc cp local/dev-captures/$CID.tar /tmp/cap.tar
+docker cp placeframe-minio-1:/tmp/cap.tar "$WORK/cap.tar"
+tar -xf "$WORK/cap.tar" -C "$WORK/cap" manifest.json rig0/frames.csv
+```
+
+**Inspect a recon's options + key metrics from Postgres** (app user, per the Postgres note above — `-U postgres` cannot see the `reconstructions` table):
+
+```bash
+docker exec placeframe-postgres-1 psql -U placeframe_owner -d placeframe -c "
+  SELECT manifest->'options', manifest->'metrics'->'all_verified_matches',
+         manifest->'metrics'->'map_image_count'
+  FROM reconstructions WHERE id='<rid>';"
+```
+
+**Queue a rerun** — unchanged, or with a single `ReconstructionOptions` field overridden, without a code change:
+
+```bash
+docker exec placeframe-postgres-1 psql -U placeframe_owner -d placeframe -c "
+  INSERT INTO reconstructions (tenant_id, capture_session_id, status, manifest_version, manifest)
+  SELECT tenant_id, capture_session_id, 'queued'::reconstruction_status, manifest_version,
+         jsonb_set(manifest, '{options,<field>}', to_jsonb(<value>))  -- or bare 'manifest' to rerun as-is
+  FROM reconstructions WHERE id='<source_recon_id>' RETURNING id;"
+```
+
+`uv run reconstruction create <capture> --options-json '{...}'` is the typed alternative to the `jsonb_set` override.
+
+**Frame file layouts** (for parsing SfM output against capture priors):
+
+- `frames.csv` (capture priors, `world_from_rig`, OPENCV axis): `timestamp_ms,gx,gy,gz` (gravity-only — current ZED), +`tx,ty,tz`, or +quaternion. Schema in `docker/reconstructor/AGENTS.md` "frames.csv schema".
+- `sfm_model/frames.txt` (COLMAP rig output, `rig_from_world`): `FRAME_ID RIG_ID QW QX QY QZ TX TY TZ NUM_DATA_IDS [SENSOR_TYPE SENSOR_ID DATA_ID]…`. Hamilton quaternion; rig center in world = `-R(rig_from_world).T @ t(rig_from_world)`.
+- `sfm_model/images.txt`: odd lines `IMAGE_ID QW QX QY QZ TX TY TZ CAMERA_ID IMAGE_NAME`; map IMAGE_ID → timestamp via `rig\d+/camera\d+/(\d+)\.jpg`.
+
+### Loki
+
+Loki holds logs from every service plus the phone-side capture-tool relay. Available `service_name` values:
+
+```
+alloy api capture-tool cloudbeaver gateway grafana keycloak loki
+minio minio-logger ngrok postgres reconstructor-cuda zed-capture
+```
+
+Query template (LogQL via the HTTP API; run from the loki container so you don't have to plumb auth):
+
+```bash
+docker exec placeframe-loki-1 wget -qO- \
+  'http://localhost:3100/loki/api/v1/query_range?query=%7Bservice_name%3D%22<svc>%22%7D&limit=200&direction=backward'
+```
+
+Useful filters appended to the query:
+
+- `|= "<literal>"` — line filter, exact substring.
+- `|~ "(?i)error|fail"` — regex filter, case-insensitive.
+
+Scope to an incident with `&start=<unix-nanos>&end=<unix-nanos>`. Date-to-nanos: `date -d '13:11:00 UTC' +%s%N`.
+
+List current label values: `wget -qO- 'http://localhost:3100/loki/api/v1/label/service_name/values'`.
+
+For repeated queries, use `uv run loki-query` (`scripts/AGENTS.md`) — it handles the URL encoding and formats output as `HH:MM:SS LEVEL [logGroup] message`.
+
+### Where each service logs
+
+- **api** → Loki `service_name="api"`. Every HTTP request, including `/internal/leases/<id>/{progress,succeed,fail}` from the reconstructor.
+- **reconstructor-cuda** → Loki `service_name="reconstructor-cuda"` and `docker logs`. Per-image progress, MinIO put markers, lease lifecycle (`Acquired lease`, `Reconstruction succeeded`, `Reconstruction failed: …`). To observe end-to-end lease activity from the API side, query the **api** logs for `/internal/leases/` traffic — lease-request 404s mean "no work available", lease-progress 200s mean an active job is reporting in.
+- **capture-tool** (phone) → Loki `service_name="capture-tool"`, pushed directly from the Unity app via the gateway. See `apps/CaptureTool/CLAUDE.md` for relay details.
+- **zed-capture** (ZED box) → Loki `service_name="zed-capture"`, but **only while the phone is AOA-connected and logged in**. The box has no direct backend link: its logs are drained from box-side `aoa-loki` by the phone's `LogDrainController` and pushed verbatim to the backend Loki. An empty `{service_name="zed-capture"}` result usually means the phone isn't draining (no AOA link, not logged in, or nothing newer than the drain cursor) — not that the box logged nothing. To read the box directly, `ssh zed-box` (see `scripts/AGENTS.md`), then query box-side `aoa-loki` (`wget -qO- 'http://127.0.0.1:3100/loki/api/v1/query_range?query=%7Bservice_name%3D~%22.%2B%22%7D'`) or `sudo docker logs $(sudo docker ps -q --filter name=zed-capture)`. Full mechanism in `docker/zed-capture/CLAUDE.md`.
+
 ## See also
 
-- `.pulsar/debugging.md` — operator runbook for investigating "what did the system actually do?" (Postgres / MinIO / Loki query patterns, per-service log locations). The bucket-layout and log-location constraints surface from here; the runbook commands themselves live there.
 - `docker/reconstructor/AGENTS.md` and `docker/localizer/AGENTS.md` — the two heavy GPU services that this stack hosts. Each carries its own subsystem constraints; this file covers the multi-service relationships.
