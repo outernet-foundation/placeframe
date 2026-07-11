@@ -35,11 +35,7 @@ The runtime is a `threading.Thread`-based actor.
 
 ### Drive `grab()` on every loop iteration
 
-**Context:** The ZED SDK's positional tracker integrates IMU and visual frames inside `grab()`. A naive design that calls `grab()` only on capture-interval boundaries (e.g. once every 500 ms for a 2 Hz persistence cadence) starves VIO — the tracker needs samples at the camera's native ~30 Hz to maintain a stable pose estimate. Gating `grab()` on the capture interval produces meter-scale drift across multi-meter scans.
-
-**Constraint:** `Zed.run()` calls `grab()` every loop iteration. The actor's queue timeout is `0.0` while a capture is active so the loop spins at the SDK's native cadence — `grab()` itself blocks until the next frame is available, providing natural backpressure. `_persist_current_frame()` is gated on the capture interval; `_advance_tracker()` is not. The two cadences are independent.
-
-**Consequences:** Adding a code path that gates `grab()` on the capture interval is forbidden — it has been tried and produces unusable drift. Any future "save power" or "drop camera FPS to 10 Hz" change must preserve the invariant: tracker updates happen at whatever rate `grab()` returns, never less frequently than the persistence cadence.
+The tracker-advance-vs-persistence cadence split — why `Zed.run()` calls `grab()` every loop iteration at a `0.0` queue timeout, why `grab()` both advances VIO and yields the frame, why only `_persist_current_frame()` is interval-gated, and why gating `grab()` on the capture interval is forbidden (it starves VIO into meter-scale drift) — lives as a block comment on `Zed._advance_tracker` in `src/zed/zed.py`. That comment is the source of truth; this doc does not duplicate it. Any "save power / drop FPS" change must re-read it first.
 
 ### Warm up the tracker before persisting the first frame
 
@@ -50,6 +46,8 @@ The runtime is a `threading.Thread`-based actor.
 **Consequences:** The first persisted `frames.csv` row comes from an `OK` tracker, not `SEARCHING`. The SVO recording still spans the warm-up window — it is enabled in `_start` and not gated — but nothing downstream consumes it. A capture cancelled during warm-up persists zero frames and never reaches `/stop`, so no tar is built and `get_capture_sessions` does not enumerate the orphan; the placeholder meta lingers on disk until the operator deletes it.
 
 ### Run with `DEPTH_MODE.NONE`, `depth_stabilization = 0`, and `POSITIONAL_TRACKING_MODE.GEN_3`
+
+**This constraint is currently violated in code, apparently deliberately.** `Zed._start()` in fact sets `init.depth_mode = DEPTH_MODE.NEURAL_LIGHT`, not `NONE` — re-enabled in commit `7b2a4669` ("Gate ZED capture on VIO stabilization; re-enable NEURAL_LIGHT depth"), which records no reason for the change; it may be leftover night-scan exploration that was never reverted. The `NONE` / `depth_stabilization = 0` / `depth_mode=NONE` claims in the Context, Constraint, and Consequences below therefore describe the intended design, not the running code. Whether depth belongs off (revert the code) or on (rewrite this section) is unresolved and wants a dedicated investigation.
 
 **Context:** The SDK 5.2 default depth mode is `NEURAL`, which dominates per-grab cost on the Jetson and was capping `grab()` cadence at ~10 Hz with depth on, vs the camera's native 30 Hz. Nothing downstream of the box consumes depth: the reconstructor runs its own COLMAP SfM from the persisted JPGs + `frames.csv`, and the localizer matches features against the SfM map. Stereo disparity computed by the SDK is thrown away every grab.
 

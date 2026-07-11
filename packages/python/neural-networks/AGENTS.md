@@ -106,10 +106,11 @@ The DIR weight URL itself is a self-hosted mirror under outernet-foundation's Gi
 
 ### Why two checkpoint-loading hacks
 
-Both hacks survive a long history of subtle PyTorch and sklearn changes:
-
-- `sys.modules["sklearn.decomposition.pca"] = _pca` (module-level in `models.py`). The DIR checkpoint contains a pickled sklearn PCA object referencing `sklearn.decomposition.pca`  -  a module path that disappeared in sklearn 0.24 when the module was made private (`_pca`). Pickle resolves classes by `module.qualname`, so the remap is what makes the checkpoint load on modern sklearn. The pattern is lifted directly from Hierarchical-Localization.
-- `torch.load = _load_legacy` inside `load_DIR`. PyTorch 2.6 flipped `torch.load`'s default to `weights_only=True`, which refuses arbitrary pickled objects. The DIR checkpoint is a dict containing a sklearn PCA object  -  not just a state-dict  -  so loading requires `weights_only=False`. The monkey-patch is scoped to one call.
+The DIR checkpoint is a pickled dict containing a live sklearn PCA object (not a pure state-dict), which
+forces two hacks in `models.py`: a module-level `sys.modules["sklearn.decomposition.pca"] = _pca` alias and
+a `torch.load` `weights_only=False` monkey-patch scoped to `load_DIR`. The mechanism of each — why the
+pickle fails to load without it — lives in the block comments at those two sites; those comments are the
+source of truth and this doc does not duplicate them.
 
 Both hacks could be eliminated by rebuilding the DIR checkpoint as a pure state-dict plus a separately-serialized whitening matrix. That work hasn't happened because DIR is dated (2019) and the rebuild effort is better spent on a successor retrieval model  -  see "Replacing DIR" below for the candidate set and the trigger to pursue it.
 
@@ -141,3 +142,4 @@ Cold weight downloads at service-startup time would add tens of seconds of laten
 - `docker/neural-networks-base/Dockerfile`  -  base image build steps, `TORCH_HOME` location, and the `preload` import that bakes weights into a layer.
 - `docker/localizer/src/localize.py:58-69` and `docker/reconstructor/src/reconstructor/run_reconstruction.py:67-74`  -  the two consumer call sites. Both load all three models once at module import.
 - The 30-line comment on `load_lightglue` in `src/neural_networks/models.py`  -  the source of truth for LightGlue tuning. Re-read before changing `width_confidence`, `depth_confidence`, or `mp`.
+- The block comments on the module-level `sys.modules["sklearn.decomposition.pca"]` alias and on the `torch.load` monkey-patch inside `load_DIR` in `src/neural_networks/models.py`  -  the source of truth for why the two DIR checkpoint hacks exist.
