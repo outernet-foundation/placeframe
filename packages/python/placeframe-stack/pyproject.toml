@@ -20,7 +20,7 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/placeframe_stack"]
-force-include = { "src/placeframe_stack/py.typed" = "placeframe_stack/py.typed" }
+include = ["src/placeframe_stack/py.typed"]
 
 [project.scripts]
 up = "placeframe_stack.up:app"

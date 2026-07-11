@@ -11,4 +11,4 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/placeframe_bash"]
-force-include = { "src/placeframe_bash/py.typed" = "placeframe_bash/py.typed" }
+include = ["src/placeframe_bash/py.typed"]
