@@ -16,6 +16,7 @@
     "ckolkman.vscode-postgres",
     "pkief.material-icon-theme",
     "csharpier.csharpier-vscode",
-    "sashabusinaro.yaml-compose-sorter"
+    "sashabusinaro.yaml-compose-sorter",
+    "graphql.vscode-graphql-syntax"
   ]
 }
