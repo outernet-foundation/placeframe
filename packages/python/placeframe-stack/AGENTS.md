@@ -31,7 +31,7 @@ Entry points (`[project.scripts]`): `up` → `up.py:app`, `down` → `down.py:ap
 
 ### Why a package split rather than a flag
 
-Lifecycle (`up`/`down`/`build`) and codegen (`generate-clients`/`generate-datamodels`/`lock-python`) have disjoint dependency surfaces. A consumer that only brings the stack up should not have to install `sqlacodegen`/`psycopg`/`datamodel-code-generator`. Keeping the lifecycle here — the way `placeframe-bash` and `placeframe-unity` are standalone for the same reason — lets make-it-sing git-reference a small package. `build-scripts` still depends on this one for the CI helpers (`compute_service_shas`, `run_build`).
+Lifecycle (`up`/`down`/`build`) and codegen (`generate-clients`/`generate-datamodels`/`lock-python`) have disjoint dependency surfaces. A consumer that only brings the stack up should not have to install `sqlacodegen`/`psycopg`/`datamodel-code-generator`. Keeping the lifecycle here — the way `placeframe-unity` is standalone for the same reason (and `bashrun` sits in its own repo entirely) — lets make-it-sing git-reference a small package. `build-scripts` still depends on this one for the CI helpers (`compute_service_shas`, `run_build`).
 
 ### `--quiet-pull` logging and GPU auto-detection
 

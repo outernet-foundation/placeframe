@@ -39,7 +39,6 @@ The server stack (API, localizer, reconstructor, Keycloak, MinIO, Postgres, Loki
 The repo is a `uv` monorepo. Shared Python code lives in `packages/python/`:
 
 - **`common`** — utilities for boto/MinIO, Docker SDK, Litestar, JWT
-- **`placeframe-bash`** — zero-dependency shell-exec helpers (`bash()` and friends); separate from `common` so git-referenced consumers don't drag in `common`'s dependencies
 - **`placeframe-stack`** — Docker-stack lifecycle commands (`up`/`down`/`build`) and helpers (`detect_gpu`, `modes`, `context_sha`); standalone so consumer repos (e.g. make-it-sing) can git-reference just the bring-up/tear-down machinery without the codegen dependency surface
 - **`placeframe-unity`** — Unity build toolkit (manifest discovery, `compile-unity`/`build-unity`, license, ORAS cache); standalone so other repos can git-reference it for Unity CI
 - **`core`** — domain logic: camera configs, coordinate transforms, metrics
