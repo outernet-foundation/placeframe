@@ -24,6 +24,23 @@ namespace Outernet.Logging
     // events accumulate for first-drain flush. Per-attempt HTTP timeout.
     // 429 honors Retry-After; other faults use exponential backoff. Drain
     // failures route through SelfLog to avoid recursive re-enqueue.
+    //
+    // Bespoke rather than the upstream Serilog.Sinks.Grafana.Loki NuGet for
+    // three reasons: events emitted before Enable queue rather than drop, so
+    // boot-time and pre-login errors survive a failed login; the per-attempt
+    // timeout wraps the whole send, so a hung auth handler (token mint/refresh
+    // runs inside SendAsync on the injected HttpMessageHandler) can't wedge the
+    // drain; and it removes one HTTP/handler abstraction from crossing Unity's
+    // IL2CPP boundary. Auth is entirely the injected handler's job — this sink
+    // never sees a token.
+    //
+    // Payload is JSON, not Protobuf (Loki accepts both): JSON keeps the sink
+    // grep-able and avoids dragging a Protobuf dependency across IL2CPP.
+    //
+    // SerializeLine orders keys level, logGroup, messageTemplate, message, then
+    // everything else, then stackTrace and exception last. Pure UX — these are
+    // the visible columns of a Grafana log row. Fatal maps to "critical"
+    // because Grafana has no native "fatal" level.
     internal sealed class LokiSink : ILogEventSink, IDisposable
     {
         private static readonly long UnixEpochTicks = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).Ticks;
@@ -77,6 +94,7 @@ namespace Outernet.Logging
                 return;
             try
             {
+                // .NET ticks are 100 ns; Loki wants a nanosecond integer, hence *100.
                 var ts = ((logEvent.Timestamp.UtcDateTime.Ticks - UnixEpochTicks) * 100).ToString(CultureInfo.InvariantCulture);
                 var fingerprint = ComputeFingerprint(logEvent);
 

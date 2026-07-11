@@ -322,9 +322,19 @@ namespace Placeframe.Core
             var rotationUnityFromMap = math.mul(rotationUnityWorldFromCamera, rotationCameraFromMap);
             var rotationUnityFromEcef = math.mul(rotationUnityFromMap, math.transpose(rotationEcefFromMap));
 
-            // Translation: anchored on the camera. The published alignment places the camera at its
-            // VIO-reported Unity-world position regardless of rotation noise, so rotation errors
-            // cannot lever-arm the rendered camera away from its true position.
+            // Translation is anchored on the camera, not composed from the map origin. The published
+            // alignment places the camera at its VIO-reported Unity-world position regardless of rotation
+            // noise, so rotation error cannot lever-arm the rendered camera away from its true position.
+            //
+            // The earlier formulation composed the map translation directly, which pivoted the alignment
+            // around the ECEF origin: any rotation noise produced a position offset scaling linearly with
+            // |t_ecefFromCamera|, so a 0.5-degree rotation error displaced the rendered camera by ~50cm at
+            // 50m from the origin. Anchoring on the camera makes the camera position correct by construction
+            // at the moment of measurement and lets the Kalman update propagate rotation refinements through
+            // the camera anchor instead of the ECEF origin.
+            //
+            // A 4-DOF parameterization (yaw plus translation) was tried as an alternative and reverted in
+            // favor of keeping the full SO(3) alignment state with camera anchoring.
             var translationMeas = translationUnityWorldFromCamera - math.mul(rotationUnityFromEcef, translationEcefFromCamera);
 
             // Angle between the rotated +Y axis and world +Y. Diagnostic summary of how much

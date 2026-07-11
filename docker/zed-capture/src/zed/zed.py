@@ -477,6 +477,21 @@ class Zed(Thread):
         logger.info("Capture stopped")
 
     def _advance_tracker(self) -> POSITIONAL_TRACKING_STATE:
+        # grab() is the single ingestion point: inside it the SDK fuses IMU and
+        # visual frames to advance the positional tracker AND makes the next
+        # stereo frame retrievable. The tracker needs samples at the camera's
+        # native ~30 Hz to hold a stable pose; feeding it only at the
+        # persistence cadence (e.g. 2 Hz) starves VIO and produces meter-scale
+        # drift across a multi-meter scan. So the run loop calls _advance_tracker
+        # every iteration with a 0.0 queue timeout while a capture is active
+        # (see _queue_timeout), spinning at the SDK's native rate — grab() blocks
+        # until the next frame is available, which is the loop's backpressure.
+        # Only _persist_current_frame is gated on the capture interval; tracker
+        # advance is never gated, and the two cadences are independent. Do not
+        # add a path that gates grab() on the persistence cadence — it has been
+        # tried and the drift makes captures unusable. A future "drop to 10 Hz /
+        # save power" change must keep tracker updates at grab()'s rate, never
+        # below the persistence cadence.
         grab(self._camera)
         return update_pose(self._camera, self._pose, REFERENCE_FRAME.WORLD)
 
