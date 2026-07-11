@@ -187,6 +187,28 @@ The full lease state machine lives in `docker/api/src/routers/leases.py`. Worth 
 
 **Consequences:** Median across the trajectory absorbs per-frame IMU noise and SDK cold-start drift; outlier frames (motion blur, brief tracking glitches) don't tilt the whole map. The "first registered frame == map origin" contract still holds. On the priors-on path, `pose_prior_position_sigma_m` remains a tunable: too tight forces VIO drift into the map, too loose lets the reconstruction float. The Umeyama best-fit of map centers to position priors is computed (priors-on path only) and surfaced as `prior_drift_residual_rms_m` / `_max_m` — a per-capture diagnostic for the calibration-corpus filter, never applied.
 
+### The reconstruction-quality metrics are diagnostics, not gates
+
+**Context:** `metrics_builder.py` emits a `ReconstructionMetrics` bundle — verified-match rates and per-pair inlier statistics, registration count and rate, reprojection-error percentiles, and the prior-drift Umeyama residual. The tempting expectation is that one of these grades whether a reconstruction is good enough to ship to a localizer client. None does. Each was tried as a gate and each grades something other than global geometric correctness.
+
+**Constraint:** Treat every emitted metric as a per-reconstruction diagnostic, never as a ship/no-ship gate.
+
+- **Prior-drift residual** (`prior_drift_residual_*_m`) and **Umeyama-fit scale** grade recon-vs-VIO-prior disagreement. On any capture whose VIO drifted, a correct loop-closed reconstruction *must* disagree with the priors by meters at the revisit — so these false-positive on exactly the reconstructions the pipeline exists to produce.
+- **Reprojection error** grades whether BA converged cleanly, not whether it converged to the right global geometry: a meter-scale mid-trajectory teleport still has sub-pixel reprojection at both of its endpoints.
+- **Registration count / rate** grades nothing about correctness — COLMAP registers 100% of images into a geometrically wrong map just as readily as into a right one.
+- **Verified-match rate** and per-pair inlier statistics grade pair-input quality (how often `estimate_two_view_geometry` accepts a pair), not the assembled map.
+- **Track-extent metrics** (long-range-track count, track-extent percentiles) are structurally blind to the dominant small-capture failure: an aliased pair registers its frame through COLMAP's structure-less PnP fallback and contributes ~0 tracks, so any track-based diagnostic is dominated by healthy frames and cannot see the teleport. A convex-hull-volume metric had the sharper version of this defect — a single teleport inflates the hull — and was removed (`fcee131c`).
+
+**Consequences:** The one physical-world signal available without invoking the localizer is a *necessary* condition, not a sufficient one: a consecutive-keyframe center-to-center distance implying a sustained speed above the ~2.5 m/s indoor-handheld ceiling is a BA local-minimum teleport (healthy captures peak near 1.5 m/s; degenerate ones spike to 5–17 m/s). It catches gross teleports; it cannot catch a globally rotated-or-scaled map, a point cloud full of phantom 3D points the localizer can't match against, or any failure that doesn't surface as a per-pair velocity spike. The sufficient check — pose error of held-out frames localized against the finished map, truth being their capture-side priors — is what the `held_out_frame_timestamps` protocol (above) is the hook for.
+
+### Retrieval is the verification-resistant pair source
+
+**Context:** Pair generation draws from sources with qualitatively different *error* modes, and per-pair two-view geometric verification (RANSAC on the essential/fundamental matrix) is the one filter every candidate passes through. Whether that filter suffices depends on the source. The tempting move — tighten per-pair inlier thresholds until bad pairs fall out — works for some sources and fails for the one that produces the dominant failure mode on small dense indoor captures.
+
+**Constraint:** A wrong **sequential** or **VIO-proximity (spatial)** pair is wrong because the two frames look at unrelated scene (temporal adjacency or VIO proximity broke down); unrelated scene does not fit a coherent two-view geometry, so RANSAC rejects it cheaply. These sources' errors are self-rejecting. A wrong **retrieval** pair is wrong because of *visual aliasing*: two different places that look alike — repeated office decor, or a dark exposure-collapsed frame whose global descriptor degenerates to gross layout and matches a bright hallway elsewhere. Aliased pairs carry high inlier counts and fit coherent two-view geometries; they are geometrically self-consistent and survive every per-pair threshold that does not also kill genuine wide-baseline loop closures. Retrieval's errors are verification-resistant.
+
+**Consequences:** Per-pair geometric verification is necessary but not sufficient for retrieval pairs — the aliased pair is a needle that is itself made of hay, so no inlier-count threshold isolates it. Distinguishing a true loop closure from an alias requires a second signal independent of the pair's own two-view geometry — some evidence that the two frames are plausibly at the same physical place — because descriptor similarity alone cannot tell them apart. This is the structural reason the reconstructor cannot lean on a single global inlier threshold the way pure-SfM tools do on curated input.
+
 ## See also
 
 - `docker/SPEC.md` -- stack-level data flow, MinIO bucket layout, and the multi-service relationships this reconstructor sits inside.

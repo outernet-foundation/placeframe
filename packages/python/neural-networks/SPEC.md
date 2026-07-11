@@ -111,7 +111,16 @@ Both hacks survive a long history of subtle PyTorch and sklearn changes:
 - `sys.modules["sklearn.decomposition.pca"] = _pca` (module-level in `models.py`). The DIR checkpoint contains a pickled sklearn PCA object referencing `sklearn.decomposition.pca`  -  a module path that disappeared in sklearn 0.24 when the module was made private (`_pca`). Pickle resolves classes by `module.qualname`, so the remap is what makes the checkpoint load on modern sklearn. The pattern is lifted directly from Hierarchical-Localization.
 - `torch.load = _load_legacy` inside `load_DIR`. PyTorch 2.6 flipped `torch.load`'s default to `weights_only=True`, which refuses arbitrary pickled objects. The DIR checkpoint is a dict containing a sklearn PCA object  -  not just a state-dict  -  so loading requires `weights_only=False`. The monkey-patch is scoped to one call.
 
-Both hacks could be eliminated by rebuilding the DIR checkpoint as a pure state-dict plus a separately-serialized whitening matrix. That work hasn't happened because DIR is dated (2019) and the rebuild effort is better spent on a successor retrieval model (DINOv2 + GeM pooling or similar)  -  see the README license-posture table for the candidate set.
+Both hacks could be eliminated by rebuilding the DIR checkpoint as a pure state-dict plus a separately-serialized whitening matrix. That work hasn't happened because DIR is dated (2019) and the rebuild effort is better spent on a successor retrieval model  -  see "Replacing DIR" below for the candidate set and the trigger to pursue it.
+
+### Replacing DIR
+
+DIR (Resnet-101-AP-GeM, 2019) is the oldest model in the package and the only self-vendored one; the two checkpoint hacks above exist solely to keep its 2019 pickle loading on modern PyTorch/sklearn. It stays because it works and is license-clean (MIT), and because retrieval is not the bottleneck  -  top-K retrieval quality has not been the limiting factor in end-to-end localization metrics, where reconstruction quality and feature matching dominate. The trigger to replace it is measurable rather than aesthetic: retrieval "becomes the bottleneck" when top-K retrieval misses the correct map for queries whose features would otherwise have matched, which is readable off existing localization metrics by partitioning failures by stage.
+
+Candidate successors are EigenPlaces, SALAD, and DINOv2 + GeM pooling  -  all beat AP-GeM on standard retrieval benchmarks. License posture, weight availability, and runtime-cost-per-tile are the axes to compare before prototyping; none has been compared in depth. Two properties bound the swap:
+
+- **The square-tile aggregation downstream of per-tile retrieval is model-agnostic.** A successor that keeps the `Tensor -> top-K map IDs` interface is a local change to model loading and per-tile inference; the aggregation step is untouched.
+- **Any retrieval change shifts the global feature distribution, so it forces a `pipeline_version` bump and a calibration refit, and may additionally force per-map re-indexing.** The refit cost is why a solo retrieval swap is wasteful: bundle it with another refit-driving change to amortize the cycle. The cost of re-indexing every existing map is unknown and must be scoped before committing.
 
 ### Why the LightGlue settings are what they are
 
