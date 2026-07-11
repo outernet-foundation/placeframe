@@ -54,7 +54,7 @@ def displacement_check(
     sequential_window: Annotated[
         int,
         typer.Option(
-            help="The reconstruction's sequential_window option. Single-rig tracks with temporal extent above 2× this threshold cannot exist from sequential matching alone and are counted as loop-closure evidence."
+            help="The reconstruction's sequential_window (a frame count). Single-rig tracks with temporal extent above 2× this threshold are flagged as long-range/loop-closure evidence — a necessary-not-sufficient heuristic (~200-track false-positive noise floor), not proof they couldn't arise from sequential matching."
         ),
     ] = DEFAULT_SEQUENTIAL_WINDOW,
 ) -> None:
