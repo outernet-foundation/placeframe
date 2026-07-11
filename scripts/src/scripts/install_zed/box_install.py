@@ -125,13 +125,7 @@ def install_box(build: bool, service_shas: dict[str, str]) -> None:
         logger.info("disabling_usb_device_mode_service", extra={"unit": L4T_USB_DEVICE_MODE_UNIT})
         ssh_check(f"sudo systemctl disable --now {L4T_USB_DEVICE_MODE_UNIT}")
 
-        # Strip the stock JetPack desktop down to a headless appliance. The
-        # GNOME session's volume-monitor probers (gvfs-mtp / gvfs-afc /
-        # gvfs-gphoto2 / udisks2) issue libusb descriptor reads against any
-        # newly-enumerated USB device; against an AOA-mode phone those reads
-        # stall the kernel's 5s USB_CTRL_GET_TIMEOUT, which triggers a
-        # SuperSpeed bus reset that invalidates the phone-side accessory FD
-        # and forces Android to fire a second UsbConfirmActivity dialog.
+        # Strip the JetPack desktop to a headless appliance; see _strip_to_appliance.
         _strip_to_appliance()
 
         # Add the box's hostname to /etc/hosts so sudo doesn't reverse-DNS each call.
@@ -231,6 +225,30 @@ def install_box(build: bool, service_shas: dict[str, str]) -> None:
 
 
 def _strip_to_appliance() -> None:
+    # The stock JetPack image boots to a GNOME desktop, but the product flow is
+    # cable-to-laptop then install-zed; nobody sits at the box with HDMI and a
+    # keyboard. The desktop session is not just dead weight: its volume-monitor
+    # probers (gvfs-mtp / gvfs-afc / gvfs-gphoto2 / gvfs-udisks2) call
+    # libusb_open and read descriptors against every newly-enumerated USB
+    # device. Against an AOA-mode phone those reads stall the kernel's 5s
+    # USB_CTRL_GET_TIMEOUT and trip usb_reset_and_verify_device(), which
+    # invalidates the accessory FD the user already granted and forces Android
+    # to fire a second UsbConfirmActivity dialog inside the app.
+    #
+    # Four actions strip the premise: (a) set the default target to
+    # multi-user.target, dropping gdm and the entire graphical session; (b) mask
+    # the consumer-USB / desktop / auto-update system units
+    # (APPLIANCE_SYSTEM_UNITS_TO_MASK); (c) --global mask the gvfs + evolution
+    # user units (APPLIANCE_USER_UNITS_TO_MASK) so they stay off even if a
+    # maintenance user shells in interactively; (d) overwrite the login banners
+    # so plugging in HDMI shows a signal, not a black screen. nvargus-daemon and
+    # zed_x_daemon are left running — the compose stack binds their IPC sockets.
+    #
+    # Strip-the-premise was chosen over symptomatic udev VID filtering. A VID
+    # filter would silence this one dialog-respawn but leave the whole
+    # consumer-USB-monitoring stack running on hardware that has no business
+    # running it; the next latent conflict (fwupd auto-upgrading, snapd
+    # refreshing, PackageKit holding the apt lock) would land in the same place.
     current_target = ssh_output("systemctl get-default").strip()
     if current_target == APPLIANCE_DEFAULT_TARGET:
         logger.info("appliance_default_target_already_set", extra={"target": current_target})

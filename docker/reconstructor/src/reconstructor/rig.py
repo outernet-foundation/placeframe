@@ -5,7 +5,7 @@ from core.capture_session_manifest import RigCameraConfig, RigConfig
 from core.image_preprocess import canonicalize_intrinsics
 from core.transform import Float3, Float4
 from numpy import array, float64
-from numpy.typing import NDArray  # noqa: TID251 — Phase T piece 3 follow-up migration
+from numpy.typing import NDArray  # noqa: TID251 — tracked in PLE-233
 from pycolmap import Camera as ColmapCamera
 from pycolmap import RigConfig as ColmapRigConfig
 from pycolmap import RigConfigCamera as ColmapRigConfigCamera

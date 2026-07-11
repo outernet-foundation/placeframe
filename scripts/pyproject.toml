@@ -27,7 +27,7 @@ packages = ["src/scripts"]
 [project.scripts]
 forward-unity-android-debug-port = "scripts.forward_unity_android_debug_port:main"
 list-debug-targets = "scripts.list_debug_targets:main"
-install-zed = "scripts.install_zed:app"
+install-zed = "scripts.install_zed.orchestrator:app"
 loki-query = "scripts.loki_query:app"
 tune-reconstruction = "scripts.tune_reconstruction:app"
 fit-calibration = "scripts.fit_calibration:app"
@@ -36,3 +36,4 @@ audit-capture-reconstruction = "scripts.audit_capture_reconstruction:app"
 sweep-postprocess = "scripts.sweep_postprocess:app"
 two-view-diagnostic = "scripts.two_view_diagnostic:app"
 reconstruction = "scripts.reconstruction:app"
+linear = "scripts.linear_tool.cli:app"

@@ -26,4 +26,4 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/placeframe_unity"]
-force-include = { "src/placeframe_unity/py.typed" = "placeframe_unity/py.typed" }
+include = ["src/placeframe_unity/py.typed"]

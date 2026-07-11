@@ -1,0 +1,205 @@
+query Teams {
+  teams {
+    nodes {
+      id
+      key
+    }
+  }
+}
+
+query Issues($filter: IssueFilter, $after: String) {
+  issues(first: 250, filter: $filter, after: $after) {
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+    nodes {
+      id
+      identifier
+      title
+      description
+      url
+      createdAt
+      state {
+        name
+        type
+      }
+      labels {
+        nodes {
+          name
+        }
+      }
+      project {
+        id
+        name
+      }
+    }
+  }
+}
+
+query IssueRelations($filter: IssueFilter, $after: String) {
+  issues(first: 250, filter: $filter, after: $after) {
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+    nodes {
+      identifier
+      relations {
+        nodes {
+          type
+          relatedIssue {
+            identifier
+          }
+        }
+      }
+    }
+  }
+}
+
+query Issue($id: String!) {
+  issue(id: $id) {
+    identifier
+    title
+    description
+    url
+    createdAt
+    state {
+      name
+      type
+    }
+    project {
+      id
+      name
+    }
+  }
+}
+
+query Projects($after: String) {
+  projects(first: 250, after: $after) {
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+    nodes {
+      id
+      name
+      url
+      state
+    }
+  }
+}
+
+query WorkflowStates($filter: WorkflowStateFilter) {
+  workflowStates(filter: $filter) {
+    nodes {
+      id
+      name
+      type
+    }
+  }
+}
+
+query Labels {
+  issueLabels(first: 250) {
+    nodes {
+      id
+      name
+      color
+      isGroup
+      parent {
+        id
+      }
+    }
+  }
+}
+
+mutation CreateLabel($input: IssueLabelCreateInput!) {
+  issueLabelCreate(input: $input) {
+    success
+    issueLabel {
+      id
+      name
+    }
+  }
+}
+
+mutation UpdateLabel($id: String!, $input: IssueLabelUpdateInput!) {
+  issueLabelUpdate(id: $id, input: $input) {
+    success
+    issueLabel {
+      id
+      name
+    }
+  }
+}
+
+mutation DeleteLabel($id: String!) {
+  issueLabelDelete(id: $id) {
+    success
+  }
+}
+
+mutation CreateProject($input: ProjectCreateInput!) {
+  projectCreate(input: $input) {
+    success
+    project {
+      id
+      url
+    }
+  }
+}
+
+mutation CreateIssue($input: IssueCreateInput!) {
+  issueCreate(input: $input) {
+    success
+    issue {
+      id
+      identifier
+      url
+    }
+  }
+}
+
+mutation UpdateProject($id: String!, $input: ProjectUpdateInput!) {
+  projectUpdate(id: $id, input: $input) {
+    success
+    project {
+      id
+      url
+    }
+  }
+}
+
+mutation UpdateIssue($id: String!, $input: IssueUpdateInput!) {
+  issueUpdate(id: $id, input: $input) {
+    success
+    issue {
+      id
+      identifier
+      url
+    }
+  }
+}
+
+mutation CreateRelation($input: IssueRelationCreateInput!) {
+  issueRelationCreate(input: $input) {
+    success
+  }
+}
+
+mutation CreateComment($input: CommentCreateInput!) {
+  commentCreate(input: $input) {
+    success
+    comment {
+      id
+      url
+    }
+  }
+}
+
+mutation DeleteComment($id: String!) {
+  commentDelete(id: $id) {
+    success
+  }
+}

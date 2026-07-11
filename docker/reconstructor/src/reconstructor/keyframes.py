@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from numpy import float64
 from numpy.linalg import norm
-from numpy.typing import NDArray  # noqa: TID251 — Phase T piece 3 follow-up migration
+from numpy.typing import NDArray  # noqa: TID251 — tracked in PLE-233
 
 
 def select_keyframes_by_distance(
