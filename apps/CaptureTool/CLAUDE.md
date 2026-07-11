@@ -37,7 +37,7 @@ The Pixel has one USB-C port. In end-to-end testing the ZED cable occupies it, w
 
 After every fresh install of the Capture Tool, the grant has to be re-applied — it persists across reboots and app launches but is lost on uninstall. `uv run install --project CaptureTool` does this automatically: the project's `grant_permissions: ["android.permission.READ_LOGS"]` entry in `apps/CaptureTool/unity-build.json` drives a post-install `adb shell pm grant` call. Pass `--no-grant-permissions` to opt out for a specific install (rare; the grant is harmless when LogcatRelay isn't actively used).
 
-For a hand-built APK from `uv run compile-unity` + `adb install`, the grant has to be applied manually:
+`uv run install --build --project CaptureTool` builds, installs, and applies the grant in one step (same `grant_permissions` path as above) — prefer it for local deploys. Only when you've hand-built with `uv run compile-unity` + `adb install` does the grant have to be applied manually:
 
 ```
 adb shell pm grant com.outernet.captureapp android.permission.READ_LOGS
