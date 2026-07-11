@@ -12,7 +12,7 @@ The repo also hosts a Unity app that consumes Placeframe: `apps/CaptureTool/`. I
 
 ## Linear
 
-The `uv run linear` CLI (source: `scripts/src/scripts/linear_tool/`) is placeframe's Linear write path; see `AGENTS-SHARED.md` (Trackable work) for the workflow. **Before creating or editing any Linear ticket or project, read `scripts/src/scripts/linear_tool/AGENTS.md`** — it holds the team/label taxonomy (team PLE; the `repo` and `type` label groups) and the ticket-authoring conventions (declarative outcome-tickets, imperative titles, `blocks`-for-sequence, just-in-time sub-issues, no file lists in tickets).
+The `uv run linear` CLI (from the [`linear-cli`](https://github.com/outernet-foundation/linear-cli) repo, git-referenced in the root `pyproject.toml`) is placeframe's Linear write path; see `AGENTS-SHARED.md` (Trackable work) for the workflow. **Before creating or editing any Linear ticket or project, read [linear-cli's `AGENTS.md`](https://github.com/outernet-foundation/linear-cli/blob/main/AGENTS.md)** — it holds the team/label taxonomy (team PLE; the `repo` and `type` label groups) and the ticket-authoring conventions (declarative outcome-tickets, imperative titles, `blocks`-for-sequence, just-in-time sub-issues, no file lists in tickets).
 
 ## Commands
 
