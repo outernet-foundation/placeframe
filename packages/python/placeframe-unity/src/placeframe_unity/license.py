@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import typer
-from placeframe_bash import bash
+from bashrun import bash
 from pydantic_settings import BaseSettings
 
 from .cache import restore, save

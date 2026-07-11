@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Annotated, Any
 
 import typer
-from placeframe_bash import bash, bash_check, bash_handoff, bash_output
+from bashrun import bash, bash_check, bash_handoff, bash_output
 
 from .compile_unity import build_unity_project
 from .projects import UnityProject, load_unity_projects

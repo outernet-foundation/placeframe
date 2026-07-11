@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 
 import typer
-from placeframe_bash import bash_handoff
+from bashrun import bash_handoff
 from .detect_gpu import Gpu, detect_gpu
 
 from .build_docker import run_build

@@ -6,7 +6,7 @@ from enum import Enum
 from pathlib import Path
 
 import typer
-from placeframe_bash import bash, bash_check_stream
+from bashrun import bash, bash_check_stream
 from pydantic_settings import BaseSettings
 
 from placeframe_unity.cache import restore, save

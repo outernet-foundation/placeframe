@@ -9,7 +9,7 @@ from tempfile import TemporaryDirectory
 from textwrap import dedent
 from typing import Any
 
-from placeframe_bash import bash
+from bashrun import bash
 from pydantic import create_model
 from pydantic.alias_generators import to_snake
 from sqlalchemy import MetaData, create_engine, inspect as sa_inspect

@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 
 import typer
-from placeframe_bash import bash, bash_output
+from bashrun import bash, bash_output
 
 from placeframe_unity.ci_step import ci_step
 from placeframe_stack.context_sha import compute_service_shas

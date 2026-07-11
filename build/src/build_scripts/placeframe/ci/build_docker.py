@@ -4,7 +4,7 @@ import shlex
 from typing import Literal
 
 import typer
-from placeframe_bash import bash
+from bashrun import bash
 from placeframe_stack.detect_gpu import Gpu
 from pydantic_settings import BaseSettings
 

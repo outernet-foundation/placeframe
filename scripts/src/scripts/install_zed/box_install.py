@@ -8,7 +8,7 @@ from logging import getLogger
 from pathlib import Path
 from subprocess import CalledProcessError
 
-from placeframe_bash import bash, bash_check, bash_output
+from bashrun import bash, bash_check, bash_output
 from common.ui import bail, note
 
 from .constants import (

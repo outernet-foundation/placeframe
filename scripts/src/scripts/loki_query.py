@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from typing import Annotated, cast
 
 import typer
-from placeframe_bash import bash_output
+from bashrun import bash_output
 
 LOKI_CONTAINER = "placeframe-loki-1"
 

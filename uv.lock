@@ -28,7 +28,6 @@ members = [
     "placeframe",
     "placeframe-api",
     "placeframe-api-client",
-    "placeframe-bash",
     "placeframe-lease-server",
     "placeframe-lease-server-client",
     "placeframe-localizer",
@@ -108,6 +107,11 @@ sdist = { url = "https://files.pythonhosted.org/packages/e4/a3/20aa7c4e83f2f614e
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ac/12/736cab83626fea3fe65cdafb3ef3d2ee9480c56723f2fd33921537289a5e/basedpyright-1.38.2-py3-none-any.whl", hash = "sha256:153481d37fd19f9e3adedc8629d1d071b10c5f5e49321fb026b74444b7c70e24", size = 12312475, upload-time = "2026-02-26T11:18:40.373Z" },
 ]
+
+[[package]]
+name = "bashrun"
+version = "0.1.0"
+source = { git = "https://github.com/outernet-foundation/bashrun.git?rev=48df0bc08df95a167cc681ae1f9f7ec85df031a3#48df0bc08df95a167cc681ae1f9f7ec85df031a3" }
 
 [[package]]
 name = "black"
@@ -206,8 +210,8 @@ name = "build-scripts"
 version = "0.1.0"
 source = { editable = "build" }
 dependencies = [
+    { name = "bashrun" },
     { name = "datamodel-code-generator" },
-    { name = "placeframe-bash" },
     { name = "placeframe-stack" },
     { name = "placeframe-unity" },
     { name = "psycopg", extra = ["binary"] },
@@ -221,8 +225,8 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "bashrun", git = "https://github.com/outernet-foundation/bashrun.git?rev=48df0bc08df95a167cc681ae1f9f7ec85df031a3" },
     { name = "datamodel-code-generator", specifier = ">=0.33.0" },
-    { name = "placeframe-bash", editable = "packages/python/placeframe-bash" },
     { name = "placeframe-stack", editable = "packages/python/placeframe-stack" },
     { name = "placeframe-unity", editable = "packages/python/placeframe-unity" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2.10" },
@@ -1772,11 +1776,6 @@ requires-dist = [
 ]
 
 [[package]]
-name = "placeframe-bash"
-version = "0.1.0"
-source = { editable = "packages/python/placeframe-bash" }
-
-[[package]]
 name = "placeframe-lease-server"
 version = "0.1.0"
 source = { virtual = "docker/lease-server" }
@@ -1981,8 +1980,8 @@ name = "placeframe-stack"
 version = "0.1.0"
 source = { editable = "packages/python/placeframe-stack" }
 dependencies = [
+    { name = "bashrun" },
     { name = "pathspec" },
-    { name = "placeframe-bash" },
     { name = "pydantic-settings" },
     { name = "pyyaml" },
     { name = "typer" },
@@ -1990,8 +1989,8 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "bashrun", git = "https://github.com/outernet-foundation/bashrun.git?rev=48df0bc08df95a167cc681ae1f9f7ec85df031a3" },
     { name = "pathspec", specifier = ">=1.0.4" },
-    { name = "placeframe-bash", editable = "packages/python/placeframe-bash" },
     { name = "pydantic-settings", specifier = ">=2.9.1" },
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "typer", specifier = ">=0.17.4" },
@@ -2002,7 +2001,7 @@ name = "placeframe-unity"
 version = "0.1.0"
 source = { editable = "packages/python/placeframe-unity" }
 dependencies = [
-    { name = "placeframe-bash" },
+    { name = "bashrun" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "typer" },
@@ -2010,7 +2009,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "placeframe-bash", editable = "packages/python/placeframe-bash" },
+    { name = "bashrun", git = "https://github.com/outernet-foundation/bashrun.git?rev=48df0bc08df95a167cc681ae1f9f7ec85df031a3" },
     { name = "pydantic", specifier = ">=2.11.7" },
     { name = "pydantic-settings", specifier = ">=2.9.1" },
     { name = "typer", specifier = ">=0.17.4" },
@@ -2474,12 +2473,12 @@ name = "scripts"
 version = "0.1.0"
 source = { editable = "scripts" }
 dependencies = [
+    { name = "bashrun" },
     { name = "common" },
     { name = "core" },
     { name = "httpx" },
     { name = "numpy" },
     { name = "placeframe-api-client" },
-    { name = "placeframe-bash" },
     { name = "placeframe-stack" },
     { name = "pydantic" },
     { name = "pytransform3d" },
@@ -2490,12 +2489,12 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "bashrun", git = "https://github.com/outernet-foundation/bashrun.git?rev=48df0bc08df95a167cc681ae1f9f7ec85df031a3" },
     { name = "common", editable = "packages/python/common" },
     { name = "core", editable = "packages/python/core" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "numpy", specifier = ">=2.1" },
     { name = "placeframe-api-client", editable = "packages/generated/python/api-client" },
-    { name = "placeframe-bash", editable = "packages/python/placeframe-bash" },
     { name = "placeframe-stack", editable = "packages/python/placeframe-stack" },
     { name = "pydantic", specifier = ">=2" },
     { name = "pytransform3d", specifier = ">=3.5" },

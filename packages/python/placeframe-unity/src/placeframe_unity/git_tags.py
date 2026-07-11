@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from placeframe_bash import bash, bash_check, bash_output
+from bashrun import bash, bash_check, bash_output
 
 
 def get_latest_tag_version(prefix: str) -> str | None:

@@ -8,7 +8,7 @@ from tempfile import TemporaryDirectory
 from typing import Literal
 
 import typer
-from placeframe_bash import bash, bash_output
+from bashrun import bash, bash_output
 from pydantic_settings import BaseSettings
 
 from placeframe_unity.ci_step import ci_step

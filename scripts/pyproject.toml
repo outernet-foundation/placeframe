@@ -4,7 +4,7 @@ version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [
     "common",
-    "placeframe-bash",
+    "bashrun",
     "placeframe-stack",
     "core",
     "placeframe-api-client",

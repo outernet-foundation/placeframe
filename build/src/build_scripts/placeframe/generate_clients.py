@@ -4,7 +4,7 @@ from pathlib import Path
 from shutil import copytree
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 
-from placeframe_bash import bash, bash_output
+from bashrun import bash, bash_output
 from typer import Option, Typer
 
 from .downgrade_openapi_schema import downgrade_openapi_3_1_to_3_0
