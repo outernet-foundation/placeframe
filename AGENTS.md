@@ -16,7 +16,7 @@ The `uv run linear` CLI (from the [`linear-cli`](https://github.com/outernet-fou
 
 ## Commands
 
-Top-level commands are `uv run <name>` from the repo root. See [`stack-lifecycle`'s `AGENTS.md`](https://github.com/outernet-foundation/stack-lifecycle/blob/main/AGENTS.md) for the stack-lifecycle catalog (`up`, `down`, `build`), `build/AGENTS.md` for the codegen / Cesium catalog (`generate-clients`, `generate-datamodels`, `lock-python`, `deptry-check`, `preflight`, …), and `packages/python/placeframe-unity/AGENTS.md` for the Unity catalog (`compile-unity`, `lock-unity`, `test-unity`, …), including per-command flags. See `scripts/AGENTS.md` for operator utilities (`install`, `install-zed`, `fit-calibration`, debug-attach helpers). Every command accepts `--help`.
+Top-level commands are `uv run <name>` from the repo root. See [`stack-lifecycle`'s `AGENTS.md`](https://github.com/outernet-foundation/stack-lifecycle/blob/main/AGENTS.md) for the stack-lifecycle catalog (`up`, `down`, `build`), `build/AGENTS.md` for the codegen / Cesium catalog (`generate-clients`, `generate-datamodels`, `lock-python`, `deptry-check`, `preflight`, …), and [`unity-buildkit`'s `AGENTS.md`](https://github.com/outernet-foundation/unity-buildkit/blob/main/AGENTS.md) for the Unity catalog (`compile-unity`, `lock-unity`, `test-unity`, …), including per-command flags. See `scripts/AGENTS.md` for operator utilities (`install`, `install-zed`, `fit-calibration`, debug-attach helpers). Every command accepts `--help`.
 
 **Linting and type checking** (from repo root):
 
@@ -39,7 +39,6 @@ The server stack (API, localizer, reconstructor, Keycloak, MinIO, Postgres, Loki
 The repo is a `uv` monorepo. Shared Python code lives in `packages/python/`:
 
 - **`common`** — utilities for boto/MinIO, Docker SDK, Litestar, JWT
-- **`placeframe-unity`** — Unity build toolkit (manifest discovery, `compile-unity`/`build-unity`, license, ORAS cache); standalone so other repos can git-reference it for Unity CI
 - **`core`** — domain logic: camera configs, coordinate transforms, metrics
 - **`neural-networks`** — PyTorch models with conditional extras (`cpu`, `cuda`, `rocm`)
 - **`datamodels`** — auto-generated Pydantic models from the OpenAPI schema
