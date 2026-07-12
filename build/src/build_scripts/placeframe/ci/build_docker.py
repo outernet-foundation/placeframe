@@ -5,12 +5,12 @@ from typing import Literal
 
 import typer
 from bashrun import bash
-from placeframe_stack.detect_gpu import Gpu
+from stack_lifecycle.detect_gpu import Gpu
 from pydantic_settings import BaseSettings
 
 from placeframe_unity.ci_step import ci_step
 from placeframe_unity.setup import configure_git, free_disk_space
-from placeframe_stack.build_docker import run_build
+from stack_lifecycle.build_docker import run_build
 
 Variant = Literal["common", "cuda", "rocm"]
 

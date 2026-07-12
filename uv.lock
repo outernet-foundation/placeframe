@@ -34,7 +34,6 @@ members = [
     "placeframe-localizer-client",
     "placeframe-rathole-client",
     "placeframe-reconstructor",
-    "placeframe-stack",
     "placeframe-unity",
     "scripts",
     "zed",
@@ -212,7 +211,6 @@ source = { editable = "build" }
 dependencies = [
     { name = "bashrun" },
     { name = "datamodel-code-generator" },
-    { name = "placeframe-stack" },
     { name = "placeframe-unity" },
     { name = "psycopg", extra = ["binary"] },
     { name = "pydantic" },
@@ -220,6 +218,7 @@ dependencies = [
     { name = "pyhumps" },
     { name = "sqlacodegen" },
     { name = "sqlalchemy" },
+    { name = "stack-lifecycle" },
     { name = "typer" },
 ]
 
@@ -227,7 +226,6 @@ dependencies = [
 requires-dist = [
     { name = "bashrun", git = "https://github.com/outernet-foundation/bashrun.git?rev=48df0bc08df95a167cc681ae1f9f7ec85df031a3" },
     { name = "datamodel-code-generator", specifier = ">=0.33.0" },
-    { name = "placeframe-stack", editable = "packages/python/placeframe-stack" },
     { name = "placeframe-unity", editable = "packages/python/placeframe-unity" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2.10" },
     { name = "pydantic", specifier = ">=2.11.7" },
@@ -235,6 +233,7 @@ requires-dist = [
     { name = "pyhumps", specifier = ">=3.8.0" },
     { name = "sqlacodegen", specifier = "==3.2.0" },
     { name = "sqlalchemy", specifier = ">=2.0.45" },
+    { name = "stack-lifecycle", git = "https://github.com/outernet-foundation/stack-lifecycle.git?rev=5ebf4708b9d85d5c86a6517fdb73b08b2940f00c" },
     { name = "typer", specifier = ">=0.17.4" },
 ]
 
@@ -1976,27 +1975,6 @@ neural-networks-cuda = [{ name = "neural-networks", extras = ["cuda"], editable 
 neural-networks-rocm = [{ name = "neural-networks", extras = ["rocm"], editable = "packages/python/neural-networks" }]
 
 [[package]]
-name = "placeframe-stack"
-version = "0.1.0"
-source = { editable = "packages/python/placeframe-stack" }
-dependencies = [
-    { name = "bashrun" },
-    { name = "pathspec" },
-    { name = "pydantic-settings" },
-    { name = "pyyaml" },
-    { name = "typer" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "bashrun", git = "https://github.com/outernet-foundation/bashrun.git?rev=48df0bc08df95a167cc681ae1f9f7ec85df031a3" },
-    { name = "pathspec", specifier = ">=1.0.4" },
-    { name = "pydantic-settings", specifier = ">=2.9.1" },
-    { name = "pyyaml", specifier = ">=6.0" },
-    { name = "typer", specifier = ">=0.17.4" },
-]
-
-[[package]]
 name = "placeframe-unity"
 version = "0.1.0"
 source = { editable = "packages/python/placeframe-unity" }
@@ -2479,11 +2457,11 @@ dependencies = [
     { name = "httpx" },
     { name = "numpy" },
     { name = "placeframe-api-client" },
-    { name = "placeframe-stack" },
     { name = "pydantic" },
     { name = "pytransform3d" },
     { name = "scikit-learn" },
     { name = "scipy" },
+    { name = "stack-lifecycle" },
     { name = "typer" },
 ]
 
@@ -2495,11 +2473,11 @@ requires-dist = [
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "numpy", specifier = ">=2.1" },
     { name = "placeframe-api-client", editable = "packages/generated/python/api-client" },
-    { name = "placeframe-stack", editable = "packages/python/placeframe-stack" },
     { name = "pydantic", specifier = ">=2" },
     { name = "pytransform3d", specifier = ">=3.5" },
     { name = "scikit-learn", specifier = ">=1.5" },
     { name = "scipy", specifier = ">=1.14" },
+    { name = "stack-lifecycle", git = "https://github.com/outernet-foundation/stack-lifecycle.git?rev=5ebf4708b9d85d5c86a6517fdb73b08b2940f00c" },
     { name = "typer", specifier = ">=0.15" },
 ]
 
@@ -2579,6 +2557,18 @@ wheels = [
 [package.optional-dependencies]
 asyncio = [
     { name = "greenlet" },
+]
+
+[[package]]
+name = "stack-lifecycle"
+version = "0.1.0"
+source = { git = "https://github.com/outernet-foundation/stack-lifecycle.git?rev=5ebf4708b9d85d5c86a6517fdb73b08b2940f00c#5ebf4708b9d85d5c86a6517fdb73b08b2940f00c" }
+dependencies = [
+    { name = "bashrun" },
+    { name = "pathspec" },
+    { name = "pydantic-settings" },
+    { name = "pyyaml" },
+    { name = "typer" },
 ]
 
 [[package]]

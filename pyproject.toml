@@ -22,7 +22,6 @@ members = [
     "docker/zed-capture",
     "packages/python/core",
     "packages/python/common",
-    "packages/python/placeframe-stack",
     "packages/python/placeframe-unity",
     "packages/python/neural-networks",
     "packages/python/neural-networks/third-party/deep-image-retrieval",
@@ -42,7 +41,6 @@ config-settings-package.placeframe-localizer-client = { editable_mode = "compat"
 
 [tool.uv.sources]
 common = { workspace = true }
-placeframe-stack = { workspace = true }
 placeframe-unity = { workspace = true }
 core = { workspace = true }
 neural-networks = { workspace = true }
@@ -55,6 +53,7 @@ build-scripts = { workspace = true }
 scripts = { workspace = true }
 lightglue = { git = "https://github.com/cvg/LightGlue.git" }
 bashrun = { git = "https://github.com/outernet-foundation/bashrun.git", rev = "48df0bc08df95a167cc681ae1f9f7ec85df031a3" }
+stack-lifecycle = { git = "https://github.com/outernet-foundation/stack-lifecycle.git", rev = "5ebf4708b9d85d5c86a6517fdb73b08b2940f00c" }
 
 [tool.basedpyright]
 typeCheckingMode = "strict"
@@ -72,4 +71,4 @@ include = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["build/tests", "packages/python/common/tests", "packages/python/placeframe-stack/tests", "scripts/tests"]
+testpaths = ["build/tests", "packages/python/common/tests", "scripts/tests"]

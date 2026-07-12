@@ -13,7 +13,7 @@ from pydantic_settings import BaseSettings
 
 from placeframe_unity.ci_step import ci_step
 from placeframe_unity.setup import configure_git
-from placeframe_stack.context_sha import compute_service_shas
+from stack_lifecycle.context_sha import compute_service_shas
 
 Variant = Literal["cuda", "rocm"]
 
