@@ -6,6 +6,7 @@ dependencies = [
   "bashrun",
   "stack-lifecycle",
   "unity-buildkit",
+  "openapi-clientgen",
   "datamodel-code-generator>=0.33.0",
   "psycopg[binary]>=3.2.10",
   "pydantic>=2.11.7",
