@@ -5,7 +5,7 @@ requires-python = ">=3.13"
 dependencies = [
   "bashrun",
   "stack-lifecycle",
-  "placeframe-unity",
+  "unity-buildkit",
   "datamodel-code-generator>=0.33.0",
   "psycopg[binary]>=3.2.10",
   "pydantic>=2.11.7",

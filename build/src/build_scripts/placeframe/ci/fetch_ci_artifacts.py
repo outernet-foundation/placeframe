@@ -7,7 +7,7 @@ import typer
 from bashrun import bash, bash_output
 from pydantic_settings import BaseSettings
 
-from placeframe_unity.ci_step import ci_step
+from unity_buildkit.ci_step import ci_step
 
 app = typer.Typer(add_completion=False, pretty_exceptions_show_locals=False)
 

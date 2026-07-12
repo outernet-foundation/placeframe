@@ -9,9 +9,9 @@ import typer
 from bashrun import bash, bash_output
 from pydantic_settings import BaseSettings
 
-from placeframe_unity.ci_step import ci_step
+from unity_buildkit.ci_step import ci_step
 from stack_lifecycle.context_sha import compute_service_shas
-from placeframe_unity.git_tags import get_latest_tag_version
+from unity_buildkit.git_tags import get_latest_tag_version
 from .git_tags import APP_TAG_PREFIXES
 
 app = typer.Typer(add_completion=False, pretty_exceptions_show_locals=False)
