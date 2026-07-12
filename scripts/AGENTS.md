@@ -164,7 +164,7 @@ uv run sandbox authorize zed-box
 
 ## See also
 
-- `packages/python/placeframe-stack/` — the workspace package holding the Docker-stack lifecycle (`up`, `down`, `build`) and the SHA/auth helpers. `scripts/` imports from it (`placeframe_stack.context_sha.compute_service_shas` in `install_zed/orchestrator.py`, `placeframe_stack.modes.parse_env_file` in `api_auth.py`); the inverse does not hold.
+- [`stack-lifecycle`](https://github.com/outernet-foundation/stack-lifecycle) — the standalone package holding the Docker-stack lifecycle (`up`, `down`, `build`) and the SHA/auth helpers, git-referenced from the root `pyproject.toml`. `scripts/` imports from it (`stack_lifecycle.context_sha.compute_service_shas` in `install_zed/orchestrator.py`, `stack_lifecycle.modes.parse_env_file` in `api_auth.py`); the inverse does not hold.
 - `build/` (the `build-scripts` workspace package) — sibling Python CLI package holding the codegen entry points (`generate-clients`, `generate-datamodels`, `lock-python`, `deptry-check`, `preflight`).
 - `packages/python/placeframe-unity/AGENTS.md` — the Unity build toolkit, which also hosts the `install` command. `scripts/` no longer imports from it; the dependency was dropped when `install.py` moved.
 - `docker/localizer/AGENTS.md` — defines the `/version` and `/localize` endpoints that `fit-calibration` consumes and the `pipeline_version` baked into the localizer image.
