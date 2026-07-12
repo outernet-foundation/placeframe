@@ -47,6 +47,14 @@ ignore = [
     "TD",
     "FIX",
 
+    # The "Ticket N" blocks below are the transitional cleanup slices tracked
+    # by PLE-248 (Enforce the deferred ruff rules):
+    #   https://linear.app/plerionplatforms/issue/PLE-248
+    # Ticket 3 (T201, print → logging) is tracked by PLE-336:
+    #   https://linear.app/plerionplatforms/issue/PLE-336
+    # Lifting a rule here should happen alongside lifting it from
+    # stack-lifecycle/ruff.toml (and any other sister repo that mirrors this).
+
     # ── Ticket 1: Auto-fix formatting & type modernization ───────────────
     # Zero risk. Purely mechanical, all auto-fixable via ruff --fix.
     "COM812",   # missing trailing commas
