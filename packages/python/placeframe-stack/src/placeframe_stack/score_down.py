@@ -28,4 +28,5 @@ def score_down(
         return
 
     bash(f"k3d cluster delete {CLUSTER}")
+    bash("rm -rf .score-k8s manifests.yaml", cwd=SCORE_DIR)
     print("k3s cluster deleted.")

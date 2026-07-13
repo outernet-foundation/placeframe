@@ -1,0 +1,46 @@
+# Custom Score provisioner: a real Placeframe MinIO at a FIXED service name (minio) with
+# the real buckets (dev-captures, dev-reconstructions, loki), using digest-pinned images.
+# The default s3 provisioner gives a randomly-named minio + random bucket, which loki
+# (config hardcodes endpoint minio:9000 + bucket loki) cannot use. Register via:
+# score-compose init --provisioners <this file>.
+- uri: template://placeframe/s3
+  type: placeframe-s3
+  description: Placeframe MinIO at fixed name minio with the real buckets.
+  init: |
+    accessKey: {{ randAlphaNum 20 | quote }}
+    secretKey: {{ randAlphaNum 40 | quote }}
+  state: |
+    accessKey: {{ dig "accessKey" .Init.accessKey .State | quote }}
+    secretKey: {{ dig "secretKey" .Init.secretKey .State | quote }}
+  outputs: |
+    endpoint: http://minio:9000
+    access_key_id: {{ .State.accessKey }}
+    secret_key: {{ .State.secretKey }}
+    bucket: dev-reconstructions
+  volumes: |
+    minio-data:
+      driver: local
+  services: |
+    minio:
+      image: docker.io/minio/minio@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
+      restart: always
+      command: server /data --console-address ":9001"
+      environment:
+        MINIO_ROOT_USER: {{ .State.accessKey | quote }}
+        MINIO_ROOT_PASSWORD: {{ .State.secretKey | quote }}
+      volumes:
+      - type: volume
+        source: minio-data
+        target: /data
+      healthcheck:
+        test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/ready"]
+        interval: 2s
+        timeout: 2s
+        retries: 30
+    minio-init:
+      image: docker.io/minio/mc@sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727
+      depends_on:
+        minio:
+          condition: service_healthy
+      restart: "no"
+      entrypoint: ["/bin/sh", "-c", "mc alias set local http://minio:9000 {{ .State.accessKey }} {{ .State.secretKey }} && mc mb --ignore-existing local/dev-captures && mc mb --ignore-existing local/dev-reconstructions && mc mb --ignore-existing local/loki"]
