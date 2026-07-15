@@ -46,6 +46,20 @@ def score_up(
         Postgres, typer.Option("--postgres", help="k3s postgres backend: raw StatefulSet or CloudNativePG.")
     ] = Postgres.statefulset,
 ) -> None:
+    if not (SCORE_DIR / ".score-compose").exists():
+        bash(
+            "score-compose init --project placeframe --no-sample "
+            "--provisioners ./placeframe-postgres.provisioners.yaml "
+            "--patch-templates ./restart-policy.tpl",
+            cwd=SCORE_DIR,
+        )
+
+    if not (SCORE_DIR / ".score-k8s").exists():
+        bash(
+            "score-k8s init --no-sample --provisioners ./placeframe-postgres.k8s.provisioners.yaml",
+            cwd=SCORE_DIR,
+        )
+
     if target == Target.docker:
         if postgres == Postgres.cnpg:
             raise typer.BadParameter("CloudNativePG postgres is Kubernetes-only; use --target k3s.")
