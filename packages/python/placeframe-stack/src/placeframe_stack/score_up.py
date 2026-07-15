@@ -35,6 +35,8 @@ def score_up(
             "--patch-templates ./restart-policy.tpl",
             cwd=SCORE_DIR,
         )
+
+    if not (SCORE_DIR / ".score-k8s").exists():
         bash(
             "score-k8s init --no-sample --provisioners ./placeframe-postgres.k8s.provisioners.yaml",
             cwd=SCORE_DIR,
@@ -55,9 +57,9 @@ def score_up(
         bash(f'k3d cluster create {CLUSTER} --no-lb --k3s-arg "--disable=traefik@server:0"')
 
     manifests = (SCORE_DIR / "manifests.yaml").read_text(encoding="utf-8")
-    images = SYSTEM_IMAGES + sorted(
-        {line.split("image:", 1)[1].strip() for line in manifests.splitlines() if line.strip().startswith("image:")}
-    )
+    images = SYSTEM_IMAGES + sorted({
+        line.split("image:", 1)[1].strip() for line in manifests.splitlines() if line.strip().startswith("image:")
+    })
     for image in images:
         _preload_image(image)
 
