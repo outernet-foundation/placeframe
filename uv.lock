@@ -109,7 +109,7 @@ wheels = [
 [[package]]
 name = "bashrun"
 version = "0.1.0"
-source = { git = "https://github.com/outernet-foundation/bashrun.git?rev=570290bf6f1a6873f060f95a766fb7649837f54a#570290bf6f1a6873f060f95a766fb7649837f54a" }
+source = { git = "https://github.com/outernet-foundation/bashrun.git?rev=1a0add1eb9e53e19245dcdda3e2018577b4e1153#1a0add1eb9e53e19245dcdda3e2018577b4e1153" }
 
 [[package]]
 name = "black"
@@ -224,18 +224,18 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "bashrun", git = "https://github.com/outernet-foundation/bashrun.git?rev=570290bf6f1a6873f060f95a766fb7649837f54a" },
+    { name = "bashrun", git = "https://github.com/outernet-foundation/bashrun.git?rev=1a0add1eb9e53e19245dcdda3e2018577b4e1153" },
     { name = "datamodel-code-generator", specifier = ">=0.33.0" },
-    { name = "openapi-clientgen", git = "https://github.com/outernet-foundation/openapi-clientgen.git?rev=ded8854d318274546d6494c885636ff8fbc127da" },
+    { name = "openapi-clientgen", git = "https://github.com/outernet-foundation/openapi-clientgen.git?rev=466fad1471101731c988b09997f0f8b473c052d4" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2.10" },
     { name = "pydantic", specifier = ">=2.11.7" },
     { name = "pydantic-settings", specifier = ">=2.9.1" },
     { name = "pyhumps", specifier = ">=3.8.0" },
     { name = "sqlacodegen", specifier = "==3.2.0" },
     { name = "sqlalchemy", specifier = ">=2.0.45" },
-    { name = "stack-lifecycle", git = "https://github.com/outernet-foundation/stack-lifecycle.git?rev=a82ff9ed24f4dafd514a0536912e218b40f66578" },
+    { name = "stack-lifecycle", git = "https://github.com/outernet-foundation/stack-lifecycle.git?rev=4fbbc256e5a761dd2aa8204ddd4ca840832a75d9" },
     { name = "typer", specifier = ">=0.17.4" },
-    { name = "unity-buildkit", git = "https://github.com/outernet-foundation/unity-buildkit.git?rev=98bfa99d6e703b75b29543451ad554ab37c51865" },
+    { name = "unity-buildkit", git = "https://github.com/outernet-foundation/unity-buildkit.git?rev=7505af108419d7d239cbb2348de5e44042d5dc48" },
 ]
 
 [[package]]
@@ -1504,7 +1504,7 @@ wheels = [
 [[package]]
 name = "openapi-clientgen"
 version = "0.1.0"
-source = { git = "https://github.com/outernet-foundation/openapi-clientgen.git?rev=ded8854d318274546d6494c885636ff8fbc127da#ded8854d318274546d6494c885636ff8fbc127da" }
+source = { git = "https://github.com/outernet-foundation/openapi-clientgen.git?rev=466fad1471101731c988b09997f0f8b473c052d4#466fad1471101731c988b09997f0f8b473c052d4" }
 dependencies = [
     { name = "bashrun" },
     { name = "typer" },
@@ -2458,7 +2458,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "bashrun", git = "https://github.com/outernet-foundation/bashrun.git?rev=570290bf6f1a6873f060f95a766fb7649837f54a" },
+    { name = "bashrun", git = "https://github.com/outernet-foundation/bashrun.git?rev=1a0add1eb9e53e19245dcdda3e2018577b4e1153" },
     { name = "common", editable = "packages/python/common" },
     { name = "core", editable = "packages/python/core" },
     { name = "httpx", specifier = ">=0.28.1" },
@@ -2468,7 +2468,7 @@ requires-dist = [
     { name = "pytransform3d", specifier = ">=3.5" },
     { name = "scikit-learn", specifier = ">=1.5" },
     { name = "scipy", specifier = ">=1.14" },
-    { name = "stack-lifecycle", git = "https://github.com/outernet-foundation/stack-lifecycle.git?rev=a82ff9ed24f4dafd514a0536912e218b40f66578" },
+    { name = "stack-lifecycle", git = "https://github.com/outernet-foundation/stack-lifecycle.git?rev=4fbbc256e5a761dd2aa8204ddd4ca840832a75d9" },
     { name = "typer", specifier = ">=0.15" },
 ]
 
@@ -2553,7 +2553,7 @@ asyncio = [
 [[package]]
 name = "stack-lifecycle"
 version = "0.1.0"
-source = { git = "https://github.com/outernet-foundation/stack-lifecycle.git?rev=a82ff9ed24f4dafd514a0536912e218b40f66578#a82ff9ed24f4dafd514a0536912e218b40f66578" }
+source = { git = "https://github.com/outernet-foundation/stack-lifecycle.git?rev=4fbbc256e5a761dd2aa8204ddd4ca840832a75d9#4fbbc256e5a761dd2aa8204ddd4ca840832a75d9" }
 dependencies = [
     { name = "bashrun" },
     { name = "pathspec" },
@@ -2865,7 +2865,7 @@ wheels = [
 [[package]]
 name = "unity-buildkit"
 version = "0.1.0"
-source = { git = "https://github.com/outernet-foundation/unity-buildkit.git?rev=98bfa99d6e703b75b29543451ad554ab37c51865#98bfa99d6e703b75b29543451ad554ab37c51865" }
+source = { git = "https://github.com/outernet-foundation/unity-buildkit.git?rev=7505af108419d7d239cbb2348de5e44042d5dc48#7505af108419d7d239cbb2348de5e44042d5dc48" }
 dependencies = [
     { name = "bashrun" },
     { name = "pydantic" },

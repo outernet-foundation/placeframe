@@ -50,10 +50,10 @@ dirtorch = { workspace = true }
 build-scripts = { workspace = true }
 scripts = { workspace = true }
 lightglue = { git = "https://github.com/cvg/LightGlue.git" }
-bashrun = { git = "https://github.com/outernet-foundation/bashrun.git", rev = "570290bf6f1a6873f060f95a766fb7649837f54a" }
-stack-lifecycle = { git = "https://github.com/outernet-foundation/stack-lifecycle.git", rev = "a82ff9ed24f4dafd514a0536912e218b40f66578" }
-unity-buildkit = { git = "https://github.com/outernet-foundation/unity-buildkit.git", rev = "98bfa99d6e703b75b29543451ad554ab37c51865" }
-openapi-clientgen = { git = "https://github.com/outernet-foundation/openapi-clientgen.git", rev = "ded8854d318274546d6494c885636ff8fbc127da" }
+bashrun = { git = "https://github.com/outernet-foundation/bashrun.git", rev = "1a0add1eb9e53e19245dcdda3e2018577b4e1153" }
+stack-lifecycle = { git = "https://github.com/outernet-foundation/stack-lifecycle.git", rev = "4fbbc256e5a761dd2aa8204ddd4ca840832a75d9" }
+unity-buildkit = { git = "https://github.com/outernet-foundation/unity-buildkit.git", rev = "7505af108419d7d239cbb2348de5e44042d5dc48" }
+openapi-clientgen = { git = "https://github.com/outernet-foundation/openapi-clientgen.git", rev = "466fad1471101731c988b09997f0f8b473c052d4" }
 
 [tool.basedpyright]
 typeCheckingMode = "strict"
