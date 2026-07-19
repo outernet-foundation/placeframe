@@ -6,13 +6,13 @@ from enum import Enum
 from pathlib import Path
 
 import typer
-from placeframe_bash import bash
+from bashrun import bash
 from pydantic_settings import BaseSettings
 
-from placeframe_unity.cache import restore, save
-from placeframe_unity.ci_step import ci_step
-from placeframe_unity.setup import configure_git, free_disk_space
-from placeframe_unity.setup_oras import install_oras
+from unity_buildkit.cache import restore, save
+from unity_buildkit.ci_step import ci_step
+from unity_buildkit.setup import configure_git, free_disk_space
+from unity_buildkit.setup_oras import install_oras
 from .clone import clone
 from .paths import get_cesium_build_paths
 

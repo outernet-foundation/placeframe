@@ -2,13 +2,13 @@
 
 ## What this is
 
-`build/` is a Python workspace member (`build-scripts`) that ships the placeframe-wide CLI commands invoked via `uv run <name>` from the repo root. It owns two cohorts of commands: codegen + workspace tooling (`generate-clients`, `generate-datamodels`, `lock-python`, `deptry-check`, `preflight`) and the Cesium asset pipeline (`build-cesium`, `codegen-cesium`, `combine-cesium`). A third cohort under `placeframe/ci/` exists to be invoked from `.github/workflows/`; those commands are not intended for operator use locally. The Docker-stack lifecycle commands (`up`, `down`, `build`) and their helpers (`detect_gpu`, `modes`, `context_sha`) live in the standalone `placeframe-stack` package — see `packages/python/placeframe-stack/AGENTS.md` — which this package depends on for `compute_service_shas` / `run_build` in its CI commands. The Unity build commands (`compile-unity`, `lock-unity`, `test-unity`, `build-unity`, `unity-matrix`, license helpers) live in the standalone `placeframe-unity` package — see `packages/python/placeframe-unity/AGENTS.md` — which this package depends on for its shared CI helpers (`ci_step`, ORAS cache, runner setup). The sibling `scripts/` package holds operator utilities (calibration, debug attach, capture-tool install, ZED Box deploy) — see `scripts/AGENTS.md` for that catalog.
+`build/` is a Python workspace member (`build-scripts`) that ships the placeframe-wide CLI commands invoked via `uv run <name>` from the repo root. It owns two cohorts of commands: codegen + workspace tooling (`generate-clients`, `generate-datamodels`, `lock-python`, `deptry-check`, `preflight`) and the Cesium asset pipeline (`build-cesium`, `codegen-cesium`, `combine-cesium`). A third cohort under `placeframe/ci/` exists to be invoked from `.github/workflows/`; those commands are not intended for operator use locally. The Docker-stack lifecycle commands (`up`, `down`, `build`) and their helpers (`detect_gpu`, `modes`, `context_sha`) live in the standalone [`stack-lifecycle`](https://github.com/outernet-foundation/stack-lifecycle) repo, git-referenced from the root `pyproject.toml`; this package depends on it for `compute_service_shas` / `run_build` in its CI commands. The Unity build commands (`compile-unity`, `lock-unity`, `test-unity`, `build-unity`, `unity-matrix`, license helpers) live in the standalone [`unity-buildkit`](https://github.com/outernet-foundation/unity-buildkit) repo — see its `AGENTS.md` — which this package depends on for its shared CI helpers (`ci_step`, ORAS cache, runner setup). The OpenAPI client-generation wrapper — spec 3.1→3.0 downgrade, the patched C# templates, the `openapi-generator-cli` invocation, and the Unity package metadata — lives in the standalone [`openapi-clientgen`](https://github.com/outernet-foundation/openapi-clientgen) repo; `generate-clients` is a thin orchestrator over it. The sibling `scripts/` package holds operator utilities (calibration, debug attach, capture-tool install, ZED Box deploy) — see `scripts/AGENTS.md` for that catalog.
 
 ## Shape
 
 ### Stack lifecycle (operator-facing)
 
-`up`, `down`, and `build` now live in the `placeframe-stack` package — see `packages/python/placeframe-stack/AGENTS.md` for their flags and the native-vs-consumer-stack behavior.
+`up`, `down`, and `build` now live in the external [`stack-lifecycle`](https://github.com/outernet-foundation/stack-lifecycle) repo — see its `AGENTS.md` for their flags and the native-vs-consumer-stack behavior.
 
 ### Codegen + workspace tooling (operator-facing)
 
@@ -16,7 +16,7 @@ Defined in `build/pyproject.toml`'s `[project.scripts]`. All commands accept `--
 
 | `uv run` command | Module | Notes |
 |---|---|---|
-| `generate-clients` | `placeframe/generate_clients.py` | Dumps OpenAPI from each Litestar app and runs `openapi-generator-cli` (Java 11+ on PATH). Writes `packages/generated/python/` and `packages/generated/csharp/`. Pass `--project docker/api` to skip the localizer (whose spec dump needs PyTorch / pycolmap in the venv). |
+| `generate-clients` | `placeframe/generate_clients.py` | Thin orchestrator over the [`openapi-clientgen`](https://github.com/outernet-foundation/openapi-clientgen) package: per `openapi-projects.json` entry it dumps the Litestar app's spec (with `CODEGEN=1`) and calls the lib to downgrade, generate, and sync each client. Needs Java 11+ on PATH (the lib runs `openapi-generator-cli`). Writes `packages/generated/python/` and `packages/generated/csharp/`. Pass `--project docker/api` to skip the localizer (whose spec dump needs PyTorch / pycolmap in the venv). |
 | `generate-datamodels` | `placeframe/generate_datamodels.py` | Runs `sqlacodegen` against live postgres → `packages/generated/python/datamodels/` (SQLAlchemy + Pydantic DTOs). Requires the stack to be up. |
 | `lock-python` | `placeframe/lock_python.py` | Regenerates workspace `uv.lock` and per-service `pylock.toml`. Must precede `generate-clients`. Re-run after every `uv sync --all-packages` (which clobbers per-service locks). |
 | `deptry-check` | `placeframe/deptry_check.py` | Dependency-vs-imports audit across all workspace packages. |
@@ -42,16 +42,17 @@ Defined in `build/pyproject.toml`'s `[project.scripts]`. All commands accept `--
         placeframe/
           generate_clients.py / generate_datamodels.py / lock_python.py
           deptry_check.py
-          downgrade_openapi_schema.py                 -- OpenAPI 3.1 → 3.0 fixup used during generate-clients
           protect_branches.py
           ci/
-            preflight.py / build_docker.py            -- import compute_service_shas / run_build from placeframe-stack
+            preflight.py / build_docker.py            -- import compute_service_shas / run_build from stack-lifecycle
             create_release.py / ensure_release_pr.py / fetch_ci_artifacts.py
             publish_packages.py / git_tags.py         -- release tagging (name → tag-prefix map)
         cesium/
           build.py / codegen.py / combine.py
 
-    packages/python/placeframe-stack/                 -- up / down / build + detect_gpu / modes / context_sha
+    (external) outernet-foundation/stack-lifecycle    -- up / down / build + detect_gpu / modes / context_sha
+    (external) outernet-foundation/unity-buildkit     -- ci_step / cache / license_restore / setup / setup_oras
+    (external) outernet-foundation/openapi-clientgen  -- downgrade / regenerate_templates / generate_client / naming
 
 ## Constraints
 
@@ -61,5 +62,6 @@ Defined in `build/pyproject.toml`'s `[project.scripts]`. All commands accept `--
 
 ## See also
 
-- `packages/python/placeframe-stack/AGENTS.md` — the stack-lifecycle (`up`/`down`/`build`) package this one depends on for `compute_service_shas` / `run_build`.
-- `packages/python/placeframe-unity/AGENTS.md` — the Unity build toolkit this package depends on for `ci_step`, the ORAS cache, and runner setup; also home of the Unity entry points and their workflow contract.
+- [`stack-lifecycle`](https://github.com/outernet-foundation/stack-lifecycle) — the standalone lifecycle package this one depends on for `compute_service_shas` / `run_build`.
+- [`unity-buildkit`](https://github.com/outernet-foundation/unity-buildkit) — the Unity build toolkit this package depends on for `ci_step`, the ORAS cache, and runner setup; also home of the Unity entry points and their workflow contract.
+- [`openapi-clientgen`](https://github.com/outernet-foundation/openapi-clientgen) — the OpenAPI client-generation wrapper `generate-clients` orchestrates (spec downgrade, patched C# templates, generator invocation, Unity package metadata).

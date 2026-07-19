@@ -61,7 +61,7 @@ The stack is parameterised by two independent env vars:
 - `https://…` + `disabled` — tunneled, no auth (e.g. exposing a demo without credentialing).
 - `http://…` + `disabled` — air-gap LAN, cleartext, no auth.
 
-The fourth combination, `http://…` + `keycloak`, is rejected at compose startup: sending OAuth credentials in cleartext is a footgun, and the air-gap deployment shape exists specifically to remove the cert-distribution and OAuth ceremony. The guard lives in `packages/python/placeframe-stack/src/placeframe_stack/modes.py` and keys off the parsed `PUBLIC_URL` scheme — token-on-the-wire is the actual hazard, not LAN-vs-tunnel.
+The fourth combination, `http://…` + `keycloak`, is rejected at compose startup: sending OAuth credentials in cleartext is a footgun, and the air-gap deployment shape exists specifically to remove the cert-distribution and OAuth ceremony. The guard lives in the external [`stack-lifecycle`](https://github.com/outernet-foundation/stack-lifecycle)'s `modes.py` (git-referenced from the root `pyproject.toml`) and keys off the parsed `PUBLIC_URL` scheme — token-on-the-wire is the actual hazard, not LAN-vs-tunnel.
 
 **`lease-server`** has no auth middleware in any mode. It is bound only to the compose-internal network, has no gateway upstream and no host port; the reconstructor reaches it by container DNS. Network isolation is the boundary.
 

@@ -8,6 +8,9 @@ x-base-args: &base-args
 
 x-registry-cache: ghcr.io/outernet-foundation/placeframe/build-cache
 
+x-cross-compile-targets:
+  - zed-capture
+
 services:
   zed-capture:
     build:

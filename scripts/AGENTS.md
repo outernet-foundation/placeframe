@@ -2,7 +2,7 @@
 
 ## What this is
 
-`scripts/` is a Python workspace member that ships a set of operator-facing CLIs registered as `uv run` commands in `pyproject.toml`'s `[project.scripts]`. The package contains two cohorts: small operational utilities (Unity adb-forward, Docker debug-target listing, ZED Box SSH deploy, the Linear ticketing write-path) and the calibration pipeline (`fit-calibration`, `tune-reconstruction`, the held-out selector registry, the shared auth helper). The Docker-stack lifecycle commands (`up`, `down`, `build`, `generate-clients`, `generate-datamodels`, `lock-python`, `deptry-check`, `preflight`) do not live here — they live in the sibling `build-scripts` package under `build/`. The `install` command (download or build-then-install Unity APKs / linux executables) lives in `placeframe-unity` so cross-repo consumers can use it. The calibration pipeline is the load-bearing part of this directory and the only piece with tests; the operational utilities are small self-contained shell-out scripts.
+`scripts/` is a Python workspace member that ships a set of operator-facing CLIs registered as `uv run` commands in `pyproject.toml`'s `[project.scripts]`. The package contains two cohorts: small operational utilities (Unity adb-forward, Docker debug-target listing, ZED Box SSH deploy) and the calibration pipeline (`fit-calibration`, `tune-reconstruction`, the held-out selector registry, the shared auth helper). The Docker-stack lifecycle commands (`up`, `down`, `build`, `generate-clients`, `generate-datamodels`, `lock-python`, `deptry-check`, `preflight`) do not live here — they live in the sibling `build-scripts` package under `build/`. The `install` command (download or build-then-install Unity APKs / linux executables) lives in the standalone [`unity-buildkit`](https://github.com/outernet-foundation/unity-buildkit) repo so cross-repo consumers can use it. The calibration pipeline is the load-bearing part of this directory and the only piece with tests; the operational utilities are small self-contained shell-out scripts.
 
 ## Shape
 
@@ -18,7 +18,6 @@ Registered in `scripts/pyproject.toml`:
 | `loki-query` | `loki_query.py` | Run a LogQL query against the local Loki via `docker exec placeframe-loki-1 wget`, formatting each entry as `HH:MM:SS LEVEL [logGroup] message` (plus exception chain when present). Flags: `--limit`, `--direction`, `--since`, `--raw`. Use this instead of hand-rolling URL-encoded `wget` invocations — the URL encoding is fragile (`+`/`%7C`/quote-escapes) and easy to get subtly wrong. |
 | `tune-reconstruction` | `tune_reconstruction.py` | Plackett-Burman sweep over `ReconstructionOptions` per capture. One reconstruction per cell. Aggregates map-quality metrics into a JSON report. |
 | `fit-calibration` | `fit_calibration.py` | Algorithm 1: pick held-out frames, build/reuse reconstructions, localize each held-out frame, fit logistic+isotonic for tight/loose success probability, fit Σ_meas `(α, β)`, write `docker/localizer/calibration/global.json`. |
-| `linear` | `linear_tool/` | Audited write path into the team's Linear workspace: create/update issues, projects, labels, and blocking relations via the GraphQL API. See `linear_tool/AGENTS.md` for the tool and the team's ticketing conventions. |
 
 `api_auth.py` (shared) and `held_out_selection.py` (consumed by `fit-calibration`) are library modules, not entry points.
 
@@ -34,7 +33,6 @@ Registered in `scripts/pyproject.toml`:
         tune_reconstruction.py                    -- PB sweep over ReconstructionOptions
         fit_calibration.py                        -- Algorithm 1 calibration pipeline
         held_out_selection.py                     -- HeldOutFrameSelector Protocol + stride impl
-        linear_tool/                              -- `uv run linear`: audited Linear GraphQL write path (see linear_tool/AGENTS.md)
       tests/
         test_fit_calibration.py                   -- the only test file in the directory
 
@@ -130,7 +128,7 @@ Deterministic, scales to capture length, gives even temporal spacing → roughly
 
 ## Constraints
 
-**Two packages for "Python scripts registered as `uv run` commands."** `scripts/` and `build/` (the `build-scripts` package) both ship `[project.scripts]` entries. The split is by topic, not by mechanism: `build-scripts` orchestrates the Docker stack lifecycle and the code-generation pipeline (lives next to `compose.*.yml` and `openapi-generator/` it operates on); `scripts/` is everything else (operator/dev utilities and the calibration pipeline). `scripts/` imports from `build-scripts`, not vice versa. The rationale is one of co-location: the lifecycle commands live next to the configs they read; the operator-CLI bucket lives separately so its dependency surface (numpy/scipy/sklearn/pytransform3d for fit-calibration, plus typer/httpx for the utilities) does not bleed into the lighter codegen-and-compose tooling.
+**Two packages for "Python scripts registered as `uv run` commands."** `scripts/` and `build/` (the `build-scripts` package) both ship `[project.scripts]` entries. The split is by topic, not by mechanism: `build-scripts` orchestrates the Docker stack lifecycle and the code-generation pipeline (lives next to the `compose.*.yml` and `openapi-projects.json` it operates on); `scripts/` is everything else (operator/dev utilities and the calibration pipeline). `scripts/` imports from `build-scripts`, not vice versa. The rationale is one of co-location: the lifecycle commands live next to the configs they read; the operator-CLI bucket lives separately so its dependency surface (numpy/scipy/sklearn/pytransform3d for fit-calibration, plus typer/httpx for the utilities) does not bleed into the lighter codegen-and-compose tooling.
 
 **Pipeline orchestration over backend IDs, no sidecar store.** `fit-calibration` and `tune-reconstruction` both treat the API as the single source of truth: capture sessions, reconstructions, and evaluations are all addressed by UUID and read/written through generated API methods. No intermediate JSON files, no local SQLite, no harness-side tar shuffling. The corpus *is* the `localization_evaluations` table; the cache key is `(reconstruction_id, frame_timestamp, retrieval_top_k, ransac_threshold, pipeline_version)`.
 
@@ -166,11 +164,10 @@ uv run sandbox authorize zed-box
 
 ## See also
 
-- `packages/python/placeframe-stack/` — the workspace package holding the Docker-stack lifecycle (`up`, `down`, `build`) and the SHA/auth helpers. `scripts/` imports from it (`placeframe_stack.context_sha.compute_service_shas` in `install_zed/orchestrator.py`, `placeframe_stack.modes.parse_env_file` in `api_auth.py`); the inverse does not hold.
+- [`stack-lifecycle`](https://github.com/outernet-foundation/stack-lifecycle) — the standalone package holding the Docker-stack lifecycle (`up`, `down`, `build`) and the SHA/auth helpers, git-referenced from the root `pyproject.toml`. `scripts/` imports from it (`stack_lifecycle.context_sha.compute_service_shas` in `install_zed/orchestrator.py`, `stack_lifecycle.modes.parse_env_file` in `api_auth.py`); the inverse does not hold.
 - `build/` (the `build-scripts` workspace package) — sibling Python CLI package holding the codegen entry points (`generate-clients`, `generate-datamodels`, `lock-python`, `deptry-check`, `preflight`).
-- `packages/python/placeframe-unity/AGENTS.md` — the Unity build toolkit, which also hosts the `install` command. `scripts/` no longer imports from it; the dependency was dropped when `install.py` moved.
+- [`unity-buildkit`'s `AGENTS.md`](https://github.com/outernet-foundation/unity-buildkit/blob/main/AGENTS.md) — the standalone Unity build toolkit, which also hosts the `install` command. `scripts/` no longer imports from it; the dependency was dropped when `install.py` moved.
 - `docker/localizer/AGENTS.md` — defines the `/version` and `/localize` endpoints that `fit-calibration` consumes and the `pipeline_version` baked into the localizer image.
 - `docker/reconstructor/AGENTS.md` — defines the single-anchor truth-frame alignment and the Procrustes-residual diagnostic metrics that Algorithm 1 step 2 relies on.
 - `packages/python/core/AGENTS.md` "Calibration" — schema of `CalibrationArtifact`, `Features`, `ToleranceModel`, `RawMapMetrics`, `RawLocalizationMetrics`.
 - `docker/aoa-bridge/CLAUDE.md` — AOA-bridge protocol, USB host/accessory roles, and the phone-side counterpart files that the on-box `aoa_bridge.py` handshake binds against.
-- `scripts/src/scripts/linear_tool/AGENTS.md` — the `uv run linear` tool and the team's Linear ticketing conventions (declarative outcome-tickets, imperative titles, `blocks`-for-sequence, JIT sub-issues).

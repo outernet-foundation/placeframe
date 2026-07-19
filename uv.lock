@@ -28,15 +28,12 @@ members = [
     "placeframe",
     "placeframe-api",
     "placeframe-api-client",
-    "placeframe-bash",
     "placeframe-lease-server",
     "placeframe-lease-server-client",
     "placeframe-localizer",
     "placeframe-localizer-client",
     "placeframe-rathole-client",
     "placeframe-reconstructor",
-    "placeframe-stack",
-    "placeframe-unity",
     "scripts",
     "zed",
 ]
@@ -108,6 +105,11 @@ sdist = { url = "https://files.pythonhosted.org/packages/e4/a3/20aa7c4e83f2f614e
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ac/12/736cab83626fea3fe65cdafb3ef3d2ee9480c56723f2fd33921537289a5e/basedpyright-1.38.2-py3-none-any.whl", hash = "sha256:153481d37fd19f9e3adedc8629d1d071b10c5f5e49321fb026b74444b7c70e24", size = 12312475, upload-time = "2026-02-26T11:18:40.373Z" },
 ]
+
+[[package]]
+name = "bashrun"
+version = "0.1.0"
+source = { git = "https://github.com/outernet-foundation/bashrun.git?rev=570290bf6f1a6873f060f95a766fb7649837f54a#570290bf6f1a6873f060f95a766fb7649837f54a" }
 
 [[package]]
 name = "black"
@@ -206,32 +208,34 @@ name = "build-scripts"
 version = "0.1.0"
 source = { editable = "build" }
 dependencies = [
+    { name = "bashrun" },
     { name = "datamodel-code-generator" },
-    { name = "placeframe-bash" },
-    { name = "placeframe-stack" },
-    { name = "placeframe-unity" },
+    { name = "openapi-clientgen" },
     { name = "psycopg", extra = ["binary"] },
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "pyhumps" },
     { name = "sqlacodegen" },
     { name = "sqlalchemy" },
+    { name = "stack-lifecycle" },
     { name = "typer" },
+    { name = "unity-buildkit" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "bashrun", git = "https://github.com/outernet-foundation/bashrun.git?rev=570290bf6f1a6873f060f95a766fb7649837f54a" },
     { name = "datamodel-code-generator", specifier = ">=0.33.0" },
-    { name = "placeframe-bash", editable = "packages/python/placeframe-bash" },
-    { name = "placeframe-stack", editable = "packages/python/placeframe-stack" },
-    { name = "placeframe-unity", editable = "packages/python/placeframe-unity" },
+    { name = "openapi-clientgen", git = "https://github.com/outernet-foundation/openapi-clientgen.git?rev=ded8854d318274546d6494c885636ff8fbc127da" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2.10" },
     { name = "pydantic", specifier = ">=2.11.7" },
     { name = "pydantic-settings", specifier = ">=2.9.1" },
     { name = "pyhumps", specifier = ">=3.8.0" },
     { name = "sqlacodegen", specifier = "==3.2.0" },
     { name = "sqlalchemy", specifier = ">=2.0.45" },
+    { name = "stack-lifecycle", git = "https://github.com/outernet-foundation/stack-lifecycle.git?rev=a82ff9ed24f4dafd514a0536912e218b40f66578" },
     { name = "typer", specifier = ">=0.17.4" },
+    { name = "unity-buildkit", git = "https://github.com/outernet-foundation/unity-buildkit.git?rev=98bfa99d6e703b75b29543451ad554ab37c51865" },
 ]
 
 [[package]]
@@ -1498,6 +1502,15 @@ wheels = [
 ]
 
 [[package]]
+name = "openapi-clientgen"
+version = "0.1.0"
+source = { git = "https://github.com/outernet-foundation/openapi-clientgen.git?rev=ded8854d318274546d6494c885636ff8fbc127da#ded8854d318274546d6494c885636ff8fbc127da" }
+dependencies = [
+    { name = "bashrun" },
+    { name = "typer" },
+]
+
+[[package]]
 name = "opencv-python"
 version = "4.13.0.90"
 source = { registry = "https://pypi.org/simple" }
@@ -1772,11 +1785,6 @@ requires-dist = [
 ]
 
 [[package]]
-name = "placeframe-bash"
-version = "0.1.0"
-source = { editable = "packages/python/placeframe-bash" }
-
-[[package]]
 name = "placeframe-lease-server"
 version = "0.1.0"
 source = { virtual = "docker/lease-server" }
@@ -1975,46 +1983,6 @@ dev = [
 neural-networks-cpu = [{ name = "neural-networks", extras = ["cpu"], editable = "packages/python/neural-networks" }]
 neural-networks-cuda = [{ name = "neural-networks", extras = ["cuda"], editable = "packages/python/neural-networks" }]
 neural-networks-rocm = [{ name = "neural-networks", extras = ["rocm"], editable = "packages/python/neural-networks" }]
-
-[[package]]
-name = "placeframe-stack"
-version = "0.1.0"
-source = { editable = "packages/python/placeframe-stack" }
-dependencies = [
-    { name = "pathspec" },
-    { name = "placeframe-bash" },
-    { name = "pydantic-settings" },
-    { name = "pyyaml" },
-    { name = "typer" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "pathspec", specifier = ">=1.0.4" },
-    { name = "placeframe-bash", editable = "packages/python/placeframe-bash" },
-    { name = "pydantic-settings", specifier = ">=2.9.1" },
-    { name = "pyyaml", specifier = ">=6.0" },
-    { name = "typer", specifier = ">=0.17.4" },
-]
-
-[[package]]
-name = "placeframe-unity"
-version = "0.1.0"
-source = { editable = "packages/python/placeframe-unity" }
-dependencies = [
-    { name = "placeframe-bash" },
-    { name = "pydantic" },
-    { name = "pydantic-settings" },
-    { name = "typer" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "placeframe-bash", editable = "packages/python/placeframe-bash" },
-    { name = "pydantic", specifier = ">=2.11.7" },
-    { name = "pydantic-settings", specifier = ">=2.9.1" },
-    { name = "typer", specifier = ">=0.17.4" },
-]
 
 [[package]]
 name = "platformdirs"
@@ -2474,33 +2442,33 @@ name = "scripts"
 version = "0.1.0"
 source = { editable = "scripts" }
 dependencies = [
+    { name = "bashrun" },
     { name = "common" },
     { name = "core" },
     { name = "httpx" },
     { name = "numpy" },
     { name = "placeframe-api-client" },
-    { name = "placeframe-bash" },
-    { name = "placeframe-stack" },
     { name = "pydantic" },
     { name = "pytransform3d" },
     { name = "scikit-learn" },
     { name = "scipy" },
+    { name = "stack-lifecycle" },
     { name = "typer" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "bashrun", git = "https://github.com/outernet-foundation/bashrun.git?rev=570290bf6f1a6873f060f95a766fb7649837f54a" },
     { name = "common", editable = "packages/python/common" },
     { name = "core", editable = "packages/python/core" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "numpy", specifier = ">=2.1" },
     { name = "placeframe-api-client", editable = "packages/generated/python/api-client" },
-    { name = "placeframe-bash", editable = "packages/python/placeframe-bash" },
-    { name = "placeframe-stack", editable = "packages/python/placeframe-stack" },
     { name = "pydantic", specifier = ">=2" },
     { name = "pytransform3d", specifier = ">=3.5" },
     { name = "scikit-learn", specifier = ">=1.5" },
     { name = "scipy", specifier = ">=1.14" },
+    { name = "stack-lifecycle", git = "https://github.com/outernet-foundation/stack-lifecycle.git?rev=a82ff9ed24f4dafd514a0536912e218b40f66578" },
     { name = "typer", specifier = ">=0.15" },
 ]
 
@@ -2580,6 +2548,18 @@ wheels = [
 [package.optional-dependencies]
 asyncio = [
     { name = "greenlet" },
+]
+
+[[package]]
+name = "stack-lifecycle"
+version = "0.1.0"
+source = { git = "https://github.com/outernet-foundation/stack-lifecycle.git?rev=a82ff9ed24f4dafd514a0536912e218b40f66578#a82ff9ed24f4dafd514a0536912e218b40f66578" }
+dependencies = [
+    { name = "bashrun" },
+    { name = "pathspec" },
+    { name = "pydantic-settings" },
+    { name = "pyyaml" },
+    { name = "typer" },
 ]
 
 [[package]]
@@ -2880,6 +2860,17 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/5e/a7/c202b344c5ca7daf398f3b8a477eeb205cf3b6f32e7ec3a6bac0629ca975/tzdata-2025.3.tar.gz", hash = "sha256:de39c2ca5dc7b0344f2eba86f49d614019d29f060fc4ebc8a417896a620b56a7", size = 196772, upload-time = "2025-12-13T17:45:35.667Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/c7/b0/003792df09decd6849a5e39c28b513c06e84436a54440380862b5aeff25d/tzdata-2025.3-py2.py3-none-any.whl", hash = "sha256:06a47e5700f3081aab02b2e513160914ff0694bce9947d6b76ebd6bf57cfc5d1", size = 348521, upload-time = "2025-12-13T17:45:33.889Z" },
+]
+
+[[package]]
+name = "unity-buildkit"
+version = "0.1.0"
+source = { git = "https://github.com/outernet-foundation/unity-buildkit.git?rev=98bfa99d6e703b75b29543451ad554ab37c51865#98bfa99d6e703b75b29543451ad554ab37c51865" }
+dependencies = [
+    { name = "bashrun" },
+    { name = "pydantic" },
+    { name = "pydantic-settings" },
+    { name = "typer" },
 ]
 
 [[package]]

@@ -3,7 +3,7 @@ from tomllib import load
 from typing import Any, cast
 
 import typer
-from placeframe_bash import bash, bash_check, bash_output
+from bashrun import bash, bash_check, bash_output
 
 app = typer.Typer(add_completion=False, pretty_exceptions_show_locals=False)
 

@@ -4,8 +4,8 @@ version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [
     "common",
-    "placeframe-bash",
-    "placeframe-stack",
+    "bashrun",
+    "stack-lifecycle",
     "core",
     "placeframe-api-client",
     "pydantic>=2",
@@ -36,4 +36,3 @@ audit-capture-reconstruction = "scripts.audit_capture_reconstruction:app"
 sweep-postprocess = "scripts.sweep_postprocess:app"
 two-view-diagnostic = "scripts.two_view_diagnostic:app"
 reconstruction = "scripts.reconstruction:app"
-linear = "scripts.linear_tool.cli:app"

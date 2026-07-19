@@ -4,13 +4,13 @@ import shlex
 from typing import Literal
 
 import typer
-from placeframe_bash import bash
-from placeframe_stack.detect_gpu import Gpu
+from bashrun import bash
+from stack_lifecycle.detect_gpu import Gpu
 from pydantic_settings import BaseSettings
 
-from placeframe_unity.ci_step import ci_step
-from placeframe_unity.setup import configure_git, free_disk_space
-from placeframe_stack.build_docker import run_build
+from unity_buildkit.ci_step import ci_step
+from unity_buildkit.setup import configure_git, free_disk_space
+from stack_lifecycle.build_docker import run_build
 
 Variant = Literal["common", "cuda", "rocm"]
 
