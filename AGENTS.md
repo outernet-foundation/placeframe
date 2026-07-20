@@ -1,8 +1,6 @@
 # Placeframe
 
-This file is placeframe-specific guidance: what the project is and how to operate it. Repo-agnostic conventions — code style, commit discipline, safety, the agent-doc architecture, trackable-work workflow — live in **`AGENTS-SHARED.md`** and are **required reading**. It is imported below for Claude Code and loaded via `opencode.json` for opencode:
-
-@AGENTS-SHARED.md
+This file is placeframe-specific guidance: what the project is and how to operate it.
 
 ## What This Project Is
 
