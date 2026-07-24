@@ -1,0 +1,18 @@
+# Keycloak provisioner (compose): local counterpart of placeframe-keycloak.k8s.provisioners.yaml.
+# A minimal dev keycloak so the compose stack works standalone; local dev runs auth disabled, so
+# no realm import is performed here. Register via: score-compose init --provisioners <this file>.
+- uri: template://placeframe/keycloak
+  type: placeframe-keycloak
+  description: Local dev keycloak for the compose stack.
+  state: |
+    service: keycloak
+    realm: placeframe-dev
+  outputs: |
+    certs_url: http://{{ .State.service }}:8080/realms/{{ .State.realm }}/protocol/openid-connect/certs
+  services: |
+    {{ .State.service }}:
+      image: quay.io/keycloak/keycloak:26.3.5@sha256:357829ec7c4693397533035092ad13b0644bcc95ded311f33a3738c4d9e9bdba
+      command: ["start-dev", "--health-enabled=true"]
+      environment:
+        KEYCLOAK_ADMIN: admin
+        KEYCLOAK_ADMIN_PASSWORD: admin
