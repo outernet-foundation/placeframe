@@ -1,0 +1,88 @@
+# Custom Kubernetes provisioner for the `s3` resource: stands up MinIO + a bucket, but
+# references the externally managed `placeframe-secrets` Secret (created by the Pulumi
+# infra program) for credentials instead of generating its own — so the output contains
+# no secret values. Overrides the built-in s3 provisioner for the k8s target.
+# Register via: score-k8s init --provisioners <this file>.
+- uri: template://placeframe/minio-k8s
+  type: s3
+  description: MinIO object storage using externally managed placeframe-secrets credentials.
+  state: |
+    service: minio
+    bucket: reconstructions
+  outputs: |
+    endpoint: http://{{ .State.service }}:9000
+    bucket: {{ .State.bucket }}
+    access_key_id: {{ encodeSecretRef "placeframe-secrets" "MINIO_ACCESS_KEY" }}
+    secret_key: {{ encodeSecretRef "placeframe-secrets" "MINIO_SECRET_KEY" }}
+  manifests: |
+    - apiVersion: v1
+      kind: Service
+      metadata:
+        name: {{ .State.service }}
+      spec:
+        selector:
+          app.kubernetes.io/instance: {{ .State.service }}
+        ports:
+        - port: 9000
+          targetPort: 9000
+    - apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: {{ .State.service }}
+      spec:
+        replicas: 1
+        selector:
+          matchLabels:
+            app.kubernetes.io/instance: {{ .State.service }}
+        template:
+          metadata:
+            labels:
+              app.kubernetes.io/instance: {{ .State.service }}
+          spec:
+            containers:
+            - name: minio
+              image: docker.io/minio/minio@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
+              args: ["server", "/data", "--console-address", ":9001"]
+              ports:
+              - containerPort: 9000
+              env:
+              - name: MINIO_ROOT_USER
+                valueFrom:
+                  secretKeyRef:
+                    name: placeframe-secrets
+                    key: MINIO_ACCESS_KEY
+              - name: MINIO_ROOT_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: placeframe-secrets
+                    key: MINIO_SECRET_KEY
+              volumeMounts:
+              - name: data
+                mountPath: /data
+            volumes:
+            - name: data
+              emptyDir: {}
+    - apiVersion: batch/v1
+      kind: Job
+      metadata:
+        name: {{ .State.service }}-bucket
+      spec:
+        backoffLimit: 30
+        template:
+          spec:
+            restartPolicy: OnFailure
+            containers:
+            - name: bucket
+              image: docker.io/minio/mc@sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727
+              command: ["/bin/sh","-c","mc alias set local http://{{ .State.service }}:9000 $(MINIO_ACCESS_KEY) $(MINIO_SECRET_KEY) && mc mb --ignore-existing local/{{ .State.bucket }}"]
+              env:
+              - name: MINIO_ACCESS_KEY
+                valueFrom:
+                  secretKeyRef:
+                    name: placeframe-secrets
+                    key: MINIO_ACCESS_KEY
+              - name: MINIO_SECRET_KEY
+                valueFrom:
+                  secretKeyRef:
+                    name: placeframe-secrets
+                    key: MINIO_SECRET_KEY

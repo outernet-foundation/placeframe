@@ -1,0 +1,14 @@
+# Config provisioner (compose): local counterpart of placeframe-config.k8s.provisioners.yaml.
+# Supplies the same app-config outputs as literal localhost / auth-disabled values so the
+# docker stack works standalone. Register via: score-compose init --provisioners <this file>.
+- uri: template://placeframe/config
+  type: placeframe-config
+  description: Local app config (localhost, auth disabled) for the compose stack.
+  outputs: |
+    public_url: http://localhost:8443
+    auth_mode: disabled
+    auth_audience: placeframe-api
+    auth_issuer_url: ""
+    auth_url: ""
+    auth_token_url: ""
+    deployment_environment: development
