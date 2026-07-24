@@ -1,3 +1,4 @@
+import secrets
 from enum import Enum
 from pathlib import Path
 from typing import Annotated
@@ -35,6 +36,11 @@ K8S_PROVISIONERS = {
     Postgres.statefulset: "placeframe-postgres.k8s.provisioners.yaml",
     Postgres.cnpg: "placeframe-postgres-cnpg.k8s.provisioners.yaml",
 }
+K8S_EXTRA_PROVISIONERS = [
+    "placeframe-minio.k8s.provisioners.yaml",
+    "placeframe-config.k8s.provisioners.yaml",
+    "placeframe-keycloak.k8s.provisioners.yaml",
+]
 
 app = typer.Typer(add_completion=False)
 
@@ -91,7 +97,9 @@ def score_up(
         # A fresh cluster gets fresh generated passwords, so wipe any stale k8s score state
         # and register the provisioner for the chosen postgres backend before generating.
         bash("rm -rf .score-k8s manifests.yaml", cwd=SCORE_DIR)
-        bash(f"score-k8s init --no-sample --provisioners ./{K8S_PROVISIONERS[postgres]}", cwd=SCORE_DIR)
+        provisioners = [K8S_PROVISIONERS[postgres], *K8S_EXTRA_PROVISIONERS]
+        flags = " ".join(f"--provisioners ./{provisioner}" for provisioner in provisioners)
+        bash(f"score-k8s init --no-sample {flags}", cwd=SCORE_DIR)
         bash(f'k3d cluster create {CLUSTER} --no-lb --k3s-arg "--disable=traefik@server:0"')
 
         if postgres == Postgres.cnpg:
@@ -111,6 +119,7 @@ def score_up(
         _preload_image(image)
 
     bash("kubectl -n kube-system rollout restart deploy/local-path-provisioner")
+    _ensure_local_secret()
     bash("kubectl apply -f manifests.yaml", cwd=SCORE_DIR)
 
     if postgres == Postgres.cnpg:
@@ -126,3 +135,29 @@ def _preload_image(image: str) -> None:
         bash(f"docker pull {image}")
 
     bash_pipe(f"docker save {image}", f"docker exec -i {NODE} ctr -n k8s.io images import -")
+
+
+def _ensure_local_secret() -> None:
+    if bash_check("kubectl get secret placeframe-secrets"):
+        return
+
+    values = {
+        "POSTGRES_ADMIN_PASSWORD": secrets.token_hex(16),
+        "DATABASE_OWNER_PASSWORD": secrets.token_hex(16),
+        "DATABASE_API_USER_PASSWORD": secrets.token_hex(16),
+        "DATABASE_AUTH_USER_PASSWORD": secrets.token_hex(16),
+        "DATABASE_ORCHESTRATION_USER_PASSWORD": secrets.token_hex(16),
+        "MINIO_ACCESS_KEY": secrets.token_hex(8),
+        "MINIO_SECRET_KEY": secrets.token_hex(16),
+        "KEYCLOAK_ADMIN_PASSWORD": secrets.token_hex(16),
+        "PUBLIC_URL": "http://localhost:8443",
+        "AUTH_MODE": "disabled",
+        "AUTH_AUDIENCE": "placeframe-api",
+        "AUTH_ISSUER_URL": "",
+        "AUTH_URL": "",
+        "AUTH_TOKEN_URL": "",
+        "DEPLOYMENT_ENVIRONMENT": "development",
+        "KEYCLOAK_HOSTNAME": "http://localhost:8443/auth",
+    }
+    literals = " ".join(f"--from-literal={key}={value}" for key, value in values.items())
+    bash(f"kubectl create secret generic placeframe-secrets {literals}")
