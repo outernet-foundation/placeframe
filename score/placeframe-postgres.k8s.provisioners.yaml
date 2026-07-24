@@ -1,26 +1,15 @@
-# Kubernetes twin of placeframe-postgres.provisioners.yaml. Same resource type
-# (placeframe-postgres), but emits Kubernetes manifests instead of compose services:
-# a Secret + StatefulSet (real Placeframe postgres) + Service, plus a Job that runs the
-# real database-manager to create the placeframe_* roles. Register via:
-# score-k8s init --provisioners <this file>.
+# Kubernetes twin of placeframe-postgres.provisioners.yaml. Emits a Service +
+# StatefulSet (real Placeframe postgres) + create/migrate Jobs. Secrets are NOT
+# generated or emitted here: every password is referenced from the externally
+# managed `placeframe-secrets` Secret (created by the Pulumi infra program), so the
+# generated manifests contain zero secret values and are safe to commit for GitOps.
+# Register via: score-k8s init --provisioners <this file>.
 - uri: template://placeframe/postgres-k8s
   type: placeframe-postgres
   description: Placeframe postgres with placeframe_* roles created by database-manager (Kubernetes).
-  init: |
-    dbName: placeframe
-    adminPassword: {{ randAlphaNum 24 | quote }}
-    ownerPassword: {{ randAlphaNum 24 | quote }}
-    apiPassword: {{ randAlphaNum 24 | quote }}
-    authPassword: {{ randAlphaNum 24 | quote }}
-    orchestrationPassword: {{ randAlphaNum 24 | quote }}
   state: |
     service: pf-postgres
-    dbName: {{ dig "dbName" .Init.dbName .State | quote }}
-    adminPassword: {{ dig "adminPassword" .Init.adminPassword .State | quote }}
-    ownerPassword: {{ dig "ownerPassword" .Init.ownerPassword .State | quote }}
-    apiPassword: {{ dig "apiPassword" .Init.apiPassword .State | quote }}
-    authPassword: {{ dig "authPassword" .Init.authPassword .State | quote }}
-    orchestrationPassword: {{ dig "orchestrationPassword" .Init.orchestrationPassword .State | quote }}
+    dbName: placeframe
   outputs: |
     host: {{ .State.service }}
     port: 5432
@@ -29,20 +18,10 @@
     api_username: {{ .State.dbName }}_api_user
     auth_username: {{ .State.dbName }}_auth_user
     orchestration_username: {{ .State.dbName }}_orchestration_user
-    api_password: {{ encodeSecretRef .State.service "api_password" }}
-    auth_password: {{ encodeSecretRef .State.service "auth_password" }}
-    orchestration_password: {{ encodeSecretRef .State.service "orchestration_password" }}
+    api_password: {{ encodeSecretRef "placeframe-secrets" "DATABASE_API_USER_PASSWORD" }}
+    auth_password: {{ encodeSecretRef "placeframe-secrets" "DATABASE_AUTH_USER_PASSWORD" }}
+    orchestration_password: {{ encodeSecretRef "placeframe-secrets" "DATABASE_ORCHESTRATION_USER_PASSWORD" }}
   manifests: |
-    - apiVersion: v1
-      kind: Secret
-      metadata:
-        name: {{ .State.service }}
-      data:
-        adminPassword: {{ .State.adminPassword | b64enc }}
-        owner_password: {{ .State.ownerPassword | b64enc }}
-        api_password: {{ .State.apiPassword | b64enc }}
-        auth_password: {{ .State.authPassword | b64enc }}
-        orchestration_password: {{ .State.orchestrationPassword | b64enc }}
     - apiVersion: v1
       kind: Service
       metadata:
@@ -82,8 +61,8 @@
               - name: POSTGRES_PASSWORD
                 valueFrom:
                   secretKeyRef:
-                    name: {{ .State.service }}
-                    key: adminPassword
+                    name: placeframe-secrets
+                    key: POSTGRES_ADMIN_PASSWORD
               volumeMounts:
               - name: pv-data
                 mountPath: /var/lib/postgresql/data
@@ -107,7 +86,7 @@
             containers:
             - name: create
               image: ghcr.io/outernet-foundation/placeframe/database-manager:tree-fb027ea674d00a8c9079aa26c13bac5550f263f9
-              command: ["uv","run","--no-sync","python","-m","src.main","--op","create","--name","{{ .State.dbName }}","--owner-password","{{ .State.ownerPassword }}","--api-user-password","{{ .State.apiPassword }}","--auth-user-password","{{ .State.authPassword }}","--orchestration-user-password","{{ .State.orchestrationPassword }}"]
+              command: ["uv","run","--no-sync","python","-m","src.main","--op","create","--name","{{ .State.dbName }}","--owner-password","$(DATABASE_OWNER_PASSWORD)","--api-user-password","$(DATABASE_API_USER_PASSWORD)","--auth-user-password","$(DATABASE_AUTH_USER_PASSWORD)","--orchestration-user-password","$(DATABASE_ORCHESTRATION_USER_PASSWORD)"]
               env:
               - name: POSTGRES_HOST
                 value: {{ .State.service }}
@@ -116,8 +95,28 @@
               - name: POSTGRES_ADMIN_PASSWORD
                 valueFrom:
                   secretKeyRef:
-                    name: {{ .State.service }}
-                    key: adminPassword
+                    name: placeframe-secrets
+                    key: POSTGRES_ADMIN_PASSWORD
+              - name: DATABASE_OWNER_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: placeframe-secrets
+                    key: DATABASE_OWNER_PASSWORD
+              - name: DATABASE_API_USER_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: placeframe-secrets
+                    key: DATABASE_API_USER_PASSWORD
+              - name: DATABASE_AUTH_USER_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: placeframe-secrets
+                    key: DATABASE_AUTH_USER_PASSWORD
+              - name: DATABASE_ORCHESTRATION_USER_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: placeframe-secrets
+                    key: DATABASE_ORCHESTRATION_USER_PASSWORD
               volumeMounts:
               - name: efs
                 mountPath: /mnt/efs
@@ -148,8 +147,8 @@
               - name: DB_PASSWORD
                 valueFrom:
                   secretKeyRef:
-                    name: {{ .State.service }}
-                    key: owner_password
+                    name: placeframe-secrets
+                    key: DATABASE_OWNER_PASSWORD
               - name: DATABASE_SCHEMA_DIR
                 value: database
               - name: ALLOWED_HAZARDS

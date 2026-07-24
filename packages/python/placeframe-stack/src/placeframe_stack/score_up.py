@@ -50,13 +50,19 @@ def score_up(
         bash(
             "score-compose init --project placeframe --no-sample "
             "--provisioners ./placeframe-postgres.provisioners.yaml "
+            "--provisioners ./placeframe-config.provisioners.yaml "
+            "--provisioners ./placeframe-keycloak.provisioners.yaml "
             "--patch-templates ./restart-policy.tpl",
             cwd=SCORE_DIR,
         )
 
     if not (SCORE_DIR / ".score-k8s").exists():
         bash(
-            "score-k8s init --no-sample --provisioners ./placeframe-postgres.k8s.provisioners.yaml",
+            "score-k8s init --no-sample "
+            "--provisioners ./placeframe-postgres.k8s.provisioners.yaml "
+            "--provisioners ./placeframe-minio.k8s.provisioners.yaml "
+            "--provisioners ./placeframe-config.k8s.provisioners.yaml "
+            "--provisioners ./placeframe-keycloak.k8s.provisioners.yaml",
             cwd=SCORE_DIR,
         )
 
