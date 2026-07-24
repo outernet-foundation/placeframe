@@ -40,6 +40,7 @@ else:
             "Placeframe",
             "0.1.0",
             servers=[Server(url=str(settings.public_url))],
+            render_plugins=[ScalarRenderPlugin()],
         )
     else:
         openapi_config = OpenAPIConfig(
