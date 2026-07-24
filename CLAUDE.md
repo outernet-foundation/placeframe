@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Response Style
+
+Be concise in all responses. Prefer terse phrasing over full grammar, but never at the cost of losing context or meaning — keep whatever detail is needed to stay clear and complete.
+
 ## What This Project Is
 
 **Placeframe** is a self-hosted XR spatial localization system ("relocalization as a service"). It determines an XR device's position and rotation relative to a canonical reference frame for a physical space — an open-source alternative to Apple Shared World Anchors, Google ARCore Cloud Anchors, etc.
