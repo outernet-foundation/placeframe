@@ -16,9 +16,10 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import func
 
-from ..database import get_session
+from ..database import SessionLocal, get_session
 
 LEASE_TIMEOUT = timedelta(minutes=30)
+MAX_REQUEUE_ATTEMPTS = 5
 
 
 class LeaseResponse(BaseModel):
@@ -45,19 +46,45 @@ async def request_lease(session: AsyncSession) -> LeaseResponse:
     # Reap stale leases — a worker crash skips complete_lease and would otherwise stall the queue.
     # A lease is "stale" when it has been off the queued list for longer than LEASE_TIMEOUT
     # without any updated_at refresh (every progress write touches updated_at via the trigger).
-    await session.execute(
-        update(Reconstruction)
-        .where(
-            ~Reconstruction.status.in_((
-                ReconstructionStatus.SUCCEEDED,
-                ReconstructionStatus.FAILED,
-                ReconstructionStatus.CANCELLED,
-                ReconstructionStatus.QUEUED,
-            )),
-            Reconstruction.updated_at < func.now() - LEASE_TIMEOUT,
-        )
-        .values(status=ReconstructionStatus.FAILED, error="Lease timed out")
+    stale_filter = (
+        ~Reconstruction.status.in_((
+            ReconstructionStatus.SUCCEEDED,
+            ReconstructionStatus.FAILED,
+            ReconstructionStatus.CANCELLED,
+            ReconstructionStatus.QUEUED,
+        )),
+        Reconstruction.updated_at < func.now() - LEASE_TIMEOUT,
     )
+
+    # A worker that died without SIGTERM (e.g. a spot node force-killed) leaves its lease stuck
+    # off-queue. Fail it only once it has exhausted its requeue budget; otherwise return it to the
+    # queue so a fresh worker retries (the budget bounds retries so a job that always stalls can't
+    # loop forever). Runs in its own transaction so the requeue/fail persists even when no job is
+    # granted below — the lease-grant path commits only on success and rolls back on the 404.
+    async with SessionLocal() as reaper_session, reaper_session.begin():
+        await reaper_session.execute(
+            update(Reconstruction)
+            .where(*stale_filter, Reconstruction.requeue_count >= MAX_REQUEUE_ATTEMPTS)
+            .values(
+                status=ReconstructionStatus.FAILED,
+                error=f"Lease timed out after {MAX_REQUEUE_ATTEMPTS} requeue attempts",
+                progress_current=None,
+                progress_total=None,
+                progress_attempt=None,
+            )
+        )
+        await reaper_session.execute(
+            update(Reconstruction)
+            .where(*stale_filter, Reconstruction.requeue_count < MAX_REQUEUE_ATTEMPTS)
+            .values(
+                status=ReconstructionStatus.QUEUED,
+                requeue_count=Reconstruction.requeue_count + 1,
+                error=None,
+                progress_current=None,
+                progress_total=None,
+                progress_attempt=None,
+            )
+        )
 
     result = await session.execute(
         select(Reconstruction)
@@ -139,6 +166,29 @@ async def fail_lease(session: AsyncSession, id: UUID, data: FailLeaseRequest) ->
     await session.commit()
 
 
+@put("/{id:uuid}/requeue")
+async def requeue_lease(session: AsyncSession, id: UUID) -> None:
+    row = await session.get(Reconstruction, id)
+
+    if not row:
+        raise NotFoundException("Reconstruction not found")
+
+    if row.requeue_count >= MAX_REQUEUE_ATTEMPTS:
+        row.status = ReconstructionStatus.FAILED
+        row.error = f"Exceeded {MAX_REQUEUE_ATTEMPTS} requeue attempts"
+    else:
+        row.status = ReconstructionStatus.QUEUED
+        row.error = None
+        row.requeue_count += 1
+
+    row.progress_current = None
+    row.progress_total = None
+    row.progress_attempt = None
+
+    await session.flush()
+    await session.commit()
+
+
 async def _finalize_lease(session: AsyncSession, id: UUID, status: ReconstructionStatus) -> Reconstruction:
     row = await session.get(Reconstruction, id)
 
@@ -158,5 +208,5 @@ router = Router(
     path="/leases",
     tags=["Leases"],
     dependencies={"session": Provide(get_session)},
-    route_handlers=[request_lease, update_progress, succeed_lease, fail_lease],
+    route_handlers=[request_lease, update_progress, succeed_lease, fail_lease, requeue_lease],
 )
