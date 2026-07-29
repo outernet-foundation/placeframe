@@ -36,6 +36,8 @@
       kind: StatefulSet
       metadata:
         name: {{ .State.service }}
+        annotations:
+          argocd.argoproj.io/sync-options: Prune=false
       spec:
         replicas: 1
         serviceName: {{ .State.service }}
