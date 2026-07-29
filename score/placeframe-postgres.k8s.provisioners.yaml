@@ -73,6 +73,7 @@
             name: pv-data
           spec:
             accessModes: [ReadWriteOnce]
+            storageClassName: hcloud-volumes
             resources:
               requests:
                 storage: 1Gi
