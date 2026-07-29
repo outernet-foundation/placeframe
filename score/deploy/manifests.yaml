@@ -276,7 +276,7 @@ spec:
     app.kubernetes.io/instance: minio
 ---
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   annotations:
     argocd.argoproj.io/sync-options: Prune=false
@@ -287,6 +287,7 @@ spec:
   selector:
     matchLabels:
       app.kubernetes.io/instance: minio
+  serviceName: minio
   template:
     metadata:
       labels:
@@ -316,9 +317,15 @@ spec:
           volumeMounts:
             - mountPath: /data
               name: data
-      volumes:
-        - emptyDir: {}
-          name: data
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 50Gi
 ---
 apiVersion: batch/v1
 kind: Job
@@ -355,7 +362,7 @@ metadata:
   annotations:
     k8s.score.dev/workload-name: api
   labels:
-    app.kubernetes.io/instance: api-fc1f1475de
+    app.kubernetes.io/instance: api-40b47a7230
     app.kubernetes.io/managed-by: score-k8s
     app.kubernetes.io/name: api
   name: api
@@ -367,7 +374,7 @@ spec:
       protocol: TCP
       targetPort: 8000
   selector:
-    app.kubernetes.io/instance: api-fc1f1475de
+    app.kubernetes.io/instance: api-40b47a7230
 status:
   loadBalancer: {}
 ---
@@ -377,7 +384,7 @@ metadata:
   annotations:
     k8s.score.dev/workload-name: api
   labels:
-    app.kubernetes.io/instance: api-fc1f1475de
+    app.kubernetes.io/instance: api-40b47a7230
     app.kubernetes.io/managed-by: score-k8s
     app.kubernetes.io/name: api
   name: api
@@ -385,14 +392,14 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app.kubernetes.io/instance: api-fc1f1475de
+      app.kubernetes.io/instance: api-40b47a7230
   strategy: {}
   template:
     metadata:
       annotations:
         k8s.score.dev/workload-name: api
       labels:
-        app.kubernetes.io/instance: api-fc1f1475de
+        app.kubernetes.io/instance: api-40b47a7230
         app.kubernetes.io/managed-by: score-k8s
         app.kubernetes.io/name: api
     spec:
@@ -493,7 +500,7 @@ metadata:
   annotations:
     k8s.score.dev/workload-name: gateway
   labels:
-    app.kubernetes.io/instance: gateway-e13dc711e8
+    app.kubernetes.io/instance: gateway-2e83422090
     app.kubernetes.io/managed-by: score-k8s
     app.kubernetes.io/name: gateway
   name: gateway
@@ -505,7 +512,7 @@ spec:
       protocol: TCP
       targetPort: 8443
   selector:
-    app.kubernetes.io/instance: gateway-e13dc711e8
+    app.kubernetes.io/instance: gateway-2e83422090
 status:
   loadBalancer: {}
 ---
@@ -515,7 +522,7 @@ metadata:
   annotations:
     k8s.score.dev/workload-name: gateway
   labels:
-    app.kubernetes.io/instance: gateway-e13dc711e8
+    app.kubernetes.io/instance: gateway-2e83422090
     app.kubernetes.io/managed-by: score-k8s
     app.kubernetes.io/name: gateway
   name: gateway
@@ -523,14 +530,14 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app.kubernetes.io/instance: gateway-e13dc711e8
+      app.kubernetes.io/instance: gateway-2e83422090
   strategy: {}
   template:
     metadata:
       annotations:
         k8s.score.dev/workload-name: gateway
       labels:
-        app.kubernetes.io/instance: gateway-e13dc711e8
+        app.kubernetes.io/instance: gateway-2e83422090
         app.kubernetes.io/managed-by: score-k8s
         app.kubernetes.io/name: gateway
     spec:
@@ -557,7 +564,7 @@ metadata:
   annotations:
     k8s.score.dev/workload-name: lease-server
   labels:
-    app.kubernetes.io/instance: lease-server-158ad79e09
+    app.kubernetes.io/instance: lease-server-0fc42ec757
     app.kubernetes.io/managed-by: score-k8s
     app.kubernetes.io/name: lease-server
   name: lease-server
@@ -569,7 +576,7 @@ spec:
       protocol: TCP
       targetPort: 8000
   selector:
-    app.kubernetes.io/instance: lease-server-158ad79e09
+    app.kubernetes.io/instance: lease-server-0fc42ec757
 status:
   loadBalancer: {}
 ---
@@ -579,7 +586,7 @@ metadata:
   annotations:
     k8s.score.dev/workload-name: lease-server
   labels:
-    app.kubernetes.io/instance: lease-server-158ad79e09
+    app.kubernetes.io/instance: lease-server-0fc42ec757
     app.kubernetes.io/managed-by: score-k8s
     app.kubernetes.io/name: lease-server
   name: lease-server
@@ -587,14 +594,14 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app.kubernetes.io/instance: lease-server-158ad79e09
+      app.kubernetes.io/instance: lease-server-0fc42ec757
   strategy: {}
   template:
     metadata:
       annotations:
         k8s.score.dev/workload-name: lease-server
       labels:
-        app.kubernetes.io/instance: lease-server-158ad79e09
+        app.kubernetes.io/instance: lease-server-0fc42ec757
         app.kubernetes.io/managed-by: score-k8s
         app.kubernetes.io/name: lease-server
     spec:
