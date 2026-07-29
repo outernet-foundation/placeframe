@@ -29,6 +29,8 @@
       kind: Deployment
       metadata:
         name: {{ .State.service }}
+        annotations:
+          argocd.argoproj.io/sync-options: Prune=false
       spec:
         replicas: 1
         selector:
