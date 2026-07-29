@@ -337,20 +337,24 @@ class LocalizationSessionRead(BaseModel):
 
 class ReconstructionCreate(BaseModel):
     id: UUID | None = Field(default=None, title="Id")
+    requeue_count: int | None = Field(default=None, title="Requeue Count")
     capture_session_id: UUID | None = Field(default=None, title="Capture Session Id")
 
 
 class ReconstructionBatchCreate(BaseModel):
     id: UUID = Field(..., title="Id")
+    requeue_count: int | None = Field(default=None, title="Requeue Count")
     capture_session_id: UUID | None = Field(default=None, title="Capture Session Id")
 
 
 class ReconstructionUpdate(BaseModel):
+    requeue_count: int | None = Field(default=None, title="Requeue Count")
     capture_session_id: UUID | None = Field(default=None, title="Capture Session Id")
 
 
 class ReconstructionBatchUpdate(BaseModel):
     id: UUID = Field(..., title="Id")
+    requeue_count: int | None = Field(default=None, title="Requeue Count")
     capture_session_id: UUID | None = Field(default=None, title="Capture Session Id")
 
 
@@ -573,6 +577,7 @@ class ReconstructionRead(BaseModel):
     status: ReconstructionStatus
     manifest_version: int = Field(..., title="Manifest Version")
     manifest: dict[str, Any] = Field(..., title="Manifest")
+    requeue_count: int = Field(..., title="Requeue Count")
     capture_session_id: UUID | None = Field(default=None, title="Capture Session Id")
     progress_current: int | None = Field(default=None, title="Progress Current")
     progress_total: int | None = Field(default=None, title="Progress Total")

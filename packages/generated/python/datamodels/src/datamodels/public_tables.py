@@ -289,6 +289,7 @@ class Reconstruction(Base):
     )
     manifest_version: Mapped[int] = mapped_column(SmallInteger, nullable=False)
     manifest: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    requeue_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
     capture_session_id: Mapped[Optional[uuid.UUID]] = mapped_column(Uuid)
     progress_current: Mapped[Optional[int]] = mapped_column(Integer)
     progress_total: Mapped[Optional[int]] = mapped_column(Integer)
