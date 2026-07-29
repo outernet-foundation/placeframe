@@ -282,6 +282,7 @@ class Reconstruction(Base):
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("uuid_generate_v4()"))
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
     updated_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
+    requeue_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
     status: Mapped[ReconstructionStatus] = mapped_column(
         Enum(ReconstructionStatus, name="reconstruction_status", values_callable=enum_values),
         nullable=False,
