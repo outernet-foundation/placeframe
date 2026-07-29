@@ -67,6 +67,7 @@
             name: data
           spec:
             accessModes: [ReadWriteOnce]
+            storageClassName: hcloud-volumes
             resources:
               requests:
                 storage: 50Gi
