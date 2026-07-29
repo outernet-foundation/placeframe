@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from .settings import get_settings
 
 if os.environ.get("CODEGEN"):
+    SessionLocal = async_sessionmaker(class_=AsyncSession)
 
     async def get_session() -> AsyncGenerator[AsyncSession]:
         yield AsyncSession()
