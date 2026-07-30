@@ -2,7 +2,7 @@
 
 ## What this is
 
-The reconstructor is a single-process GPU worker that turns capture sessions into sparse 3D maps. It pulls jobs over a Postgres-backed lease API, downloads a tar of images and VIO truth poses from MinIO, runs a six-phase pipeline (extract features, generate pairs, train OPQ/PQ, encode, match, verify two-view geometry, run COLMAP incremental SfM), and writes the resulting artifacts back to MinIO at `dev-reconstructions/<reconstruction_id>/`. Stack-level data flow and the recovery gap that motivates this SPEC's failure-mode section are in `docker/SPEC.md`.
+The reconstructor is a single-process GPU worker that turns capture sessions into sparse 3D maps. It pulls jobs over a Postgres-backed lease API, downloads a tar of images and VIO truth poses from MinIO, runs a six-phase pipeline (extract features, generate pairs, train OPQ/PQ, encode, match, verify two-view geometry, run COLMAP incremental SfM), and writes the resulting artifacts back to MinIO at `dev-reconstructions/<reconstruction_id>/`. It is built for preemptible (spot) compute: a SIGTERM eviction requeues the in-flight job rather than failing it, and re-running is safe because artifacts overwrite. Stack-level data flow is in `docker/SPEC.md`.
 
 ## Shape
 
@@ -12,7 +12,7 @@ The reconstructor is a single-process GPU worker that turns capture sessions int
 docker/reconstructor/
 |-- Dockerfile             FROM neural-networks-base; PYTORCH_ALLOC_CONF=expandable_segments:True
 |-- entrypoint.sh          uv run reconstructor (debugpy when DEBUG=true)
-|-- pyproject.toml         core, common, placeframe-api-client, pycolmap, scipy
+|-- pyproject.toml         core, common, placeframe-lease-server-client, pycolmap, scipy
 |-- src/reconstructor/
 |   |-- main.py            worker_loop -- lease poll + dispatch + succeed/fail
 |   |-- run_reconstruction.py   model load + pipeline orchestrator
@@ -27,32 +27,29 @@ docker/reconstructor/
 |   |-- options_builder.py ReconstructionOptions -> pycolmap option structs
 |   |-- metrics_builder.py Verified-match buckets + reconstruction-quality metrics
 |   |-- progress_publisher.py ~2 Hz throttled progress PUT into the API
-|   `-- settings.py        pydantic-settings: API URL, auth, MinIO creds, bucket names
+|   `-- settings.py        pydantic-settings: lease-server URL, MinIO creds, bucket names
 `-- tests/
     `-- test_rig.py        Held-out-timestamp filter (the only test)
 ```
 
 ### Lease loop
 
-`main.worker_loop` (`src/reconstructor/main.py:26`) is a single coroutine that:
+`main.worker_loop` (`src/reconstructor/main.py:32`) opens an `ApiClient` against `lease_server_url` and loops. There is **no auth**: the lease-server binds only to the compose-internal network and runs no auth middleware, so no token is fetched or sent (see `docker/SPEC.md`). Each iteration:
 
-1. Builds a `TokenManager` against `auth_token_url` with the RSA private key at `private_key_path` (`common.token_manager.TokenManager`, OAuth2 client-credentials with a JWT client-assertion).
-2. Loops:
-   - Refreshes the bearer token; writes it into both `configuration.access_token` and `api_client.default_headers["Authorization"]`.
-   - `await api.request_lease()`. 404 -> sleep 5 s. Any other `ApiException` -> log critical error, sleep 5 s. There is no exponential backoff and no separate 401 handler (the next iteration's token refresh covers token expiry).
-   - Build a `ReconstructionPublisher` and dispatch `run_reconstruction(...)` onto `loop.run_in_executor(None, ...)`. The pipeline is fully sync; the default executor (a `ThreadPoolExecutor`) runs it on a worker thread while the event loop stays live to service progress writes.
-   - On success: `await api.succeed_lease(reconstruction_id, metrics)`. On any pipeline-or-succeed exception: `await api.fail_lease(reconstruction_id, str(e))`.
-   - `CancelledError` exits cleanly. Any other exception sleeps 5 s and re-loops.
+- `await api.request_lease()`. 404 -> sleep 5 s. Any other `ApiException` -> log critical error, sleep 5 s. No exponential backoff.
+- Build a `ReconstructionPublisher` and dispatch `run_reconstruction(...)` onto `loop.run_in_executor(None, ...)`. The pipeline is fully sync; the default executor (a `ThreadPoolExecutor`) runs it on a worker thread while the event loop stays live to service progress writes.
+- On success: `await api.succeed_lease(reconstruction_id, metrics)`. On any pipeline-or-succeed exception: `await api.fail_lease(reconstruction_id, str(e))`.
+- `CancelledError` (Ctrl+C) exits cleanly; a SIGTERM eviction takes the requeue path below. Any other exception sleeps 5 s and re-loops.
 
-Concurrency: the worker holds at most one in-flight job. Horizontal scale is N replicas; `request_lease` uses `SELECT ... FOR UPDATE SKIP LOCKED` on the API side so replicas can poll the queue safely. The DB-side `LEASE_TIMEOUT = 30 minutes` (`docker/api/src/routers/leases.py:21`) is the only ceiling on a job; the worker enforces no wall-clock limit of its own.
+Concurrency: the worker holds at most one in-flight job. Horizontal scale is N replicas; `request_lease` uses `SELECT ... FOR UPDATE SKIP LOCKED` on the API side so replicas can poll the queue safely. The DB-side `LEASE_TIMEOUT = 30 minutes` (`docker/lease-server/src/routers/leases.py:21`) is the only ceiling on a job; the worker enforces no wall-clock limit of its own.
 
-SIGTERM is wired through `signal(SIGTERM, handle_sigterm)` to raise `CancelledError`. The event loop catches it cleanly, but the executor thread cannot be cancelled, so a SIGTERM mid-reconstruction lets the pipeline keep running until it returns. The worker may exit before having marked the lease terminal.
+SIGTERM (a spot-eviction notice) is handled via `loop.add_signal_handler(SIGTERM, ...)` — not a raw `signal` handler, because the response is an async call. `worker_loop` tracks the in-flight `reconstruction_id`; on SIGTERM the worker requeues that lease (`api.requeue_lease`, flipping it back to `QUEUED`) and then `os._exit(0)`s immediately, abandoning the still-running executor thread. It does **not** wait for the pipeline to finish or call `fail_lease`. A SIGTERM while idle just exits.
 
 ### Pipeline phases
 
 `run_reconstruction(reconstruction_id, capture_id, options, publisher)` (`src/reconstructor/run_reconstruction.py:78`) is `@inference_mode()` and returns a `ReconstructionMetrics`. Phases are published via `ReconstructionPublisher.set_phase`, which corresponds to the `ReconstructionStatus` enum that the row's `status` column tracks. Order:
 
-1. **(pre-work, status=`EXTRACTING_FEATURES`)** Set by the lease handler (`docker/api/src/routers/leases.py:71-72`) when the lease is granted. The reconstructor's first acts under this status are `s3_client.get_object(captures_bucket, "<capture_id>.tar")["Body"].read()` (whole tar into RAM), `tarfile.extractall` into `/tmp/reconstruction/capture_session`, `manifest.json` parse into `CaptureSessionManifest`, and rig build (`rig.py`): each rig must have exactly one ref-sensor camera with identity pose; multi-camera rigs are restricted to the OpenCV axis convention; held-out frame timestamps drop matching rows from `frame_poses` here. Each rig then runs an offline distance-based keyframe pre-pass (`keyframes.select_keyframes_by_distance`) over per-frame VIO translations and `frame_poses` is filtered down to the kept set. No per-step progress.
+1. **(pre-work, status=`EXTRACTING_FEATURES`)** Set by the lease handler (`docker/lease-server/src/routers/leases.py:71-72`) when the lease is granted. The reconstructor's first acts under this status are `s3_client.get_object(captures_bucket, "<capture_id>.tar")["Body"].read()` (whole tar into RAM), `tarfile.extractall` into `/tmp/reconstruction/capture_session`, `manifest.json` parse into `CaptureSessionManifest`, and rig build (`rig.py`): each rig must have exactly one ref-sensor camera with identity pose; multi-camera rigs are restricted to the OpenCV axis convention; held-out frame timestamps drop matching rows from `frame_poses` here. Each rig then runs an offline distance-based keyframe pre-pass (`keyframes.select_keyframes_by_distance`) over per-frame VIO translations and `frame_poses` is filtered down to the kept set. No per-step progress.
 2. **`EXTRACTING_FEATURES` (with progress)** -- per image: orientation-canonicalize, write back over the on-disk JPG (so COLMAP samples the processed image for point-cloud colorization), then run ALIKED locally and DIR per-tile globally. ALIKED's `dkd.n_limit` was mutated on the module-global model instance at the top of the pipeline to honor `max_keypoints_per_image` (default 2500). `global_descriptors.h5` uploads at the end of this phase. `set_phase(EXTRACTING_FEATURES, total=len(images))` re-emits with the real total, replacing the lease-time no-progress placeholder. After all features are extracted (still under `EXTRACTING_FEATURES`, no phase change), `pairs.generate_image_pairs` (`src/reconstructor/pairs.py`) runs once over three pair sources together: sequential (each frame paired with the next `sequential_window`, default 10, frames in its rig's timestamp-sorted order), spatial (each frame paired with its `spatial_neighbors`, default 25, closest in-range neighbours by VIO position within `spatial_max_distance_m`, default 6.0 m — skipped when positions are absent), and retrieval (top `retrieval_neighbors`, default 20, by global-descriptor cosine similarity, max-pooled over per-image tiles and L2-normalized, gated by `retrieval_min_score` plus `retrieval_min_distance_m` when position priors are available). Frame-pair tuples expand into image pairs by crossing all cameras of rig A against all cameras of rig B, plus all intra-frame camera pairs. Pairs are canonicalized as `(min, max)`, deduped, sorted, and `pairs.txt` uploads.
 3. **`TRAINING_OPQ_MATRIX`** -- all per-image descriptors are `vstack`-ed into one contiguous array; FAISS trains the OPQ matrix; `opq_matrix.tf` uploads. No per-step progress (single FAISS call).
 4. **`TRAINING_PRODUCT_QUANTIZER`** -- FAISS trains the PQ over OPQ-rotated descriptors; `pq_quantizer.pq` uploads. `encode_descriptors` produces per-image uint8 PQ codes; `features.h5` uploads (containing keypoints + PQ codes).
@@ -123,10 +120,11 @@ Sampling `Sensor.TYPE_GRAVITY` (Android) / `CMMotionManager.deviceMotion.gravity
 
 ### Lease lifecycle cross-reference
 
-The full lease state machine lives in `docker/api/src/routers/leases.py`. Worth knowing here:
+The full lease state machine lives in `docker/lease-server/src/routers/leases.py`. Worth knowing here:
 
 - A row's `status` column itself encodes the lease ("claimed" = any non-terminal, non-QUEUED state). There is no separate lease table.
-- `LEASE_TIMEOUT = 30 minutes` runs at the start of every `request_lease`: any non-terminal, non-QUEUED row whose `updated_at` is older than 30 minutes flips to `FAILED` with error `"Lease timed out"`. `updated_at` is touched by a Postgres trigger on every progress write, so 2 Hz publisher heartbeats keep the lease alive indefinitely.
+- `LEASE_TIMEOUT = 30 minutes` runs at the start of every `request_lease`: any non-terminal, non-QUEUED row whose `updated_at` is older than 30 minutes is **requeued** (`status='QUEUED'`, `requeue_count += 1`) — so a worker killed without a SIGTERM (hard node loss) still retries — unless it has already spent `MAX_REQUEUE_ATTEMPTS` (5), in which case it flips to `FAILED`. The reap runs in its own committed transaction, so it persists even when no job is granted that poll. `updated_at` is touched by a Postgres trigger on every progress write, so 2 Hz publisher heartbeats keep the lease alive indefinitely.
+- Requeue transition: `PUT /leases/{id}/requeue` sets `status='QUEUED'` (or `FAILED` past the cap) and clears progress/error. Called by the reconstructor's SIGTERM handler; the reaper applies the same logic in bulk.
 - `succeed_lease` merges new `metrics` into the existing `manifest.options` to produce `Manifest(options=existing.options, metrics=data)` and writes it back to the JSONB column. `fail_lease` does not touch the manifest.
 
 ## Constraints
@@ -138,6 +136,8 @@ The full lease state machine lives in `docker/api/src/routers/leases.py`. Worth 
 **Keyframe selection by VIO translation distance.** Each rig runs an offline pre-pass over its `frame_poses[*].translation` series. The first frame of the rig is always kept; each subsequent frame is kept iff its translation from the last-kept keyframe is at least `keyframe_min_distance_m` (default 0.3 m). Output filters `frame_poses` down to the kept set and the rest of the pipeline sees only keyframes. The previous Lucas-Kanade-parallax selector was removed: median optical flow integrates apparent motion regardless of baseline, so pure rotation in place produced clusters of zero-baseline keyframes, pure forward motion produced too few, and textureless walls forced every frame to be kept via the LK-failure fall-through. Distance-based selection on device priors sidesteps all three failure modes by reading the camera's own VIO translation directly. Requires translations to be present — captures whose `frames.csv` lacks position columns fail loudly at the keyframe step rather than silently degrading to LK behaviour.
 
 **Worker-loop-over-Postgres lease, not a message queue.** Reconstruction is long, restart-survivable, and at-most-once-execution semantics matter (running twice wastes GPU minutes and re-uploads identical artifacts). A Postgres row with `FOR UPDATE SKIP LOCKED` selection gives all three properties without standing up a separate queue. The row also doubles as the user-facing status, which removes a sync.
+
+**Eviction requeues; it does not fail.** A spot node reclaims its worker with a ~2-minute SIGTERM; a hard node loss gives no signal at all. On SIGTERM the worker requeues its in-flight lease and `os._exit(0)`s — it deliberately does not route through `fail_lease`, which is reserved for genuine pipeline errors that should stay `FAILED` rather than retry (and `os._exit` skips it regardless). A hard kill leaves the lease stuck until the 30-minute reaper requeues it. Both paths are bounded by `MAX_REQUEUE_ATTEMPTS` (5) so a job that always stalls eventually fails instead of looping forever; re-running is safe because artifacts overwrite under `<id>/`. Deliberately omitted: the reaper does not check MinIO for a completed `sfm_model/` before requeuing — re-running a finished-but-unreported job once is cheaper than coupling the lease service to object storage.
 
 **Single-process, single-job worker.** GPU memory ownership is exclusive in practice (LightGlue + ALIKED + DIR + pycolmap allocations would fight for VRAM under concurrency). Letting the worker hold at most one job and scaling horizontally by replicas keeps the GPU-allocation model simple. The cost is that mutable globals (`_aliked_model.dkd.n_limit`, `DEVICE`) are safe -- a constraint that would break under in-process concurrency.
 
@@ -191,5 +191,5 @@ The full lease state machine lives in `docker/api/src/routers/leases.py`. Worth 
 
 - `docker/SPEC.md` -- stack-level data flow, MinIO bucket layout, and the multi-service relationships this reconstructor sits inside.
 - `.pulsar/debugging.md` -- operator runbook including the "`sfm_model/` presence means SfM completed regardless of DB status" recovery hazard.
-- `docker/api/src/routers/leases.py` -- the API-side lease state machine (request, progress, succeed, fail, reaper). Read this when reasoning about timeout or recovery behavior.
+- `docker/lease-server/src/routers/leases.py` -- the API-side lease state machine (request, progress, succeed, fail, reaper). Read this when reasoning about timeout or recovery behavior.
 - `packages/python/core/src/core/reconstruction_options.py` and `reconstruction_metrics.py` -- the shared option / metric schema. The reconstructor reads options, writes metrics; both flow through the row's `manifest` column.
