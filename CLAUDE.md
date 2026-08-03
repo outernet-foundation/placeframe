@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Be concise in all responses. Prefer terse phrasing over full grammar, but never at the cost of losing context or meaning — keep whatever detail is needed to stay clear and complete.
 
+**Never produce giant walls of text.** Break every response into short, scannable pieces — headers, tight bullets, small paragraphs. When asked to explain, give concise chunks, not a monologue. Concision never justifies dropping detail: keep every fact, flag, and caveat the answer needs — compress the prose around them, don't cut them.
+
 ## What This Project Is
 
 **Placeframe** is a self-hosted XR spatial localization system ("relocalization as a service"). It determines an XR device's position and rotation relative to a canonical reference frame for a physical space — an open-source alternative to Apple Shared World Anchors, Google ARCore Cloud Anchors, etc.
