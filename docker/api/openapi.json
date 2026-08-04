@@ -6002,6 +6002,11 @@
             "type": "string",
             "format": "uuid"
           },
+          "requeue_count": {
+            "title": "Requeue Count",
+            "nullable": true,
+            "type": "integer"
+          },
           "capture_session_id": {
             "title": "Capture Session Id",
             "nullable": true,
@@ -6290,6 +6295,10 @@
             "title": "Created At",
             "description": "datetime with the constraint that the value must have timezone info"
           },
+          "requeue_count": {
+            "type": "integer",
+            "title": "Requeue Count"
+          },
           "status": {
             "$ref": "#/components/schemas/ReconstructionStatus"
           },
@@ -6343,6 +6352,7 @@
           "id",
           "manifest",
           "manifest_version",
+          "requeue_count",
           "status",
           "updated_at"
         ],

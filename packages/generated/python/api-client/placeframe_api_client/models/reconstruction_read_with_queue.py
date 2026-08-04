@@ -33,6 +33,7 @@ class ReconstructionReadWithQueue(BaseModel):
     id: UUID
     created_at: datetime = Field(description="datetime with the constraint that the value must have timezone info")
     updated_at: datetime = Field(description="datetime with the constraint that the value must have timezone info")
+    requeue_count: StrictInt
     status: ReconstructionStatus
     manifest_version: StrictInt
     manifest: Dict[str, Any]
@@ -44,7 +45,7 @@ class ReconstructionReadWithQueue(BaseModel):
     queue_position: Optional[StrictInt] = None
     queue_depth: Optional[StrictInt] = None
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["id", "created_at", "updated_at", "status", "manifest_version", "manifest", "capture_session_id", "progress_current", "progress_total", "progress_attempt", "error", "queue_position", "queue_depth"]
+    __properties: ClassVar[List[str]] = ["id", "created_at", "updated_at", "requeue_count", "status", "manifest_version", "manifest", "capture_session_id", "progress_current", "progress_total", "progress_attempt", "error", "queue_position", "queue_depth"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -142,6 +143,7 @@ class ReconstructionReadWithQueue(BaseModel):
             "id": obj.get("id"),
             "created_at": obj.get("created_at"),
             "updated_at": obj.get("updated_at"),
+            "requeue_count": obj.get("requeue_count"),
             "status": obj.get("status"),
             "manifest_version": obj.get("manifest_version"),
             "manifest": obj.get("manifest"),

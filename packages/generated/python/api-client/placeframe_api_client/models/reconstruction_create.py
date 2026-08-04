@@ -17,7 +17,7 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, StrictInt
 from typing import Any, ClassVar, Dict, List, Optional
 from uuid import UUID
 from typing import Optional, Set
@@ -29,9 +29,10 @@ class ReconstructionCreate(BaseModel):
     ReconstructionCreate
     """ # noqa: E501
     id: Optional[UUID] = None
+    requeue_count: Optional[StrictInt] = None
     capture_session_id: Optional[UUID] = None
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["id", "capture_session_id"]
+    __properties: ClassVar[List[str]] = ["id", "requeue_count", "capture_session_id"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -84,6 +85,11 @@ class ReconstructionCreate(BaseModel):
         if self.id is None and "id" in self.model_fields_set:
             _dict['id'] = None
 
+        # set to None if requeue_count (nullable) is None
+        # and model_fields_set contains the field
+        if self.requeue_count is None and "requeue_count" in self.model_fields_set:
+            _dict['requeue_count'] = None
+
         # set to None if capture_session_id (nullable) is None
         # and model_fields_set contains the field
         if self.capture_session_id is None and "capture_session_id" in self.model_fields_set:
@@ -102,6 +108,7 @@ class ReconstructionCreate(BaseModel):
 
         _obj = cls.model_validate({
             "id": obj.get("id"),
+            "requeue_count": obj.get("requeue_count"),
             "capture_session_id": obj.get("capture_session_id")
         })
         # store additional fields in additional_properties

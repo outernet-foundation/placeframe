@@ -68,6 +68,7 @@ namespace PlaceframeApiClient.Model
         /// <param name="id">id (required).</param>
         /// <param name="createdAt">datetime with the constraint that the value must have timezone info (required).</param>
         /// <param name="updatedAt">datetime with the constraint that the value must have timezone info (required).</param>
+        /// <param name="requeueCount">requeueCount (required).</param>
         /// <param name="status">status (required).</param>
         /// <param name="manifestVersion">manifestVersion (required).</param>
         /// <param name="manifest">manifest (required).</param>
@@ -78,11 +79,12 @@ namespace PlaceframeApiClient.Model
         /// <param name="error">error.</param>
         /// <param name="queuePosition">queuePosition.</param>
         /// <param name="queueDepth">queueDepth.</param>
-        public ReconstructionReadWithQueue(Guid id, DateTime createdAt, DateTime updatedAt, ReconstructionStatus status, int manifestVersion, Dictionary<string, Object> manifest)
+        public ReconstructionReadWithQueue(Guid id, DateTime createdAt, DateTime updatedAt, int requeueCount, ReconstructionStatus status, int manifestVersion, Dictionary<string, Object> manifest)
         {
             this.Id = id;
             this.CreatedAt = createdAt;
             this.UpdatedAt = updatedAt;
+            this.RequeueCount = requeueCount;
             this.Status = status;
             this.ManifestVersion = manifestVersion;
             // to ensure "manifest" is required (not null)
@@ -166,6 +168,30 @@ namespace PlaceframeApiClient.Model
         public bool ShouldSerializeUpdatedAt()
         {
             return _flagUpdatedAt;
+        }
+        /// <summary>
+        /// Gets or Sets RequeueCount
+        /// </summary>
+        [DataMember(Name = "requeue_count", IsRequired = true, EmitDefaultValue = true)]
+        public int RequeueCount
+        {
+            get{ return _RequeueCount;}
+            set
+            {
+                _RequeueCount = value;
+                _flagRequeueCount = true;
+            }
+        }
+        private int _RequeueCount;
+        private bool _flagRequeueCount;
+
+        /// <summary>
+        /// Returns false as RequeueCount should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeRequeueCount()
+        {
+            return _flagRequeueCount;
         }
         /// <summary>
         /// Gets or Sets ManifestVersion
@@ -394,6 +420,7 @@ namespace PlaceframeApiClient.Model
             sb.Append("  Id: ").Append(Id).Append("\n");
             sb.Append("  CreatedAt: ").Append(CreatedAt).Append("\n");
             sb.Append("  UpdatedAt: ").Append(UpdatedAt).Append("\n");
+            sb.Append("  RequeueCount: ").Append(RequeueCount).Append("\n");
             sb.Append("  Status: ").Append(Status).Append("\n");
             sb.Append("  ManifestVersion: ").Append(ManifestVersion).Append("\n");
             sb.Append("  Manifest: ").Append(Manifest).Append("\n");
