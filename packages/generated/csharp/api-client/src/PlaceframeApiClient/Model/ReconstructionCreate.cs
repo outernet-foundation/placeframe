@@ -35,6 +35,7 @@ namespace PlaceframeApiClient.Model
         /// Initializes a new instance of the <see cref="ReconstructionCreate" /> class.
         /// </summary>
         /// <param name="id">id.</param>
+        /// <param name="requeueCount">requeueCount.</param>
         /// <param name="captureSessionId">captureSessionId.</param>
         public ReconstructionCreate()
         {
@@ -63,6 +64,30 @@ namespace PlaceframeApiClient.Model
         public bool ShouldSerializeId()
         {
             return _flagId;
+        }
+        /// <summary>
+        /// Gets or Sets RequeueCount
+        /// </summary>
+        [DataMember(Name = "requeue_count", EmitDefaultValue = true)]
+        public int? RequeueCount
+        {
+            get{ return _RequeueCount;}
+            set
+            {
+                _RequeueCount = value;
+                _flagRequeueCount = true;
+            }
+        }
+        private int? _RequeueCount;
+        private bool _flagRequeueCount;
+
+        /// <summary>
+        /// Returns false as RequeueCount should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeRequeueCount()
+        {
+            return _flagRequeueCount;
         }
         /// <summary>
         /// Gets or Sets CaptureSessionId
@@ -97,6 +122,7 @@ namespace PlaceframeApiClient.Model
             StringBuilder sb = new StringBuilder();
             sb.Append("class ReconstructionCreate {\n");
             sb.Append("  Id: ").Append(Id).Append("\n");
+            sb.Append("  RequeueCount: ").Append(RequeueCount).Append("\n");
             sb.Append("  CaptureSessionId: ").Append(CaptureSessionId).Append("\n");
             sb.Append("}\n");
             return sb.ToString();

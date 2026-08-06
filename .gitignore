@@ -19,6 +19,10 @@
 .env
 .env.shas
 .secrets
+score/compose.yaml
+score/manifests.yaml
+score/.score-compose/
+score/.score-k8s/
 metadata.json
 storage/
 tidy-commits.json

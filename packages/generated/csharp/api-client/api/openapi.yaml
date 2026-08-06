@@ -2108,34 +2108,36 @@ components:
         - reconstructions:
           - reconstruction:
               capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-              queue_position: 5
+              queue_position: 2
               manifest:
                 key: ""
               created_at: 2000-01-23T04:56:07.000+00:00
               error: error
               progress_attempt: 5
-              progress_current: 6
+              progress_current: 1
               updated_at: 2000-01-23T04:56:07.000+00:00
-              progress_total: 1
-              manifest_version: 0
-              queue_depth: 2
+              progress_total: 5
+              manifest_version: 6
+              queue_depth: 7
               id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+              requeue_count: 0
               status: queued
             localization_map_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
           - reconstruction:
               capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-              queue_position: 5
+              queue_position: 2
               manifest:
                 key: ""
               created_at: 2000-01-23T04:56:07.000+00:00
               error: error
               progress_attempt: 5
-              progress_current: 6
+              progress_current: 1
               updated_at: 2000-01-23T04:56:07.000+00:00
-              progress_total: 1
-              manifest_version: 0
-              queue_depth: 2
+              progress_total: 5
+              manifest_version: 6
+              queue_depth: 7
               id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+              requeue_count: 0
               status: queued
             localization_map_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
           capture_session:
@@ -2149,34 +2151,36 @@ components:
         - reconstructions:
           - reconstruction:
               capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-              queue_position: 5
+              queue_position: 2
               manifest:
                 key: ""
               created_at: 2000-01-23T04:56:07.000+00:00
               error: error
               progress_attempt: 5
-              progress_current: 6
+              progress_current: 1
               updated_at: 2000-01-23T04:56:07.000+00:00
-              progress_total: 1
-              manifest_version: 0
-              queue_depth: 2
+              progress_total: 5
+              manifest_version: 6
+              queue_depth: 7
               id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+              requeue_count: 0
               status: queued
             localization_map_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
           - reconstruction:
               capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-              queue_position: 5
+              queue_position: 2
               manifest:
                 key: ""
               created_at: 2000-01-23T04:56:07.000+00:00
               error: error
               progress_attempt: 5
-              progress_current: 6
+              progress_current: 1
               updated_at: 2000-01-23T04:56:07.000+00:00
-              progress_total: 1
-              manifest_version: 0
-              queue_depth: 2
+              progress_total: 5
+              manifest_version: 6
+              queue_depth: 7
               id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+              requeue_count: 0
               status: queued
             localization_map_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
           capture_session:
@@ -2336,34 +2340,36 @@ components:
         reconstructions:
         - reconstruction:
             capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-            queue_position: 5
+            queue_position: 2
             manifest:
               key: ""
             created_at: 2000-01-23T04:56:07.000+00:00
             error: error
             progress_attempt: 5
-            progress_current: 6
+            progress_current: 1
             updated_at: 2000-01-23T04:56:07.000+00:00
-            progress_total: 1
-            manifest_version: 0
-            queue_depth: 2
+            progress_total: 5
+            manifest_version: 6
+            queue_depth: 7
             id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            requeue_count: 0
             status: queued
           localization_map_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         - reconstruction:
             capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-            queue_position: 5
+            queue_position: 2
             manifest:
               key: ""
             created_at: 2000-01-23T04:56:07.000+00:00
             error: error
             progress_attempt: 5
-            progress_current: 6
+            progress_current: 1
             updated_at: 2000-01-23T04:56:07.000+00:00
-            progress_total: 1
-            manifest_version: 0
-            queue_depth: 2
+            progress_total: 5
+            manifest_version: 6
+            queue_depth: 7
             id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            requeue_count: 0
             status: queued
           localization_map_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         capture_session:
@@ -2390,18 +2396,19 @@ components:
       example:
         reconstruction:
           capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-          queue_position: 5
+          queue_position: 2
           manifest:
             key: ""
           created_at: 2000-01-23T04:56:07.000+00:00
           error: error
           progress_attempt: 5
-          progress_current: 6
+          progress_current: 1
           updated_at: 2000-01-23T04:56:07.000+00:00
-          progress_total: 1
-          manifest_version: 0
-          queue_depth: 2
+          progress_total: 5
+          manifest_version: 6
+          queue_depth: 7
           id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          requeue_count: 0
           status: queued
         localization_map_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
       properties:
@@ -3915,12 +3922,17 @@ components:
       example:
         capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        requeue_count: 0
       properties:
         id:
           format: uuid
           nullable: true
           title: Id
           type: string
+        requeue_count:
+          nullable: true
+          title: Requeue Count
+          type: integer
         capture_session_id:
           format: uuid
           nullable: true
@@ -3931,29 +3943,30 @@ components:
     ReconstructionCreateWithOptions:
       example:
         options:
-          ransac_max_error: 2.3021358869347655
-          pair_vio_em_max_rotation_disagreement_deg: 1.0246457001441578
-          ransac_min_inlier_ratio: 7.061401241503109
+          ransac_max_error: 7.061401241503109
+          pair_vio_em_max_rotation_disagreement_deg: 1.4894159098541704
+          ransac_min_inlier_ratio: 9.301444243932576
           held_out_frame_timestamps:
-          - 1
-          - 1
-          bundle_adjustment_global_function_tolerance: 7.386281948385884
-          pair_vio_em_max_translation_direction_deg: 1.4894159098541704
-          retrieval_min_score: 5.637376656633329
-          pose_prior_position_sigma_m: 1.2315135367772556
-          deterministic_seed: 0
+          - 4
+          - 4
+          bundle_adjustment_global_function_tolerance: 1.2315135367772556
+          pair_vio_em_max_translation_direction_deg: 6.84685269835264
+          retrieval_min_score: 2.3021358869347655
+          pose_prior_position_sigma_m: 1.0246457001441578
+          deterministic_seed: 6
           retrieval_neighbors: 5
-          pair_vio_em_min_baseline_m: 6.84685269835264
-          max_keypoints_per_image: 7
-          mapper_filter_max_reprojection_error: 2.027123023002322
-          keyframe_min_distance_m: 6.027456183070403
-          triangulation_minimum_angle: 3.616076749251911
-          bundle_adjustment_global_frames_ratio: 4.145608029883936
-          two_view_min_num_inliers: 9
-          sequential_window_m: 1.4658129805029452
+          pair_vio_em_min_baseline_m: 7.457744773683766
+          max_keypoints_per_image: 1
+          mapper_filter_max_reprojection_error: 4.145608029883936
+          keyframe_min_distance_m: 1.4658129805029452
+          triangulation_minimum_angle: 2.027123023002322
+          bundle_adjustment_global_frames_ratio: 7.386281948385884
+          two_view_min_num_inliers: 3
+          sequential_window_m: 5.962133916683182
         create:
           capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
           id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          requeue_count: 0
       properties:
         create:
           $ref: "#/components/schemas/ReconstructionCreate"
@@ -4104,26 +4117,26 @@ components:
       type: object
     ReconstructionOptions:
       example:
-        ransac_max_error: 2.3021358869347655
-        pair_vio_em_max_rotation_disagreement_deg: 1.0246457001441578
-        ransac_min_inlier_ratio: 7.061401241503109
+        ransac_max_error: 7.061401241503109
+        pair_vio_em_max_rotation_disagreement_deg: 1.4894159098541704
+        ransac_min_inlier_ratio: 9.301444243932576
         held_out_frame_timestamps:
-        - 1
-        - 1
-        bundle_adjustment_global_function_tolerance: 7.386281948385884
-        pair_vio_em_max_translation_direction_deg: 1.4894159098541704
-        retrieval_min_score: 5.637376656633329
-        pose_prior_position_sigma_m: 1.2315135367772556
-        deterministic_seed: 0
+        - 4
+        - 4
+        bundle_adjustment_global_function_tolerance: 1.2315135367772556
+        pair_vio_em_max_translation_direction_deg: 6.84685269835264
+        retrieval_min_score: 2.3021358869347655
+        pose_prior_position_sigma_m: 1.0246457001441578
+        deterministic_seed: 6
         retrieval_neighbors: 5
-        pair_vio_em_min_baseline_m: 6.84685269835264
-        max_keypoints_per_image: 7
-        mapper_filter_max_reprojection_error: 2.027123023002322
-        keyframe_min_distance_m: 6.027456183070403
-        triangulation_minimum_angle: 3.616076749251911
-        bundle_adjustment_global_frames_ratio: 4.145608029883936
-        two_view_min_num_inliers: 9
-        sequential_window_m: 1.4658129805029452
+        pair_vio_em_min_baseline_m: 7.457744773683766
+        max_keypoints_per_image: 1
+        mapper_filter_max_reprojection_error: 4.145608029883936
+        keyframe_min_distance_m: 1.4658129805029452
+        triangulation_minimum_angle: 2.027123023002322
+        bundle_adjustment_global_frames_ratio: 7.386281948385884
+        two_view_min_num_inliers: 3
+        sequential_window_m: 5.962133916683182
       properties:
         deterministic_seed:
           description: PRNG seed and single-threaded gate for reproducible reconstructions;
@@ -4256,18 +4269,19 @@ components:
     ReconstructionReadWithQueue:
       example:
         capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-        queue_position: 5
+        queue_position: 2
         manifest:
           key: ""
         created_at: 2000-01-23T04:56:07.000+00:00
         error: error
         progress_attempt: 5
-        progress_current: 6
+        progress_current: 1
         updated_at: 2000-01-23T04:56:07.000+00:00
-        progress_total: 1
-        manifest_version: 0
-        queue_depth: 2
+        progress_total: 5
+        manifest_version: 6
+        queue_depth: 7
         id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        requeue_count: 0
         status: queued
       properties:
         id:
@@ -4286,6 +4300,9 @@ components:
           format: date-time
           title: Created At
           type: string
+        requeue_count:
+          title: Requeue Count
+          type: integer
         status:
           $ref: "#/components/schemas/ReconstructionStatus"
         manifest_version:
@@ -4327,6 +4344,7 @@ components:
       - id
       - manifest
       - manifest_version
+      - requeue_count
       - status
       - updated_at
       title: ReconstructionReadWithQueue

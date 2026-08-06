@@ -1,0 +1,110 @@
+# Keycloak provisioner (Kubernetes): emits a Service + StatefulSet. The realm is imported by
+# the auth-initializer initContainer (writes the realm JSON into a shared volume that keycloak
+# reads on --import-realm). Hostname, public URL, and admin password come from the externally
+# managed placeframe-secrets Secret; no values are emitted here. Keycloak can't be a normal
+# Score workload (initContainer + StatefulSet + PVC), so it is provisioned as raw manifests
+# like postgres/minio. Register via: score-k8s init --provisioners <this file>.
+- uri: template://placeframe/keycloak-k8s
+  type: placeframe-keycloak
+  description: Keycloak with realm imported by auth-initializer; hostname/credentials from placeframe-secrets.
+  state: |
+    service: keycloak
+    realm: placeframe-dev
+  outputs: |
+    certs_url: http://{{ .State.service }}:8080/realms/{{ .State.realm }}/protocol/openid-connect/certs
+  manifests: |
+    - apiVersion: v1
+      kind: Service
+      metadata:
+        name: {{ .State.service }}
+      spec:
+        selector:
+          app: {{ .State.service }}
+        ports:
+        - port: 8080
+          targetPort: 8080
+    - apiVersion: apps/v1
+      kind: StatefulSet
+      metadata:
+        name: {{ .State.service }}
+      spec:
+        replicas: 1
+        serviceName: {{ .State.service }}
+        selector:
+          matchLabels:
+            app: {{ .State.service }}
+        template:
+          metadata:
+            labels:
+              app: {{ .State.service }}
+          spec:
+            initContainers:
+            - name: auth-initializer
+              image: ghcr.io/outernet-foundation/placeframe/auth-initializer:tree-10559874f4ec27dc9eab8bbf63e6ab8986ce556f
+              volumeMounts:
+              - name: import
+                mountPath: /keycloak_import
+              - name: auth-data
+                mountPath: /auth_data
+            containers:
+            - name: keycloak
+              image: quay.io/keycloak/keycloak:26.3.5@sha256:357829ec7c4693397533035092ad13b0644bcc95ded311f33a3738c4d9e9bdba
+              args: ["start-dev", "--import-realm", "--health-enabled=true"]
+              ports:
+              - containerPort: 8080
+              env:
+              - name: PUBLIC_URL
+                valueFrom:
+                  secretKeyRef:
+                    name: placeframe-secrets
+                    key: PUBLIC_URL
+              - name: KC_HOSTNAME
+                valueFrom:
+                  secretKeyRef:
+                    name: placeframe-secrets
+                    key: KEYCLOAK_HOSTNAME
+              - name: KC_HOSTNAME_ADMIN
+                valueFrom:
+                  secretKeyRef:
+                    name: placeframe-secrets
+                    key: KEYCLOAK_HOSTNAME
+              - name: KC_PROXY_HEADERS
+                value: xforwarded
+              - name: KC_HOSTNAME_STRICT_HTTPS
+                value: "true"
+              - name: KEYCLOAK_ACCESS_TOKEN_LIFESPAN
+                value: "3600"
+              - name: KEYCLOAK_SSO_SESSION_IDLE_TIMEOUT
+                value: "2592000"
+              - name: KEYCLOAK_SSO_SESSION_MAX_LIFESPAN
+                value: "2592000"
+              - name: KEYCLOAK_ADMIN
+                value: admin
+              - name: KEYCLOAK_ADMIN_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: placeframe-secrets
+                    key: KEYCLOAK_ADMIN_PASSWORD
+              readinessProbe:
+                httpGet:
+                  path: /health/ready
+                  port: 9000
+              volumeMounts:
+              - name: import
+                mountPath: /opt/keycloak/data/import
+                readOnly: true
+              - name: data
+                mountPath: /opt/keycloak/data
+            volumes:
+            - name: import
+              emptyDir: {}
+            - name: auth-data
+              emptyDir: {}
+        volumeClaimTemplates:
+        - metadata:
+            name: data
+          spec:
+            accessModes: [ReadWriteOnce]
+            resources:
+              requests:
+                storage: 1Gi

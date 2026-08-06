@@ -269,6 +269,75 @@
         },
         "deprecated": false
       }
+    },
+    "/leases/{id}/requeue": {
+      "put": {
+        "tags": [
+          "Leases"
+        ],
+        "summary": "RequeueLease",
+        "operationId": "requeue_lease",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "deprecated": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Request fulfilled, document follows",
+            "headers": {}
+          },
+          "400": {
+            "description": "Bad request syntax or unsupported method",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status_code": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "anyOf": [
+                        {
+                          "type": "object"
+                        },
+                        {
+                          "type": "array",
+                          "items": {}
+                        }
+                      ],
+                      "nullable": true
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "description": "Validation Exception",
+                  "example": {
+                    "status_code": 400,
+                    "detail": "Bad Request",
+                    "extra": {}
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
     }
   },
   "components": {

@@ -1,7 +1,9 @@
 import asyncio
+import os
 from asyncio import CancelledError, run, sleep
-from signal import SIGTERM, signal
-from typing import Any, NoReturn, cast
+from signal import SIGTERM
+from typing import NoReturn, cast
+from uuid import UUID
 
 from common.logging_config import configure_logging
 from core.reconstruction_options import ReconstructionOptions as CoreReconstructionOptions
@@ -35,6 +37,18 @@ async def worker_loop() -> None:
     async with ApiClient(configuration) as api_client:
         api = DefaultApi(api_client)
         loop = asyncio.get_running_loop()
+        active_lease_id: UUID | None = None
+        eviction_task: asyncio.Task[None] | None = None
+
+        # A spot eviction arrives as SIGTERM ~2 minutes before the node is reclaimed. Requeue the
+        # in-flight lease so a fresh worker re-runs it, then exit; without this the job is orphaned
+        # until the 30-minute reaper marks it failed. The task reference is held so it is not
+        # garbage-collected before it runs.
+        def on_sigterm() -> None:
+            nonlocal eviction_task
+            eviction_task = loop.create_task(_requeue_and_exit(api, active_lease_id))
+
+        loop.add_signal_handler(SIGTERM, on_sigterm)
 
         while True:
             try:
@@ -51,7 +65,9 @@ async def worker_loop() -> None:
                         continue
 
                 print(f"[{lease.reconstruction_id}] Acquired lease")
+                active_lease_id = lease.reconstruction_id
                 await _run_and_report(api, loop, lease)
+                active_lease_id = None
 
             except CancelledError:
                 print("Worker loop cancelled. Shutting down...")
@@ -95,15 +111,21 @@ async def _run_and_report(api: DefaultApi, loop: asyncio.AbstractEventLoop, leas
         )
 
 
-def handle_sigterm(signum: int, frame: Any) -> NoReturn:
-    raise CancelledError()
+async def _requeue_and_exit(api: DefaultApi, reconstruction_id: UUID | None) -> NoReturn:
+    if reconstruction_id is not None:
+        print(f"[{reconstruction_id}] Eviction (SIGTERM) received — requeuing lease")
+        try:
+            await api.requeue_lease(reconstruction_id)
+        except ApiException as e:
+            print(f"[{reconstruction_id}] Requeue on eviction failed: {e}")
+    else:
+        print("Eviction (SIGTERM) received while idle — exiting")
+
+    os._exit(0)
 
 
 def main() -> None:
     load_models()
-
-    # Register the signal handler for graceful Docker shutdowns
-    signal(SIGTERM, handle_sigterm)
 
     try:
         # This is the single place where the event loop is started

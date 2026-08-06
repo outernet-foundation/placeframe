@@ -35,6 +35,10 @@ CREATE TABLE reconstructions(
   progress_total integer,
   progress_attempt integer,
 
+  requeue_count integer
+    NOT NULL
+    DEFAULT 0,
+
   manifest jsonb NOT NULL,
   manifest_version smallint NOT NULL,
 
