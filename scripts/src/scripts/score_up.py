@@ -76,14 +76,6 @@ def score_up(
         if postgres == Postgres.cnpg:
             raise typer.BadParameter("CloudNativePG postgres is Kubernetes-only; use --target k3s.")
 
-        if not (SCORE_DIR / ".score-compose").exists():
-            bash(
-                "score-compose init --project placeframe --no-sample "
-                "--provisioners ./placeframe-postgres.provisioners.yaml "
-                "--patch-templates ./restart-policy.tpl",
-                cwd=SCORE_DIR,
-            )
-
         bash(
             f"score-compose generate {WORKLOADS} --publish 8000:api:8000 --publish 8443:gateway:8443",
             cwd=SCORE_DIR,

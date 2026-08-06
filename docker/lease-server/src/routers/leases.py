@@ -8,7 +8,7 @@ from core.reconstruction_manifest import MANIFEST_VERSION, Manifest
 from core.reconstruction_metrics import ReconstructionMetrics
 from core.reconstruction_options import ReconstructionOptions
 from datamodels.public_tables import Reconstruction, ReconstructionStatus
-from litestar import Router, post, put
+from litestar import Router, post
 from litestar.di import Provide
 from litestar.exceptions import NotFoundException
 from pydantic import BaseModel
@@ -20,6 +20,7 @@ from ..database import SessionLocal, get_session
 
 LEASE_TIMEOUT = timedelta(minutes=30)
 MAX_REQUEUE_ATTEMPTS = 5
+TERMINAL_STATUSES = (ReconstructionStatus.SUCCEEDED, ReconstructionStatus.FAILED, ReconstructionStatus.CANCELLED)
 
 
 class LeaseResponse(BaseModel):
@@ -120,12 +121,17 @@ async def request_lease(session: AsyncSession) -> LeaseResponse:
     )
 
 
-@put("/{id:uuid}/progress")
+@post("/{id:uuid}/progress")
 async def update_progress(session: AsyncSession, id: UUID, data: ProgressUpdate) -> None:
     row = await session.get(Reconstruction, id)
 
     if not row:
         raise NotFoundException("Reconstruction not found")
+
+    # Progress writes are fire-and-forget from the worker and can land after the job reached a
+    # terminal status; dropping them stops a late write from flipping a finished job back to in-progress.
+    if row.status in TERMINAL_STATUSES:
+        return
 
     row.status = data.status
     row.progress_current = data.progress_current
@@ -137,7 +143,7 @@ async def update_progress(session: AsyncSession, id: UUID, data: ProgressUpdate)
     await session.commit()
 
 
-@put("/{id:uuid}/succeed")
+@post("/{id:uuid}/succeed")
 async def succeed_lease(session: AsyncSession, id: UUID, data: ReconstructionMetrics) -> None:
     row = await _finalize_lease(session, id, ReconstructionStatus.SUCCEEDED)
     row.error = None
@@ -151,7 +157,7 @@ async def succeed_lease(session: AsyncSession, id: UUID, data: ReconstructionMet
     await session.commit()
 
 
-@put("/{id:uuid}/fail")
+@post("/{id:uuid}/fail")
 async def fail_lease(session: AsyncSession, id: UUID, data: FailLeaseRequest) -> None:
     row = await _finalize_lease(session, id, ReconstructionStatus.FAILED)
     row.error = data.error
@@ -166,12 +172,15 @@ async def fail_lease(session: AsyncSession, id: UUID, data: FailLeaseRequest) ->
     await session.commit()
 
 
-@put("/{id:uuid}/requeue")
+@post("/{id:uuid}/requeue")
 async def requeue_lease(session: AsyncSession, id: UUID) -> None:
     row = await session.get(Reconstruction, id)
 
     if not row:
         raise NotFoundException("Reconstruction not found")
+
+    if row.status in TERMINAL_STATUSES:
+        return
 
     if row.requeue_count >= MAX_REQUEUE_ATTEMPTS:
         row.status = ReconstructionStatus.FAILED
