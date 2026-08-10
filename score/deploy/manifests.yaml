@@ -27,6 +27,8 @@ spec:
       labels:
         app: keycloak
     spec:
+      securityContext:
+        fsGroup: 1000
       containers:
         - args:
             - start-dev
