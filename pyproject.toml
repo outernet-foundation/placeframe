@@ -52,7 +52,7 @@ scripts = { workspace = true }
 lightglue = { git = "https://github.com/cvg/LightGlue.git" }
 bashrun = { git = "https://github.com/outernet-foundation/bashrun.git", rev = "1a0add1eb9e53e19245dcdda3e2018577b4e1153" }
 stack-lifecycle = { git = "https://github.com/outernet-foundation/stack-lifecycle.git", rev = "4fbbc256e5a761dd2aa8204ddd4ca840832a75d9" }
-unity-buildkit = { git = "https://github.com/outernet-foundation/unity-buildkit.git", rev = "7505af108419d7d239cbb2348de5e44042d5dc48" }
+unity-buildkit = { git = "https://github.com/outernet-foundation/unity-buildkit.git", rev = "f62e59d955fdca9ad9abb0bb860607dd20ceabe8" }
 openapi-clientgen = { git = "https://github.com/outernet-foundation/openapi-clientgen.git", rev = "466fad1471101731c988b09997f0f8b473c052d4" }
 
 [tool.basedpyright]

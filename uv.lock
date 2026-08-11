@@ -235,7 +235,7 @@ requires-dist = [
     { name = "sqlalchemy", specifier = ">=2.0.45" },
     { name = "stack-lifecycle", git = "https://github.com/outernet-foundation/stack-lifecycle.git?rev=4fbbc256e5a761dd2aa8204ddd4ca840832a75d9" },
     { name = "typer", specifier = ">=0.17.4" },
-    { name = "unity-buildkit", git = "https://github.com/outernet-foundation/unity-buildkit.git?rev=7505af108419d7d239cbb2348de5e44042d5dc48" },
+    { name = "unity-buildkit", git = "https://github.com/outernet-foundation/unity-buildkit.git?rev=f62e59d955fdca9ad9abb0bb860607dd20ceabe8" },
 ]
 
 [[package]]
@@ -2865,7 +2865,7 @@ wheels = [
 [[package]]
 name = "unity-buildkit"
 version = "0.1.0"
-source = { git = "https://github.com/outernet-foundation/unity-buildkit.git?rev=7505af108419d7d239cbb2348de5e44042d5dc48#7505af108419d7d239cbb2348de5e44042d5dc48" }
+source = { git = "https://github.com/outernet-foundation/unity-buildkit.git?rev=f62e59d955fdca9ad9abb0bb860607dd20ceabe8#f62e59d955fdca9ad9abb0bb860607dd20ceabe8" }
 dependencies = [
     { name = "bashrun" },
     { name = "pydantic" },
