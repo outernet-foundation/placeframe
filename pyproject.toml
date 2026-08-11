@@ -56,6 +56,8 @@ unity-buildkit = { git = "https://github.com/outernet-foundation/unity-buildkit.
 openapi-clientgen = { git = "https://github.com/outernet-foundation/openapi-clientgen.git", rev = "466fad1471101731c988b09997f0f8b473c052d4" }
 
 [tool.basedpyright]
+venvPath = "."
+venv = ".venv"
 typeCheckingMode = "strict"
 include = [
     "build/**/src/**/*.py",
