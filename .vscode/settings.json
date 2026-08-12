@@ -1,0 +1,7 @@
+{
+  "files.exclude": {
+    "apps/CaptureTool/Build/": true,
+    "apps/MapRegistrationTool/Build/": true,
+    "packages/unity/Placeframe/Build/": true
+  }
+}
