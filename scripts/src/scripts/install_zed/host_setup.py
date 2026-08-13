@@ -2,8 +2,8 @@ from logging import getLogger
 from pathlib import Path
 from typing import Literal
 
+import typer
 from bashrun import bash, bash_check, bash_output
-from common.ui import bail
 
 from .constants import (
     BOX_SUBNET,
@@ -30,7 +30,8 @@ def share_host_internet() -> None:
         bash("sudo sysctl --system")
 
     if not bash_check("which firewall-cmd"):
-        bail(FIREWALLD_REQUIRED)
+        typer.echo(FIREWALLD_REQUIRED, err=True)
+        raise SystemExit(1)
     firewalld_dirty = False
     if bash_check(f"sudo firewall-cmd --permanent --zone=trusted --query-source={BOX_SUBNET}"):
         logger.info("firewalld_trusted_source_present", extra={"source": BOX_SUBNET})
@@ -90,12 +91,13 @@ def set_host_link_method(method: Literal["shared", "manual"]) -> None:
             candidates.append(device)
 
         if len(candidates) != 1:
-            bail(
-                NO_UNUSED_WIRED_INTERFACE,
-                connection_name=HOST_NM_CONNECTION,
-                candidates=candidates or "<none>",
-                cidr=HOST_CABLE_CIDR,
+            typer.echo(
+                NO_UNUSED_WIRED_INTERFACE.format(
+                    connection_name=HOST_NM_CONNECTION, candidates=candidates or "<none>", cidr=HOST_CABLE_CIDR
+                ),
+                err=True,
             )
+            raise SystemExit(1)
         device = candidates[0]
         mac = bash_output(f"nmcli -t -g GENERAL.HWADDR device show {device}").strip()
 
