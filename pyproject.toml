@@ -51,6 +51,7 @@ build-scripts = { workspace = true }
 scripts = { workspace = true }
 lightglue = { git = "https://github.com/cvg/LightGlue.git" }
 bashrun = { git = "https://github.com/outernet-foundation/bashrun.git", rev = "1a0add1eb9e53e19245dcdda3e2018577b4e1153" }
+logconf = { git = "https://github.com/outernet-foundation/logconf.git", rev = "3a8216eb39008e5769b71f98e65bffc60cd01f0a" }
 stack-lifecycle = { git = "https://github.com/outernet-foundation/stack-lifecycle.git", rev = "4fbbc256e5a761dd2aa8204ddd4ca840832a75d9" }
 unity-buildkit = { git = "https://github.com/outernet-foundation/unity-buildkit.git", rev = "70741126846015e001952d4465b7512c75643b2f" }
 openapi-clientgen = { git = "https://github.com/outernet-foundation/openapi-clientgen.git", rev = "466fad1471101731c988b09997f0f8b473c052d4" }
