@@ -53,7 +53,7 @@ workloads:
             port: 8000
             targetPort: 8000
     file: api.yaml
-    instance_suffix: -22f06d9533
+    instance_suffix: -7ae5e8b491
   gateway:
     spec:
       apiVersion: score.dev/v1b1
@@ -75,7 +75,7 @@ workloads:
             port: 8443
             targetPort: 8443
     file: gateway.yaml
-    instance_suffix: -eba5b2db3d
+    instance_suffix: -63f43f747f
   lease-server:
     spec:
       apiVersion: score.dev/v1b1
@@ -104,7 +104,7 @@ workloads:
             port: 8000
             targetPort: 8000
     file: lease-server.yaml
-    instance_suffix: -b16007b0cf
+    instance_suffix: -1ec460ca93
 resources:
   placeframe-config.default#placeframe-config:
     guid: 16d9cde6-bf6c-4582-2cb8-53d4df63c47c
