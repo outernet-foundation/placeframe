@@ -97,6 +97,19 @@ def main() -> None:
         "uv run generate-clients --config build/openapi-projects.json",
     )
 
+    with ci_step("Fetch score tools"):
+        # Fetched as release binaries rather than `go install`: score-spec tags without a leading
+        # v (0.15.0, not v0.15.0), which is not a resolvable Go module version. They land in the
+        # GOPATH bin the database step already prepended to PATH. Both artifacts are committed,
+        # so `generate-score` checks both.
+        for tool, version in (("score-k8s", SCORE_K8S_VERSION), ("score-compose", SCORE_COMPOSE_VERSION)):
+            archive = f"{tool}_{version}_linux_amd64.tar.gz"
+            bash(f"curl -fsSLO https://github.com/score-spec/{tool}/releases/download/{version}/{archive}")
+            bash(f"tar -xzf {archive} -C {gopath_bin} {tool}")
+            Path(archive).unlink()
+
+    _check_generated("Score", "uv run generate-score", "score/")
+
 
 def _check_generated(label: str, generate_command: str, pathspec: str, fix_command: str | None = None) -> None:
     with ci_step(f"Check {label}"):
@@ -107,14 +120,3 @@ def _check_generated(label: str, generate_command: str, pathspec: str, fix_comma
             raise SystemExit(
                 f"{label} output is stale. Run '{fix_command or generate_command}' locally and commit the result."
             )
-
-    with ci_step("Check score codegen"):
-        # Installed onto the GOPATH bin the database step already prepended to PATH, the same way
-        # pg-schema-diff is. Both artifacts are committed, so both are checked.
-        bash(f"go install github.com/score-spec/score-k8s/cmd/score-k8s@v{SCORE_K8S_VERSION}")
-        bash(f"go install github.com/score-spec/score-compose/cmd/score-compose@v{SCORE_COMPOSE_VERSION}")
-        bash("uv run generate-score")
-        staleness_output = bash_output("git status --porcelain -- score/")
-        if staleness_output.strip():
-            bash("git diff -- score/")
-            raise SystemExit("Generated Score artifacts are stale. Run 'uv run generate-score' locally.")
