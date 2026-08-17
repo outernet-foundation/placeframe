@@ -10,6 +10,10 @@ from unity_buildkit.ci_step import ci_step
 from stack_lifecycle.context_sha import compute_service_shas
 from ..lock_python import lock_python
 
+# Keep in step with the prerequisites documented in score/README.md.
+SCORE_K8S_VERSION = "0.15.0"
+SCORE_COMPOSE_VERSION = "0.42.0"
+
 app = typer.Typer(add_completion=False, pretty_exceptions_show_locals=False)
 
 
@@ -81,3 +85,14 @@ def main() -> None:
             raise SystemExit(
                 "Generated API clients are stale. Run 'uv run generate-clients --config build/openapi-projects.json' locally."
             )
+
+    with ci_step("Check score codegen"):
+        # Installed onto the GOPATH bin the database step already prepended to PATH, the same way
+        # pg-schema-diff is. Both artifacts are committed, so both are checked.
+        bash(f"go install github.com/score-spec/score-k8s/cmd/score-k8s@v{SCORE_K8S_VERSION}")
+        bash(f"go install github.com/score-spec/score-compose/cmd/score-compose@v{SCORE_COMPOSE_VERSION}")
+        bash("uv run generate-score")
+        staleness_output = bash_output("git status --porcelain -- score/")
+        if staleness_output.strip():
+            bash("git diff -- score/")
+            raise SystemExit("Generated Score artifacts are stale. Run 'uv run generate-score' locally.")

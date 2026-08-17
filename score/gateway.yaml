@@ -3,7 +3,7 @@ metadata:
   name: gateway
 containers:
   gateway:
-    image: ghcr.io/outernet-foundation/placeframe/gateway:tree-f265a9765c3b05b6ec5603e7c4e2e9e629785d35
+    image: ghcr.io/outernet-foundation/placeframe/gateway:${GATEWAY_SHA}
     variables:
       PUBLIC_URL: ${resources.config.public_url}
       AUTH_MODE: ${resources.config.auth_mode}
