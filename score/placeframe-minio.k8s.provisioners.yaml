@@ -75,6 +75,12 @@
       kind: Job
       metadata:
         name: {{ .State.service }}-bucket
+        # A Job's spec.template is immutable, so Argo CD cannot patch this in place when the mc
+        # digest moves. As a Sync hook the previous Job is deleted first. Re-running is safe:
+        # mc mb --ignore-existing is a no-op against an existing bucket.
+        annotations:
+          argocd.argoproj.io/hook: Sync
+          argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
       spec:
         backoffLimit: 30
         template:
