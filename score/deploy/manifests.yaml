@@ -206,6 +206,9 @@ status: {}
 apiVersion: batch/v1
 kind: Job
 metadata:
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
   name: minio-bucket
 spec:
   backoffLimit: 30
@@ -234,6 +237,9 @@ spec:
 apiVersion: batch/v1
 kind: Job
 metadata:
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
   name: pf-postgres-create
 spec:
   backoffLimit: 30
@@ -302,6 +308,9 @@ spec:
 apiVersion: batch/v1
 kind: Job
 metadata:
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
   name: pf-postgres-migrate
 spec:
   backoffLimit: 30

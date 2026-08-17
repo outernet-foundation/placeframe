@@ -81,6 +81,13 @@
       kind: Job
       metadata:
         name: {{ .State.service }}-create
+        # A Job's spec.template is immutable, so Argo CD cannot patch this in place once the image
+        # tag moves; without the hook the sync fails with "field is immutable" and selfHeal retries
+        # forever. As a Sync hook Argo CD deletes the previous Job before recreating it. Re-running
+        # is safe: --op create is idempotent, and the retry loop below still waits out postgres.
+        annotations:
+          argocd.argoproj.io/hook: Sync
+          argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
       spec:
         backoffLimit: 30
         template:
@@ -130,6 +137,12 @@
       kind: Job
       metadata:
         name: {{ .State.service }}-migrate
+        # Same immutability constraint as the create Job. This one also has to re-run on every sync
+        # by design — it is what applies schema changes, and pg-schema-diff is a no-op when the
+        # live schema already matches.
+        annotations:
+          argocd.argoproj.io/hook: Sync
+          argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
       spec:
         backoffLimit: 30
         template:
