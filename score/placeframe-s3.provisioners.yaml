@@ -1,21 +1,21 @@
 # Custom Score provisioner: a real Placeframe MinIO at a FIXED service name (minio) with
 # the real buckets (dev-captures, dev-reconstructions, loki), using digest-pinned images.
-# The default s3 provisioner gives a randomly-named minio + random bucket, which loki
-# (config hardcodes endpoint minio:9000 + bucket loki) cannot use. Register via:
-# score-compose init --provisioners <this file>.
+# The built-in s3 provisioner gives a randomly-named minio + a random bucket, which loki
+# (its config hardcodes endpoint minio:9000 + bucket loki) cannot use, and it mints random
+# credentials at generation time. Declaring `type: s3` here overrides the built-in, because
+# custom provisioners are matched ahead of the defaults on a first-match policy.
+# Register via: score-compose init --provisioners <this file>.
+#
+# HERMETIC BY CONSTRUCTION: the credentials are literal ${VAR:?err} placeholders, matching
+# how compose.yml writes MINIO_ROOT_USER / MINIO_ROOT_PASSWORD, so nothing is resolved at
+# generation time and .env stays the single source of truth.
 - uri: template://placeframe/s3
-  type: placeframe-s3
-  description: Placeframe MinIO at fixed name minio with the real buckets.
-  init: |
-    accessKey: {{ randAlphaNum 20 | quote }}
-    secretKey: {{ randAlphaNum 40 | quote }}
-  state: |
-    accessKey: {{ dig "accessKey" .Init.accessKey .State | quote }}
-    secretKey: {{ dig "secretKey" .Init.secretKey .State | quote }}
+  type: s3
+  description: Placeframe MinIO at fixed name minio with the real buckets, credentials from .env.
   outputs: |
     endpoint: http://minio:9000
-    access_key_id: {{ .State.accessKey }}
-    secret_key: {{ .State.secretKey }}
+    access_key_id: ${MINIO_ACCESS_KEY:?err}
+    secret_key: ${MINIO_SECRET_KEY:?err}
     bucket: dev-reconstructions
   volumes: |
     minio-data:
@@ -26,8 +26,8 @@
       restart: always
       command: server /data --console-address ":9001"
       environment:
-        MINIO_ROOT_USER: {{ .State.accessKey | quote }}
-        MINIO_ROOT_PASSWORD: {{ .State.secretKey | quote }}
+        MINIO_ROOT_USER: "${MINIO_ACCESS_KEY:?err}"
+        MINIO_ROOT_PASSWORD: "${MINIO_SECRET_KEY:?err}"
       volumes:
       - type: volume
         source: minio-data
@@ -43,4 +43,4 @@
         minio:
           condition: service_healthy
       restart: "no"
-      entrypoint: ["/bin/sh", "-c", "mc alias set local http://minio:9000 {{ .State.accessKey }} {{ .State.secretKey }} && mc mb --ignore-existing local/dev-captures && mc mb --ignore-existing local/dev-reconstructions && mc mb --ignore-existing local/loki"]
+      entrypoint: ["/bin/sh", "-c", "mc alias set local http://minio:9000 ${MINIO_ACCESS_KEY:?err} ${MINIO_SECRET_KEY:?err} && mc mb --ignore-existing local/dev-captures && mc mb --ignore-existing local/dev-reconstructions && mc mb --ignore-existing local/loki"]

@@ -12,6 +12,10 @@ from docker_devkit.context_sha import compute_service_shas
 from docker_devkit.image_refs import VersionCoupling, VersionSite, unpinned_references, version_coupling_violations
 from python_devkit.preflight import preflight as run_battery
 
+# Keep in step with the prerequisites documented in score/README.md.
+SCORE_K8S_VERSION = "0.15.0"
+SCORE_COMPOSE_VERSION = "0.42.0"
+
 app = typer.Typer(add_completion=False, pretty_exceptions_show_locals=False)
 
 VERSION_COUPLINGS = [
@@ -103,3 +107,14 @@ def _check_generated(label: str, generate_command: str, pathspec: str, fix_comma
             raise SystemExit(
                 f"{label} output is stale. Run '{fix_command or generate_command}' locally and commit the result."
             )
+
+    with ci_step("Check score codegen"):
+        # Installed onto the GOPATH bin the database step already prepended to PATH, the same way
+        # pg-schema-diff is. Both artifacts are committed, so both are checked.
+        bash(f"go install github.com/score-spec/score-k8s/cmd/score-k8s@v{SCORE_K8S_VERSION}")
+        bash(f"go install github.com/score-spec/score-compose/cmd/score-compose@v{SCORE_COMPOSE_VERSION}")
+        bash("uv run generate-score")
+        staleness_output = bash_output("git status --porcelain -- score/")
+        if staleness_output.strip():
+            bash("git diff -- score/")
+            raise SystemExit("Generated Score artifacts are stale. Run 'uv run generate-score' locally.")
