@@ -12,6 +12,7 @@ dependencies = [
   "pydantic>=2.11.7",
   "pydantic-settings>=2.9.1",
   "pyhumps>=3.8.0",
+  "pyyaml>=6.0.3",
   "sqlacodegen==3.2.0",
   "sqlalchemy>=2.0.45",
   "typer>=0.17.4",

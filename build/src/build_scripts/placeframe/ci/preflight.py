@@ -87,10 +87,16 @@ def main() -> None:
             )
 
     with ci_step("Check score codegen"):
-        # Installed onto the GOPATH bin the database step already prepended to PATH, the same way
-        # pg-schema-diff is. Both artifacts are committed, so both are checked.
-        bash(f"go install github.com/score-spec/score-k8s/cmd/score-k8s@v{SCORE_K8S_VERSION}")
-        bash(f"go install github.com/score-spec/score-compose/cmd/score-compose@v{SCORE_COMPOSE_VERSION}")
+        # Fetched as release binaries rather than `go install`: score-spec tags without a leading
+        # v (0.15.0, not v0.15.0), which is not a resolvable Go module version. They land in the
+        # GOPATH bin the database step already prepended to PATH. Both artifacts are committed,
+        # so `generate-score` checks both.
+        for tool, version in (("score-k8s", SCORE_K8S_VERSION), ("score-compose", SCORE_COMPOSE_VERSION)):
+            archive = f"{tool}_{version}_linux_amd64.tar.gz"
+            bash(f"curl -fsSLO https://github.com/score-spec/{tool}/releases/download/{version}/{archive}")
+            bash(f"tar -xzf {archive} -C {gopath_bin} {tool}")
+            Path(archive).unlink()
+
         bash("uv run generate-score")
         staleness_output = bash_output("git status --porcelain -- score/")
         if staleness_output.strip():
