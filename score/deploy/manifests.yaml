@@ -5,21 +5,21 @@ metadata:
   annotations:
     k8s.score.dev/workload-name: api
   labels:
-    app.kubernetes.io/instance: api-22f06d9533
+    app.kubernetes.io/instance: api-7ae5e8b491
     app.kubernetes.io/managed-by: score-k8s
     app.kubernetes.io/name: api
   name: api
 spec:
   selector:
     matchLabels:
-      app.kubernetes.io/instance: api-22f06d9533
+      app.kubernetes.io/instance: api-7ae5e8b491
   strategy: {}
   template:
     metadata:
       annotations:
         k8s.score.dev/workload-name: api
       labels:
-        app.kubernetes.io/instance: api-22f06d9533
+        app.kubernetes.io/instance: api-7ae5e8b491
         app.kubernetes.io/managed-by: score-k8s
         app.kubernetes.io/name: api
     spec:
@@ -120,21 +120,21 @@ metadata:
   annotations:
     k8s.score.dev/workload-name: gateway
   labels:
-    app.kubernetes.io/instance: gateway-eba5b2db3d
+    app.kubernetes.io/instance: gateway-63f43f747f
     app.kubernetes.io/managed-by: score-k8s
     app.kubernetes.io/name: gateway
   name: gateway
 spec:
   selector:
     matchLabels:
-      app.kubernetes.io/instance: gateway-eba5b2db3d
+      app.kubernetes.io/instance: gateway-63f43f747f
   strategy: {}
   template:
     metadata:
       annotations:
         k8s.score.dev/workload-name: gateway
       labels:
-        app.kubernetes.io/instance: gateway-eba5b2db3d
+        app.kubernetes.io/instance: gateway-63f43f747f
         app.kubernetes.io/managed-by: score-k8s
         app.kubernetes.io/name: gateway
     spec:
@@ -161,21 +161,21 @@ metadata:
   annotations:
     k8s.score.dev/workload-name: lease-server
   labels:
-    app.kubernetes.io/instance: lease-server-b16007b0cf
+    app.kubernetes.io/instance: lease-server-1ec460ca93
     app.kubernetes.io/managed-by: score-k8s
     app.kubernetes.io/name: lease-server
   name: lease-server
 spec:
   selector:
     matchLabels:
-      app.kubernetes.io/instance: lease-server-b16007b0cf
+      app.kubernetes.io/instance: lease-server-1ec460ca93
   strategy: {}
   template:
     metadata:
       annotations:
         k8s.score.dev/workload-name: lease-server
       labels:
-        app.kubernetes.io/instance: lease-server-b16007b0cf
+        app.kubernetes.io/instance: lease-server-1ec460ca93
         app.kubernetes.io/managed-by: score-k8s
         app.kubernetes.io/name: lease-server
     spec:
@@ -345,7 +345,7 @@ metadata:
   annotations:
     k8s.score.dev/workload-name: api
   labels:
-    app.kubernetes.io/instance: api-22f06d9533
+    app.kubernetes.io/instance: api-7ae5e8b491
     app.kubernetes.io/managed-by: score-k8s
     app.kubernetes.io/name: api
   name: api
@@ -356,7 +356,7 @@ spec:
       protocol: TCP
       targetPort: 8000
   selector:
-    app.kubernetes.io/instance: api-22f06d9533
+    app.kubernetes.io/instance: api-7ae5e8b491
 status:
   loadBalancer: {}
 ---
@@ -366,7 +366,7 @@ metadata:
   annotations:
     k8s.score.dev/workload-name: gateway
   labels:
-    app.kubernetes.io/instance: gateway-eba5b2db3d
+    app.kubernetes.io/instance: gateway-63f43f747f
     app.kubernetes.io/managed-by: score-k8s
     app.kubernetes.io/name: gateway
   name: gateway
@@ -377,7 +377,7 @@ spec:
       protocol: TCP
       targetPort: 8443
   selector:
-    app.kubernetes.io/instance: gateway-eba5b2db3d
+    app.kubernetes.io/instance: gateway-63f43f747f
 status:
   loadBalancer: {}
 ---
@@ -398,7 +398,7 @@ metadata:
   annotations:
     k8s.score.dev/workload-name: lease-server
   labels:
-    app.kubernetes.io/instance: lease-server-b16007b0cf
+    app.kubernetes.io/instance: lease-server-1ec460ca93
     app.kubernetes.io/managed-by: score-k8s
     app.kubernetes.io/name: lease-server
   name: lease-server
@@ -409,7 +409,7 @@ spec:
       protocol: TCP
       targetPort: 8000
   selector:
-    app.kubernetes.io/instance: lease-server-b16007b0cf
+    app.kubernetes.io/instance: lease-server-1ec460ca93
 status:
   loadBalancer: {}
 ---
