@@ -105,7 +105,7 @@ spec:
                   name: placeframe-secrets
             - name: RECONSTRUCTIONS_BUCKET
               value: reconstructions
-          image: ghcr.io/outernet-foundation/placeframe/api:tree-02a1a065e9f0822f24ffd1c9bfbea1d9be23ac6b
+          image: ghcr.io/outernet-foundation/placeframe/api:tree-87abad5b29588fd4833994ae68b7206630048efa
           livenessProbe:
             httpGet:
               path: /health
@@ -150,7 +150,7 @@ spec:
                 secretKeyRef:
                   key: PUBLIC_URL
                   name: placeframe-secrets
-          image: ghcr.io/outernet-foundation/placeframe/gateway:tree-52a090a59b3dceab18149ce7bd89594d1d664634
+          image: ghcr.io/outernet-foundation/placeframe/gateway:tree-e76c85aba555014a1893fa117334d2f4d96812a0
           name: gateway
           resources: {}
 status: {}
@@ -194,7 +194,7 @@ spec:
               value: development
             - name: POSTGRES_HOST
               value: pf-postgres
-          image: ghcr.io/outernet-foundation/placeframe/lease-server:tree-964a5e6d6712041162979d786e681db2df6a2efd
+          image: ghcr.io/outernet-foundation/placeframe/lease-server:tree-45921fa7f7a5cdb9facaed759f94e4b6d7efd5ef
           livenessProbe:
             httpGet:
               path: /health
@@ -218,7 +218,7 @@ spec:
         - command:
             - /bin/sh
             - -c
-            - mc alias set local http://minio:9000 $(MINIO_ACCESS_KEY) $(MINIO_SECRET_KEY) && mc mb --ignore-existing local/reconstructions
+            - mc alias set local http://minio:9000 $(MINIO_ACCESS_KEY) $(MINIO_SECRET_KEY) && mc mb --ignore-existing local/reconstructions && mc mb --ignore-existing local/dev-captures
           env:
             - name: MINIO_ACCESS_KEY
               valueFrom:
@@ -295,7 +295,7 @@ spec:
                 secretKeyRef:
                   key: DATABASE_ORCHESTRATION_USER_PASSWORD
                   name: placeframe-secrets
-          image: ghcr.io/outernet-foundation/placeframe/database-manager:tree-b2871fd5da35002c9d9821b7e84c95bf9229743d
+          image: ghcr.io/outernet-foundation/placeframe/database-manager:tree-3e76382e4690b5ff2bd196a09feb367ef6849690
           name: create
           volumeMounts:
             - mountPath: /mnt/efs
@@ -335,7 +335,7 @@ spec:
               value: database
             - name: ALLOWED_HAZARDS
               value: HAS_UNTRACKABLE_DEPENDENCIES
-          image: ghcr.io/outernet-foundation/placeframe/database-migrator:tree-9145734624c8ad9c1c62fafaf894fe702bb2a878
+          image: ghcr.io/outernet-foundation/placeframe/database-migrator:tree-4478a24131e87b3235f2a754c89938b72a25dd86
           name: migrate
       restartPolicy: OnFailure
 ---
@@ -503,7 +503,7 @@ spec:
             - mountPath: /opt/keycloak/data
               name: data
       initContainers:
-        - image: ghcr.io/outernet-foundation/placeframe/auth-initializer:tree-e07604ba98bd42864a9fbba9aca9ba09153bb512
+        - image: ghcr.io/outernet-foundation/placeframe/auth-initializer:tree-60e3e043a56c87b43904304b778d162c905bb3b0
           name: auth-initializer
           volumeMounts:
             - mountPath: /keycloak_import
@@ -609,7 +609,7 @@ spec:
                 secretKeyRef:
                   key: POSTGRES_ADMIN_PASSWORD
                   name: placeframe-secrets
-          image: ghcr.io/outernet-foundation/placeframe/postgres:tree-9fa79b21f52844967ea3e71af0e579a9fe6fc23b
+          image: ghcr.io/outernet-foundation/placeframe/postgres:tree-eb7831a824faa988d405832a2db86f1a653b9d06
           name: postgres-db
           ports:
             - containerPort: 5432

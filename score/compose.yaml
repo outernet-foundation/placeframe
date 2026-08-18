@@ -31,7 +31,7 @@ services:
       PUBLIC_URL: ${PUBLIC_URL:?err}
       RECONSTRUCTIONS_BUCKET: dev-reconstructions
     hostname: api
-    image: ghcr.io/outernet-foundation/placeframe/api:tree-02a1a065e9f0822f24ffd1c9bfbea1d9be23ac6b
+    image: ghcr.io/outernet-foundation/placeframe/api:tree-87abad5b29588fd4833994ae68b7206630048efa
     ports:
       - target: 8000
         published: "8000"
@@ -47,7 +47,7 @@ services:
       AUTH_MODE: ${AUTH_MODE:-keycloak}
       PUBLIC_URL: ${PUBLIC_URL:?err}
     hostname: gateway
-    image: ghcr.io/outernet-foundation/placeframe/gateway:tree-52a090a59b3dceab18149ce7bd89594d1d664634
+    image: ghcr.io/outernet-foundation/placeframe/gateway:tree-e76c85aba555014a1893fa117334d2f4d96812a0
     ports:
       - target: 8443
         published: "8443"
@@ -73,7 +73,7 @@ services:
       DEPLOYMENT_ENVIRONMENT: development
       POSTGRES_HOST: pf-postgres
     hostname: lease-server
-    image: ghcr.io/outernet-foundation/placeframe/lease-server:tree-964a5e6d6712041162979d786e681db2df6a2efd
+    image: ghcr.io/outernet-foundation/placeframe/lease-server:tree-45921fa7f7a5cdb9facaed759f94e4b6d7efd5ef
   minio:
     command:
       - server
@@ -124,7 +124,7 @@ services:
       timeout: 2s
       interval: 2s
       retries: 30
-    image: ghcr.io/outernet-foundation/placeframe/postgres:tree-9fa79b21f52844967ea3e71af0e579a9fe6fc23b
+    image: ghcr.io/outernet-foundation/placeframe/postgres:tree-eb7831a824faa988d405832a2db86f1a653b9d06
     restart: always
     volumes:
       - type: volume
@@ -158,7 +158,7 @@ services:
       POSTGRES_ADMIN_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:?err}
       POSTGRES_ADMIN_USER: ${POSTGRES_ADMIN_USER:?err}
       POSTGRES_HOST: pf-postgres
-    image: ghcr.io/outernet-foundation/placeframe/database-manager:tree-b2871fd5da35002c9d9821b7e84c95bf9229743d
+    image: ghcr.io/outernet-foundation/placeframe/database-manager:tree-3e76382e4690b5ff2bd196a09feb367ef6849690
     restart: "no"
     volumes:
       - type: volume
@@ -177,7 +177,7 @@ services:
       DB_PASSWORD: ${DATABASE_OWNER_PASSWORD:?err}
       DB_PORT: "5432"
       DB_USER: placeframe_owner
-    image: ghcr.io/outernet-foundation/placeframe/database-migrator:tree-9145734624c8ad9c1c62fafaf894fe702bb2a878
+    image: ghcr.io/outernet-foundation/placeframe/database-migrator:tree-4478a24131e87b3235f2a754c89938b72a25dd86
     restart: "no"
   wait-for-resources:
     command:
