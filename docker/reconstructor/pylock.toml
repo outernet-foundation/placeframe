@@ -222,6 +222,11 @@ sdist = { url = "https://files.pythonhosted.org/packages/3f/b9/7e296aa1adada25cc
 wheels = [{ url = "https://files.pythonhosted.org/packages/f2/24/8d99982f0aa9c1cd82073c6232b54a0dbe6797c7d63c0583a6c68ee3ddf2/litestar_htmx-0.5.0-py3-none-any.whl", upload-time = 2025-06-11T21:19:44Z, size = 9970, hashes = { sha256 = "92833aa47e0d0e868d2a7dbfab75261f124f4b83d4f9ad12b57b9a68f86c50e6" } }]
 
 [[packages]]
+name = "logconf"
+version = "0.1.0"
+vcs = { type = "git", url = "https://github.com/outernet-foundation/logconf.git", requested-revision = "3a8216eb39008e5769b71f98e65bffc60cd01f0a", commit-id = "3a8216eb39008e5769b71f98e65bffc60cd01f0a" }
+
+[[packages]]
 name = "markdown-it-py"
 version = "4.0.0"
 index = "https://pypi.org/simple"
@@ -510,6 +515,13 @@ version = "1.2.1"
 index = "https://pypi.org/simple"
 sdist = { url = "https://files.pythonhosted.org/packages/f0/26/19cadc79a718c5edbec86fd4919a6b6d3f681039a2f6d66d14be94e75fb9/python_dotenv-1.2.1.tar.gz", upload-time = 2025-10-26T15:12:10Z, size = 44221, hashes = { sha256 = "42667e897e16ab0d66954af0e60a9caa94f0fd4ecf3aaf6d2d260eec1aa36ad6" } }
 wheels = [{ url = "https://files.pythonhosted.org/packages/14/1b/a298b06749107c305e1fe0f814c6c74aea7b2f1e10989cb30f544a1b3253/python_dotenv-1.2.1-py3-none-any.whl", upload-time = 2025-10-26T15:12:09Z, size = 21230, hashes = { sha256 = "b81ee9561e9ca4004139c6cbba3a238c32b03e4894671e181b671e8cb8425d61" } }]
+
+[[packages]]
+name = "python-json-logger"
+version = "4.1.0"
+index = "https://pypi.org/simple"
+sdist = { url = "https://files.pythonhosted.org/packages/f7/ff/3cc9165fd44106973cd7ac9facb674a65ed853494592541d339bdc9a30eb/python_json_logger-4.1.0.tar.gz", upload-time = 2026-03-29T04:39:56Z, size = 17573, hashes = { sha256 = "b396b9e3ed782b09ff9d6e4f1683d46c83ad0d35d2e407c09a9ebbf038f88195" } }
+wheels = [{ url = "https://files.pythonhosted.org/packages/27/be/0631a861af4d1c875f096c07d34e9a63639560a717130e7a87cbc82b7e3f/python_json_logger-4.1.0-py3-none-any.whl", upload-time = 2026-03-29T04:39:55Z, size = 15021, hashes = { sha256 = "132994765cf75bf44554be9aa49b06ef2345d23661a96720262716438141b6b2" } }]
 
 [[packages]]
 name = "pyyaml"

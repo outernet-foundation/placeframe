@@ -9,8 +9,7 @@ dependencies = [
     "litestar>=2.19.0",
     "pydantic>=2.12.5",
     "botocore>=1.42.24",
-    "opentelemetry-sdk>=1.30.0",
-    "opentelemetry-exporter-otlp-proto-grpc>=1.30.0",
+    "logconf[otlp]",
 ]
 
 [dependency-groups]

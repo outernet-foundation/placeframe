@@ -8,8 +8,8 @@ from logging import getLogger
 from pathlib import Path
 from subprocess import CalledProcessError
 
+import typer
 from bashrun import bash, bash_check, bash_output
-from common.ui import bail, note
 
 from .constants import (
     APPLIANCE_BANNER_PATHS,
@@ -143,7 +143,8 @@ def install_box(build: bool, service_shas: dict[str, str]) -> None:
 
         route_out = ssh_output(f"ip route get {host_ip}").strip().split()
         if "dev" not in route_out:
-            bail(BOX_INTERFACE_UNPARSEABLE, host_ip=host_ip, route_out=repr(route_out))
+            typer.echo(BOX_INTERFACE_UNPARSEABLE.format(host_ip=host_ip, route_out=repr(route_out)), err=True)
+            raise SystemExit(1)
         box_interface = route_out[route_out.index("dev") + 1]
         active_connections_raw = ssh_output("nmcli -t -f NAME,DEVICE con show --active").strip()
         box_connection = next(
@@ -155,7 +156,11 @@ def install_box(build: bool, service_shas: dict[str, str]) -> None:
             "",
         )
         if not box_connection:
-            bail(NO_ACTIVE_NM_CONNECTION, interface=box_interface, connections_raw=repr(active_connections_raw))
+            typer.echo(
+                NO_ACTIVE_NM_CONNECTION.format(interface=box_interface, connections_raw=repr(active_connections_raw)),
+                err=True,
+            )
+            raise SystemExit(1)
         ssh_run(
             f'sudo nmcli con mod "{box_connection}" ipv4.gateway {host_ip} ipv4.dns 8.8.8.8 ipv4.ignore-auto-dns yes'
         )
@@ -175,7 +180,8 @@ def install_box(build: bool, service_shas: dict[str, str]) -> None:
         # Jetson hardware-burned serial survives OS reflashes.
         box_id = ssh_output("tr -d '\\0\\n' < /proc/device-tree/serial-number").strip()
         if not box_id:
-            bail(BOX_ID_UNRESOLVABLE)
+            typer.echo(BOX_ID_UNRESOLVABLE, err=True)
+            raise SystemExit(1)
 
         # Write the .env that compose reads: built-image refs + every SHA-keyed
         # variable compose.rig.yml references (one per box image; ZED_CAPTURE_SHA
@@ -292,7 +298,7 @@ def _ensure_key_access(target: str) -> None:
     if bash_check(f"ssh -o BatchMode=yes -o ConnectTimeout=5 {target} true"):
         return
 
-    note(SSH_KEY_COPY_PROMPT)
+    typer.echo(SSH_KEY_COPY_PROMPT, err=True)
     bash(f"ssh-copy-id -i {SSH_KEY} {target}")
 
 
@@ -323,7 +329,10 @@ def _claim_box_via_dhcp() -> None:
                 break
         if not leased_ip:
             if time.monotonic() >= deadline:
-                bail(NO_DHCP_LEASE_RECEIVED, timeout_seconds=DHCP_LEASE_WAIT_SECONDS, box_ip=BOX_IP)
+                typer.echo(
+                    NO_DHCP_LEASE_RECEIVED.format(timeout_seconds=DHCP_LEASE_WAIT_SECONDS, box_ip=BOX_IP), err=True
+                )
+                raise SystemExit(1)
             time.sleep(1)
 
     logger.info("box_dhcp_lease_acquired", extra={"leased_ip": leased_ip})
@@ -343,7 +352,8 @@ def _claim_box_via_dhcp() -> None:
         if line.split(":", 2)[1:3] == ["ethernet", "connected"]
     ]
     if not wired_devices:
-        bail(NO_BOX_WIRED_CONNECTION, raw=repr(devices_raw))
+        typer.echo(NO_BOX_WIRED_CONNECTION.format(raw=repr(devices_raw)), err=True)
+        raise SystemExit(1)
     bootstrap_connection = bash_output(
         f'ssh {bootstrap_target} "nmcli -g GENERAL.CONNECTION device show {wired_devices[0]}"'
     ).strip()
@@ -383,7 +393,8 @@ def _ensure_arm64_emulation() -> None:
     if handler.exists() and handler.read_text().startswith("enabled"):
         return
 
-    bail(ARM64_EMULATION_MISSING)
+    typer.echo(ARM64_EMULATION_MISSING, err=True)
+    raise SystemExit(1)
 
 
 def _acquire_images(host_ip: str, build: bool, service_shas: dict[str, str]) -> dict[str, str]:
@@ -451,4 +462,5 @@ def _pull_image_on_box(image: str) -> None:
     try:
         ssh_run(f"sudo docker pull {image}")
     except CalledProcessError:
-        bail(IMAGE_PULL_FAILED, image=image)
+        typer.echo(IMAGE_PULL_FAILED.format(image=image), err=True)
+        raise SystemExit(1)
