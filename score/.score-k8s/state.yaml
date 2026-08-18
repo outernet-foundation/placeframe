@@ -4,7 +4,7 @@ workloads:
       apiVersion: score.dev/v1b1
       containers:
         api:
-          image: ghcr.io/outernet-foundation/placeframe/api:tree-02a1a065e9f0822f24ffd1c9bfbea1d9be23ac6b
+          image: ghcr.io/outernet-foundation/placeframe/api:tree-87abad5b29588fd4833994ae68b7206630048efa
           livenessProbe:
             httpGet:
               path: /health
@@ -59,7 +59,7 @@ workloads:
       apiVersion: score.dev/v1b1
       containers:
         gateway:
-          image: ghcr.io/outernet-foundation/placeframe/gateway:tree-52a090a59b3dceab18149ce7bd89594d1d664634
+          image: ghcr.io/outernet-foundation/placeframe/gateway:tree-e76c85aba555014a1893fa117334d2f4d96812a0
           variables:
             AUTH_MODE: ${resources.config.auth_mode}
             PUBLIC_URL: ${resources.config.public_url}
@@ -81,7 +81,7 @@ workloads:
       apiVersion: score.dev/v1b1
       containers:
         lease-server:
-          image: ghcr.io/outernet-foundation/placeframe/lease-server:tree-964a5e6d6712041162979d786e681db2df6a2efd
+          image: ghcr.io/outernet-foundation/placeframe/lease-server:tree-45921fa7f7a5cdb9facaed759f94e4b6d7efd5ef
           livenessProbe:
             httpGet:
               path: /health
@@ -172,6 +172,7 @@ resources:
     provisioner: template://placeframe/minio-k8s
     state:
       bucket: reconstructions
+      capturesBucket: dev-captures
       service: minio
     outputs:
       access_key_id: "\U0001F510\U0001F4ACplaceframe-secrets_MINIO_ACCESS_KEY\U0001F4AC\U0001F510"
