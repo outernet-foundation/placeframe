@@ -186,6 +186,11 @@ def _write(path: Path, text: str) -> None:
     with path.open("w", encoding="utf-8", newline="") as handle:
         handle.write(text)
 
+    # score-k8s writes its state file executable. Git records the mode, so on Linux that alone
+    # shows up as a diff and fails the staleness gate — invisibly on Windows, where core.fileMode
+    # is false and the bit is never tracked. These are data files; normalise them to 0644.
+    path.chmod(0o644)
+
 
 app.command()(cli)
 
