@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 
@@ -74,10 +75,14 @@ def main() -> None:
             raise SystemExit("Generated datamodels are stale. Run 'uv run generate-datamodels' locally.")
 
     with ci_step("Check client codegen"):
-        bash("uv run generate-clients --config build/openapi-projects.json --project docker/api --no-cache")
-        staleness_output = bash_output("git status --porcelain -- docker/api/openapi.json packages/generated/")
+        spec_paths = " ".join(
+            f"{project}/openapi.json"
+            for project in json.loads(Path("build/openapi-projects.json").read_text(encoding="utf-8"))
+        )
+        bash("uv run generate-clients --config build/openapi-projects.json --no-cache")
+        staleness_output = bash_output(f"git status --porcelain -- {spec_paths} packages/generated/")
         if staleness_output.strip():
-            bash("git diff -- docker/api/openapi.json packages/generated/")
+            bash(f"git diff -- {spec_paths} packages/generated/")
             raise SystemExit(
                 "Generated API clients are stale. Run 'uv run generate-clients --config build/openapi-projects.json' locally."
             )
