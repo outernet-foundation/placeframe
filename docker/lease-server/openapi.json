@@ -34,7 +34,7 @@
       }
     },
     "/leases/{id}/progress": {
-      "put": {
+      "post": {
         "tags": [
           "Leases"
         ],
@@ -63,8 +63,8 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "Request fulfilled, document follows",
+          "201": {
+            "description": "Document created, URL follows",
             "headers": {}
           },
           "400": {
@@ -113,7 +113,7 @@
       }
     },
     "/leases/{id}/succeed": {
-      "put": {
+      "post": {
         "tags": [
           "Leases"
         ],
@@ -142,8 +142,8 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "Request fulfilled, document follows",
+          "201": {
+            "description": "Document created, URL follows",
             "headers": {}
           },
           "400": {
@@ -192,7 +192,7 @@
       }
     },
     "/leases/{id}/fail": {
-      "put": {
+      "post": {
         "tags": [
           "Leases"
         ],
@@ -221,8 +221,8 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "Request fulfilled, document follows",
+          "201": {
+            "description": "Document created, URL follows",
             "headers": {}
           },
           "400": {
@@ -271,7 +271,7 @@
       }
     },
     "/leases/{id}/requeue": {
-      "put": {
+      "post": {
         "tags": [
           "Leases"
         ],
@@ -290,8 +290,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "Request fulfilled, document follows",
+          "201": {
+            "description": "Document created, URL follows",
             "headers": {}
           },
           "400": {

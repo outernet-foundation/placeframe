@@ -84,11 +84,11 @@ All URIs are relative to *http://lease-server:8000*
 
 Class | Method | HTTP request | Description
 ------------ | ------------- | ------------- | -------------
-*DefaultApi* | [**fail_lease**](docs/DefaultApi.md#fail_lease) | **PUT** /leases/{id}/fail | FailLease
+*DefaultApi* | [**fail_lease**](docs/DefaultApi.md#fail_lease) | **POST** /leases/{id}/fail | FailLease
 *DefaultApi* | [**request_lease**](docs/DefaultApi.md#request_lease) | **POST** /leases/request | RequestLease
-*DefaultApi* | [**requeue_lease**](docs/DefaultApi.md#requeue_lease) | **PUT** /leases/{id}/requeue | RequeueLease
-*DefaultApi* | [**succeed_lease**](docs/DefaultApi.md#succeed_lease) | **PUT** /leases/{id}/succeed | SucceedLease
-*DefaultApi* | [**update_progress**](docs/DefaultApi.md#update_progress) | **PUT** /leases/{id}/progress | UpdateProgress
+*DefaultApi* | [**requeue_lease**](docs/DefaultApi.md#requeue_lease) | **POST** /leases/{id}/requeue | RequeueLease
+*DefaultApi* | [**succeed_lease**](docs/DefaultApi.md#succeed_lease) | **POST** /leases/{id}/succeed | SucceedLease
+*DefaultApi* | [**update_progress**](docs/DefaultApi.md#update_progress) | **POST** /leases/{id}/progress | UpdateProgress
 
 
 ## Documentation For Models

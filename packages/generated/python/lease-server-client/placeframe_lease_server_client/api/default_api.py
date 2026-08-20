@@ -96,7 +96,7 @@ class DefaultApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '200': None,
+            '201': None,
             '400': "UpdateProgress400Response",
         }
         response_data = await self.api_client.call_api(
@@ -167,7 +167,7 @@ class DefaultApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '200': None,
+            '201': None,
             '400': "UpdateProgress400Response",
         }
         response_data = await self.api_client.call_api(
@@ -238,7 +238,7 @@ class DefaultApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '200': None,
+            '201': None,
             '400': "UpdateProgress400Response",
         }
         response_data = await self.api_client.call_api(
@@ -310,7 +310,7 @@ class DefaultApi:
         ]
 
         return self.api_client.param_serialize(
-            method='PUT',
+            method='POST',
             resource_path='/leases/{id}/fail',
             path_params=_path_params,
             query_params=_query_params,
@@ -622,7 +622,7 @@ class DefaultApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '200': None,
+            '201': None,
             '400': "UpdateProgress400Response",
         }
         response_data = await self.api_client.call_api(
@@ -689,7 +689,7 @@ class DefaultApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '200': None,
+            '201': None,
             '400': "UpdateProgress400Response",
         }
         response_data = await self.api_client.call_api(
@@ -756,7 +756,7 @@ class DefaultApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '200': None,
+            '201': None,
             '400': "UpdateProgress400Response",
         }
         response_data = await self.api_client.call_api(
@@ -812,7 +812,7 @@ class DefaultApi:
         ]
 
         return self.api_client.param_serialize(
-            method='PUT',
+            method='POST',
             resource_path='/leases/{id}/requeue',
             path_params=_path_params,
             query_params=_query_params,
@@ -886,7 +886,7 @@ class DefaultApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '200': None,
+            '201': None,
             '400': "UpdateProgress400Response",
         }
         response_data = await self.api_client.call_api(
@@ -957,7 +957,7 @@ class DefaultApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '200': None,
+            '201': None,
             '400': "UpdateProgress400Response",
         }
         response_data = await self.api_client.call_api(
@@ -1028,7 +1028,7 @@ class DefaultApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '200': None,
+            '201': None,
             '400': "UpdateProgress400Response",
         }
         response_data = await self.api_client.call_api(
@@ -1100,7 +1100,7 @@ class DefaultApi:
         ]
 
         return self.api_client.param_serialize(
-            method='PUT',
+            method='POST',
             resource_path='/leases/{id}/succeed',
             path_params=_path_params,
             query_params=_query_params,
@@ -1174,7 +1174,7 @@ class DefaultApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '200': None,
+            '201': None,
             '400': "UpdateProgress400Response",
         }
         response_data = await self.api_client.call_api(
@@ -1245,7 +1245,7 @@ class DefaultApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '200': None,
+            '201': None,
             '400': "UpdateProgress400Response",
         }
         response_data = await self.api_client.call_api(
@@ -1316,7 +1316,7 @@ class DefaultApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '200': None,
+            '201': None,
             '400': "UpdateProgress400Response",
         }
         response_data = await self.api_client.call_api(
@@ -1388,7 +1388,7 @@ class DefaultApi:
         ]
 
         return self.api_client.param_serialize(
-            method='PUT',
+            method='POST',
             resource_path='/leases/{id}/progress',
             path_params=_path_params,
             query_params=_query_params,
