@@ -18,7 +18,7 @@ from core.capture_session_manifest import CaptureSessionManifest, RigCameraConfi
 from core.transform import Float3, Float4
 from numpy import asarray, float64, ndarray
 from PIL import Image
-from pyzed.sl import (
+from pyzed.sl import (  # pyright: ignore[reportMissingModuleSource]
     COORDINATE_SYSTEM,
     DEPTH_MODE,
     POSITIONAL_TRACKING_MODE,
