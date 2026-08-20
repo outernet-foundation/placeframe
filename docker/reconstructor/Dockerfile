@@ -16,16 +16,20 @@ RUN --mount=type=cache,id=uvcache,sharing=locked,target=/root/.cache/uv \
 
 COPY packages/python/core /app/packages/python/core
 COPY packages/python/common /app/packages/python/common
-COPY packages/generated/python/api-client /app/packages/generated/python/api-client
+COPY packages/generated/python/lease-server-client /app/packages/generated/python/lease-server-client
 COPY docker/reconstructor /app/docker/reconstructor
 RUN uv pip install --no-deps --no-sources \
     /app/packages/python/common \
     /app/packages/python/core \
-    /app/packages/generated/python/api-client \
+    /app/packages/generated/python/lease-server-client \
     /app/docker/reconstructor
 
 RUN uv pip check
 
 COPY --chmod=0755 docker/reconstructor/entrypoint.sh /usr/local/bin/entrypoint.sh
+
+# RECONSTRUCTOR_SHA is the content-addressed hash of this image's build context (computed by build_scripts.placeframe.context_sha.compute_service_shas) and is stamped onto every ReconstructionMetrics by run_reconstruction so each reconstruction's manifest records which reconstructor build produced it.
+ARG RECONSTRUCTOR_SHA
+ENV RECONSTRUCTOR_SHA=${RECONSTRUCTOR_SHA}
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

@@ -1,22 +1,28 @@
 import asyncio
+import os
 from asyncio import CancelledError, run, sleep
-from pathlib import Path
-from signal import SIGTERM, signal
-from typing import Any, NoReturn, cast
+from signal import SIGTERM
+from typing import NoReturn, cast
+from uuid import UUID
 
-from common.token_manager import TokenManager
+from common.logging_config import configure_logging
 from core.reconstruction_options import ReconstructionOptions as CoreReconstructionOptions
-from placeframe_api_client import (
+from placeframe_lease_server_client import (
     ApiClient,
     ApiException,
     Configuration,
     DefaultApi,
+    FailLeaseRequest,
+    LeaseResponse,
 )
-from placeframe_api_client import ReconstructionMetrics as ClientReconstructionMetrics
+from placeframe_lease_server_client import ReconstructionMetrics as ClientReconstructionMetrics
 
-from .progress_publisher import ReconstructionPublisher
+from .metrics_builder import MetricsBuilder
+from .progress_publisher import AsyncProgressFlusher, ReconstructionPublisher
 from .run_reconstruction import load_models, run_reconstruction
 from .settings import get_settings
+
+configure_logging("reconstructor")
 
 POLL_INTERVAL_SECONDS = 5.0
 
@@ -26,19 +32,26 @@ settings = get_settings()
 async def worker_loop() -> None:
     print("Reconstructor Worker Started")
 
-    auth = TokenManager(str(settings.auth_token_url), settings.auth_client_id, Path(settings.private_key_path))
-    configuration = Configuration(host=str(settings.api_internal_url))
+    configuration = Configuration(host=str(settings.lease_server_url))
 
     async with ApiClient(configuration) as api_client:
         api = DefaultApi(api_client)
         loop = asyncio.get_running_loop()
+        active_lease_id: UUID | None = None
+        eviction_task: asyncio.Task[None] | None = None
+
+        # A spot eviction arrives as SIGTERM ~2 minutes before the node is reclaimed. Requeue the
+        # in-flight lease so a fresh worker re-runs it, then exit; without this the job is orphaned
+        # until the 30-minute reaper marks it failed. The task reference is held so it is not
+        # garbage-collected before it runs.
+        def on_sigterm() -> None:
+            nonlocal eviction_task
+            eviction_task = loop.create_task(_requeue_and_exit(api, active_lease_id))
+
+        loop.add_signal_handler(SIGTERM, on_sigterm)
 
         while True:
             try:
-                token = await auth.get_token()
-                configuration.access_token = token
-                cast(dict[Any, Any], api_client.default_headers)["Authorization"] = f"Bearer {token}"
-
                 try:
                     lease = await api.request_lease()
                 except ApiException as e:
@@ -51,35 +64,10 @@ async def worker_loop() -> None:
                         await sleep(POLL_INTERVAL_SECONDS)
                         continue
 
-                reconstruction_id = lease.reconstruction_id
-                capture_id = lease.capture_session_id
-                options = CoreReconstructionOptions.model_validate(lease.options.model_dump())
-                print(f"[{reconstruction_id}] Acquired lease")
-
-                publisher = ReconstructionPublisher(api, loop, reconstruction_id)
-
-                try:
-                    # run_reconstruction is sync and CPU/GPU-bound; push it to a thread so the
-                    # event loop stays live for progress writes the publisher dispatches back.
-                    metrics = await loop.run_in_executor(
-                        None,
-                        run_reconstruction,
-                        reconstruction_id,
-                        capture_id,
-                        options,
-                        publisher,
-                    )
-                    print(f"[{reconstruction_id}] Reconstruction succeeded")
-
-                    await api.succeed_lease(
-                        reconstruction_id,
-                        ClientReconstructionMetrics.model_validate(metrics.model_dump()),
-                    )
-
-                except Exception as e:
-                    print(f"[{reconstruction_id}] Reconstruction failed: {e}")
-
-                    await api.fail_lease(reconstruction_id, str(e))
+                print(f"[{lease.reconstruction_id}] Acquired lease")
+                active_lease_id = lease.reconstruction_id
+                await _run_and_report(api, loop, lease)
+                active_lease_id = None
 
             except CancelledError:
                 print("Worker loop cancelled. Shutting down...")
@@ -89,15 +77,55 @@ async def worker_loop() -> None:
                 await sleep(POLL_INTERVAL_SECONDS)
 
 
-def handle_sigterm(signum: int, frame: Any) -> NoReturn:
-    raise CancelledError()
+async def _run_and_report(api: DefaultApi, loop: asyncio.AbstractEventLoop, lease: LeaseResponse) -> None:
+    reconstruction_id = lease.reconstruction_id
+    capture_id = lease.capture_session_id
+    options = CoreReconstructionOptions.model_validate(lease.options.model_dump())
+
+    publisher = ReconstructionPublisher(AsyncProgressFlusher(api, loop), reconstruction_id)
+    metrics_builder = MetricsBuilder()
+
+    try:
+        # run_reconstruction is sync and CPU/GPU-bound; push it to a thread so the
+        # event loop stays live for progress writes the publisher dispatches back.
+        metrics = await loop.run_in_executor(
+            None,
+            run_reconstruction,
+            reconstruction_id,
+            capture_id,
+            options,
+            publisher,
+            metrics_builder,
+        )
+        print(f"[{reconstruction_id}] Reconstruction succeeded")
+        await api.succeed_lease(
+            reconstruction_id,
+            ClientReconstructionMetrics.model_validate(metrics.model_dump()),
+        )
+    except Exception as e:
+        print(f"[{reconstruction_id}] Reconstruction failed: {e}")
+        partial_metrics = ClientReconstructionMetrics.model_validate(metrics_builder.metrics.model_dump())
+        await api.fail_lease(
+            reconstruction_id,
+            FailLeaseRequest(error=str(e), metrics=partial_metrics),
+        )
+
+
+async def _requeue_and_exit(api: DefaultApi, reconstruction_id: UUID | None) -> NoReturn:
+    if reconstruction_id is not None:
+        print(f"[{reconstruction_id}] Eviction (SIGTERM) received — requeuing lease")
+        try:
+            await api.requeue_lease(reconstruction_id)
+        except ApiException as e:
+            print(f"[{reconstruction_id}] Requeue on eviction failed: {e}")
+    else:
+        print("Eviction (SIGTERM) received while idle — exiting")
+
+    os._exit(0)
 
 
 def main() -> None:
     load_models()
-
-    # Register the signal handler for graceful Docker shutdowns
-    signal(SIGTERM, handle_sigterm)
 
     try:
         # This is the single place where the event loop is started

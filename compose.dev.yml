@@ -1,0 +1,20 @@
+services:
+  api:
+    ports:
+      - "5679:5678"
+    volumes:
+      - ./:/app:ro
+    environment:
+      RELOAD: "true"
+      DEBUG: "${DEBUG_API:-true}"
+      DEBUG_WAIT: "${DEBUG_WAIT_API:-false}"
+
+  lease-server:
+    ports:
+      - "5683:5678"
+    volumes:
+      - ./:/app:ro
+    environment:
+      RELOAD: "true"
+      DEBUG: "${DEBUG_LEASE_SERVER:-false}"
+      DEBUG_WAIT: "${DEBUG_WAIT_LEASE_SERVER:-false}"

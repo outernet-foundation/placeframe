@@ -1,0 +1,221 @@
+from __future__ import annotations
+
+from datetime import timedelta
+from typing import Optional
+from uuid import UUID
+
+from core.reconstruction_manifest import MANIFEST_VERSION, Manifest
+from core.reconstruction_metrics import ReconstructionMetrics
+from core.reconstruction_options import ReconstructionOptions
+from datamodels.public_tables import Reconstruction, ReconstructionStatus
+from litestar import Router, post
+from litestar.di import Provide
+from litestar.exceptions import NotFoundException
+from pydantic import BaseModel
+from sqlalchemy import select, update
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql import func
+
+from ..database import SessionLocal, get_session
+
+LEASE_TIMEOUT = timedelta(minutes=30)
+MAX_REQUEUE_ATTEMPTS = 5
+TERMINAL_STATUSES = (ReconstructionStatus.SUCCEEDED, ReconstructionStatus.FAILED, ReconstructionStatus.CANCELLED)
+
+
+class LeaseResponse(BaseModel):
+    reconstruction_id: UUID
+    capture_session_id: UUID
+    options: ReconstructionOptions
+
+
+class ProgressUpdate(BaseModel):
+    status: ReconstructionStatus
+    progress_current: Optional[int] = None
+    progress_total: Optional[int] = None
+    progress_attempt: Optional[int] = None
+    error: Optional[str] = None
+
+
+class FailLeaseRequest(BaseModel):
+    error: str
+    metrics: Optional[ReconstructionMetrics] = None
+
+
+@post("/request")
+async def request_lease(session: AsyncSession) -> LeaseResponse:
+    # Reap stale leases — a worker crash skips complete_lease and would otherwise stall the queue.
+    # A lease is "stale" when it has been off the queued list for longer than LEASE_TIMEOUT
+    # without any updated_at refresh (every progress write touches updated_at via the trigger).
+    stale_filter = (
+        ~Reconstruction.status.in_((
+            ReconstructionStatus.SUCCEEDED,
+            ReconstructionStatus.FAILED,
+            ReconstructionStatus.CANCELLED,
+            ReconstructionStatus.QUEUED,
+        )),
+        Reconstruction.updated_at < func.now() - LEASE_TIMEOUT,
+    )
+
+    # A worker that died without SIGTERM (e.g. a spot node force-killed) leaves its lease stuck
+    # off-queue. Fail it only once it has exhausted its requeue budget; otherwise return it to the
+    # queue so a fresh worker retries (the budget bounds retries so a job that always stalls can't
+    # loop forever). Runs in its own transaction so the requeue/fail persists even when no job is
+    # granted below — the lease-grant path commits only on success and rolls back on the 404.
+    async with SessionLocal() as reaper_session, reaper_session.begin():
+        await reaper_session.execute(
+            update(Reconstruction)
+            .where(*stale_filter, Reconstruction.requeue_count >= MAX_REQUEUE_ATTEMPTS)
+            .values(
+                status=ReconstructionStatus.FAILED,
+                error=f"Lease timed out after {MAX_REQUEUE_ATTEMPTS} requeue attempts",
+                progress_current=None,
+                progress_total=None,
+                progress_attempt=None,
+            )
+        )
+        await reaper_session.execute(
+            update(Reconstruction)
+            .where(*stale_filter, Reconstruction.requeue_count < MAX_REQUEUE_ATTEMPTS)
+            .values(
+                status=ReconstructionStatus.QUEUED,
+                requeue_count=Reconstruction.requeue_count + 1,
+                error=None,
+                progress_current=None,
+                progress_total=None,
+                progress_attempt=None,
+            )
+        )
+
+    result = await session.execute(
+        select(Reconstruction)
+        .where(Reconstruction.status == ReconstructionStatus.QUEUED)
+        .order_by(Reconstruction.created_at)
+        .with_for_update(skip_locked=True)
+        .limit(1)
+    )
+    row = result.scalar_one_or_none()
+
+    if not row:
+        raise NotFoundException("No pending jobs")
+
+    # Validate the manifest BEFORE flipping status. If validation throws after the commit,
+    # the row is already out of QUEUED but no worker has it, leaving it stuck in
+    # EXTRACTING_FEATURES until LEASE_TIMEOUT reaps it 30 minutes later.
+    manifest = Manifest.model_validate(row.manifest)
+
+    # Flip out of QUEUED so subsequent request_lease polls skip this row. The reconstructor's
+    # pre-extraction setup (tar download, manifest parse, rig build, pair gen) runs under
+    # EXTRACTING_FEATURES with no progress until the per-image loop sets the real total.
+    row.status = ReconstructionStatus.EXTRACTING_FEATURES
+
+    await session.flush()
+    await session.commit()
+
+    assert row.capture_session_id is not None
+
+    return LeaseResponse(
+        reconstruction_id=row.id,
+        capture_session_id=row.capture_session_id,
+        options=manifest.options,
+    )
+
+
+@post("/{id:uuid}/progress")
+async def update_progress(session: AsyncSession, id: UUID, data: ProgressUpdate) -> None:
+    row = await session.get(Reconstruction, id)
+
+    if not row:
+        raise NotFoundException("Reconstruction not found")
+
+    # Progress writes are fire-and-forget from the worker and can land after the job reached a
+    # terminal status; dropping them stops a late write from flipping a finished job back to in-progress.
+    if row.status in TERMINAL_STATUSES:
+        return
+
+    row.status = data.status
+    row.progress_current = data.progress_current
+    row.progress_total = data.progress_total
+    row.progress_attempt = data.progress_attempt
+    row.error = data.error
+
+    await session.flush()
+    await session.commit()
+
+
+@post("/{id:uuid}/succeed")
+async def succeed_lease(session: AsyncSession, id: UUID, data: ReconstructionMetrics) -> None:
+    row = await _finalize_lease(session, id, ReconstructionStatus.SUCCEEDED)
+    row.error = None
+
+    existing = Manifest.model_validate(row.manifest)
+    merged = Manifest(options=existing.options, metrics=data)
+    row.manifest = merged.model_dump(mode="json")
+    row.manifest_version = MANIFEST_VERSION
+
+    await session.flush()
+    await session.commit()
+
+
+@post("/{id:uuid}/fail")
+async def fail_lease(session: AsyncSession, id: UUID, data: FailLeaseRequest) -> None:
+    row = await _finalize_lease(session, id, ReconstructionStatus.FAILED)
+    row.error = data.error
+
+    if data.metrics is not None:
+        existing = Manifest.model_validate(row.manifest)
+        merged = Manifest(options=existing.options, metrics=data.metrics)
+        row.manifest = merged.model_dump(mode="json")
+        row.manifest_version = MANIFEST_VERSION
+
+    await session.flush()
+    await session.commit()
+
+
+@post("/{id:uuid}/requeue")
+async def requeue_lease(session: AsyncSession, id: UUID) -> None:
+    row = await session.get(Reconstruction, id)
+
+    if not row:
+        raise NotFoundException("Reconstruction not found")
+
+    if row.status in TERMINAL_STATUSES:
+        return
+
+    if row.requeue_count >= MAX_REQUEUE_ATTEMPTS:
+        row.status = ReconstructionStatus.FAILED
+        row.error = f"Exceeded {MAX_REQUEUE_ATTEMPTS} requeue attempts"
+    else:
+        row.status = ReconstructionStatus.QUEUED
+        row.error = None
+        row.requeue_count += 1
+
+    row.progress_current = None
+    row.progress_total = None
+    row.progress_attempt = None
+
+    await session.flush()
+    await session.commit()
+
+
+async def _finalize_lease(session: AsyncSession, id: UUID, status: ReconstructionStatus) -> Reconstruction:
+    row = await session.get(Reconstruction, id)
+
+    if not row:
+        raise NotFoundException("Reconstruction not found")
+
+    row.status = status
+    # Clear progress fields on terminal transition so callers don't see stale phase numbers.
+    row.progress_current = None
+    row.progress_total = None
+    row.progress_attempt = None
+
+    return row
+
+
+router = Router(
+    path="/leases",
+    tags=["Leases"],
+    dependencies={"session": Provide(get_session)},
+    route_handlers=[request_lease, update_progress, succeed_lease, fail_lease, requeue_lease],
+)

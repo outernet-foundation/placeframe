@@ -1,108 +1,97 @@
 from __future__ import annotations
 
-from core.reconstruction_options import ReconstructionOptions
-from pycolmap import FeatureMatchingOptions, IncrementalPipelineOptions, TwoViewGeometryOptions
+from dataclasses import dataclass
 
-DEFAULT_NEIGHBORS_COUNT = 12
-DEFAULT_NEIGHBOR_ROTATION_THRESHOLD = 30.0
-DEFAULT_RANSAC_MAX_ERROR = 2.0
-DEFAULT_RANSAC_MIN_INLIER_RATIO = 0.15
-DEFAULT_TRIANGULATION_MINIMUM_ANGLE = 3.0
-DEFAULT_TRIANGULATION_COMPLETE_MAX_REPROJECTION_ERROR = 2.0
-DEFAULT_TRIANGULATION_MERGE_MAX_REPROJECTION_ERROR = 4.0
-DEFAULT_MAPPER_FILTER_MAX_REPROJECTION_ERROR = 2.0
-DEFAULT_POSE_PRIOR_POS_SIGMA_M = 0.25
-DEFAULT_OPQ_NUMBER_OF_SUBVECTORS = 16
-DEFAULT_OPQ_NUMBER_OF_BITS_PER_SUBVECTOR = 8
-DEFAULT_OPQ_NUMBER_OF_TRAINING_ITERATIONS = 20
-DEFAULT_LIGHTGLUE_BATCH_SIZE = 16
-DEFAULT_MAX_KEYPOINTS_PER_IMAGE = 2500
+from core.reconstruction_options import ReconstructionOptions
+from pycolmap import BundleAdjustmentOptions, IncrementalPipelineOptions, TwoViewGeometryOptions
+
+
+@dataclass(frozen=True)
+class PairVioEssentialMatrixOptions:
+    max_rotation_disagreement_deg: float
+    max_translation_direction_deg: float
+    min_baseline_m: float
 
 
 class OptionsBuilder:
-    def __init__(self, options: ReconstructionOptions):
+    def __init__(self, options: ReconstructionOptions, is_multi_camera_capture: bool):
         self.options = options
+        self.is_multi_camera_capture = is_multi_camera_capture
 
     def two_view_geometry_options(self):
         two_view_geometry_options = TwoViewGeometryOptions()
         two_view_geometry_options.compute_relative_pose = True
-        if self.options.random_seed is not None:
-            two_view_geometry_options.ransac.random_seed = self.options.random_seed
-        two_view_geometry_options.ransac.max_error = self.options.ransac_max_error or DEFAULT_RANSAC_MAX_ERROR
-        two_view_geometry_options.ransac.min_inlier_ratio = (
-            self.options.ransac_min_inlier_ratio or DEFAULT_RANSAC_MIN_INLIER_RATIO
-        )
+        if self.options.deterministic_seed is not None:
+            two_view_geometry_options.ransac.random_seed = self.options.deterministic_seed
+        two_view_geometry_options.ransac.max_error = self.options.ransac_max_error
+        two_view_geometry_options.ransac.min_inlier_ratio = self.options.ransac_min_inlier_ratio
+        two_view_geometry_options.ransac.max_num_trials = 500
+        two_view_geometry_options.ransac.confidence = 0.95
+        two_view_geometry_options.min_num_inliers = self.options.two_view_min_num_inliers
         two_view_geometry_options.filter_stationary_matches = True
         two_view_geometry_options.stationary_matches_max_error = 4.0
         return two_view_geometry_options
 
-    def feature_matching_options(self):
-        feature_matching_options = FeatureMatchingOptions()
-        if self.options.rig_verification is not None:
-            feature_matching_options.rig_verification = self.options.rig_verification
-        feature_matching_options.skip_image_pairs_in_same_frame = False
-        return feature_matching_options
+    def keyframe_min_distance_m(self):
+        return self.options.keyframe_min_distance_m
 
-    def neighbors_count(self):
-        return self.options.neighbors_count or DEFAULT_NEIGHBORS_COUNT
+    def sequential_window_m(self):
+        return self.options.sequential_window_m
 
-    def rotation_threshold_deg(self):
-        return self.options.rotation_threshold or DEFAULT_NEIGHBOR_ROTATION_THRESHOLD
+    def retrieval_neighbors(self):
+        return self.options.retrieval_neighbors
 
-    def compression_opq_number_of_subvectors(self):
-        return self.options.compression_opq_number_of_subvectors or DEFAULT_OPQ_NUMBER_OF_SUBVECTORS
-
-    def compression_opq_number_of_bits_per_subvector(self):
-        return self.options.compression_opq_number_of_bits_per_subvector or DEFAULT_OPQ_NUMBER_OF_BITS_PER_SUBVECTOR
-
-    def compression_opq_number_of_training_iterations(self):
-        return self.options.compression_opq_number_of_training_iterations or DEFAULT_OPQ_NUMBER_OF_TRAINING_ITERATIONS
+    def retrieval_min_score(self):
+        return self.options.retrieval_min_score
 
     def pose_prior_position_sigma_m(self):
-        return self.options.pose_prior_position_sigma_m or DEFAULT_POSE_PRIOR_POS_SIGMA_M
+        return self.options.pose_prior_position_sigma_m
 
-    def lightglue_batch_size(self):
-        return self.options.lightglue_batch_size or DEFAULT_LIGHTGLUE_BATCH_SIZE
+    def pair_vio_essential_matrix_options(self):
+        return PairVioEssentialMatrixOptions(
+            max_rotation_disagreement_deg=self.options.pair_vio_em_max_rotation_disagreement_deg,
+            max_translation_direction_deg=self.options.pair_vio_em_max_translation_direction_deg,
+            min_baseline_m=self.options.pair_vio_em_min_baseline_m,
+        )
 
     def max_keypoints_per_image(self):
-        return self.options.max_keypoints_per_image or DEFAULT_MAX_KEYPOINTS_PER_IMAGE
+        return self.options.max_keypoints_per_image
 
-    def incremental_pipeline_options(self):
+    def incremental_pipeline_options(self, constant_rigs: set[int]):
         incremental_pipeline_options = IncrementalPipelineOptions()
-        # incremental_pipeline_options.num_threads = 1
-        # incremental_pipeline_options.mapper.num_threads = 1
 
-        if self.options.random_seed is not None:
-            incremental_pipeline_options.random_seed = self.options.random_seed
-            incremental_pipeline_options.triangulation.random_seed = self.options.random_seed
+        if self.options.deterministic_seed is not None:
+            incremental_pipeline_options.random_seed = self.options.deterministic_seed
+            incremental_pipeline_options.triangulation.random_seed = self.options.deterministic_seed
+            incremental_pipeline_options.num_threads = 1
+            incremental_pipeline_options.mapper.num_threads = 1
 
-        if self.options.use_prior_position is not None:
-            incremental_pipeline_options.use_prior_position = self.options.use_prior_position
-        if self.options.bundle_adjustment_refine_sensor_from_rig is not None:
-            incremental_pipeline_options.ba_refine_sensor_from_rig = (
-                self.options.bundle_adjustment_refine_sensor_from_rig
-            )
-        if self.options.bundle_adjustment_refine_focal_length is not None:
-            incremental_pipeline_options.ba_refine_focal_length = self.options.bundle_adjustment_refine_focal_length
-        if self.options.bundle_adjustment_refine_principal_point is not None:
-            incremental_pipeline_options.ba_refine_principal_point = (
-                self.options.bundle_adjustment_refine_principal_point
-            )
-
-        triangulation_min_angle = self.options.triangulation_minimum_angle or DEFAULT_TRIANGULATION_MINIMUM_ANGLE
-
-        incremental_pipeline_options.triangulation.min_angle = triangulation_min_angle
-        incremental_pipeline_options.triangulation.complete_max_reproj_error = (
-            self.options.triangulation_complete_max_reprojection_error
-            or DEFAULT_TRIANGULATION_COMPLETE_MAX_REPROJECTION_ERROR
+        incremental_pipeline_options.use_prior_position = not self.is_multi_camera_capture
+        incremental_pipeline_options.ba_refine_sensor_from_rig = False
+        incremental_pipeline_options.ba_refine_focal_length = True
+        incremental_pipeline_options.ba_refine_principal_point = False
+        incremental_pipeline_options.ba_refine_extra_params = True
+        incremental_pipeline_options.ba_global_frames_ratio = self.options.bundle_adjustment_global_frames_ratio
+        incremental_pipeline_options.ba_global_max_refinements = 3
+        incremental_pipeline_options.ba_global_function_tolerance = (
+            self.options.bundle_adjustment_global_function_tolerance
         )
-        incremental_pipeline_options.triangulation.merge_max_reproj_error = (
-            self.options.triangulation_merge_max_reprojection_error
-            or DEFAULT_TRIANGULATION_MERGE_MAX_REPROJECTION_ERROR
-        )
-        incremental_pipeline_options.mapper.filter_min_tri_angle = triangulation_min_angle
-        incremental_pipeline_options.mapper.filter_max_reproj_error = (
-            self.options.mapper_filter_max_reprojection_error or DEFAULT_MAPPER_FILTER_MAX_REPROJECTION_ERROR
-        )
+        incremental_pipeline_options.mapper.ba_global_ignore_redundant_points3D = True
+        if constant_rigs:
+            incremental_pipeline_options.constant_rigs = constant_rigs
+
+        incremental_pipeline_options.triangulation.min_angle = self.options.triangulation_minimum_angle
+        incremental_pipeline_options.mapper.filter_min_tri_angle = self.options.triangulation_minimum_angle
+        incremental_pipeline_options.mapper.filter_max_reproj_error = self.options.mapper_filter_max_reprojection_error
 
         return incremental_pipeline_options
+
+    def final_bundle_adjustment_options(self):
+        bundle_adjustment_options = BundleAdjustmentOptions()
+        bundle_adjustment_options.refine_sensor_from_rig = not self.is_multi_camera_capture
+        bundle_adjustment_options.refine_focal_length = True
+        bundle_adjustment_options.refine_principal_point = False
+        bundle_adjustment_options.refine_extra_params = True
+        if self.options.deterministic_seed is not None:
+            bundle_adjustment_options.ceres.solver_options.num_threads = 1
+        return bundle_adjustment_options

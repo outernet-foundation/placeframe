@@ -29,31 +29,31 @@ namespace PlaceframeZedCaptureClient.Api
     {
         #region Synchronous Operations
         /// <summary>
-        /// DeleteAllCaptures
+        /// DeleteAllCaptureSessions
         /// </summary>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <returns></returns>
-        void DeleteAllCaptures();
+        void DeleteAllCaptureSessions();
 
         /// <summary>
-        /// DeleteAllCaptures
+        /// DeleteAllCaptureSessions
         /// </summary>
         /// <remarks>
         /// 
         /// </remarks>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <returns>ApiResponse of Object(void)</returns>
-        ApiResponse<Object> DeleteAllCapturesWithHttpInfo();
+        ApiResponse<Object> DeleteAllCaptureSessionsWithHttpInfo();
         /// <summary>
-        /// DeleteCapture
+        /// DeleteCaptureSession
         /// </summary>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
         /// <returns></returns>
-        void DeleteCapture(Guid id);
+        void DeleteCaptureSession(Guid id);
 
         /// <summary>
-        /// DeleteCapture
+        /// DeleteCaptureSession
         /// </summary>
         /// <remarks>
         /// 
@@ -61,63 +61,41 @@ namespace PlaceframeZedCaptureClient.Api
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
         /// <returns>ApiResponse of Object(void)</returns>
-        ApiResponse<Object> DeleteCaptureWithHttpInfo(Guid id);
+        ApiResponse<Object> DeleteCaptureSessionWithHttpInfo(Guid id);
         /// <summary>
-        /// DownloadCaptureTar
+        /// DownloadCaptureSessionTar
         /// </summary>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <param name="includeSvo"> (optional, default to false)</param>
         /// <returns>FileParameter</returns>
-        FileParameter DownloadCaptureTar(Guid id, bool? includeSvo = default);
+        FileParameter DownloadCaptureSessionTar(Guid id);
 
         /// <summary>
-        /// DownloadCaptureTar
+        /// DownloadCaptureSessionTar
         /// </summary>
         /// <remarks>
         /// 
         /// </remarks>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <param name="includeSvo"> (optional, default to false)</param>
         /// <returns>ApiResponse of FileParameter</returns>
-        ApiResponse<FileParameter> DownloadCaptureTarWithHttpInfo(Guid id, bool? includeSvo = default);
+        ApiResponse<FileParameter> DownloadCaptureSessionTarWithHttpInfo(Guid id);
         /// <summary>
-        /// GetCaptures
+        /// GetCaptureSessions
         /// </summary>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <returns>List&lt;ZedCapture&gt;</returns>
-        List<ZedCapture> GetCaptures();
+        List<ZedCapture> GetCaptureSessions();
 
         /// <summary>
-        /// GetCaptures
+        /// GetCaptureSessions
         /// </summary>
         /// <remarks>
         /// 
         /// </remarks>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <returns>ApiResponse of List&lt;ZedCapture&gt;</returns>
-        ApiResponse<List<ZedCapture>> GetCapturesWithHttpInfo();
-        /// <summary>
-        /// GetLogs
-        /// </summary>
-        /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="ack">Token from previous response; ack-on-next-fetch advances the box&#39;s persistent cursor (optional, default to &quot;&quot;)</param>
-        /// <param name="limit"> (optional, default to 1000)</param>
-        /// <returns>LogBatch</returns>
-        LogBatch GetLogs(string? ack = default, int? limit = default);
-
-        /// <summary>
-        /// GetLogs
-        /// </summary>
-        /// <remarks>
-        /// 
-        /// </remarks>
-        /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="ack">Token from previous response; ack-on-next-fetch advances the box&#39;s persistent cursor (optional, default to &quot;&quot;)</param>
-        /// <param name="limit"> (optional, default to 1000)</param>
-        /// <returns>ApiResponse of LogBatch</returns>
-        ApiResponse<LogBatch> GetLogsWithHttpInfo(string? ack = default, int? limit = default);
+        ApiResponse<List<ZedCapture>> GetCaptureSessionsWithHttpInfo();
         /// <summary>
         /// GetStatus
         /// </summary>
@@ -138,9 +116,9 @@ namespace PlaceframeZedCaptureClient.Api
         /// StartCapture
         /// </summary>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="captureInterval"> (optional)</param>
+        /// <param name="startCaptureRequest"></param>
         /// <returns>Guid</returns>
-        Guid StartCapture(double? captureInterval = default);
+        Guid StartCapture(StartCaptureRequest startCaptureRequest);
 
         /// <summary>
         /// StartCapture
@@ -149,15 +127,16 @@ namespace PlaceframeZedCaptureClient.Api
         /// 
         /// </remarks>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="captureInterval"> (optional)</param>
+        /// <param name="startCaptureRequest"></param>
         /// <returns>ApiResponse of Guid</returns>
-        ApiResponse<Guid> StartCaptureWithHttpInfo(double? captureInterval = default);
+        ApiResponse<Guid> StartCaptureWithHttpInfo(StartCaptureRequest startCaptureRequest);
         /// <summary>
         /// StopCapture
         /// </summary>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="stopCaptureRequest"></param>
         /// <returns></returns>
-        void StopCapture();
+        void StopCapture(StopCaptureRequest stopCaptureRequest);
 
         /// <summary>
         /// StopCapture
@@ -166,8 +145,29 @@ namespace PlaceframeZedCaptureClient.Api
         /// 
         /// </remarks>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="stopCaptureRequest"></param>
         /// <returns>ApiResponse of Object(void)</returns>
-        ApiResponse<Object> StopCaptureWithHttpInfo();
+        ApiResponse<Object> StopCaptureWithHttpInfo(StopCaptureRequest stopCaptureRequest);
+        /// <summary>
+        /// UpdateCaptureSession
+        /// </summary>
+        /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="updateCaptureSessionRequest"></param>
+        /// <returns></returns>
+        void UpdateCaptureSession(Guid id, UpdateCaptureSessionRequest updateCaptureSessionRequest);
+
+        /// <summary>
+        /// UpdateCaptureSession
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="updateCaptureSessionRequest"></param>
+        /// <returns>ApiResponse of Object(void)</returns>
+        ApiResponse<Object> UpdateCaptureSessionWithHttpInfo(Guid id, UpdateCaptureSessionRequest updateCaptureSessionRequest);
         #endregion Synchronous Operations
     }
 
@@ -178,7 +178,7 @@ namespace PlaceframeZedCaptureClient.Api
     {
         #region Asynchronous Operations
         /// <summary>
-        /// DeleteAllCaptures
+        /// DeleteAllCaptureSessions
         /// </summary>
         /// <remarks>
         /// 
@@ -186,10 +186,10 @@ namespace PlaceframeZedCaptureClient.Api
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of void</returns>
-        Cysharp.Threading.Tasks.UniTask DeleteAllCapturesAsync(System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask DeleteAllCaptureSessionsAsync(System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// DeleteAllCaptures
+        /// DeleteAllCaptureSessions
         /// </summary>
         /// <remarks>
         /// 
@@ -197,9 +197,9 @@ namespace PlaceframeZedCaptureClient.Api
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse</returns>
-        Cysharp.Threading.Tasks.UniTask<ApiResponse<Object>> DeleteAllCapturesWithHttpInfoAsync(System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<Object>> DeleteAllCaptureSessionsWithHttpInfoAsync(System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
-        /// DeleteCapture
+        /// DeleteCaptureSession
         /// </summary>
         /// <remarks>
         /// 
@@ -208,10 +208,10 @@ namespace PlaceframeZedCaptureClient.Api
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of void</returns>
-        Cysharp.Threading.Tasks.UniTask DeleteCaptureAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask DeleteCaptureSessionAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// DeleteCapture
+        /// DeleteCaptureSession
         /// </summary>
         /// <remarks>
         /// 
@@ -220,34 +220,32 @@ namespace PlaceframeZedCaptureClient.Api
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse</returns>
-        Cysharp.Threading.Tasks.UniTask<ApiResponse<Object>> DeleteCaptureWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<Object>> DeleteCaptureSessionWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
-        /// DownloadCaptureTar
+        /// DownloadCaptureSessionTar
         /// </summary>
         /// <remarks>
         /// 
         /// </remarks>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <param name="includeSvo"> (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of FileParameter</returns>
-        Cysharp.Threading.Tasks.UniTask<FileParameter> DownloadCaptureTarAsync(Guid id, bool? includeSvo = default, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<FileParameter> DownloadCaptureSessionTarAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// DownloadCaptureTar
+        /// DownloadCaptureSessionTar
         /// </summary>
         /// <remarks>
         /// 
         /// </remarks>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <param name="includeSvo"> (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (FileParameter)</returns>
-        Cysharp.Threading.Tasks.UniTask<ApiResponse<FileParameter>> DownloadCaptureTarWithHttpInfoAsync(Guid id, bool? includeSvo = default, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<FileParameter>> DownloadCaptureSessionTarWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
-        /// GetCaptures
+        /// GetCaptureSessions
         /// </summary>
         /// <remarks>
         /// 
@@ -255,10 +253,10 @@ namespace PlaceframeZedCaptureClient.Api
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;ZedCapture&gt;</returns>
-        Cysharp.Threading.Tasks.UniTask<List<ZedCapture>> GetCapturesAsync(System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<List<ZedCapture>> GetCaptureSessionsAsync(System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// GetCaptures
+        /// GetCaptureSessions
         /// </summary>
         /// <remarks>
         /// 
@@ -266,32 +264,7 @@ namespace PlaceframeZedCaptureClient.Api
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;ZedCapture&gt;)</returns>
-        Cysharp.Threading.Tasks.UniTask<ApiResponse<List<ZedCapture>>> GetCapturesWithHttpInfoAsync(System.Threading.CancellationToken cancellationToken = default);
-        /// <summary>
-        /// GetLogs
-        /// </summary>
-        /// <remarks>
-        /// 
-        /// </remarks>
-        /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="ack">Token from previous response; ack-on-next-fetch advances the box&#39;s persistent cursor (optional, default to &quot;&quot;)</param>
-        /// <param name="limit"> (optional, default to 1000)</param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of LogBatch</returns>
-        Cysharp.Threading.Tasks.UniTask<LogBatch> GetLogsAsync(string? ack = default, int? limit = default, System.Threading.CancellationToken cancellationToken = default);
-
-        /// <summary>
-        /// GetLogs
-        /// </summary>
-        /// <remarks>
-        /// 
-        /// </remarks>
-        /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="ack">Token from previous response; ack-on-next-fetch advances the box&#39;s persistent cursor (optional, default to &quot;&quot;)</param>
-        /// <param name="limit"> (optional, default to 1000)</param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of ApiResponse (LogBatch)</returns>
-        Cysharp.Threading.Tasks.UniTask<ApiResponse<LogBatch>> GetLogsWithHttpInfoAsync(string? ack = default, int? limit = default, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<List<ZedCapture>>> GetCaptureSessionsWithHttpInfoAsync(System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// GetStatus
         /// </summary>
@@ -320,10 +293,10 @@ namespace PlaceframeZedCaptureClient.Api
         /// 
         /// </remarks>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="captureInterval"> (optional)</param>
+        /// <param name="startCaptureRequest"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of Guid</returns>
-        Cysharp.Threading.Tasks.UniTask<Guid> StartCaptureAsync(double? captureInterval = default, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<Guid> StartCaptureAsync(StartCaptureRequest startCaptureRequest, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// StartCapture
@@ -332,10 +305,10 @@ namespace PlaceframeZedCaptureClient.Api
         /// 
         /// </remarks>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="captureInterval"> (optional)</param>
+        /// <param name="startCaptureRequest"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (Guid)</returns>
-        Cysharp.Threading.Tasks.UniTask<ApiResponse<Guid>> StartCaptureWithHttpInfoAsync(double? captureInterval = default, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<Guid>> StartCaptureWithHttpInfoAsync(StartCaptureRequest startCaptureRequest, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// StopCapture
         /// </summary>
@@ -343,9 +316,10 @@ namespace PlaceframeZedCaptureClient.Api
         /// 
         /// </remarks>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="stopCaptureRequest"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of void</returns>
-        Cysharp.Threading.Tasks.UniTask StopCaptureAsync(System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask StopCaptureAsync(StopCaptureRequest stopCaptureRequest, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// StopCapture
@@ -354,9 +328,35 @@ namespace PlaceframeZedCaptureClient.Api
         /// 
         /// </remarks>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="stopCaptureRequest"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse</returns>
-        Cysharp.Threading.Tasks.UniTask<ApiResponse<Object>> StopCaptureWithHttpInfoAsync(System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<Object>> StopCaptureWithHttpInfoAsync(StopCaptureRequest stopCaptureRequest, System.Threading.CancellationToken cancellationToken = default);
+        /// <summary>
+        /// UpdateCaptureSession
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="updateCaptureSessionRequest"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of void</returns>
+        Cysharp.Threading.Tasks.UniTask UpdateCaptureSessionAsync(Guid id, UpdateCaptureSessionRequest updateCaptureSessionRequest, System.Threading.CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// UpdateCaptureSession
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="updateCaptureSessionRequest"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse</returns>
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<Object>> UpdateCaptureSessionWithHttpInfoAsync(Guid id, UpdateCaptureSessionRequest updateCaptureSessionRequest, System.Threading.CancellationToken cancellationToken = default);
         #endregion Asynchronous Operations
     }
 
@@ -571,21 +571,21 @@ namespace PlaceframeZedCaptureClient.Api
         }
 
         /// <summary>
-        /// DeleteAllCaptures 
+        /// DeleteAllCaptureSessions 
         /// </summary>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <returns></returns>
-        public void DeleteAllCaptures()
+        public void DeleteAllCaptureSessions()
         {
-            DeleteAllCapturesWithHttpInfo();
+            DeleteAllCaptureSessionsWithHttpInfo();
         }
 
         /// <summary>
-        /// DeleteAllCaptures 
+        /// DeleteAllCaptureSessions 
         /// </summary>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <returns>ApiResponse of Object(void)</returns>
-        public PlaceframeZedCaptureClient.Client.ApiResponse<Object> DeleteAllCapturesWithHttpInfo()
+        public PlaceframeZedCaptureClient.Client.ApiResponse<Object> DeleteAllCaptureSessionsWithHttpInfo()
         {
             PlaceframeZedCaptureClient.Client.RequestOptions localVarRequestOptions = new PlaceframeZedCaptureClient.Client.RequestOptions();
 
@@ -605,11 +605,11 @@ namespace PlaceframeZedCaptureClient.Api
 
 
             // make the HTTP request
-            var localVarResponse = this.Client.Delete<Object>("/captures", localVarRequestOptions, this.Configuration);
+            var localVarResponse = this.Client.Delete<Object>("/capture_sessions", localVarRequestOptions, this.Configuration);
 
             if (this.ExceptionFactory != null)
             {
-                Exception _exception = this.ExceptionFactory("DeleteAllCaptures", localVarResponse);
+                Exception _exception = this.ExceptionFactory("DeleteAllCaptureSessions", localVarResponse);
                 if (_exception != null) throw _exception;
             }
 
@@ -617,23 +617,23 @@ namespace PlaceframeZedCaptureClient.Api
         }
 
         /// <summary>
-        /// DeleteAllCaptures 
+        /// DeleteAllCaptureSessions 
         /// </summary>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of void</returns>
-        public async Cysharp.Threading.Tasks.UniTask DeleteAllCapturesAsync(System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask DeleteAllCaptureSessionsAsync(System.Threading.CancellationToken cancellationToken = default)
         {
-            await DeleteAllCapturesWithHttpInfoAsync(cancellationToken);
+            await DeleteAllCaptureSessionsWithHttpInfoAsync(cancellationToken);
         }
 
         /// <summary>
-        /// DeleteAllCaptures 
+        /// DeleteAllCaptureSessions 
         /// </summary>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse</returns>
-        public async Cysharp.Threading.Tasks.UniTask<PlaceframeZedCaptureClient.Client.ApiResponse<Object>> DeleteAllCapturesWithHttpInfoAsync(System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeZedCaptureClient.Client.ApiResponse<Object>> DeleteAllCaptureSessionsWithHttpInfoAsync(System.Threading.CancellationToken cancellationToken = default)
         {
 
             PlaceframeZedCaptureClient.Client.RequestOptions localVarRequestOptions = new PlaceframeZedCaptureClient.Client.RequestOptions();
@@ -656,11 +656,11 @@ namespace PlaceframeZedCaptureClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.DeleteAsync<Object>("/captures", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
+            var localVarResponse = await this.AsynchronousClient.DeleteAsync<Object>("/capture_sessions", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
 
             if (this.ExceptionFactory != null)
             {
-                Exception _exception = this.ExceptionFactory("DeleteAllCaptures", localVarResponse);
+                Exception _exception = this.ExceptionFactory("DeleteAllCaptureSessions", localVarResponse);
                 if (_exception != null) throw _exception;
             }
 
@@ -668,23 +668,23 @@ namespace PlaceframeZedCaptureClient.Api
         }
 
         /// <summary>
-        /// DeleteCapture 
+        /// DeleteCaptureSession 
         /// </summary>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
         /// <returns></returns>
-        public void DeleteCapture(Guid id)
+        public void DeleteCaptureSession(Guid id)
         {
-            DeleteCaptureWithHttpInfo(id);
+            DeleteCaptureSessionWithHttpInfo(id);
         }
 
         /// <summary>
-        /// DeleteCapture 
+        /// DeleteCaptureSession 
         /// </summary>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
         /// <returns>ApiResponse of Object(void)</returns>
-        public PlaceframeZedCaptureClient.Client.ApiResponse<Object> DeleteCaptureWithHttpInfo(Guid id)
+        public PlaceframeZedCaptureClient.Client.ApiResponse<Object> DeleteCaptureSessionWithHttpInfo(Guid id)
         {
             PlaceframeZedCaptureClient.Client.RequestOptions localVarRequestOptions = new PlaceframeZedCaptureClient.Client.RequestOptions();
 
@@ -706,11 +706,11 @@ namespace PlaceframeZedCaptureClient.Api
 
 
             // make the HTTP request
-            var localVarResponse = this.Client.Delete<Object>("/captures/{id}", localVarRequestOptions, this.Configuration);
+            var localVarResponse = this.Client.Delete<Object>("/capture_sessions/{id}", localVarRequestOptions, this.Configuration);
 
             if (this.ExceptionFactory != null)
             {
-                Exception _exception = this.ExceptionFactory("DeleteCapture", localVarResponse);
+                Exception _exception = this.ExceptionFactory("DeleteCaptureSession", localVarResponse);
                 if (_exception != null) throw _exception;
             }
 
@@ -718,25 +718,25 @@ namespace PlaceframeZedCaptureClient.Api
         }
 
         /// <summary>
-        /// DeleteCapture 
+        /// DeleteCaptureSession 
         /// </summary>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of void</returns>
-        public async Cysharp.Threading.Tasks.UniTask DeleteCaptureAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask DeleteCaptureSessionAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
         {
-            await DeleteCaptureWithHttpInfoAsync(id, cancellationToken);
+            await DeleteCaptureSessionWithHttpInfoAsync(id, cancellationToken);
         }
 
         /// <summary>
-        /// DeleteCapture 
+        /// DeleteCaptureSession 
         /// </summary>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse</returns>
-        public async Cysharp.Threading.Tasks.UniTask<PlaceframeZedCaptureClient.Client.ApiResponse<Object>> DeleteCaptureWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeZedCaptureClient.Client.ApiResponse<Object>> DeleteCaptureSessionWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
         {
 
             PlaceframeZedCaptureClient.Client.RequestOptions localVarRequestOptions = new PlaceframeZedCaptureClient.Client.RequestOptions();
@@ -761,11 +761,11 @@ namespace PlaceframeZedCaptureClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.DeleteAsync<Object>("/captures/{id}", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
+            var localVarResponse = await this.AsynchronousClient.DeleteAsync<Object>("/capture_sessions/{id}", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
 
             if (this.ExceptionFactory != null)
             {
-                Exception _exception = this.ExceptionFactory("DeleteCapture", localVarResponse);
+                Exception _exception = this.ExceptionFactory("DeleteCaptureSession", localVarResponse);
                 if (_exception != null) throw _exception;
             }
 
@@ -773,26 +773,24 @@ namespace PlaceframeZedCaptureClient.Api
         }
 
         /// <summary>
-        /// DownloadCaptureTar 
+        /// DownloadCaptureSessionTar 
         /// </summary>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <param name="includeSvo"> (optional, default to false)</param>
         /// <returns>FileParameter</returns>
-        public FileParameter DownloadCaptureTar(Guid id, bool? includeSvo = default)
+        public FileParameter DownloadCaptureSessionTar(Guid id)
         {
-            PlaceframeZedCaptureClient.Client.ApiResponse<FileParameter> localVarResponse = DownloadCaptureTarWithHttpInfo(id, includeSvo);
+            PlaceframeZedCaptureClient.Client.ApiResponse<FileParameter> localVarResponse = DownloadCaptureSessionTarWithHttpInfo(id);
             return localVarResponse.Data;
         }
 
         /// <summary>
-        /// DownloadCaptureTar 
+        /// DownloadCaptureSessionTar 
         /// </summary>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <param name="includeSvo"> (optional, default to false)</param>
         /// <returns>ApiResponse of FileParameter</returns>
-        public PlaceframeZedCaptureClient.Client.ApiResponse<FileParameter> DownloadCaptureTarWithHttpInfo(Guid id, bool? includeSvo = default)
+        public PlaceframeZedCaptureClient.Client.ApiResponse<FileParameter> DownloadCaptureSessionTarWithHttpInfo(Guid id)
         {
             PlaceframeZedCaptureClient.Client.RequestOptions localVarRequestOptions = new PlaceframeZedCaptureClient.Client.RequestOptions();
 
@@ -812,18 +810,14 @@ namespace PlaceframeZedCaptureClient.Api
             if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
 
             localVarRequestOptions.PathParameters.Add("id", PlaceframeZedCaptureClient.Client.ClientUtils.ParameterToString(id)); // path parameter
-            if (includeSvo != null)
-            {
-                localVarRequestOptions.QueryParameters.Add(PlaceframeZedCaptureClient.Client.ClientUtils.ParameterToMultiMap("", "include_svo", includeSvo));
-            }
 
 
             // make the HTTP request
-            var localVarResponse = this.Client.Get<FileParameter>("/captures/{id}", localVarRequestOptions, this.Configuration);
+            var localVarResponse = this.Client.Get<FileParameter>("/capture_sessions/{id}/tar", localVarRequestOptions, this.Configuration);
 
             if (this.ExceptionFactory != null)
             {
-                Exception _exception = this.ExceptionFactory("DownloadCaptureTar", localVarResponse);
+                Exception _exception = this.ExceptionFactory("DownloadCaptureSessionTar", localVarResponse);
                 if (_exception != null) throw _exception;
             }
 
@@ -831,28 +825,26 @@ namespace PlaceframeZedCaptureClient.Api
         }
 
         /// <summary>
-        /// DownloadCaptureTar 
+        /// DownloadCaptureSessionTar 
         /// </summary>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <param name="includeSvo"> (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of FileParameter</returns>
-        public async Cysharp.Threading.Tasks.UniTask<FileParameter> DownloadCaptureTarAsync(Guid id, bool? includeSvo = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<FileParameter> DownloadCaptureSessionTarAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlaceframeZedCaptureClient.Client.ApiResponse<FileParameter> localVarResponse = await DownloadCaptureTarWithHttpInfoAsync(id, includeSvo, cancellationToken);
+            PlaceframeZedCaptureClient.Client.ApiResponse<FileParameter> localVarResponse = await DownloadCaptureSessionTarWithHttpInfoAsync(id, cancellationToken);
             return localVarResponse.Data;
         }
 
         /// <summary>
-        /// DownloadCaptureTar 
+        /// DownloadCaptureSessionTar 
         /// </summary>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <param name="includeSvo"> (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (FileParameter)</returns>
-        public async Cysharp.Threading.Tasks.UniTask<PlaceframeZedCaptureClient.Client.ApiResponse<FileParameter>> DownloadCaptureTarWithHttpInfoAsync(Guid id, bool? includeSvo = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeZedCaptureClient.Client.ApiResponse<FileParameter>> DownloadCaptureSessionTarWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
         {
 
             PlaceframeZedCaptureClient.Client.RequestOptions localVarRequestOptions = new PlaceframeZedCaptureClient.Client.RequestOptions();
@@ -874,19 +866,15 @@ namespace PlaceframeZedCaptureClient.Api
             if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
 
             localVarRequestOptions.PathParameters.Add("id", PlaceframeZedCaptureClient.Client.ClientUtils.ParameterToString(id)); // path parameter
-            if (includeSvo != null)
-            {
-                localVarRequestOptions.QueryParameters.Add(PlaceframeZedCaptureClient.Client.ClientUtils.ParameterToMultiMap("", "include_svo", includeSvo));
-            }
 
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.GetAsync<FileParameter>("/captures/{id}", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
+            var localVarResponse = await this.AsynchronousClient.GetAsync<FileParameter>("/capture_sessions/{id}/tar", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
 
             if (this.ExceptionFactory != null)
             {
-                Exception _exception = this.ExceptionFactory("DownloadCaptureTar", localVarResponse);
+                Exception _exception = this.ExceptionFactory("DownloadCaptureSessionTar", localVarResponse);
                 if (_exception != null) throw _exception;
             }
 
@@ -894,22 +882,22 @@ namespace PlaceframeZedCaptureClient.Api
         }
 
         /// <summary>
-        /// GetCaptures 
+        /// GetCaptureSessions 
         /// </summary>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <returns>List&lt;ZedCapture&gt;</returns>
-        public List<ZedCapture> GetCaptures()
+        public List<ZedCapture> GetCaptureSessions()
         {
-            PlaceframeZedCaptureClient.Client.ApiResponse<List<ZedCapture>> localVarResponse = GetCapturesWithHttpInfo();
+            PlaceframeZedCaptureClient.Client.ApiResponse<List<ZedCapture>> localVarResponse = GetCaptureSessionsWithHttpInfo();
             return localVarResponse.Data;
         }
 
         /// <summary>
-        /// GetCaptures 
+        /// GetCaptureSessions 
         /// </summary>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <returns>ApiResponse of List&lt;ZedCapture&gt;</returns>
-        public PlaceframeZedCaptureClient.Client.ApiResponse<List<ZedCapture>> GetCapturesWithHttpInfo()
+        public PlaceframeZedCaptureClient.Client.ApiResponse<List<ZedCapture>> GetCaptureSessionsWithHttpInfo()
         {
             PlaceframeZedCaptureClient.Client.RequestOptions localVarRequestOptions = new PlaceframeZedCaptureClient.Client.RequestOptions();
 
@@ -930,11 +918,11 @@ namespace PlaceframeZedCaptureClient.Api
 
 
             // make the HTTP request
-            var localVarResponse = this.Client.Get<List<ZedCapture>>("/captures", localVarRequestOptions, this.Configuration);
+            var localVarResponse = this.Client.Get<List<ZedCapture>>("/capture_sessions", localVarRequestOptions, this.Configuration);
 
             if (this.ExceptionFactory != null)
             {
-                Exception _exception = this.ExceptionFactory("GetCaptures", localVarResponse);
+                Exception _exception = this.ExceptionFactory("GetCaptureSessions", localVarResponse);
                 if (_exception != null) throw _exception;
             }
 
@@ -942,24 +930,24 @@ namespace PlaceframeZedCaptureClient.Api
         }
 
         /// <summary>
-        /// GetCaptures 
+        /// GetCaptureSessions 
         /// </summary>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;ZedCapture&gt;</returns>
-        public async Cysharp.Threading.Tasks.UniTask<List<ZedCapture>> GetCapturesAsync(System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<List<ZedCapture>> GetCaptureSessionsAsync(System.Threading.CancellationToken cancellationToken = default)
         {
-            PlaceframeZedCaptureClient.Client.ApiResponse<List<ZedCapture>> localVarResponse = await GetCapturesWithHttpInfoAsync(cancellationToken);
+            PlaceframeZedCaptureClient.Client.ApiResponse<List<ZedCapture>> localVarResponse = await GetCaptureSessionsWithHttpInfoAsync(cancellationToken);
             return localVarResponse.Data;
         }
 
         /// <summary>
-        /// GetCaptures 
+        /// GetCaptureSessions 
         /// </summary>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;ZedCapture&gt;)</returns>
-        public async Cysharp.Threading.Tasks.UniTask<PlaceframeZedCaptureClient.Client.ApiResponse<List<ZedCapture>>> GetCapturesWithHttpInfoAsync(System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeZedCaptureClient.Client.ApiResponse<List<ZedCapture>>> GetCaptureSessionsWithHttpInfoAsync(System.Threading.CancellationToken cancellationToken = default)
         {
 
             PlaceframeZedCaptureClient.Client.RequestOptions localVarRequestOptions = new PlaceframeZedCaptureClient.Client.RequestOptions();
@@ -983,136 +971,11 @@ namespace PlaceframeZedCaptureClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.GetAsync<List<ZedCapture>>("/captures", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
+            var localVarResponse = await this.AsynchronousClient.GetAsync<List<ZedCapture>>("/capture_sessions", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
 
             if (this.ExceptionFactory != null)
             {
-                Exception _exception = this.ExceptionFactory("GetCaptures", localVarResponse);
-                if (_exception != null) throw _exception;
-            }
-
-            return localVarResponse;
-        }
-
-        /// <summary>
-        /// GetLogs 
-        /// </summary>
-        /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="ack">Token from previous response; ack-on-next-fetch advances the box&#39;s persistent cursor (optional, default to &quot;&quot;)</param>
-        /// <param name="limit"> (optional, default to 1000)</param>
-        /// <returns>LogBatch</returns>
-        public LogBatch GetLogs(string? ack = default, int? limit = default)
-        {
-            PlaceframeZedCaptureClient.Client.ApiResponse<LogBatch> localVarResponse = GetLogsWithHttpInfo(ack, limit);
-            return localVarResponse.Data;
-        }
-
-        /// <summary>
-        /// GetLogs 
-        /// </summary>
-        /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="ack">Token from previous response; ack-on-next-fetch advances the box&#39;s persistent cursor (optional, default to &quot;&quot;)</param>
-        /// <param name="limit"> (optional, default to 1000)</param>
-        /// <returns>ApiResponse of LogBatch</returns>
-        public PlaceframeZedCaptureClient.Client.ApiResponse<LogBatch> GetLogsWithHttpInfo(string? ack = default, int? limit = default)
-        {
-            PlaceframeZedCaptureClient.Client.RequestOptions localVarRequestOptions = new PlaceframeZedCaptureClient.Client.RequestOptions();
-
-            string[] _contentTypes = new string[] {
-            };
-
-            // to determine the Accept header
-            string[] _accepts = new string[] {
-                "application/json"
-            };
-
-            var localVarContentType = PlaceframeZedCaptureClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
-            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
-
-            var localVarAccept = PlaceframeZedCaptureClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
-            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
-
-            if (ack != null)
-            {
-                localVarRequestOptions.QueryParameters.Add(PlaceframeZedCaptureClient.Client.ClientUtils.ParameterToMultiMap("", "ack", ack));
-            }
-            if (limit != null)
-            {
-                localVarRequestOptions.QueryParameters.Add(PlaceframeZedCaptureClient.Client.ClientUtils.ParameterToMultiMap("", "limit", limit));
-            }
-
-
-            // make the HTTP request
-            var localVarResponse = this.Client.Get<LogBatch>("/logs", localVarRequestOptions, this.Configuration);
-
-            if (this.ExceptionFactory != null)
-            {
-                Exception _exception = this.ExceptionFactory("GetLogs", localVarResponse);
-                if (_exception != null) throw _exception;
-            }
-
-            return localVarResponse;
-        }
-
-        /// <summary>
-        /// GetLogs 
-        /// </summary>
-        /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="ack">Token from previous response; ack-on-next-fetch advances the box&#39;s persistent cursor (optional, default to &quot;&quot;)</param>
-        /// <param name="limit"> (optional, default to 1000)</param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of LogBatch</returns>
-        public async Cysharp.Threading.Tasks.UniTask<LogBatch> GetLogsAsync(string? ack = default, int? limit = default, System.Threading.CancellationToken cancellationToken = default)
-        {
-            PlaceframeZedCaptureClient.Client.ApiResponse<LogBatch> localVarResponse = await GetLogsWithHttpInfoAsync(ack, limit, cancellationToken);
-            return localVarResponse.Data;
-        }
-
-        /// <summary>
-        /// GetLogs 
-        /// </summary>
-        /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="ack">Token from previous response; ack-on-next-fetch advances the box&#39;s persistent cursor (optional, default to &quot;&quot;)</param>
-        /// <param name="limit"> (optional, default to 1000)</param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of ApiResponse (LogBatch)</returns>
-        public async Cysharp.Threading.Tasks.UniTask<PlaceframeZedCaptureClient.Client.ApiResponse<LogBatch>> GetLogsWithHttpInfoAsync(string? ack = default, int? limit = default, System.Threading.CancellationToken cancellationToken = default)
-        {
-
-            PlaceframeZedCaptureClient.Client.RequestOptions localVarRequestOptions = new PlaceframeZedCaptureClient.Client.RequestOptions();
-
-            string[] _contentTypes = new string[] {
-            };
-
-            // to determine the Accept header
-            string[] _accepts = new string[] {
-                "application/json"
-            };
-
-
-            var localVarContentType = PlaceframeZedCaptureClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
-            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
-
-            var localVarAccept = PlaceframeZedCaptureClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
-            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
-
-            if (ack != null)
-            {
-                localVarRequestOptions.QueryParameters.Add(PlaceframeZedCaptureClient.Client.ClientUtils.ParameterToMultiMap("", "ack", ack));
-            }
-            if (limit != null)
-            {
-                localVarRequestOptions.QueryParameters.Add(PlaceframeZedCaptureClient.Client.ClientUtils.ParameterToMultiMap("", "limit", limit));
-            }
-
-
-            // make the HTTP request
-
-            var localVarResponse = await this.AsynchronousClient.GetAsync<LogBatch>("/logs", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
-
-            if (this.ExceptionFactory != null)
-            {
-                Exception _exception = this.ExceptionFactory("GetLogs", localVarResponse);
+                Exception _exception = this.ExceptionFactory("GetCaptureSessions", localVarResponse);
                 if (_exception != null) throw _exception;
             }
 
@@ -1224,11 +1087,11 @@ namespace PlaceframeZedCaptureClient.Api
         /// StartCapture 
         /// </summary>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="captureInterval"> (optional)</param>
+        /// <param name="startCaptureRequest"></param>
         /// <returns>Guid</returns>
-        public Guid StartCapture(double? captureInterval = default)
+        public Guid StartCapture(StartCaptureRequest startCaptureRequest)
         {
-            PlaceframeZedCaptureClient.Client.ApiResponse<Guid> localVarResponse = StartCaptureWithHttpInfo(captureInterval);
+            PlaceframeZedCaptureClient.Client.ApiResponse<Guid> localVarResponse = StartCaptureWithHttpInfo(startCaptureRequest);
             return localVarResponse.Data;
         }
 
@@ -1236,13 +1099,18 @@ namespace PlaceframeZedCaptureClient.Api
         /// StartCapture 
         /// </summary>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="captureInterval"> (optional)</param>
+        /// <param name="startCaptureRequest"></param>
         /// <returns>ApiResponse of Guid</returns>
-        public PlaceframeZedCaptureClient.Client.ApiResponse<Guid> StartCaptureWithHttpInfo(double? captureInterval = default)
+        public PlaceframeZedCaptureClient.Client.ApiResponse<Guid> StartCaptureWithHttpInfo(StartCaptureRequest startCaptureRequest)
         {
+            // verify the required parameter 'startCaptureRequest' is set
+            if (startCaptureRequest == null)
+                throw new PlaceframeZedCaptureClient.Client.ApiException(400, "Missing required parameter 'startCaptureRequest' when calling DefaultApi->StartCapture");
+
             PlaceframeZedCaptureClient.Client.RequestOptions localVarRequestOptions = new PlaceframeZedCaptureClient.Client.RequestOptions();
 
             string[] _contentTypes = new string[] {
+                "application/json"
             };
 
             // to determine the Accept header
@@ -1256,14 +1124,11 @@ namespace PlaceframeZedCaptureClient.Api
             var localVarAccept = PlaceframeZedCaptureClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
             if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
 
-            if (captureInterval != null)
-            {
-                localVarRequestOptions.QueryParameters.Add(PlaceframeZedCaptureClient.Client.ClientUtils.ParameterToMultiMap("", "capture_interval", captureInterval));
-            }
+            localVarRequestOptions.Data = startCaptureRequest;
 
 
             // make the HTTP request
-            var localVarResponse = this.Client.Post<Guid>("/captures/start", localVarRequestOptions, this.Configuration);
+            var localVarResponse = this.Client.Post<Guid>("/capture_sessions/start", localVarRequestOptions, this.Configuration);
 
             if (this.ExceptionFactory != null)
             {
@@ -1278,12 +1143,12 @@ namespace PlaceframeZedCaptureClient.Api
         /// StartCapture 
         /// </summary>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="captureInterval"> (optional)</param>
+        /// <param name="startCaptureRequest"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of Guid</returns>
-        public async Cysharp.Threading.Tasks.UniTask<Guid> StartCaptureAsync(double? captureInterval = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<Guid> StartCaptureAsync(StartCaptureRequest startCaptureRequest, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlaceframeZedCaptureClient.Client.ApiResponse<Guid> localVarResponse = await StartCaptureWithHttpInfoAsync(captureInterval, cancellationToken);
+            PlaceframeZedCaptureClient.Client.ApiResponse<Guid> localVarResponse = await StartCaptureWithHttpInfoAsync(startCaptureRequest, cancellationToken);
             return localVarResponse.Data;
         }
 
@@ -1291,15 +1156,20 @@ namespace PlaceframeZedCaptureClient.Api
         /// StartCapture 
         /// </summary>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="captureInterval"> (optional)</param>
+        /// <param name="startCaptureRequest"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (Guid)</returns>
-        public async Cysharp.Threading.Tasks.UniTask<PlaceframeZedCaptureClient.Client.ApiResponse<Guid>> StartCaptureWithHttpInfoAsync(double? captureInterval = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeZedCaptureClient.Client.ApiResponse<Guid>> StartCaptureWithHttpInfoAsync(StartCaptureRequest startCaptureRequest, System.Threading.CancellationToken cancellationToken = default)
         {
+            // verify the required parameter 'startCaptureRequest' is set
+            if (startCaptureRequest == null)
+                throw new PlaceframeZedCaptureClient.Client.ApiException(400, "Missing required parameter 'startCaptureRequest' when calling DefaultApi->StartCapture");
+
 
             PlaceframeZedCaptureClient.Client.RequestOptions localVarRequestOptions = new PlaceframeZedCaptureClient.Client.RequestOptions();
 
             string[] _contentTypes = new string[] {
+                "application/json"
             };
 
             // to determine the Accept header
@@ -1314,15 +1184,12 @@ namespace PlaceframeZedCaptureClient.Api
             var localVarAccept = PlaceframeZedCaptureClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
             if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
 
-            if (captureInterval != null)
-            {
-                localVarRequestOptions.QueryParameters.Add(PlaceframeZedCaptureClient.Client.ClientUtils.ParameterToMultiMap("", "capture_interval", captureInterval));
-            }
+            localVarRequestOptions.Data = startCaptureRequest;
 
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.PostAsync<Guid>("/captures/start", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
+            var localVarResponse = await this.AsynchronousClient.PostAsync<Guid>("/capture_sessions/start", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
 
             if (this.ExceptionFactory != null)
             {
@@ -1337,26 +1204,34 @@ namespace PlaceframeZedCaptureClient.Api
         /// StopCapture 
         /// </summary>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="stopCaptureRequest"></param>
         /// <returns></returns>
-        public void StopCapture()
+        public void StopCapture(StopCaptureRequest stopCaptureRequest)
         {
-            StopCaptureWithHttpInfo();
+            StopCaptureWithHttpInfo(stopCaptureRequest);
         }
 
         /// <summary>
         /// StopCapture 
         /// </summary>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="stopCaptureRequest"></param>
         /// <returns>ApiResponse of Object(void)</returns>
-        public PlaceframeZedCaptureClient.Client.ApiResponse<Object> StopCaptureWithHttpInfo()
+        public PlaceframeZedCaptureClient.Client.ApiResponse<Object> StopCaptureWithHttpInfo(StopCaptureRequest stopCaptureRequest)
         {
+            // verify the required parameter 'stopCaptureRequest' is set
+            if (stopCaptureRequest == null)
+                throw new PlaceframeZedCaptureClient.Client.ApiException(400, "Missing required parameter 'stopCaptureRequest' when calling DefaultApi->StopCapture");
+
             PlaceframeZedCaptureClient.Client.RequestOptions localVarRequestOptions = new PlaceframeZedCaptureClient.Client.RequestOptions();
 
             string[] _contentTypes = new string[] {
+                "application/json"
             };
 
             // to determine the Accept header
             string[] _accepts = new string[] {
+                "application/json"
             };
 
             var localVarContentType = PlaceframeZedCaptureClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
@@ -1365,10 +1240,11 @@ namespace PlaceframeZedCaptureClient.Api
             var localVarAccept = PlaceframeZedCaptureClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
             if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
 
+            localVarRequestOptions.Data = stopCaptureRequest;
 
 
             // make the HTTP request
-            var localVarResponse = this.Client.Post<Object>("/captures/stop", localVarRequestOptions, this.Configuration);
+            var localVarResponse = this.Client.Post<Object>("/capture_sessions/stop", localVarRequestOptions, this.Configuration);
 
             if (this.ExceptionFactory != null)
             {
@@ -1383,29 +1259,37 @@ namespace PlaceframeZedCaptureClient.Api
         /// StopCapture 
         /// </summary>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="stopCaptureRequest"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of void</returns>
-        public async Cysharp.Threading.Tasks.UniTask StopCaptureAsync(System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask StopCaptureAsync(StopCaptureRequest stopCaptureRequest, System.Threading.CancellationToken cancellationToken = default)
         {
-            await StopCaptureWithHttpInfoAsync(cancellationToken);
+            await StopCaptureWithHttpInfoAsync(stopCaptureRequest, cancellationToken);
         }
 
         /// <summary>
         /// StopCapture 
         /// </summary>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="stopCaptureRequest"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse</returns>
-        public async Cysharp.Threading.Tasks.UniTask<PlaceframeZedCaptureClient.Client.ApiResponse<Object>> StopCaptureWithHttpInfoAsync(System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeZedCaptureClient.Client.ApiResponse<Object>> StopCaptureWithHttpInfoAsync(StopCaptureRequest stopCaptureRequest, System.Threading.CancellationToken cancellationToken = default)
         {
+            // verify the required parameter 'stopCaptureRequest' is set
+            if (stopCaptureRequest == null)
+                throw new PlaceframeZedCaptureClient.Client.ApiException(400, "Missing required parameter 'stopCaptureRequest' when calling DefaultApi->StopCapture");
+
 
             PlaceframeZedCaptureClient.Client.RequestOptions localVarRequestOptions = new PlaceframeZedCaptureClient.Client.RequestOptions();
 
             string[] _contentTypes = new string[] {
+                "application/json"
             };
 
             // to determine the Accept header
             string[] _accepts = new string[] {
+                "application/json"
             };
 
 
@@ -1415,15 +1299,137 @@ namespace PlaceframeZedCaptureClient.Api
             var localVarAccept = PlaceframeZedCaptureClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
             if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
 
+            localVarRequestOptions.Data = stopCaptureRequest;
 
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.PostAsync<Object>("/captures/stop", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
+            var localVarResponse = await this.AsynchronousClient.PostAsync<Object>("/capture_sessions/stop", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
 
             if (this.ExceptionFactory != null)
             {
                 Exception _exception = this.ExceptionFactory("StopCapture", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// UpdateCaptureSession 
+        /// </summary>
+        /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="updateCaptureSessionRequest"></param>
+        /// <returns></returns>
+        public void UpdateCaptureSession(Guid id, UpdateCaptureSessionRequest updateCaptureSessionRequest)
+        {
+            UpdateCaptureSessionWithHttpInfo(id, updateCaptureSessionRequest);
+        }
+
+        /// <summary>
+        /// UpdateCaptureSession 
+        /// </summary>
+        /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="updateCaptureSessionRequest"></param>
+        /// <returns>ApiResponse of Object(void)</returns>
+        public PlaceframeZedCaptureClient.Client.ApiResponse<Object> UpdateCaptureSessionWithHttpInfo(Guid id, UpdateCaptureSessionRequest updateCaptureSessionRequest)
+        {
+            // verify the required parameter 'updateCaptureSessionRequest' is set
+            if (updateCaptureSessionRequest == null)
+                throw new PlaceframeZedCaptureClient.Client.ApiException(400, "Missing required parameter 'updateCaptureSessionRequest' when calling DefaultApi->UpdateCaptureSession");
+
+            PlaceframeZedCaptureClient.Client.RequestOptions localVarRequestOptions = new PlaceframeZedCaptureClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+                "application/json"
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+            var localVarContentType = PlaceframeZedCaptureClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlaceframeZedCaptureClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.PathParameters.Add("id", PlaceframeZedCaptureClient.Client.ClientUtils.ParameterToString(id)); // path parameter
+            localVarRequestOptions.Data = updateCaptureSessionRequest;
+
+
+            // make the HTTP request
+            var localVarResponse = this.Client.Patch<Object>("/capture_sessions/{id}", localVarRequestOptions, this.Configuration);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("UpdateCaptureSession", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// UpdateCaptureSession 
+        /// </summary>
+        /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="updateCaptureSessionRequest"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of void</returns>
+        public async Cysharp.Threading.Tasks.UniTask UpdateCaptureSessionAsync(Guid id, UpdateCaptureSessionRequest updateCaptureSessionRequest, System.Threading.CancellationToken cancellationToken = default)
+        {
+            await UpdateCaptureSessionWithHttpInfoAsync(id, updateCaptureSessionRequest, cancellationToken);
+        }
+
+        /// <summary>
+        /// UpdateCaptureSession 
+        /// </summary>
+        /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="updateCaptureSessionRequest"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse</returns>
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeZedCaptureClient.Client.ApiResponse<Object>> UpdateCaptureSessionWithHttpInfoAsync(Guid id, UpdateCaptureSessionRequest updateCaptureSessionRequest, System.Threading.CancellationToken cancellationToken = default)
+        {
+            // verify the required parameter 'updateCaptureSessionRequest' is set
+            if (updateCaptureSessionRequest == null)
+                throw new PlaceframeZedCaptureClient.Client.ApiException(400, "Missing required parameter 'updateCaptureSessionRequest' when calling DefaultApi->UpdateCaptureSession");
+
+
+            PlaceframeZedCaptureClient.Client.RequestOptions localVarRequestOptions = new PlaceframeZedCaptureClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+                "application/json"
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+
+            var localVarContentType = PlaceframeZedCaptureClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlaceframeZedCaptureClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.PathParameters.Add("id", PlaceframeZedCaptureClient.Client.ClientUtils.ParameterToString(id)); // path parameter
+            localVarRequestOptions.Data = updateCaptureSessionRequest;
+
+
+            // make the HTTP request
+
+            var localVarResponse = await this.AsynchronousClient.PatchAsync<Object>("/capture_sessions/{id}", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("UpdateCaptureSession", localVarResponse);
                 if (_exception != null) throw _exception;
             }
 

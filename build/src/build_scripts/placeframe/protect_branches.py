@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 import typer
-from common.bash import bash, bash_output
+from bashrun import bash, bash_output
 from pydantic import BaseModel
 
 app = typer.Typer(add_completion=False, pretty_exceptions_show_locals=False)

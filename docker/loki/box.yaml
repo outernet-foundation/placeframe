@@ -1,0 +1,43 @@
+auth_enabled: false
+server:
+  # Loopback-only bind so the box's wired ethernet doesn't expose the Loki HTTP
+  # API. Phone access goes through box-Caddy's AOA listener (/loki/* handle),
+  # which lives in the host network namespace and can still reach 127.0.0.1.
+  http_listen_address: 127.0.0.1
+  http_listen_port: 3100
+common:
+  ring:
+    instance_addr: 127.0.0.1
+    kvstore:
+      store: inmemory
+    replication_factor: 1
+  path_prefix: /loki
+  storage:
+    filesystem:
+      chunks_directory: /loki/chunks
+      rules_directory: /loki/rules
+ingester:
+  lifecycler:
+    ring:
+      replication_factor: 1
+schema_config:
+  configs:
+    # Epoch floor: the box has no RTC and boots at 1970, so a later floor crashes Loki
+    # on startup. The phone restamps to true wall-time at drain.
+    - from: "1970-01-01"
+      store: tsdb
+      object_store: filesystem
+      schema: v13
+      index:
+        prefix: index_
+        period: 24h
+compactor:
+  working_directory: /loki/compactor
+  retention_enabled: true
+  delete_request_store: filesystem
+limits_config:
+  # 72h retention: long-weekend buffer if the phone is disconnected between
+  # sessions. Box-Loki is a buffer for the phone-relay, not a long-term store.
+  retention_period: 72h
+  # Off: at a 1970 boot every sample looks ancient; the phone corrects timestamps at drain.
+  reject_old_samples: false

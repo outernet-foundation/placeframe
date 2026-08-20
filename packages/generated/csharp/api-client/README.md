@@ -100,14 +100,14 @@ namespace Example
             var apiInstance = new DefaultApi(httpClient, config, httpClientHandler);
             var deviceType = (DeviceType) "ARFoundation";  // DeviceType | 
             var data = new System.IO.MemoryStream(System.IO.File.ReadAllBytes("/path/to/file.txt"));  // FileParameter | 
+            var name = "name_example";  // string | 
             var id = "id_example";  // Guid? |  (optional) 
-            var name = "name_example";  // string? |  (optional) 
             var recordedAt = DateTime.Parse("2013-10-20T19:20:30+01:00");  // DateTime? | datetime with the constraint that the value must have timezone info (optional) 
 
             try
             {
                 // CreateCaptureSession
-                CaptureSessionRead result = apiInstance.CreateCaptureSession(deviceType, data, id, name, recordedAt);
+                CaptureSessionRead result = apiInstance.CreateCaptureSession(deviceType, data, name, id, recordedAt);
                 Debug.WriteLine(result);
             }
             catch (ApiException e)
@@ -147,7 +147,7 @@ Class | Method | HTTP request | Description
 *DefaultApi* | [**DeleteNodes**](docs/DefaultApi.md#deletenodes) | **DELETE** /nodes | DeleteNodes
 *DefaultApi* | [**DeleteReconstruction**](docs/DefaultApi.md#deletereconstruction) | **DELETE** /reconstructions/{id} | DeleteReconstruction
 *DefaultApi* | [**DownloadCaptureSessionTar**](docs/DefaultApi.md#downloadcapturesessiontar) | **GET** /capture_sessions/{id}/tar | DownloadCaptureSessionTar
-*DefaultApi* | [**FailLease**](docs/DefaultApi.md#faillease) | **PUT** /internal/leases/{id}/fail | FailLease
+*DefaultApi* | [**ExportReconstructionTar**](docs/DefaultApi.md#exportreconstructiontar) | **GET** /reconstructions/{id}/tar | ExportReconstructionTar
 *DefaultApi* | [**GetCaptureSession**](docs/DefaultApi.md#getcapturesession) | **GET** /capture_sessions/{id} | GetCaptureSession
 *DefaultApi* | [**GetCaptureSessionFramesCsv**](docs/DefaultApi.md#getcapturesessionframescsv) | **GET** /capture_sessions/{id}/frames.csv | GetCaptureSessionFramesCsv
 *DefaultApi* | [**GetCaptureSessionImage**](docs/DefaultApi.md#getcapturesessionimage) | **GET** /capture_sessions/{id}/images/{frame_timestamp} | GetCaptureSessionImage
@@ -165,14 +165,14 @@ Class | Method | HTTP request | Description
 *DefaultApi* | [**GetReconstruction**](docs/DefaultApi.md#getreconstruction) | **GET** /reconstructions/{id} | GetReconstruction
 *DefaultApi* | [**GetReconstructionFramePoses**](docs/DefaultApi.md#getreconstructionframeposes) | **GET** /reconstructions/{id}/frame_poses | GetReconstructionFramePoses
 *DefaultApi* | [**GetReconstructionLocalizationMap**](docs/DefaultApi.md#getreconstructionlocalizationmap) | **GET** /reconstructions/{id}/localization_map | GetReconstructionLocalizationMap
+*DefaultApi* | [**GetReconstructionMetrics**](docs/DefaultApi.md#getreconstructionmetrics) | **GET** /reconstructions/{id}/metrics | GetReconstructionMetrics
 *DefaultApi* | [**GetReconstructionPoints**](docs/DefaultApi.md#getreconstructionpoints) | **GET** /reconstructions/{id}/points | GetReconstructionPoints
 *DefaultApi* | [**GetReconstructions**](docs/DefaultApi.md#getreconstructions) | **GET** /reconstructions | GetReconstructions
+*DefaultApi* | [**GetServerInfo**](docs/DefaultApi.md#getserverinfo) | **GET** /server-info | GetServerInfo
+*DefaultApi* | [**ImportReconstructionTar**](docs/DefaultApi.md#importreconstructiontar) | **POST** /reconstructions/tar | ImportReconstructionTar
 *DefaultApi* | [**ListLocalizationEvaluations**](docs/DefaultApi.md#listlocalizationevaluations) | **GET** /reconstructions/{reconstruction_id}/localization-evaluations | ListLocalizationEvaluations
 *DefaultApi* | [**LocalizeImage**](docs/DefaultApi.md#localizeimage) | **POST** /localize | LocalizeImage
-*DefaultApi* | [**PushZedBoxLogs**](docs/DefaultApi.md#pushzedboxlogs) | **POST** /zed-boxes/logs | PushZedBoxLogs
-*DefaultApi* | [**RequestLease**](docs/DefaultApi.md#requestlease) | **POST** /internal/leases/request | RequestLease
 *DefaultApi* | [**RetryReconstruction**](docs/DefaultApi.md#retryreconstruction) | **PUT** /reconstructions/{id}/retry | RetryReconstruction
-*DefaultApi* | [**SucceedLease**](docs/DefaultApi.md#succeedlease) | **PUT** /internal/leases/{id}/succeed | SucceedLease
 *DefaultApi* | [**UpdateCaptureSession**](docs/DefaultApi.md#updatecapturesession) | **PATCH** /capture_sessions/{id} | UpdateCaptureSession
 *DefaultApi* | [**UpdateCaptureSessions**](docs/DefaultApi.md#updatecapturesessions) | **PATCH** /capture_sessions | UpdateCaptureSessions
 *DefaultApi* | [**UpdateGroups**](docs/DefaultApi.md#updategroups) | **PATCH** /groups | UpdateGroups
@@ -180,7 +180,6 @@ Class | Method | HTTP request | Description
 *DefaultApi* | [**UpdateLocalizationMap**](docs/DefaultApi.md#updatelocalizationmap) | **PATCH** /localization-maps/{id} | UpdateLocalizationMap
 *DefaultApi* | [**UpdateLocalizationMaps**](docs/DefaultApi.md#updatelocalizationmaps) | **PATCH** /localization-maps | UpdateLocalizationMaps
 *DefaultApi* | [**UpdateNodes**](docs/DefaultApi.md#updatenodes) | **PATCH** /nodes | UpdateNodes
-*DefaultApi* | [**UpdateProgress**](docs/DefaultApi.md#updateprogress) | **PUT** /internal/leases/{id}/progress | UpdateProgress
 *DefaultApi* | [**UpsertLocalizationEvaluation**](docs/DefaultApi.md#upsertlocalizationevaluation) | **POST** /reconstructions/{reconstruction_id}/localization-evaluations | UpsertLocalizationEvaluation
 
 
@@ -211,7 +210,6 @@ Class | Method | HTTP request | Description
  - [Model.LayerBatchUpdate](docs/LayerBatchUpdate.md)
  - [Model.LayerCreate](docs/LayerCreate.md)
  - [Model.LayerRead](docs/LayerRead.md)
- - [Model.LeaseResponse](docs/LeaseResponse.md)
  - [Model.LinkType](docs/LinkType.md)
  - [Model.LocalizationEvaluationCreate](docs/LocalizationEvaluationCreate.md)
  - [Model.LocalizationEvaluationRead](docs/LocalizationEvaluationRead.md)
@@ -220,22 +218,22 @@ Class | Method | HTTP request | Description
  - [Model.LocalizationMapRead](docs/LocalizationMapRead.md)
  - [Model.LocalizationMapUpdate](docs/LocalizationMapUpdate.md)
  - [Model.LocalizationMetrics](docs/LocalizationMetrics.md)
- - [Model.LogRelayBatch](docs/LogRelayBatch.md)
  - [Model.MapLocalization](docs/MapLocalization.md)
  - [Model.NodeBatchCreate](docs/NodeBatchCreate.md)
  - [Model.NodeBatchUpdate](docs/NodeBatchUpdate.md)
  - [Model.NodeCreate](docs/NodeCreate.md)
  - [Model.NodeRead](docs/NodeRead.md)
+ - [Model.PhaseTiming](docs/PhaseTiming.md)
  - [Model.PinholeCameraConfig](docs/PinholeCameraConfig.md)
- - [Model.ProgressUpdate](docs/ProgressUpdate.md)
  - [Model.ReconstructionCreate](docs/ReconstructionCreate.md)
  - [Model.ReconstructionCreateWithOptions](docs/ReconstructionCreateWithOptions.md)
  - [Model.ReconstructionMetrics](docs/ReconstructionMetrics.md)
  - [Model.ReconstructionOptions](docs/ReconstructionOptions.md)
- - [Model.ReconstructionRead](docs/ReconstructionRead.md)
+ - [Model.ReconstructionReadWithQueue](docs/ReconstructionReadWithQueue.md)
  - [Model.ReconstructionStatus](docs/ReconstructionStatus.md)
  - [Model.RigCameraConfig](docs/RigCameraConfig.md)
  - [Model.RigConfig](docs/RigConfig.md)
+ - [Model.ServerInfo](docs/ServerInfo.md)
  - [Model.Transform](docs/Transform.md)
 
 

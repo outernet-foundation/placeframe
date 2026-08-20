@@ -7,7 +7,7 @@ from typing import Any, cast
 
 from core.axis_convention import AxisConvention, change_basis_unity_from_opencv_pose
 from core.camera_config import PinholeCameraConfig
-from core.image_preprocess import canonicalize_image, canonicalize_intrinsics, tile_image
+from core.image_preprocess import canonicalize_image, canonicalize_intrinsics
 from core.lightglue import Descriptors, Keypoints, MatchIndices
 from core.localization_metrics import RANSAC_THRESHOLD_DEFAULT, RETRIEVAL_TOP_K_DEFAULT, LocalizationMetrics
 from core.model_wrappers import (
@@ -17,7 +17,6 @@ from core.model_wrappers import (
     make_local_feature_matcher_for_tensors,
 )
 from core.opq import decode_descriptors
-from core.image_preprocess import NumQueryTiles
 from core.model_wrappers import RetrievalDim
 from core.tensor_types import TT
 from core.transform import Float3, Float4, Transform
@@ -31,7 +30,7 @@ from torch import Tensor, cuda, inference_mode, manual_seed, topk  # type: ignor
 from .build_metrics import build_localization_metrics
 from core.calibration import CalibrationArtifact
 from .map import Map
-from .torch_ops import amax, from_numpy, matmul, permute, stack, to, transpose
+from .torch_ops import from_numpy, to
 
 DEVICE = "cuda" if cuda.is_available() else "cpu"
 
@@ -107,19 +106,13 @@ def localize_image_against_reconstruction(
     timings["aliked"] = perf_counter() - t
 
     t = perf_counter()
-    descriptor_per_query_tile: list[TT[RetrievalDim]] = []
-    for tile in tile_image(image):
-        tile_tensor = from_numpy(asarray(tile, dtype=float32)).permute(2, 0, 1).div(255.0)
-        descriptor_per_query_tile.append(global_descriptor_extractor(tile_tensor.unsqueeze(0).to(device=DEVICE)))
-    query_tile_descriptors: TT[NumQueryTiles, RetrievalDim] = stack(descriptor_per_query_tile, dim=0)
+    query_descriptor: TT[RetrievalDim] = global_descriptor_extractor(rgb_tensor.unsqueeze(0).to(device=DEVICE))
     _gpu_sync()
-    timings["dir_tiles"] = perf_counter() - t
+    timings["dir"] = perf_counter() - t
 
     t = perf_counter()
-    # Per-database-image similarity is the max over all (query_tile, database_tile) pairs for that image.
-    database_descriptors = to(from_numpy(map.tile_descriptors), DEVICE)
-    similarity_pairs = permute(matmul(query_tile_descriptors, transpose(database_descriptors, 1, 2)), (1, 0, 2))
-    per_image_similarity = amax(similarity_pairs, dim=(0, 2))
+    database_descriptors = to(from_numpy(map.descriptors), DEVICE)
+    per_image_similarity = database_descriptors @ query_descriptor
     top_k = retrieval_top_k if retrieval_top_k is not None else RETRIEVAL_TOP_K_DEFAULT
     top_k_image_indices: list[int] = topk(per_image_similarity, top_k).indices.cpu().tolist()  # type: ignore
     matched_image_ids = [map.ordered_image_ids[i] for i in top_k_image_indices]

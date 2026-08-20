@@ -1,13 +1,24 @@
 [Unit]
-Description=Placeframe ZED capture (force-recreate on boot)
+Description=Placeframe ZED capture
 After=docker.service nvargus-daemon.service zed_x_daemon.service
 Requires=docker.service
+Wants=nvargus-daemon.service zed_x_daemon.service
 
 [Service]
 Type=oneshot
 RemainAfterExit=true
-ExecStart=/usr/bin/docker compose -f COMPOSE_PATH up -d --force-recreate
+# Destroy any container object left over from a previous session before doing
+# anything else. A power-cut skips ExecStop, so the prior boot's containers
+# survive on disk; with restart: "no" dockerd leaves them stopped, but a plain
+# `up -d` would still reuse the stale object (frozen nvidia device injection,
+# node-less /dev). Removing them first forces `up -d` to create fresh, after
+# the readiness gate, against the live host.
+ExecStartPre=/usr/bin/docker compose -f COMPOSE_PATH down --remove-orphans
+ExecStartPre=/usr/bin/python3 WAIT_FOR_ZED_CAMERA_PATH
+ExecStart=/usr/bin/docker compose -f COMPOSE_PATH up -d
 ExecStop=/usr/bin/docker compose -f COMPOSE_PATH down
+Restart=on-failure
+RestartSec=10s
 
 [Install]
 WantedBy=multi-user.target

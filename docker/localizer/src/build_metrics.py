@@ -3,7 +3,7 @@ from typing import Any
 from core.localization_metrics import LocalizationMetrics
 from numpy import asarray, eye, float64, hypot, median, ndarray
 from numpy.linalg import norm
-from numpy.typing import NDArray  # noqa: TID251 — Phase T piece 3 follow-up migration
+from numpy.typing import NDArray  # noqa: TID251 — tracked in PLE-233
 from pycolmap import Camera as ColmapCamera
 from scipy.spatial import ConvexHull
 
@@ -56,7 +56,7 @@ def build_localization_metrics(
     camera_frame_points = (rotation_camera_from_world @ points3d_inliers.T).T + translation_camera_from_world[None, :]
 
     # Project 3d inliers into pixel coordinates using the camera model
-    projected_pixel_coordinates = pycolmap_camera.img_from_cam(camera_frame_points)
+    projected_pixel_coordinates = pycolmap_camera.img_from_cam(cam_points=camera_frame_points)
 
     # Compute reprojection residuals for inliers
     residuals: NDArray[float64] = norm(projected_pixel_coordinates - points2d_inliers, axis=1).astype(float64)

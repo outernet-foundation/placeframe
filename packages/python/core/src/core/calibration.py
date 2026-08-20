@@ -35,7 +35,6 @@ class RawMapMetrics(BaseModel):
     map_image_count: int
     map_point_count: int
     map_avg_track_length: float
-    map_bounding_volume_m3: float
     map_viewpoint_diversity: float
 
 
@@ -48,7 +47,6 @@ class Features(BaseModel):
     log_map_image_count: float
     log_map_point_count: float
     map_avg_track_length: float
-    log_map_bounding_volume_m3: float
     map_viewpoint_diversity: float
 
     @classmethod
@@ -66,7 +64,6 @@ class Features(BaseModel):
             log_map_image_count=float(log1p(map_metrics.map_image_count)),
             log_map_point_count=float(log1p(map_metrics.map_point_count)),
             map_avg_track_length=map_metrics.map_avg_track_length,
-            log_map_bounding_volume_m3=float(log1p(map_metrics.map_bounding_volume_m3)),
             map_viewpoint_diversity=map_metrics.map_viewpoint_diversity,
         )
 
@@ -105,7 +102,7 @@ def load_global_calibration(path: Path, expected_pipeline_version: str) -> Calib
             f"Global calibration not found at {path}. "
             f"Expected pipeline version: {expected_pipeline_version}. "
             f"Run scripts/fit_calibration.py against this pipeline and commit "
-            f"the resulting config/calibration/global.json."
+            f"the resulting docker/localizer/calibration/global.json."
         )
 
     calibration = CalibrationArtifact.read(path)

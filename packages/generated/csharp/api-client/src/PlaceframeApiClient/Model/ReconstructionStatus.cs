@@ -38,40 +38,40 @@ namespace PlaceframeApiClient.Model
         Queued = 1,
 
         /// <summary>
-        /// Enum Downloading for value: downloading
-        /// </summary>
-        [EnumMember(Value = "downloading")]
-        Downloading = 2,
-
-        /// <summary>
         /// Enum ExtractingFeatures for value: extracting_features
         /// </summary>
         [EnumMember(Value = "extracting_features")]
-        ExtractingFeatures = 3,
+        ExtractingFeatures = 2,
 
         /// <summary>
         /// Enum MatchingFeatures for value: matching_features
         /// </summary>
         [EnumMember(Value = "matching_features")]
-        MatchingFeatures = 4,
+        MatchingFeatures = 3,
 
         /// <summary>
         /// Enum TrainingOpqMatrix for value: training_opq_matrix
         /// </summary>
         [EnumMember(Value = "training_opq_matrix")]
-        TrainingOpqMatrix = 5,
+        TrainingOpqMatrix = 4,
 
         /// <summary>
         /// Enum TrainingProductQuantizer for value: training_product_quantizer
         /// </summary>
         [EnumMember(Value = "training_product_quantizer")]
-        TrainingProductQuantizer = 6,
+        TrainingProductQuantizer = 5,
 
         /// <summary>
         /// Enum VerifyingGeometry for value: verifying_geometry
         /// </summary>
         [EnumMember(Value = "verifying_geometry")]
-        VerifyingGeometry = 7,
+        VerifyingGeometry = 6,
+
+        /// <summary>
+        /// Enum VerifyingRigGeometry for value: verifying_rig_geometry
+        /// </summary>
+        [EnumMember(Value = "verifying_rig_geometry")]
+        VerifyingRigGeometry = 7,
 
         /// <summary>
         /// Enum Reconstructing for value: reconstructing
@@ -80,28 +80,22 @@ namespace PlaceframeApiClient.Model
         Reconstructing = 8,
 
         /// <summary>
-        /// Enum Uploading for value: uploading
-        /// </summary>
-        [EnumMember(Value = "uploading")]
-        Uploading = 9,
-
-        /// <summary>
         /// Enum Succeeded for value: succeeded
         /// </summary>
         [EnumMember(Value = "succeeded")]
-        Succeeded = 10,
+        Succeeded = 9,
 
         /// <summary>
         /// Enum Failed for value: failed
         /// </summary>
         [EnumMember(Value = "failed")]
-        Failed = 11,
+        Failed = 10,
 
         /// <summary>
         /// Enum Cancelled for value: cancelled
         /// </summary>
         [EnumMember(Value = "cancelled")]
-        Cancelled = 12
+        Cancelled = 11
     }
 
 }

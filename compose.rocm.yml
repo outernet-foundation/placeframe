@@ -2,13 +2,11 @@ services:
   reconstructor-rocm:
     image: "ghcr.io/outernet-foundation/placeframe/reconstructor-rocm:${RECONSTRUCTOR_SHA:?err}"
     depends_on:
-      api:
+      lease-server:
         condition: service_healthy
     restart: on-failure
     expose:
       - "5678" # debug port
-    volumes:
-      - auth_data:/run/secrets:ro
     devices:
       - /dev/kfd:/dev/kfd
       - /dev/dri:/dev/dri
@@ -16,15 +14,15 @@ services:
       - 44
       - 110
     environment:
-      API_INTERNAL_URL: http://api:8000
-      AUTH_TOKEN_URL: "https://${PUBLIC_DOMAIN:?err}/auth/realms/placeframe-dev/protocol/openid-connect/token"
-      AUTH_CLIENT_ID: "${AUTH_WORKER_CLIENT_ID:?err}"
-      PRIVATE_KEY_PATH: /run/secrets/worker-private-key.pem
+      LEASE_SERVER_URL: http://lease-server:8000
       MINIO_ENDPOINT_URL: "http://minio:9000"
       MINIO_ACCESS_KEY: "${MINIO_ACCESS_KEY:?err}"
       MINIO_SECRET_KEY: "${MINIO_SECRET_KEY:?err}"
       RECONSTRUCTIONS_BUCKET: dev-reconstructions
       CAPTURES_BUCKET: dev-captures
+      DEPLOYMENT_ENVIRONMENT: "${DEPLOYMENT_ENVIRONMENT:-development}"
+      SERVICE_VERSION: "${RECONSTRUCTOR_SHA:?err}"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://alloy:4317"
 
   localizer-rocm:
     image: "ghcr.io/outernet-foundation/placeframe/localizer-rocm:${LOCALIZER_SHA:?err}"
@@ -39,12 +37,11 @@ services:
     group_add:
       - 44
       - 110
-    configs:
-      - source: localizer-calibration-global
-        target: /etc/placeframe/calibration/global.json
-        mode: 0444
     environment:
       MINIO_ENDPOINT_URL: "http://minio:9000"
       MINIO_ACCESS_KEY: "${MINIO_ACCESS_KEY:?err}"
       MINIO_SECRET_KEY: "${MINIO_SECRET_KEY:?err}"
       RECONSTRUCTIONS_BUCKET: dev-reconstructions
+      DEPLOYMENT_ENVIRONMENT: "${DEPLOYMENT_ENVIRONMENT:-development}"
+      SERVICE_VERSION: "${LOCALIZER_SHA:?err}"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://alloy:4317"

@@ -9,6 +9,7 @@ from uuid import UUID
 
 from common.boto_clients import create_s3_client
 from common.litestar import create_litestar_app
+from common.logging_config import configure_logging
 from common.multipart_requests import (
     MultipartRequestModel,
     MultipartRequestOperation,
@@ -32,6 +33,8 @@ from core.calibration import CalibrationArtifact
 from .map import Map, load_map
 from .schemas import LoadState, Localization
 from .settings import get_settings
+
+configure_logging("localizer")
 
 RECONSTRUCTIONS_DIR = Path("/tmp/reconstructions")
 CALIBRATION_GLOBAL_PATH = Path("/etc/placeframe/calibration/global.json")
@@ -123,4 +126,4 @@ async def get_localizer_version() -> str:
 openapi_config = OpenAPIConfig("Localizer", "0.1.0", servers=[Server(url="http://localhost:8000")])
 
 
-app = create_litestar_app([localize_image, get_localizer_version], openapi_config)
+app = create_litestar_app([localize_image, get_localizer_version], openapi_config, logging_config=None)

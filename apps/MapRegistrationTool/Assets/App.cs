@@ -37,9 +37,9 @@ namespace Placeframe.MapRegistrationTool
             API = new DefaultApi(
                 new HttpClient(new AuthHttpHandler() { InnerHandler = new HttpClientHandler() })
                 {
-                    BaseAddress = new Uri($"https://{state.settings.domain.value}"),
+                    BaseAddress = new Uri(state.settings.apiUrl.value),
                 },
-                $"https://{state.settings.domain.value}"
+                state.settings.apiUrl.value
             );
         }
 

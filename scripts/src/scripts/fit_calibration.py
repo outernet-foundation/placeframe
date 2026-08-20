@@ -123,7 +123,7 @@ def main(
         str, Option("--held-out-selector", help="Selector name. See scripts/held_out_selection.py registry.")
     ] = "stride",
     output: Annotated[Path, Option("--output", help="Path to write the calibration artifact.")] = (
-        REPO_ROOT / "config" / "calibration" / "global.json"
+        REPO_ROOT / "docker" / "localizer" / "calibration" / "global.json"
     ),
 ) -> None:
     if not captures and not reconstructions:
@@ -264,6 +264,7 @@ async def _populate_evaluations(api: DefaultApi, reconstruction_id: UUID, pipeli
         return
 
     capture_id = reconstruction.capture_session_id
+    assert capture_id is not None
     cached = await api.list_localization_evaluations(
         reconstruction_id=reconstruction_id, pipeline_version=pipeline_version
     )
@@ -288,7 +289,7 @@ async def _populate_evaluations(api: DefaultApi, reconstruction_id: UUID, pipeli
     frames_csv_bytes = await api.get_capture_session_frames_csv(id=capture_id)
     truth_by_timestamp: dict[int, _TruthPose] = {}
     for row in DictReader(StringIO(frames_csv_bytes.decode("utf-8"))):
-        truth_by_timestamp[int(row["timestamp"])] = _TruthPose(
+        truth_by_timestamp[int(row["timestamp_ms"])] = _TruthPose(
             translation=asarray([float(row["tx"]), float(row["ty"]), float(row["tz"])], dtype=float64),
             rotation_quat_xyzw=asarray(
                 [float(row["qx"]), float(row["qy"]), float(row["qz"]), float(row["qw"])], dtype=float64

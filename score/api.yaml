@@ -1,0 +1,51 @@
+apiVersion: score.dev/v1b1
+metadata:
+  name: api
+containers:
+  api:
+    image: ghcr.io/outernet-foundation/placeframe/api:tree-70fd47ea882fbc08321b1646ed9fd3c7f8801807
+    variables:
+      PUBLIC_URL: ${resources.config.public_url}
+      AUTH_MODE: ${resources.config.auth_mode}
+      AUTH_AUDIENCE: ${resources.config.auth_audience}
+      AUTH_ISSUER_URL: ${resources.config.auth_issuer_url}
+      AUTH_URL: ${resources.config.auth_url}
+      AUTH_TOKEN_URL: ${resources.config.auth_token_url}
+      AUTH_CERTS_URL: ${resources.auth.certs_url}
+      DEPLOYMENT_ENVIRONMENT: ${resources.config.deployment_environment}
+      POSTGRES_HOST: ${resources.db.host}
+      DATABASE_NAME: ${resources.db.name}
+      DATABASE_API_USER: ${resources.db.api_username}
+      DATABASE_API_USER_PASSWORD: ${resources.db.api_password}
+      DATABASE_AUTH_USER: ${resources.db.auth_username}
+      DATABASE_AUTH_USER_PASSWORD: ${resources.db.auth_password}
+      DATABASE_ORCHESTRATION_USER: ${resources.db.orchestration_username}
+      DATABASE_ORCHESTRATION_USER_PASSWORD: ${resources.db.orchestration_password}
+      LOCALIZER_CONTAINER_URL: http://localhost:8000
+      LOKI_URL: http://localhost:3100
+      MINIO_ENDPOINT_URL: ${resources.bucket.endpoint}
+      MINIO_ACCESS_KEY: ${resources.bucket.access_key_id}
+      MINIO_SECRET_KEY: ${resources.bucket.secret_key}
+      RECONSTRUCTIONS_BUCKET: ${resources.bucket.bucket}
+    livenessProbe:
+      httpGet:
+        path: /health
+        port: 8000
+service:
+  ports:
+    http:
+      port: 8000
+      targetPort: 8000
+resources:
+  db:
+    type: placeframe-postgres
+    id: placeframe-db
+  bucket:
+    type: s3
+    id: placeframe-bucket
+  config:
+    type: placeframe-config
+    id: placeframe-config
+  auth:
+    type: placeframe-keycloak
+    id: placeframe-keycloak

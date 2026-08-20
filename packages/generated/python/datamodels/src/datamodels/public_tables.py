@@ -52,14 +52,13 @@ class LabelType(enum.Enum):
 
 class ReconstructionStatus(enum.Enum):
     QUEUED = "queued"
-    DOWNLOADING = "downloading"
     EXTRACTING_FEATURES = "extracting_features"
     MATCHING_FEATURES = "matching_features"
     TRAINING_OPQ_MATRIX = "training_opq_matrix"
     TRAINING_PRODUCT_QUANTIZER = "training_product_quantizer"
     VERIFYING_GEOMETRY = "verifying_geometry"
+    VERIFYING_RIG_GEOMETRY = "verifying_rig_geometry"
     RECONSTRUCTING = "reconstructing"
-    UPLOADING = "uploading"
     SUCCEEDED = "succeeded"
     FAILED = "failed"
     CANCELLED = "cancelled"
@@ -151,10 +150,11 @@ class CaptureSession(Base):
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
     updated_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
     recorded_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
+    size_bytes: Mapped[int] = mapped_column(BigInteger, nullable=False, server_default=text("0"))
     device_type: Mapped[DeviceType] = mapped_column(
         Enum(DeviceType, name="device_type", values_callable=enum_values), nullable=False
     )
-    name: Mapped[Optional[str]] = mapped_column(Text)
+    name: Mapped[str] = mapped_column(Text, nullable=False)
 
     tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="capture_sessions")
     reconstructions: Mapped[list["Reconstruction"]] = relationship("Reconstruction", back_populates="capture_session")
@@ -279,10 +279,10 @@ class Reconstruction(Base):
     )
 
     tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False, server_default=text("current_tenant()"))
-    capture_session_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("uuid_generate_v4()"))
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
     updated_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
+    requeue_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
     status: Mapped[ReconstructionStatus] = mapped_column(
         Enum(ReconstructionStatus, name="reconstruction_status", values_callable=enum_values),
         nullable=False,
@@ -290,12 +290,15 @@ class Reconstruction(Base):
     )
     manifest_version: Mapped[int] = mapped_column(SmallInteger, nullable=False)
     manifest: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    capture_session_id: Mapped[Optional[uuid.UUID]] = mapped_column(Uuid)
     progress_current: Mapped[Optional[int]] = mapped_column(Integer)
     progress_total: Mapped[Optional[int]] = mapped_column(Integer)
     progress_attempt: Mapped[Optional[int]] = mapped_column(Integer)
     error: Mapped[Optional[str]] = mapped_column(Text)
 
-    capture_session: Mapped["CaptureSession"] = relationship("CaptureSession", back_populates="reconstructions")
+    capture_session: Mapped[Optional["CaptureSession"]] = relationship(
+        "CaptureSession", back_populates="reconstructions"
+    )
     tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="reconstructions")
     localization_evaluations: Mapped[list["LocalizationEvaluation"]] = relationship(
         "LocalizationEvaluation", back_populates="reconstruction"

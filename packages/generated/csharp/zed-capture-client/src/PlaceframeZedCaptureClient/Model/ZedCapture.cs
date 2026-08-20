@@ -40,11 +40,20 @@ namespace PlaceframeZedCaptureClient.Model
         /// Initializes a new instance of the <see cref="ZedCapture" /> class.
         /// </summary>
         /// <param name="id">id (required).</param>
+        /// <param name="name">name (required).</param>
         /// <param name="recordedAt">datetime with the constraint that the value must have timezone info (required).</param>
-        public ZedCapture(Guid id, DateTime recordedAt)
+        /// <param name="sizeBytes">sizeBytes (required).</param>
+        public ZedCapture(Guid id, string name, DateTime recordedAt, long sizeBytes)
         {
             this.Id = id;
+            // to ensure "name" is required (not null)
+            if (name == null)
+            {
+                throw new ArgumentNullException("name is a required property for ZedCapture and cannot be null");
+            }
+            this.Name = name;
             this.RecordedAt = recordedAt;
+            this.SizeBytes = sizeBytes;
         }
 
         /// <summary>
@@ -72,6 +81,30 @@ namespace PlaceframeZedCaptureClient.Model
             return _flagId;
         }
         /// <summary>
+        /// Gets or Sets Name
+        /// </summary>
+        [DataMember(Name = "name", IsRequired = true, EmitDefaultValue = true)]
+        public string Name
+        {
+            get{ return _Name;}
+            set
+            {
+                _Name = value;
+                _flagName = true;
+            }
+        }
+        private string _Name;
+        private bool _flagName;
+
+        /// <summary>
+        /// Returns false as Name should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeName()
+        {
+            return _flagName;
+        }
+        /// <summary>
         /// datetime with the constraint that the value must have timezone info
         /// </summary>
         /// <value>datetime with the constraint that the value must have timezone info</value>
@@ -97,6 +130,30 @@ namespace PlaceframeZedCaptureClient.Model
             return _flagRecordedAt;
         }
         /// <summary>
+        /// Gets or Sets SizeBytes
+        /// </summary>
+        [DataMember(Name = "size_bytes", IsRequired = true, EmitDefaultValue = true)]
+        public long SizeBytes
+        {
+            get{ return _SizeBytes;}
+            set
+            {
+                _SizeBytes = value;
+                _flagSizeBytes = true;
+            }
+        }
+        private long _SizeBytes;
+        private bool _flagSizeBytes;
+
+        /// <summary>
+        /// Returns false as SizeBytes should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeSizeBytes()
+        {
+            return _flagSizeBytes;
+        }
+        /// <summary>
         /// Returns the string presentation of the object
         /// </summary>
         /// <returns>String presentation of the object</returns>
@@ -105,7 +162,9 @@ namespace PlaceframeZedCaptureClient.Model
             StringBuilder sb = new StringBuilder();
             sb.Append("class ZedCapture {\n");
             sb.Append("  Id: ").Append(Id).Append("\n");
+            sb.Append("  Name: ").Append(Name).Append("\n");
             sb.Append("  RecordedAt: ").Append(RecordedAt).Append("\n");
+            sb.Append("  SizeBytes: ").Append(SizeBytes).Append("\n");
             sb.Append("}\n");
             return sb.ToString();
         }

@@ -21,7 +21,6 @@ def test_status_default_shape():
     assert result.disk_free_bytes > 0
     assert result.uptime_s >= 0.0
     assert isinstance(result.version, str)
-    assert isinstance(result.log_cursor, str)
 
 
 def test_status_reflects_actor_state(monkeypatch: pytest.MonkeyPatch):

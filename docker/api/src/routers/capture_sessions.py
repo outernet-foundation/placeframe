@@ -6,6 +6,7 @@ from uuid import UUID
 
 from botocore.exceptions import ReadTimeoutError
 from common.multipart_requests import MultipartRequestModel, MultipartRequestOperation
+from common.tar import iter_tar_file_members
 from core.axis_convention import AxisConvention
 from core.capture_session_manifest import CaptureSessionManifest
 from datamodels.public_dtos import (
@@ -13,15 +14,19 @@ from datamodels.public_dtos import (
     CaptureSessionCreate,
     CaptureSessionRead,
     CaptureSessionUpdate,
-    ReconstructionRead,
     capture_session_apply_batch_update_dto,
     capture_session_apply_dto,
     capture_session_from_dto,
     capture_session_from_dto_overwrite,
     capture_session_to_dto,
-    reconstruction_to_dto,
 )
 from datamodels.public_tables import CaptureSession, DeviceType, LocalizationMap, Reconstruction
+
+from .reconstructions import (
+    ReconstructionReadWithQueue,
+    select_reconstructions_with_queue,
+    to_reconstruction_with_queue,
+)
 from litestar import Router, delete, get, patch, post
 from litestar.datastructures import UploadFile
 from litestar.di import Provide
@@ -78,8 +83,8 @@ def _validate_temporal_coverage(tf: tarfile.TarFile, capture_interval_seconds: f
 class CaptureSessionUploadRequest(MultipartRequestModel):
     device_type: DeviceType
     data: UploadFile
+    name: str
     id: UUID | None = None
-    name: str | None = None
     recorded_at: AwareDatetime | None = None
 
 
@@ -93,7 +98,13 @@ async def create_capture_session(
 
     row = await _create_capture(
         session,
-        CaptureSessionCreate(id=data.id, recorded_at=data.recorded_at, device_type=data.device_type, name=data.name),
+        CaptureSessionCreate(
+            id=data.id,
+            recorded_at=data.recorded_at,
+            size_bytes=None,
+            device_type=data.device_type,
+            name=data.name,
+        ),
         overwrite=False,
     )
     session.add(row)
@@ -108,6 +119,10 @@ async def create_capture_session(
         raise HTTPException(status_code=HTTP_504_GATEWAY_TIMEOUT, detail="Upload failed: storage timeout") from e
     except Exception as e:
         raise InternalServerException(detail="Upload failed") from e
+
+    row.size_bytes = get_storage().head_object_size(BUCKET, f"{row.id}.tar")
+    await session.flush()
+    await session.refresh(row)
 
     return capture_session_to_dto(row)
 
@@ -146,7 +161,7 @@ async def get_capture_sessions(
 
 
 class ExpandedReconstruction(BaseModel):
-    reconstruction: ReconstructionRead
+    reconstruction: ReconstructionReadWithQueue
     localization_map_id: UUID | None = None
 
 
@@ -164,16 +179,19 @@ async def get_capture_sessions_expanded(session: AsyncSession) -> CaptureSession
     captures = list((await session.execute(select(CaptureSession))).scalars().all())
     capture_ids = [c.id for c in captures]
 
-    reconstructions: list[Reconstruction] = []
+    reconstruction_rows: list[tuple[Reconstruction, int | None, int | None]] = []
     if capture_ids:
-        reconstructions = list(
-            (await session.execute(select(Reconstruction).where(Reconstruction.capture_session_id.in_(capture_ids))))
-            .scalars()
-            .all()
-        )
+        reconstruction_rows = [
+            (row[0], row[1], row[2])
+            for row in (
+                await session.execute(
+                    select_reconstructions_with_queue().where(Reconstruction.capture_session_id.in_(capture_ids))
+                )
+            ).all()
+        ]
 
     map_by_reconstruction: dict[UUID, UUID] = {}
-    reconstruction_ids = [r.id for r in reconstructions]
+    reconstruction_ids = [r.id for r, _, _ in reconstruction_rows]
     if reconstruction_ids:
         map_result = await session.execute(
             select(LocalizationMap).where(LocalizationMap.reconstruction_id.in_(reconstruction_ids))
@@ -181,10 +199,11 @@ async def get_capture_sessions_expanded(session: AsyncSession) -> CaptureSession
         map_by_reconstruction = {row.reconstruction_id: row.id for row in map_result.scalars().all()}
 
     reconstructions_by_capture: dict[UUID, list[ExpandedReconstruction]] = {}
-    for r in reconstructions:
+    for r, position, depth in reconstruction_rows:
+        assert r.capture_session_id is not None
         reconstructions_by_capture.setdefault(r.capture_session_id, []).append(
             ExpandedReconstruction(
-                reconstruction=reconstruction_to_dto(r),
+                reconstruction=to_reconstruction_with_queue(r, position, depth),
                 localization_map_id=map_by_reconstruction.get(r.id),
             )
         )
@@ -391,27 +410,12 @@ def _extract_member_bytes(capture_id: UUID, member_name: str) -> bytes:
     except Exception as e:
         raise InternalServerException("Download failed") from e
 
-    try:
-        with tarfile.open(fileobj=cast(BinaryIO, body), mode="r|*") as tf:
-            for member in tf:
-                if member.name != member_name:
-                    continue
-                if not member.isfile():
-                    raise HTTPException(
-                        status_code=HTTP_422_UNPROCESSABLE_ENTITY,
-                        detail=f"{member_name} in capture {capture_id} is not a regular file",
-                    )
-                extracted = tf.extractfile(member)
-                if extracted is None:
-                    raise HTTPException(
-                        status_code=HTTP_422_UNPROCESSABLE_ENTITY,
-                        detail=f"Could not read {member_name} from capture {capture_id} tar",
-                    )
-                return extracted.read()
-    except tarfile.ReadError as e:
-        raise HTTPException(status_code=HTTP_422_UNPROCESSABLE_ENTITY, detail=f"Invalid tar file: {e}") from e
-
-    raise NotFoundException(f"{member_name} not found in capture {capture_id} tar")
+    contents = next(
+        (member.read() for name, member in iter_tar_file_members(cast(IO[bytes], body)) if name == member_name), None
+    )
+    if contents is None:
+        raise NotFoundException(f"{member_name} not found in capture {capture_id} tar")
+    return contents
 
 
 # dummy method, just to get RigConfig into the OpenAPI schema

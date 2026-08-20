@@ -6,6 +6,10 @@ x-base-images:
   ALPINE_DIGEST: "alpine:3.20"
   CADDY_DIGEST: "docker.io/library/caddy:2.8.4-alpine"
   POSTGRES_BOOKWORM_DIGEST: "docker.io/library/postgres:16-bookworm"
+  LOKI_DIGEST: "grafana/loki:3.5.0"
+  ALLOY_DIGEST: "grafana/alloy:v1.9.0"
+  GRAFANA_DIGEST: "grafana/grafana:11.6.0"
+  POSTGIS_DIGEST: "postgis/postgis:16-3.4-alpine"
 
 x-base-args: &base-args
   UV_BASE_DIGEST: "${UV_BASE_DIGEST:-}"
@@ -15,6 +19,10 @@ x-base-args: &base-args
   ALPINE_DIGEST: "${ALPINE_DIGEST:-}"
   CADDY_DIGEST: "${CADDY_DIGEST:-}"
   POSTGRES_BOOKWORM_DIGEST: "${POSTGRES_BOOKWORM_DIGEST:-}"
+  LOKI_DIGEST: "${LOKI_DIGEST:-}"
+  ALLOY_DIGEST: "${ALLOY_DIGEST:-}"
+  GRAFANA_DIGEST: "${GRAFANA_DIGEST:-}"
+  POSTGIS_DIGEST: "${POSTGIS_DIGEST:-}"
 
 x-registry-cache: ghcr.io/outernet-foundation/placeframe/build-cache
 
@@ -55,7 +63,16 @@ services:
         - "ghcr.io/outernet-foundation/placeframe/gateway:latest"
         - "ghcr.io/outernet-foundation/placeframe/gateway:${GATEWAY_SHA}"
 
-  migrate-database:
+  rathole-client:
+    build:
+      context: .
+      dockerfile: docker/rathole-client/Dockerfile
+      args: *base-args
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/rathole-client:latest"
+        - "ghcr.io/outernet-foundation/placeframe/rathole-client:${RATHOLE_CLIENT_SHA}"
+
+  database-migrator:
     build:
       context: .
       dockerfile: docker/database-migrator/Dockerfile
@@ -74,14 +91,53 @@ services:
         - "ghcr.io/outernet-foundation/placeframe/api:latest"
         - "ghcr.io/outernet-foundation/placeframe/api:${API_SHA}"
 
-  state-sync:
+  lease-server:
     build:
       context: .
-      dockerfile: docker/state-sync/Dockerfile
+      dockerfile: docker/lease-server/Dockerfile
+      target: dev
       args: *base-args
       tags:
-        - "ghcr.io/outernet-foundation/placeframe/state-sync:latest"
-        - "ghcr.io/outernet-foundation/placeframe/state-sync:${STATE_SYNC_SHA}"
+        - "ghcr.io/outernet-foundation/placeframe/lease-server:latest"
+        - "ghcr.io/outernet-foundation/placeframe/lease-server:${LEASE_SERVER_SHA}"
+
+  loki:
+    build:
+      context: .
+      dockerfile: docker/loki/Dockerfile
+      platforms: ["linux/amd64", "linux/arm64"]
+      args: *base-args
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/loki:latest"
+        - "ghcr.io/outernet-foundation/placeframe/loki:${LOKI_SHA}"
+
+  alloy:
+    build:
+      context: .
+      dockerfile: docker/alloy/Dockerfile
+      platforms: ["linux/amd64", "linux/arm64"]
+      args: *base-args
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/alloy:latest"
+        - "ghcr.io/outernet-foundation/placeframe/alloy:${ALLOY_SHA}"
+
+  grafana:
+    build:
+      context: .
+      dockerfile: docker/grafana/Dockerfile
+      args: *base-args
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/grafana:latest"
+        - "ghcr.io/outernet-foundation/placeframe/grafana:${GRAFANA_SHA}"
+
+  postgres:
+    build:
+      context: .
+      dockerfile: docker/postgres/Dockerfile
+      args: *base-args
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/postgres:latest"
+        - "ghcr.io/outernet-foundation/placeframe/postgres:${POSTGRES_SHA}"
 
   neural-networks-base-cuda:
     build:
@@ -106,6 +162,7 @@ services:
       args:
         <<: *base-args
         TORCH_DEVICE: "cuda"
+        RECONSTRUCTOR_SHA: "${RECONSTRUCTOR_SHA:?err}"
       tags:
         - "ghcr.io/outernet-foundation/placeframe/reconstructor-cuda:latest"
         - "ghcr.io/outernet-foundation/placeframe/reconstructor-cuda:${RECONSTRUCTOR_SHA}"
@@ -133,6 +190,7 @@ services:
       args:
         <<: *base-args
         TORCH_DEVICE: "rocm"
+        RECONSTRUCTOR_SHA: "${RECONSTRUCTOR_SHA:?err}"
       tags:
         - "ghcr.io/outernet-foundation/placeframe/reconstructor-rocm:latest"
         - "ghcr.io/outernet-foundation/placeframe/reconstructor-rocm:${RECONSTRUCTOR_SHA}"

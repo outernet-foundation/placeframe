@@ -37,33 +37,23 @@ app = Typer()
 POLL_INTERVAL_S = 10
 
 PB_LOW = ReconstructionOptions(
-    neighbors_count=8,
+    retrieval_neighbors=8,
     ransac_max_error=1.0,
     ransac_min_inlier_ratio=0.08,
     triangulation_minimum_angle=1.5,
-    use_prior_position=False,
-    bundle_adjustment_refine_focal_length=False,
-    bundle_adjustment_refine_principal_point=False,
-    bundle_adjustment_refine_additional_params=False,
     mapper_filter_max_reprojection_error=1.0,
-    triangulation_complete_max_reprojection_error=2.0,
 )
 PB_HIGH = ReconstructionOptions(
-    neighbors_count=20,
+    retrieval_neighbors=20,
     ransac_max_error=4.0,
     ransac_min_inlier_ratio=0.25,
     triangulation_minimum_angle=5.0,
-    use_prior_position=True,
-    bundle_adjustment_refine_focal_length=True,
-    bundle_adjustment_refine_principal_point=True,
-    bundle_adjustment_refine_additional_params=True,
     mapper_filter_max_reprojection_error=4.0,
-    triangulation_complete_max_reprojection_error=6.0,
 )
 PB_FACTORS = [
     f for f in ReconstructionOptions.model_fields if f != "additional_properties" and getattr(PB_LOW, f) is not None
 ]
-PB_SEED = [+1, +1, +1, +1, -1, +1, -1, +1, +1, -1]
+PB_SEED = [+1, +1, +1, +1, -1]
 
 
 @app.command()
@@ -124,26 +114,21 @@ async def _run_cell(
             }
 
     metrics = ReconstructionMetrics.model_validate(current.manifest["metrics"])
-    echo(f"    Succeeded, {metrics.registered_images}/{metrics.total_images} images")
+    echo(f"    Succeeded, {metrics.map_image_count} mapped images, {metrics.map_point_count} points")
     return {
         "capture_id": str(capture_id),
         "config_idx": config_idx,
         "options": options.to_dict() if options else None,
         "reconstruction_id": str(recon.id),
         "succeeded": True,
-        "registered_images": metrics.registered_images,
-        "total_images": metrics.total_images,
-        "registration_rate": metrics.registration_rate,
-        "num_3d_points": metrics.num_3d_points,
         "reproj_error_50th": metrics.reprojection_pixel_error_50th_percentile,
         "reproj_error_90th": metrics.reprojection_pixel_error_90th_percentile,
         "map_image_count": metrics.map_image_count,
         "map_point_count": metrics.map_point_count,
         "map_avg_track_length": metrics.map_avg_track_length,
-        "map_bounding_volume_m3": metrics.map_bounding_volume_m3,
         "map_viewpoint_diversity": metrics.map_viewpoint_diversity,
-        "truth_alignment_rms_residual_m": metrics.truth_alignment_rms_residual_m,
-        "truth_alignment_max_residual_m": metrics.truth_alignment_max_residual_m,
+        "prior_drift_residual_rms_m": metrics.prior_drift_residual_rms_m,
+        "prior_drift_residual_max_m": metrics.prior_drift_residual_max_m,
     }
 
 

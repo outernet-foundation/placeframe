@@ -9,7 +9,7 @@ from tempfile import TemporaryDirectory
 from textwrap import dedent
 from typing import Any
 
-from common.bash import bash
+from bashrun import bash
 from pydantic import create_model
 from pydantic.alias_generators import to_snake
 from sqlalchemy import MetaData, create_engine, inspect as sa_inspect
@@ -174,7 +174,8 @@ def _generate_datamodels_for_schema(database_schema: str, models_path: Path, eng
             f"--input-file-type jsonschema "
             f"--output {dtos_path} "
             f"--target-python-version {sys.version_info.major}.{sys.version_info.minor} "
-            f"--output-model-type pydantic_v2.BaseModel"
+            f"--output-model-type pydantic_v2.BaseModel "
+            f"--use-default-kwarg"
         )
 
         # datamodel-codegen may generate duplicate Enum definitions, so we need to deduplicate them

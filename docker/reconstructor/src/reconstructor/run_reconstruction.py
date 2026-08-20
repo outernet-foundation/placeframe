@@ -3,15 +3,15 @@ from __future__ import annotations
 import tarfile
 from collections.abc import Callable
 from io import BytesIO
+from os import environ
 from pathlib import Path
-from time import perf_counter
 from typing import Any
 from uuid import UUID
 
 from common.boto_clients import create_s3_client
 from core.camera_config import PinholeCameraConfig
 from core.capture_session_manifest import CaptureSessionManifest
-from core.image_preprocess import canonicalize_image, tile_image
+from core.image_preprocess import canonicalize_image
 from core.h5 import write_features, write_global_descriptors
 from core.lightglue import DescriptorsArrays, KeypointsArrays, MatchIndices
 from core.model_wrappers import (
@@ -26,16 +26,17 @@ from core.reconstruction_options import ReconstructionOptions
 from core.model_wrappers import RetrievalDim
 from core.tensor_types import TT
 from neural_networks.models import load_aliked, load_DIR, load_lightglue
-from numpy import asarray, ascontiguousarray, float32, random, stack, vstack
-from numpy.typing import NDArray  # noqa: TID251 — Phase T piece 3 follow-up migration
-from placeframe_api_client import ReconstructionStatus
+from numpy import asarray, ascontiguousarray, float32, float64, random, vstack
+from numpy.typing import NDArray  # noqa: TID251 — tracked in PLE-233
+from placeframe_lease_server_client import ReconstructionStatus
 from pycolmap._core import set_random_seed  # noqa: PLC2701 — no public API
 from torch import Tensor, cuda, from_numpy, inference_mode  # type: ignore
 
-from .colmap import run_colmap_reconstruction
+from .colmap import COLMAP_DB_FILE, run_colmap_reconstruction
+from .keyframes import select_keyframes_by_distance
 from .metrics_builder import MetricsBuilder
 from .options_builder import OptionsBuilder
-from .pairs import generate_image_pairs, write_pairs
+from .pairs import generate_image_pairs, write_pairs, write_pairs_with_source
 from .progress_publisher import ReconstructionPublisher
 from .rig import Rig
 from .settings import get_settings
@@ -44,6 +45,11 @@ DEVICE = "cuda" if cuda.is_available() else "cpu"
 
 WORK_DIR = Path("/tmp/reconstruction")
 CAPTURE_SESSION_DIRECTORY = WORK_DIR / "capture_session"
+
+COMPRESSION_OPQ_NUMBER_OF_SUBVECTORS = 16
+COMPRESSION_OPQ_NUMBER_OF_BITS_PER_SUBVECTOR = 8
+COMPRESSION_OPQ_NUMBER_OF_TRAINING_ITERATIONS = 20
+LIGHTGLUE_BATCH_SIZE = 16
 
 global_descriptor_extractor: Callable[[Tensor], TT[RetrievalDim]]
 local_feature_extractor: Callable[[Tensor], LocalFeatureOutput]
@@ -80,6 +86,7 @@ def run_reconstruction(
     capture_id: UUID,
     reconstruction_options: ReconstructionOptions,
     publisher: ReconstructionPublisher,
+    metrics: MetricsBuilder,
 ) -> ReconstructionMetrics:
 
     settings = get_settings()
@@ -89,7 +96,6 @@ def run_reconstruction(
         minio_secret_key=settings.minio_secret_key,
     )
 
-    publisher.set_phase(ReconstructionStatus.DOWNLOADING)
     print(
         f"Downloading capture session archive for capture session ID: {capture_id} from bucket {settings.captures_bucket}"
     )
@@ -119,24 +125,34 @@ def run_reconstruction(
         for rig in capture_session_manifest.rigs
     }
 
-    options = OptionsBuilder(reconstruction_options)
-    metrics = MetricsBuilder()
+    is_multi_camera_capture = any(rig.is_multi_camera for rig in rigs.values())
+    options = OptionsBuilder(reconstruction_options, is_multi_camera_capture=is_multi_camera_capture)
 
-    if reconstruction_options.random_seed is not None:
-        random.seed(reconstruction_options.random_seed)  # noqa: NPY002 — pycolmap reads numpy's global random state; can't use default_rng()
-        set_random_seed(reconstruction_options.random_seed)
+    for rig in rigs.values():
+        ordered_frame_ids = sorted(rig.frame_poses.keys(), key=int)
+        translations_by_frame_id: dict[str, NDArray[float64]] = {
+            frame_id: rig.frame_poses[frame_id].translation for frame_id in ordered_frame_ids
+        }
+        kept_frame_ids = set(
+            select_keyframes_by_distance(
+                ordered_frame_ids,
+                translations_by_frame_id,
+                min_distance_m=options.keyframe_min_distance_m(),
+            )
+        )
+        rig.frame_poses = {frame_id: pose for frame_id, pose in rig.frame_poses.items() if frame_id in kept_frame_ids}
+        print(f"Rig {rig.id}: kept {len(rig.frame_poses)} of {len(ordered_frame_ids)} frames as keyframes (distance)")
+
+    if reconstruction_options.deterministic_seed is not None:
+        random.seed(reconstruction_options.deterministic_seed)  # noqa: NPY002 — pycolmap reads numpy's global random state; can't use default_rng()
+        set_random_seed(reconstruction_options.deterministic_seed)
 
     # Apply per-reconstruction keypoint cap by mutating the DKD module's threshold-mode n_limit.
     # ALIKED itself is loaded once at startup; only this cap is per-job.
     _aliked_model.dkd.n_limit = options.max_keypoints_per_image()
 
-    # Generate image pairs
-    pairs = generate_image_pairs(rigs, options.neighbors_count(), options.rotation_threshold_deg())
-    file_name, file_bytes = write_pairs(pairs, WORK_DIR)
-    _put_artifact(s3_client, settings.reconstructions_bucket, reconstruction_id, file_name, file_bytes)
-
     # Extract features
-    global_descriptors: dict[str, NDArray[float32]] = {}  # noqa: TID251 — Phase T piece 3 follow-up migration
+    global_descriptors: dict[str, NDArray[float32]] = {}  # noqa: TID251 — tracked in PLE-233
     keypoints = KeypointsArrays({})
     descriptors = DescriptorsArrays({})
     sizes: dict[str, tuple[int, int]] = {}
@@ -157,16 +173,10 @@ def run_reconstruction(
         # Write image back to disk, so incremental_mapping samples the processed image for point cloud colorization
         image.save(image_path)
 
-        tile_descriptors: list[TT[RetrievalDim]] = []
-        for tile in tile_image(image):
-            tile_tensor = from_numpy(asarray(tile, dtype=float32)).permute(2, 0, 1).div(255.0)
-            tile_descriptors.append(global_descriptor_extractor(tile_tensor.unsqueeze(0).to(device=DEVICE)))
-
+        image_descriptor = global_descriptor_extractor(rgb_tensor.unsqueeze(0).to(device=DEVICE))
         image_keypoints, image_descriptors = local_feature_extractor(rgb_tensor.unsqueeze(0).to(device=DEVICE))
 
-        global_descriptors[image_name] = stack(
-            [tile_descriptor.cpu().numpy().astype(float32, copy=False) for tile_descriptor in tile_descriptors], axis=0
-        )
+        global_descriptors[image_name] = image_descriptor.cpu().numpy().astype(float32, copy=False)
         keypoints[image_name] = image_keypoints.cpu().numpy().astype(float32, copy=False)
         descriptors[image_name] = image_descriptors.cpu().numpy().astype(float32, copy=False)
         sizes[image_name] = (image.height, image.width)
@@ -175,10 +185,17 @@ def run_reconstruction(
     file_name, file_bytes = write_global_descriptors(WORK_DIR, global_descriptors)
     _put_artifact(s3_client, settings.reconstructions_bucket, reconstruction_id, file_name, file_bytes)
 
-    # Update metrics
-    metrics.metrics.average_keypoints_per_image = float(
-        sum(len(keypoints[name]) for name in keypoints.keys()) / len(keypoints)
+    pairs = generate_image_pairs(
+        rigs,
+        global_descriptors,
+        options.sequential_window_m(),
+        options.retrieval_neighbors(),
+        options.retrieval_min_score(),
     )
+    file_name, file_bytes = write_pairs(pairs, WORK_DIR)
+    _put_artifact(s3_client, settings.reconstructions_bucket, reconstruction_id, file_name, file_bytes)
+    file_name, file_bytes = write_pairs_with_source(pairs, WORK_DIR)
+    _put_artifact(s3_client, settings.reconstructions_bucket, reconstruction_id, file_name, file_bytes)
 
     # Combine all descriptors into a single array for training OPQ and PQ
     descriptor_array = ascontiguousarray(vstack([descriptor for descriptor in descriptors.values()]), dtype=float32)
@@ -186,8 +203,8 @@ def run_reconstruction(
     # Train OPQ matrix
     publisher.set_phase(ReconstructionStatus.TRAINING_OPQ_MATRIX)
     opq_matrix = train_opq_matrix(
-        options.compression_opq_number_of_subvectors(),
-        options.compression_opq_number_of_training_iterations(),
+        COMPRESSION_OPQ_NUMBER_OF_SUBVECTORS,
+        COMPRESSION_OPQ_NUMBER_OF_TRAINING_ITERATIONS,
         descriptor_array,
     )
     file_name, file_bytes = write_opq_matrix(opq_matrix, WORK_DIR)
@@ -196,8 +213,8 @@ def run_reconstruction(
     # Train PQ quantizer
     publisher.set_phase(ReconstructionStatus.TRAINING_PRODUCT_QUANTIZER)
     product_quantizer = train_pq_quantizer(
-        options.compression_opq_number_of_subvectors(),
-        options.compression_opq_number_of_bits_per_subvector(),
+        COMPRESSION_OPQ_NUMBER_OF_SUBVECTORS,
+        COMPRESSION_OPQ_NUMBER_OF_BITS_PER_SUBVECTOR,
         opq_matrix,
         descriptor_array,
     )
@@ -209,18 +226,18 @@ def run_reconstruction(
     file_name, file_bytes = write_features(WORK_DIR, keypoints, image_codes)
     _put_artifact(s3_client, settings.reconstructions_bucket, reconstruction_id, file_name, file_bytes)
 
+    image_name_pairs: list[tuple[str, str]] = [(pair.image_a, pair.image_b) for pair in pairs]
+
     # Match features
     publisher.set_phase(ReconstructionStatus.MATCHING_FEATURES, total=len(pairs))
-    matching_t0 = perf_counter()
     match_indices = local_feature_matcher(
-        pairs,
+        image_name_pairs,
         keypoints,
         descriptors,
         sizes,
-        options.lightglue_batch_size(),
+        LIGHTGLUE_BATCH_SIZE,
         publisher.on_progress,
     )
-    print(f"matching_features wall_time={perf_counter() - matching_t0:.2f}s pairs={len(pairs)}")
     if cuda.is_available():
         cuda.empty_cache()
 
@@ -246,7 +263,6 @@ def run_reconstruction(
         print("Reconstruction failed, no model was created")
         raise RuntimeError("No model was created")
 
-    publisher.set_phase(ReconstructionStatus.UPLOADING)
     for file_path in sfm_output_path.rglob("*"):
         if file_path.is_file():
             _put_artifact(
@@ -256,6 +272,18 @@ def run_reconstruction(
                 f"sfm_model/{file_path.relative_to(sfm_output_path)}",
                 file_path.read_bytes(),
             )
+
+    _put_artifact(
+        s3_client,
+        settings.reconstructions_bucket,
+        reconstruction_id,
+        COLMAP_DB_FILE,
+        (WORK_DIR / COLMAP_DB_FILE).read_bytes(),
+    )
+
+    publisher.finalize_timings()
+    metrics.metrics.phase_timings = publisher.phase_timings
+    metrics.metrics.pipeline_version = environ["RECONSTRUCTOR_SHA"]
 
     return metrics.metrics
 

@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 
 import typer
-from common.bash import bash, bash_output
+from bashrun import bash, bash_output
 
-from ...shared.ci_step import ci_step
+from unity_buildkit.ci_step import ci_step
+from stack_lifecycle.context_sha import compute_service_shas
 from ..lock_python import lock_python
 
 app = typer.Typer(add_completion=False, pretty_exceptions_show_locals=False)
@@ -30,6 +32,10 @@ def main() -> None:
             DATABASE_SCHEMA_DIR="database",
             ALLOWED_HAZARDS="HAS_UNTRACKABLE_DEPENDENCIES",
         )
+        os.environ.update(compute_service_shas(Path.cwd(), Path("compose.bake.yml")))
+        # Build the postgres wrapper locally so the image tag in compose.postgres.yml resolves
+        # without needing a registry push first.
+        bash("docker compose -f compose.bake.yml --env-file .env.lock build postgres")
         # Kill any leftover containers to avoid port collisions on shared runners
         bash("docker compose --env-file .env.lock -f compose.postgres.yml down --volumes --remove-orphans")
         bash("docker compose --env-file .env.lock -f compose.postgres.yml up -d --wait")
@@ -69,10 +75,14 @@ def main() -> None:
             raise SystemExit("Generated datamodels are stale. Run 'uv run generate-datamodels' locally.")
 
     with ci_step("Check client codegen"):
-        bash("uv run generate-clients --config build/openapi-projects.json --project docker/api --no-cache")
-        staleness_output = bash_output("git status --porcelain -- docker/api/openapi.json packages/generated/")
+        spec_paths = " ".join(
+            f"{project}/openapi.json"
+            for project in json.loads(Path("build/openapi-projects.json").read_text(encoding="utf-8"))
+        )
+        bash("uv run generate-clients --config build/openapi-projects.json --no-cache")
+        staleness_output = bash_output(f"git status --porcelain -- {spec_paths} packages/generated/")
         if staleness_output.strip():
-            bash("git diff -- docker/api/openapi.json packages/generated/")
+            bash(f"git diff -- {spec_paths} packages/generated/")
             raise SystemExit(
                 "Generated API clients are stale. Run 'uv run generate-clients --config build/openapi-projects.json' locally."
             )

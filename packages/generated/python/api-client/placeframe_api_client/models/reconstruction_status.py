@@ -27,14 +27,13 @@ class ReconstructionStatus(str, Enum):
     allowed enum values
     """
     QUEUED = 'queued'
-    DOWNLOADING = 'downloading'
     EXTRACTING_FEATURES = 'extracting_features'
     MATCHING_FEATURES = 'matching_features'
     TRAINING_OPQ_MATRIX = 'training_opq_matrix'
     TRAINING_PRODUCT_QUANTIZER = 'training_product_quantizer'
     VERIFYING_GEOMETRY = 'verifying_geometry'
+    VERIFYING_RIG_GEOMETRY = 'verifying_rig_geometry'
     RECONSTRUCTING = 'reconstructing'
-    UPLOADING = 'uploading'
     SUCCEEDED = 'succeeded'
     FAILED = 'failed'
     CANCELLED = 'cancelled'

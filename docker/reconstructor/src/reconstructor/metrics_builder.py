@@ -7,10 +7,9 @@ from typing import Any, Iterable, List, Optional, Sequence, cast
 from core.reconstruction_metrics import ReconstructionMetrics
 from numpy import asarray, float64, percentile
 from numpy.linalg import norm
-from numpy.typing import NDArray  # noqa: TID251 — Phase T piece 3 follow-up migration
+from numpy.typing import NDArray  # noqa: TID251 — tracked in PLE-233
 from pycolmap import Database, Frame, ImageMap, Point3D, Point3DMap, Reconstruction, Rigid3d
 from pycolmap import Image as ColmapImage
-from scipy.spatial import ConvexHull, QhullError
 
 UINT64_MAX = 18446744073709551615  # sentinel used by Point2D.point3D_id default
 
@@ -20,7 +19,7 @@ class MetricsBuilder:
         self.metrics = ReconstructionMetrics()
 
     def build_verified_matches_metrics(self, db_path: Path, pairs: list[tuple[str, ...]]) -> None:
-        database = Database.open(str(db_path))
+        database = Database.open(str(db_path))  # pyright: ignore[reportUnknownMemberType] — upstream stub uses unparameterized os.PathLike
         # Map image name -> image_id (help Pyright with explicit types)
         all_images: list[ColmapImage] = database.read_all_images()
         name_to_id: dict[str, int] = {img.name: img.image_id for img in all_images}
@@ -41,12 +40,6 @@ class MetricsBuilder:
         st_total = st_verified = 0  # stereo: same frame, different sensors
         st_inliers: List[int] = []
 
-        ss_total = ss_verified = 0  # same sensor across frames
-        ss_inliers: List[int] = []
-
-        cs_total = cs_verified = 0  # cross sensor across frames
-        cs_inliers: List[int] = []
-
         for a, b in pairs:
             total += 1
             ida: int = name_to_id[a]
@@ -62,22 +55,11 @@ class MetricsBuilder:
 
             ra, ca, fa = _parse_name(a)
             rb, cb, fb = _parse_name(b)
-            if None not in (ra, ca, fa, rb, cb, fb) and ra == rb:
-                if fa == fb and ca != cb:
-                    st_total += 1
-                    if ok:
-                        st_verified += 1
-                        st_inliers.append(ninl)
-                elif ca == cb and fa != fb:
-                    ss_total += 1
-                    if ok:
-                        ss_verified += 1
-                        ss_inliers.append(ninl)
-                elif ca != cb and fa != fb:
-                    cs_total += 1
-                    if ok:
-                        cs_verified += 1
-                        cs_inliers.append(ninl)
+            if None not in (ra, ca, fa, rb, cb, fb) and ra == rb and fa == fb and ca != cb:
+                st_total += 1
+                if ok:
+                    st_verified += 1
+                    st_inliers.append(ninl)
 
         self.metrics.all_verified_matches = verified
         self.metrics.all_verified_match_rate = (100.0 * verified / total) if total else 0.0
@@ -87,14 +69,6 @@ class MetricsBuilder:
         self.metrics.stereo_verified_match_rate = (100.0 * st_verified / st_total) if st_total else 0.0
         self.metrics.stereo_verified_match_inliers_mean = mean(st_inliers) if st_inliers else 0.0
         self.metrics.stereo_verified_match_inliers_median = median(st_inliers) if st_inliers else 0.0
-        self.metrics.same_sensor_verified_matches = ss_verified
-        self.metrics.same_sensor_verified_match_rate = (100.0 * ss_verified / ss_total) if ss_total else 0.0
-        self.metrics.same_sensor_verified_match_inliers_mean = mean(ss_inliers) if ss_inliers else 0.0
-        self.metrics.same_sensor_verified_match_inliers_median = median(ss_inliers) if ss_inliers else 0.0
-        self.metrics.cross_sensor_verified_matches = cs_verified
-        self.metrics.cross_sensor_verified_match_rate = (100.0 * cs_verified / cs_total) if cs_total else 0.0
-        self.metrics.cross_sensor_verified_match_inliers_mean = mean(cs_inliers) if cs_inliers else 0.0
-        self.metrics.cross_sensor_verified_match_inliers_median = median(cs_inliers) if cs_inliers else 0.0
 
         database.close()
 
@@ -125,14 +99,7 @@ class MetricsBuilder:
                     )
                 )
 
-        self.metrics.total_images = len(reconstruction_images)
-        self.metrics.registered_images = best.num_reg_images()
-        self.metrics.registration_rate = float(best.num_reg_images() / len(reconstruction_images) * 100.0)
-        self.metrics.num_3d_points = point_count
         self.metrics.track_length_50th_percentile = _percentile([float(L) for L in track_lengths], 50.0)
-        self.metrics.percent_tracks_with_length_greater_than_or_equal_to_3 = float(
-            sum(1 for L in track_lengths if L >= 3) / float(len(track_lengths)) * 100.0
-        )
 
         def q(x: float, eps: float = 1e-9) -> float:
             return float(round(x / eps) * eps)
@@ -140,32 +107,19 @@ class MetricsBuilder:
         self.metrics.reprojection_pixel_error_50th_percentile = q(_percentile(reproject_errors, 50.0))
         self.metrics.reprojection_pixel_error_90th_percentile = q(_percentile(reproject_errors, 90.0))
 
-        # Camera centers and forward axes in the world frame, derived from each frame's rig_from_world.
         # COLMAP's camera convention is +Z forward, so the world-frame viewing direction is the third
         # column of world_from_rig = rig_from_world.rotation.matrix().T.
-        centers: List[NDArray[float64]] = []
         view_dirs: List[NDArray[float64]] = []
         for frame in cast(Iterable[Frame], best.frames.values()):  # type: ignore
             rig_from_world = cast(Rigid3d, frame.rig_from_world)
-            world_from_rig = rig_from_world.rotation.matrix().T
-            centers.append(-world_from_rig @ rig_from_world.translation)
-            view_dirs.append(world_from_rig[:, 2])
-        centers_arr = asarray(centers, dtype=float64)
+            view_dirs.append(rig_from_world.rotation.matrix().T[:, 2])
         view_dirs_arr = asarray(view_dirs, dtype=float64)
-
-        # ConvexHull needs ≥4 non-coplanar points for a 3D volume; ground-level captures and tiny
-        # maps land on a degenerate hull, in which case spatial extent is effectively zero.
-        try:
-            volume = float(ConvexHull(centers_arr).volume) if len(centers_arr) >= 4 else 0.0
-        except QhullError:
-            volume = 0.0
 
         mean_dir: NDArray[float64] = view_dirs_arr.mean(axis=0)
 
         self.metrics.map_image_count = int(best.num_reg_images())
         self.metrics.map_point_count = point_count
         self.metrics.map_avg_track_length = float(sum(track_lengths) / point_count) if point_count else 0.0
-        self.metrics.map_bounding_volume_m3 = volume
         self.metrics.map_viewpoint_diversity = float(1.0 - norm(mean_dir)) if len(view_dirs_arr) else 0.0
 
 

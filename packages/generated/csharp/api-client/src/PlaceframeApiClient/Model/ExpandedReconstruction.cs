@@ -41,7 +41,7 @@ namespace PlaceframeApiClient.Model
         /// </summary>
         /// <param name="reconstruction">reconstruction (required).</param>
         /// <param name="localizationMapId">localizationMapId.</param>
-        public ExpandedReconstruction(ReconstructionRead reconstruction)
+        public ExpandedReconstruction(ReconstructionReadWithQueue reconstruction)
         {
             // to ensure "reconstruction" is required (not null)
             if (reconstruction == null)
@@ -55,7 +55,7 @@ namespace PlaceframeApiClient.Model
         /// Gets or Sets Reconstruction
         /// </summary>
         [DataMember(Name = "reconstruction", IsRequired = true, EmitDefaultValue = true)]
-        public ReconstructionRead Reconstruction
+        public ReconstructionReadWithQueue Reconstruction
         {
             get{ return _Reconstruction;}
             set
@@ -64,7 +64,7 @@ namespace PlaceframeApiClient.Model
                 _flagReconstruction = true;
             }
         }
-        private ReconstructionRead _Reconstruction;
+        private ReconstructionReadWithQueue _Reconstruction;
         private bool _flagReconstruction;
 
         /// <summary>

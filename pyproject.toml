@@ -6,15 +6,18 @@ dependencies = []
 
 
 [dependency-groups]
-dev = ["build-scripts", "scripts", "basedpyright>=1.28.0", "deptry>=0.24.0", "ruff>=0.14.11", "pytest>=8.0.0", "pytest-asyncio>=0.24.0"]
+dev = ["build-scripts", "scripts", "basedpyright>=1.39.10", "deptry>=0.24.0", "ruff>=0.14.11", "pytest>=8.0.0", "pytest-asyncio>=0.24.0"]
 
 [tool.uv.workspace]
 members = [
+    "docker/aoa-bridge",
     "docker/database-manager",
     "docker/api",
     "docker/auth-initializer",
+    "docker/lease-server",
     "docker/localizer",
     "docker/orchestrator",
+    "docker/rathole-client",
     "docker/reconstructor",
     "docker/zed-capture",
     "packages/python/core",
@@ -23,6 +26,7 @@ members = [
     "packages/python/neural-networks/third-party/deep-image-retrieval",
     "packages/generated/python/datamodels",
     "packages/generated/python/api-client",
+    "packages/generated/python/lease-server-client",
     "packages/generated/python/localizer-client",
     "build",
     "scripts",
@@ -31,6 +35,7 @@ members = [
 
 [tool.uv]
 config-settings-package.placeframe-api-client = { editable_mode = "compat" }
+config-settings-package.placeframe-lease-server-client = { editable_mode = "compat" }
 config-settings-package.placeframe-localizer-client = { editable_mode = "compat" }
 
 [tool.uv.sources]
@@ -38,15 +43,22 @@ common = { workspace = true }
 core = { workspace = true }
 neural-networks = { workspace = true }
 datamodels = { workspace = true }
+placeframe-lease-server-client = { workspace = true }
 placeframe-localizer-client = { workspace = true }
 placeframe_api_client = { workspace = true }
 dirtorch = { workspace = true }
 build-scripts = { workspace = true }
 scripts = { workspace = true }
 lightglue = { git = "https://github.com/cvg/LightGlue.git" }
-pybind11-stubgen = { git = "https://github.com/sarlinpe/pybind11-stubgen", rev = "sarlinpe/fix-2024-08" }
+bashrun = { git = "https://github.com/outernet-foundation/bashrun.git", rev = "1a0add1eb9e53e19245dcdda3e2018577b4e1153" }
+logconf = { git = "https://github.com/outernet-foundation/logconf.git", rev = "3a8216eb39008e5769b71f98e65bffc60cd01f0a" }
+stack-lifecycle = { git = "https://github.com/outernet-foundation/stack-lifecycle.git", rev = "4fbbc256e5a761dd2aa8204ddd4ca840832a75d9" }
+unity-buildkit = { git = "https://github.com/outernet-foundation/unity-buildkit.git", rev = "70741126846015e001952d4465b7512c75643b2f" }
+openapi-clientgen = { git = "https://github.com/outernet-foundation/openapi-clientgen.git", rev = "466fad1471101731c988b09997f0f8b473c052d4" }
 
 [tool.basedpyright]
+venvPath = "."
+venv = ".venv"
 typeCheckingMode = "strict"
 include = [
     "build/**/src/**/*.py",

@@ -4,7 +4,7 @@ from __future__ import annotations
 import os
 from typing import List, Set
 
-from common.bash import bash_output
+from bashrun import bash_output
 
 PORT_MIN: int = 56000
 PORT_MAX: int = 57000  # exclusive

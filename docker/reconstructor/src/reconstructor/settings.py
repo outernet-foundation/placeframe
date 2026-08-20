@@ -5,10 +5,7 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    api_internal_url: AnyHttpUrl = Field()
-    auth_token_url: AnyHttpUrl = Field()
-    auth_client_id: str = Field()
-    private_key_path: str = Field()
+    lease_server_url: AnyHttpUrl = Field()
 
     minio_endpoint_url: AnyHttpUrl | None = None
     minio_access_key: str | None = None
