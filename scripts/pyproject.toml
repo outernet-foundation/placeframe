@@ -15,6 +15,7 @@ dependencies = [
     "scipy>=1.14",
     "scikit-learn>=1.5",
     "pytransform3d>=3.5",
+    "matplotlib>=3.9",
 ]
 
 [build-system]
@@ -39,3 +40,4 @@ reconstruction = "scripts.reconstruction:app"
 score-up = "scripts.score_up:app"
 score-down = "scripts.score_down:app"
 pf-secrets = "scripts.secrets_exec:app"
+howard-test = "scripts.howard_test:app"

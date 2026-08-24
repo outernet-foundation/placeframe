@@ -32,3 +32,6 @@ artifacts/
 .placeframe/
 .claude/scheduled_tasks.lock
 bookmark.md
+/data/
+**/node_modules/
+dashboard/frontend/dist/

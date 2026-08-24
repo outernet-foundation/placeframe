@@ -1,0 +1,161 @@
+.app {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.app-header {
+  display: flex;
+  align-items: baseline;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.app-header h1 {
+  font-size: 20px;
+  margin: 0;
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.panel-header h2 {
+  font-size: 16px;
+  margin: 0;
+  color: #a8adb8;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.data-table th,
+.data-table td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid #262932;
+}
+
+.data-table th {
+  color: #a8adb8;
+  font-weight: 500;
+}
+
+.data-table .mono {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 12px;
+  color: #c3c8d1;
+}
+
+.data-table .empty {
+  text-align: center;
+  color: #6b7280;
+  padding: 24px;
+}
+
+.data-table .actions {
+  display: flex;
+  gap: 6px;
+}
+
+.banner {
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.banner-info {
+  background: #1e2a3d;
+  border: 1px solid #2f4a6b;
+}
+
+.banner-success {
+  background: #1c3324;
+  border: 1px solid #2c5c3f;
+}
+
+.banner-error {
+  background: #3a2020;
+  border: 1px solid #6b3232;
+}
+
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.dialog {
+  background: #1c1f26;
+  border: 1px solid #363a42;
+  border-radius: 8px;
+  padding: 20px;
+  width: 480px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.dialog h3 {
+  margin: 0;
+}
+
+.dialog label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: #a8adb8;
+}
+
+.dialog select,
+.dialog textarea {
+  font: inherit;
+  background: #14161a;
+  color: #e6e6e6;
+  border: 1px solid #3d4149;
+  border-radius: 4px;
+  padding: 8px;
+}
+
+.dialog textarea {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 12px;
+  resize: vertical;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.pointcloud-image {
+  max-width: 100%;
+  border: 1px solid #262932;
+  border-radius: 6px;
+  background: #fff;
+}
