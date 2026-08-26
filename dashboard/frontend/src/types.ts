@@ -22,14 +22,7 @@ export interface Reconstruction {
   cached_png_path: string | null;
 }
 
-export interface VisualizeResult {
-  reconstruction_id: string;
-  output: string;
-  point_count: number;
-  rendered_point_count: number;
-}
-
-export type JobKind = "reconstruct" | "visualize";
+export type JobKind = "reconstruct" | "visualize" | "localize";
 export type JobStatus = "running" | "succeeded" | "failed";
 
 export interface Job<TResult = unknown> {
@@ -37,8 +30,30 @@ export interface Job<TResult = unknown> {
   kind: JobKind;
   status: JobStatus;
   reconstruction_id: string | null;
+  run_id: string | null;
   result: TResult | null;
   error: string | null;
 }
 
 export const TERMINAL_STATUSES = new Set(["succeeded", "failed", "cancelled"]);
+
+export interface LocalizationImage {
+  index: number;
+  filename: string;
+  path: string;
+  status: "ok" | "failed";
+  error: string | null;
+  position: { x: number; y: number; z: number } | null;
+  quaternion_xyzw: [number, number, number, number] | null;
+  rpy_deg: { roll: number; pitch: number; yaw: number } | null;
+  thumbnail_base64: string;
+}
+
+export interface LocalizationResult {
+  run_id: string;
+  reconstruction_id: string;
+  capture_session_id: string;
+  image_dir: string;
+  created_at: string;
+  images: LocalizationImage[];
+}

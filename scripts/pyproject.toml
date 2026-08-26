@@ -16,6 +16,7 @@ dependencies = [
     "scikit-learn>=1.5",
     "pytransform3d>=3.5",
     "matplotlib>=3.9",
+    "pillow>=11.0",
 ]
 
 [build-system]

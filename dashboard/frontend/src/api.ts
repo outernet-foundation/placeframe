@@ -1,4 +1,4 @@
-import type { CaptureSession, Job, Reconstruction } from "./types";
+import type { CaptureSession, Job, LocalizationResult, Reconstruction } from "./types";
 
 const API_BASE = "http://localhost:8010";
 
@@ -29,17 +29,120 @@ export function startReconstruct(captureId: string, optionsJson: string | null):
   });
 }
 
-export function startVisualize(reconstructionId: string): Promise<{ job_id: string }> {
-  return request("/api/visualize", {
-    method: "POST",
-    body: JSON.stringify({ reconstruction_id: reconstructionId }),
-  });
-}
-
 export function getJob<TResult = unknown>(jobId: string): Promise<Job<TResult>> {
   return request(`/api/jobs/${jobId}`);
 }
 
-export function pngUrl(reconstructionId: string): string {
-  return `${API_BASE}/api/reconstructions/${reconstructionId}/png?t=${Date.now()}`;
+export function startLocalize(
+  reconstructionId: string,
+  imageDir: string,
+  retrievalTopK: number | null,
+  ransacThreshold: number | null,
+): Promise<{ job_id: string; run_id: string }> {
+  return request("/api/localize", {
+    method: "POST",
+    body: JSON.stringify({
+      reconstruction_id: reconstructionId,
+      image_dir: imageDir,
+      retrieval_top_k: retrievalTopK,
+      ransac_threshold: ransacThreshold,
+    }),
+  });
+}
+
+export function getLocalization(runId: string): Promise<LocalizationResult> {
+  return request(`/api/localizations/${runId}`);
+}
+
+export interface LocalizationProgress {
+  completed: number;
+  total: number;
+}
+
+export function getLocalizationProgress(runId: string): Promise<LocalizationProgress> {
+  return request(`/api/localizations/${runId}/progress`);
+}
+
+export function saveLocalizationTable(runId: string, outputPath: string): Promise<{ output_path: string; count: number }> {
+  return request(`/api/localizations/${runId}/save-table`, {
+    method: "POST",
+    body: JSON.stringify({ output_path: outputPath }),
+  });
+}
+
+export function saveLocalizationImages(runId: string, outputDir: string): Promise<{ output_dir: string; count: number }> {
+  return request(`/api/localizations/${runId}/save-images`, {
+    method: "POST",
+    body: JSON.stringify({ output_dir: outputDir }),
+  });
+}
+
+export interface BrowseDirectoryEntry {
+  name: string;
+  path: string;
+}
+
+export interface BrowseDirectoryResult {
+  path: string;
+  parent: string | null;
+  entries: BrowseDirectoryEntry[];
+}
+
+// `path` omitted starts the browse at the server's home directory.
+export function browseDirectories(path?: string): Promise<BrowseDirectoryResult> {
+  const query = path ? `?path=${encodeURIComponent(path)}` : "";
+  return request(`/api/browse-directories${query}`);
+}
+
+export interface PointCloud {
+  positions: Float32Array;
+  colors: Uint8Array;
+  count: number;
+  posePositions: Float32Array;
+  poseOrientations: Float32Array; // xyzw quaternions, world_from_rig
+  poseCount: number;
+}
+
+// Parses the fixed binary layout `points` writes (see howard_test.py's `points` command docstring
+// and dashboard/backend's /points passthrough):
+//   point_count:u32, positions:f32[point_count*3], colors:u8[point_count*3],
+//   pose_count:u32, pose_positions:f32[pose_count*3], pose_orientations(xyzw):f32[pose_count*4]
+export async function fetchPoints(reconstructionId: string): Promise<PointCloud> {
+  const response = await fetch(`${API_BASE}/api/reconstructions/${reconstructionId}/points`);
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`${response.status} ${response.statusText}: ${body}`);
+  }
+  const buffer = await response.arrayBuffer();
+  const view = new DataView(buffer);
+
+  const count = view.getUint32(0, true);
+  const positionsStart = 4;
+  const positionsEnd = positionsStart + count * 3 * 4;
+  const colorsEnd = positionsEnd + count * 3;
+
+  const poseCount = view.getUint32(colorsEnd, true);
+  const posePositionsStart = colorsEnd + 4;
+  const posePositionsEnd = posePositionsStart + poseCount * 3 * 4;
+  const poseOrientationsEnd = posePositionsEnd + poseCount * 4 * 4;
+
+  return {
+    count,
+    positions: new Float32Array(buffer.slice(positionsStart, positionsEnd)),
+    colors: new Uint8Array(buffer.slice(positionsEnd, colorsEnd)),
+    poseCount,
+    posePositions: new Float32Array(buffer.slice(posePositionsStart, posePositionsEnd)),
+    poseOrientations: new Float32Array(buffer.slice(posePositionsEnd, poseOrientationsEnd)),
+  };
+}
+
+export interface ScreenshotResult {
+  path: string;
+}
+
+export function saveScreenshot(plotTitle: string, imageBase64: string): Promise<ScreenshotResult> {
+  return request("/api/screenshots", {
+    method: "POST",
+    body: JSON.stringify({ plot_title: plotTitle, image_base64: imageBase64 }),
+  });
 }

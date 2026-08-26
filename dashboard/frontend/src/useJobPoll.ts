@@ -28,6 +28,7 @@ export function useJobPoll<TResult = unknown>(jobId: string | null, intervalMs =
           kind: "reconstruct",
           status: "failed",
           reconstruction_id: null,
+          run_id: null,
           result: null,
           error: err instanceof Error ? err.message : String(err),
         });

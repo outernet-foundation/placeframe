@@ -1,17 +1,11 @@
 import { useEffect, useState } from "react";
-import { listReconstructions, pngUrl, startVisualize } from "../api";
-import type { Reconstruction, VisualizeResult } from "../types";
-import { useJobPoll } from "../useJobPoll";
+import { listReconstructions } from "../api";
+import type { Reconstruction } from "../types";
 
 export function VisualizeTab() {
   const [reconstructions, setReconstructions] = useState<Reconstruction[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [activeJobId, setActiveJobId] = useState<string | null>(null);
-  const [shownReconstructionId, setShownReconstructionId] = useState<string | null>(null);
-  const [imageNonce, setImageNonce] = useState(0);
-
-  const job = useJobPoll<VisualizeResult>(activeJobId);
 
   async function refresh(): Promise<void> {
     setLoading(true);
@@ -29,17 +23,8 @@ export function VisualizeTab() {
     void refresh();
   }, []);
 
-  useEffect(() => {
-    if (job?.status === "succeeded" && job.result) {
-      setShownReconstructionId(job.result.reconstruction_id);
-      setImageNonce((n) => n + 1);
-      void refresh();
-    }
-  }, [job]);
-
-  async function createPng(reconstructionId: string): Promise<void> {
-    const { job_id } = await startVisualize(reconstructionId);
-    setActiveJobId(job_id);
+  function openViewer(reconstructionId: string): void {
+    window.open(`/viewer?reconstruction=${reconstructionId}`, "_blank", "width=1280,height=900");
   }
 
   return (
@@ -73,20 +58,9 @@ export function VisualizeTab() {
               <td>{new Date(r.created_at).toLocaleString()}</td>
               <td>{r.map_point_count ?? "—"}</td>
               <td className="actions">
-                <button
-                  disabled={r.status !== "succeeded" || (job?.status === "running" && activeJobId !== null)}
-                  onClick={() => void createPng(r.id)}
-                >
-                  Create PNG
+                <button disabled={r.status !== "succeeded"} onClick={() => openViewer(r.id)}>
+                  View
                 </button>
-                <button disabled title="Coming soon">
-                  Interactive
-                </button>
-                {r.cached_png_path && (
-                  <button onClick={() => { setShownReconstructionId(r.id); setImageNonce((n) => n + 1); }}>
-                    View
-                  </button>
-                )}
               </td>
             </tr>
           ))}
@@ -99,24 +73,6 @@ export function VisualizeTab() {
           )}
         </tbody>
       </table>
-
-      {activeJobId && job?.status === "running" && <div className="banner banner-info">Rendering point cloud…</div>}
-      {job?.status === "failed" && <div className="banner banner-error">Error: {job.error}</div>}
-
-      {shownReconstructionId && (
-        <div className="panel-header">
-          <h2>Point cloud — {shownReconstructionId}</h2>
-        </div>
-      )}
-      {shownReconstructionId && (
-        // eslint-disable-next-line jsx-a11y/img-redundant-alt
-        <img
-          key={imageNonce}
-          className="pointcloud-image"
-          src={pngUrl(shownReconstructionId)}
-          alt={`Point cloud for reconstruction ${shownReconstructionId}`}
-        />
-      )}
     </div>
   );
 }

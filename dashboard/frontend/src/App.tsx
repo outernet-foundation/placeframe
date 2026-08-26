@@ -1,9 +1,10 @@
 import { useState } from "react";
 import "./App.css";
+import { LocalizeTab } from "./tabs/LocalizeTab";
 import { ReconstructTab } from "./tabs/ReconstructTab";
 import { VisualizeTab } from "./tabs/VisualizeTab";
 
-type Tab = "reconstruct" | "visualize";
+type Tab = "reconstruct" | "visualize" | "localize";
 
 export default function App() {
   const [tab, setTab] = useState<Tab>("reconstruct");
@@ -19,9 +20,16 @@ export default function App() {
           <button className={tab === "visualize" ? "active" : ""} onClick={() => setTab("visualize")}>
             Visualize
           </button>
+          <button className={tab === "localize" ? "active" : ""} onClick={() => setTab("localize")}>
+            Localize
+          </button>
         </nav>
       </header>
-      <main>{tab === "reconstruct" ? <ReconstructTab /> : <VisualizeTab />}</main>
+      <main>
+        {tab === "reconstruct" && <ReconstructTab />}
+        {tab === "visualize" && <VisualizeTab />}
+        {tab === "localize" && <LocalizeTab />}
+      </main>
     </div>
   );
 }

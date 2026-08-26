@@ -1,26 +1,39 @@
 from __future__ import annotations
 
+import base64
+import csv
+import sys
 import tarfile
 from asyncio import run, sleep
+from collections.abc import Callable
+from datetime import datetime, timezone
 from io import BytesIO
 from json import dumps, loads
 from pathlib import Path
-from typing import Annotated, Any, NoReturn
-from uuid import UUID
+from struct import pack
+from typing import Annotated, Any, NoReturn, cast
+from uuid import UUID, uuid4
 
 import matplotlib as mpl
 import numpy as np
 import typer
+from core.capture_session_manifest import CaptureSessionManifest
+from core.localization_metrics import RANSAC_THRESHOLD_DEFAULT, RETRIEVAL_TOP_K_DEFAULT
 from numpy.typing import NDArray  # noqa: TID251 -- one-off visualizer, not worth shape-branding
+from PIL import Image, ImageDraw, ImageFont
+from scipy.spatial.transform import Rotation
 
 mpl.use("Agg")
 from matplotlib import pyplot as plt  # noqa: E402 -- backend must be selected before pyplot import
 
 from placeframe_api_client import (
     ApiException,
+    AxisConvention,
     CaptureSessionRead,
     DefaultApi,
     DeviceType,
+    LocalizationMapCreate,
+    PinholeCameraConfig,
     ReconstructionCreate,
     ReconstructionCreateWithOptions,
     ReconstructionOptions,
@@ -42,12 +55,22 @@ RECONSTRUCTION_TIMEOUT_S = 1800.0
 # docker/reconstructor/src/reconstructor/colmap.py.
 POINT_CLOUD_TAR_MEMBER = "sfm_model/points3D.npz"
 
+# Sibling NPZ, same directory: one world_from_rig pose per registered *rig frame* (not per camera
+# image — a multi-camera rig like the stereo ZED contributes one pose per synchronized frame, not
+# one per image). `orientations` is xyzw (scipy Rotation.as_quat() default), matching core's
+# "quaternion order is xyzw everywhere" convention — see colmap.py's write_reconstruction.
+FRAME_POSES_TAR_MEMBER = "sfm_model/frame_poses.npz"
+
 # Local cache for reconstruction exports and their rendered point clouds, keyed by reconstruction
 # id. Populated once a reconstruction succeeds (see _ensure_cached_tar) so the dashboard's
 # Visualize tab doesn't re-download a multi-hundred-MB tar on every "Create PNG" click.
 REPO_ROOT = Path(__file__).resolve().parents[3]
 DATA_DIR = REPO_ROOT / "data"
 RECONSTRUCTIONS_DIR = DATA_DIR / "reconstructions"
+LOCALIZATIONS_DIR = DATA_DIR / "localizations"
+
+LOCALIZATION_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
+LOCALIZATION_THUMBNAIL_SIZE = (200, 150)
 
 _TERMINAL_STATUSES = (ReconstructionStatus.SUCCEEDED, ReconstructionStatus.FAILED, ReconstructionStatus.CANCELLED)
 
@@ -260,6 +283,27 @@ def visualize(
 
 
 @app.command()
+def points(
+    reconstruction_id: Annotated[
+        UUID, typer.Argument(help="Reconstruction whose point cloud and camera poses to dump")
+    ],
+) -> None:
+    # Raw binary on stdout, not --json: this feeds the dashboard's interactive (three.js) viewer,
+    # where a compact fixed layout is cheaper to transfer and parse than JSON-encoding ~10^5-10^6
+    # numbers. Layout: point_count:u32, positions:f32[point_count*3], colors:u8[point_count*3],
+    # pose_count:u32, pose_positions:f32[pose_count*3], pose_orientations(xyzw):f32[pose_count*4].
+    positions, colors, pose_positions, pose_orientations = run(_fetch_reconstruction_geometry(reconstruction_id))
+    stdout = sys.stdout.buffer
+    stdout.write(pack("<I", len(positions)))
+    stdout.write(np.ascontiguousarray(positions, dtype="<f4").tobytes())
+    stdout.write(np.ascontiguousarray(colors, dtype="u1").tobytes())
+    stdout.write(pack("<I", len(pose_positions)))
+    stdout.write(np.ascontiguousarray(pose_positions, dtype="<f4").tobytes())
+    stdout.write(np.ascontiguousarray(pose_orientations, dtype="<f4").tobytes())
+    stdout.flush()
+
+
+@app.command()
 def show(
     reconstruction_id: Annotated[UUID, typer.Argument(help="Reconstruction to inspect")],
     cache: Annotated[
@@ -291,6 +335,132 @@ def run_pipeline(
     )
     typer.echo(f"Uploaded capture session {session.id} ({session.name}, {session.size_bytes} bytes)")
     _report_reconstruction(reconstruction, json_output=False)
+
+
+@app.command()
+def localize(
+    reconstruction_id: Annotated[UUID, typer.Argument(help="Reconstruction to localize query images against")],
+    image_dir: Annotated[Path, typer.Argument(help="Directory of query images (.jpg/.jpeg/.png)")],
+    retrieval_top_k: Annotated[int, typer.Option(help="Top-K retrieval candidates per query")] = (
+        RETRIEVAL_TOP_K_DEFAULT
+    ),
+    ransac_threshold: Annotated[float, typer.Option(help="RANSAC inlier threshold in pixels")] = (
+        RANSAC_THRESHOLD_DEFAULT
+    ),
+    json_output: Annotated[bool, typer.Option("--json", help="Emit JSON instead of a table")] = False,
+    run_id: Annotated[
+        str | None, typer.Option("--run-id", help="Use this run id instead of generating a fresh one")
+    ] = None,
+) -> None:
+    if not image_dir.is_dir():
+        typer.echo(f"Not a directory: {image_dir}", err=True)
+        raise typer.Exit(1)
+    image_paths = sorted(p for p in image_dir.iterdir() if p.suffix.lower() in LOCALIZATION_IMAGE_EXTENSIONS)
+    if not image_paths:
+        typer.echo(f"No images found in {image_dir}", err=True)
+        raise typer.Exit(1)
+    images = [(path.resolve(), path.name, path.read_bytes()) for path in image_paths]
+
+    resolved_run_id = run_id or str(uuid4())
+    run_dir = LOCALIZATIONS_DIR / resolved_run_id
+    run_dir.mkdir(parents=True, exist_ok=True)
+    progress_path = run_dir / "progress.json"
+    total = len(images)
+    progress_path.write_text(dumps({"completed": 0, "total": total}))
+
+    def report_progress(completed: int) -> None:
+        progress_path.write_text(dumps({"completed": completed, "total": total}))
+
+    capture_id, entries = run(_localize(reconstruction_id, images, retrieval_top_k, ransac_threshold, report_progress))
+    result: dict[str, Any] = {
+        "run_id": resolved_run_id,
+        "reconstruction_id": str(reconstruction_id),
+        "capture_session_id": str(capture_id),
+        "image_dir": str(image_dir.resolve()),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "images": entries,
+    }
+    (run_dir / "results.json").write_text(dumps(result))
+
+    if json_output:
+        typer.echo(dumps(result))
+        return
+    typer.echo(f"Run {result['run_id']}: localized {len(result['images'])} images from {image_dir}")
+    _print_table(
+        ["#", "Filename", "Status", "X", "Y", "Z", "Roll", "Pitch", "Yaw"],
+        [_localization_row(image) for image in result["images"]],
+    )
+
+
+@app.command(name="localize-save-table")
+def localize_save_table(
+    run_id: Annotated[str, typer.Argument(help="Localization run id")],
+    output_path: Annotated[Path, typer.Argument(help="CSV file to write")],
+    json_output: Annotated[bool, typer.Option("--json", help="Emit JSON instead of text")] = False,
+) -> None:
+    result = _load_localization_run(run_id)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with output_path.open("w", newline="") as csv_file:
+        writer = csv.writer(csv_file)
+        writer.writerow(["index", "filename", "status", "x", "y", "z", "roll_deg", "pitch_deg", "yaw_deg", "error"])
+        for image in result["images"]:
+            position: dict[str, Any] = image["position"] or {}
+            rpy: dict[str, Any] = image["rpy_deg"] or {}
+            writer.writerow([
+                image["index"],
+                image["filename"],
+                image["status"],
+                position.get("x"),
+                position.get("y"),
+                position.get("z"),
+                rpy.get("roll"),
+                rpy.get("pitch"),
+                rpy.get("yaw"),
+                image["error"] or "",
+            ])
+    if json_output:
+        typer.echo(dumps({"output_path": str(output_path), "count": len(result["images"])}))
+        return
+    typer.echo(f"Saved table for run {run_id} to {output_path}")
+
+
+@app.command(name="localize-save-images")
+def localize_save_images(
+    run_id: Annotated[str, typer.Argument(help="Localization run id")],
+    output_dir: Annotated[Path, typer.Argument(help="Directory to write pose-annotated images to")],
+    json_output: Annotated[bool, typer.Option("--json", help="Emit JSON instead of text")] = False,
+) -> None:
+    result = _load_localization_run(run_id)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    saved = 0
+    for image in result["images"]:
+        source_path = Path(image["path"])
+        if not source_path.exists():
+            continue
+        annotated = _annotate_pose_image(source_path, image)
+        annotated.save(output_dir / source_path.name)
+        saved += 1
+    if json_output:
+        typer.echo(dumps({"output_dir": str(output_dir), "count": saved}))
+        return
+    typer.echo(f"Saved {saved} annotated images for run {run_id} to {output_dir}")
+
+
+def _localization_row(image: dict[str, Any]) -> list[str]:
+    if image["status"] != "ok":
+        return [str(image["index"]), image["filename"], image["status"], "—", "—", "—", "—", "—", "—"]
+    position, rpy = image["position"], image["rpy_deg"]
+    return [
+        str(image["index"]),
+        image["filename"],
+        image["status"],
+        f"{position['x']:.3f}",
+        f"{position['y']:.3f}",
+        f"{position['z']:.3f}",
+        f"{rpy['roll']:.1f}",
+        f"{rpy['pitch']:.1f}",
+        f"{rpy['yaw']:.1f}",
+    ]
 
 
 def _report_reconstruction(reconstruction: ReconstructionReadWithQueue, json_output: bool) -> None:
@@ -377,9 +547,15 @@ async def _show(reconstruction_id: UUID, cache: bool = False) -> ReconstructionR
             _fail(exception)
 
 
-async def _fetch_point_cloud(
-    reconstruction_id: UUID,
-) -> tuple[NDArray[np.float32], NDArray[np.uint8]]:
+ReconstructionGeometry = tuple[NDArray[np.float32], NDArray[np.uint8], NDArray[np.float32], NDArray[np.float32]]
+
+
+async def _fetch_point_cloud(reconstruction_id: UUID) -> tuple[NDArray[np.float32], NDArray[np.uint8]]:
+    positions, colors, _pose_positions, _pose_orientations = await _fetch_reconstruction_geometry(reconstruction_id)
+    return positions, colors
+
+
+async def _fetch_reconstruction_geometry(reconstruction_id: UUID) -> ReconstructionGeometry:
     cached = _cached_tar_path(reconstruction_id)
     if not cached.exists():
         async with authenticated_api_client() as api:
@@ -387,18 +563,30 @@ async def _fetch_point_cloud(
                 await _ensure_cached_tar(api, reconstruction_id)
             except ApiException as exception:
                 _fail(exception)
-    return _load_point_cloud(cached.read_bytes())
+    return _load_reconstruction_geometry(cached.read_bytes())
 
 
-def _load_point_cloud(tar_bytes: bytes) -> tuple[NDArray[np.float32], NDArray[np.uint8]]:
+def _load_reconstruction_geometry(tar_bytes: bytes) -> ReconstructionGeometry:
     with tarfile.open(fileobj=BytesIO(tar_bytes)) as tar:
-        member = tar.extractfile(POINT_CLOUD_TAR_MEMBER)
-        if member is None:
+        point_member = tar.extractfile(POINT_CLOUD_TAR_MEMBER)
+        if point_member is None:
             raise RuntimeError(
                 f"No {POINT_CLOUD_TAR_MEMBER} in the reconstruction tar — the reconstruction may not have succeeded"
             )
-        data = np.load(BytesIO(member.read()))
-    return data["positions"], data["colors"]
+        point_data = np.load(BytesIO(point_member.read()))
+        positions, colors = point_data["positions"], point_data["colors"]
+
+        # Older reconstructions (or a reconstructor version predating pose export) may lack this
+        # file; camera poses are a visualization extra, not required for the point cloud itself.
+        pose_member = tar.extractfile(FRAME_POSES_TAR_MEMBER)
+        if pose_member is not None:
+            pose_data = np.load(BytesIO(pose_member.read()))
+            pose_positions, pose_orientations = pose_data["positions"], pose_data["orientations"]
+        else:
+            pose_positions = np.empty((0, 3), dtype=np.float32)
+            pose_orientations = np.empty((0, 4), dtype=np.float32)
+
+    return positions, colors, pose_positions, pose_orientations
 
 
 def _render_point_cloud(
@@ -446,6 +634,174 @@ def _render_point_cloud(
     fig.savefig(output, dpi=200)  # pyright: ignore[reportUnknownMemberType]
     plt.close(fig)
     return len(positions)
+
+
+async def _localize(
+    reconstruction_id: UUID,
+    images: list[tuple[Path, str, bytes]],
+    retrieval_top_k: int,
+    ransac_threshold: float,
+    report_progress: Callable[[int], None] | None = None,
+) -> tuple[UUID, list[dict[str, Any]]]:
+    async with authenticated_api_client() as api:
+        try:
+            reconstruction = await api.get_reconstruction(id=reconstruction_id)
+            capture_id = reconstruction.capture_session_id
+            if capture_id is None:
+                raise RuntimeError(f"Reconstruction {reconstruction_id} has no capture session")
+
+            manifest_bytes = await api.get_capture_session_manifest_file(id=capture_id)
+            manifest = CaptureSessionManifest.model_validate_json(manifest_bytes)
+            camera_config = PinholeCameraConfig(**manifest.rigs[0].cameras[0].camera_config.model_dump())
+            axis_convention = AxisConvention(manifest.axis_convention.value)
+
+            map_id = await _get_or_create_localization_map(api, reconstruction_id)
+
+            entries: list[dict[str, Any]] = []
+            for index, (path, name, image_bytes) in enumerate(images):
+                entry = await _localize_one_image(
+                    api,
+                    map_id,
+                    camera_config,
+                    axis_convention,
+                    index,
+                    path,
+                    name,
+                    image_bytes,
+                    retrieval_top_k,
+                    ransac_threshold,
+                )
+                entries.append(entry)
+                if report_progress is not None:
+                    report_progress(index + 1)
+        except ApiException as exception:
+            _fail(exception)
+    return capture_id, entries
+
+
+async def _get_or_create_localization_map(api: DefaultApi, reconstruction_id: UUID) -> UUID:
+    try:
+        return await api.get_reconstruction_localization_map(id=reconstruction_id)
+    except ApiException as exception:
+        if cast("int | None", exception.status) != 404:
+            raise
+        created = await api.create_localization_map(
+            LocalizationMapCreate(
+                reconstruction_id=reconstruction_id,
+                position_x=0.0,
+                position_y=0.0,
+                position_z=0.0,
+                rotation_x=0.0,
+                rotation_y=0.0,
+                rotation_z=0.0,
+                rotation_w=1.0,
+                color=0,
+            )
+        )
+        return created.id
+
+
+async def _localize_one_image(
+    api: DefaultApi,
+    map_id: UUID,
+    camera_config: PinholeCameraConfig,
+    axis_convention: AxisConvention,
+    index: int,
+    image_path: Path,
+    image_name: str,
+    image_bytes: bytes,
+    retrieval_top_k: int,
+    ransac_threshold: float,
+) -> dict[str, Any]:
+    entry: dict[str, Any] = {
+        "index": index,
+        "filename": image_name,
+        "path": str(image_path),
+        "status": "failed",
+        "error": None,
+        "position": None,
+        "quaternion_xyzw": None,
+        "rpy_deg": None,
+        "thumbnail_base64": _build_thumbnail_data_uri(image_bytes),
+    }
+
+    try:
+        # A per-image failure (bad frame, no match) shouldn't abort the whole directory — same
+        # rationale as fit_calibration.py's per-timestamp try/except around this same call.
+        responses = await api.localize_image(
+            map_ids=[map_id],
+            camera_config=camera_config,
+            axis_convention=axis_convention,
+            image=(image_name, image_bytes),
+            retrieval_top_k=retrieval_top_k,
+            ransac_threshold=ransac_threshold,
+        )
+    except ApiException as exception:
+        entry["error"] = str(exception)
+        return entry
+
+    if not responses:
+        entry["error"] = "No localization match"
+        return entry
+
+    # camera_from_map_transform is world-to-camera (extrinsic); invert to get the camera's own
+    # position/orientation in map/world coordinates — same convention frame_poses.npz uses, and
+    # the same inversion fit_calibration.py does for the calibration corpus.
+    best = responses[0]
+    translation = best.camera_from_map_transform.translation
+    rotation = best.camera_from_map_transform.rotation
+    camera_from_map_rotation = Rotation.from_quat([rotation.x, rotation.y, rotation.z, rotation.w]).as_matrix()
+    camera_from_map_translation = np.array([translation.x, translation.y, translation.z])
+    position = -camera_from_map_rotation.T @ camera_from_map_translation
+    world_from_camera = Rotation.from_matrix(camera_from_map_rotation.T)
+    quat_xyzw = world_from_camera.as_quat()
+    roll, pitch, yaw = world_from_camera.as_euler("xyz", degrees=True)
+
+    entry["status"] = "ok"
+    entry["position"] = {"x": float(position[0]), "y": float(position[1]), "z": float(position[2])}
+    entry["quaternion_xyzw"] = [float(v) for v in quat_xyzw]
+    entry["rpy_deg"] = {"roll": float(roll), "pitch": float(pitch), "yaw": float(yaw)}
+    return entry
+
+
+def _build_thumbnail_data_uri(image_bytes: bytes) -> str:
+    image = Image.open(BytesIO(image_bytes)).convert("RGB")
+    image.thumbnail(LOCALIZATION_THUMBNAIL_SIZE)
+    buffer = BytesIO()
+    image.save(buffer, format="JPEG", quality=80)
+    encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
+    return f"data:image/jpeg;base64,{encoded}"
+
+
+def _load_localization_run(run_id: str) -> dict[str, Any]:
+    results_path = LOCALIZATIONS_DIR / run_id / "results.json"
+    if not results_path.exists():
+        typer.echo(f"No localization run found: {run_id}", err=True)
+        raise typer.Exit(1)
+    result: dict[str, Any] = loads(results_path.read_text())
+    return result
+
+
+def _annotation_font() -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
+    try:
+        return ImageFont.truetype("DejaVuSans-Bold.ttf", 22)
+    except OSError:
+        return ImageFont.load_default()
+
+
+def _annotate_pose_image(source_path: Path, image_entry: dict[str, Any]) -> Image.Image:
+    image = Image.open(source_path).convert("RGB")
+    draw = ImageDraw.Draw(image)
+    if image_entry["status"] == "ok":
+        position, rpy = image_entry["position"], image_entry["rpy_deg"]
+        text = (
+            f"XYZ: {position['x']:.3f}, {position['y']:.3f}, {position['z']:.3f}\n"
+            f"RPY: {rpy['roll']:.1f}, {rpy['pitch']:.1f}, {rpy['yaw']:.1f}"
+        )
+    else:
+        text = "Localization failed"
+    draw.multiline_text((12, 12), text, font=_annotation_font(), fill="white", stroke_width=2, stroke_fill="black")
+    return image
 
 
 async def _run_pipeline(

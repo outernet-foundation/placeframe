@@ -147,15 +147,31 @@
   resize: vertical;
 }
 
+.progress-bar {
+  margin-top: 8px;
+  height: 8px;
+  border-radius: 4px;
+  background: #1e2a3d;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: #4f8ef0;
+  transition: width 0.2s ease-out;
+}
+
+.browse-row {
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.browse-row:hover {
+  background: #262932;
+}
+
 .dialog-actions {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-}
-
-.pointcloud-image {
-  max-width: 100%;
-  border: 1px solid #262932;
-  border-radius: 6px;
-  background: #fff;
 }
