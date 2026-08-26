@@ -44,6 +44,7 @@ export function LocalizeTab() {
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
   const [browsingImageDir, setBrowsingImageDir] = useState(false);
+  const [useChunking, setUseChunking] = useState(true);
 
   const job = useJobPoll<{ run_id: string }>(activeJobId);
   const jobRunning = activeJobId !== null && job !== null && job.status === "running";
@@ -92,7 +93,7 @@ export function LocalizeTab() {
     if (!reconstructionId || !imageDir.trim()) return;
     setResult(null);
     setResultError(null);
-    startLocalize(reconstructionId, imageDir.trim(), null, null)
+    startLocalize(reconstructionId, imageDir.trim(), null, null, useChunking)
       .then(({ job_id, run_id }) => {
         setActiveJobId(job_id);
         setActiveRunId(run_id);
@@ -171,6 +172,18 @@ export function LocalizeTab() {
             </button>
           </div>
         </label>
+        <label style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <input type="checkbox" checked={useChunking} onChange={(e) => setUseChunking(e.target.checked)} />
+          Use chunking
+        </label>
+        <div style={{ fontSize: 13, color: "#a8adb8", marginTop: -8 }}>
+          Matches each query image against retrieval candidates in small batches instead of one large batch,
+          capping peak GPU memory per image so localization doesn't fail on feature-rich images when the GPU is
+          under memory pressure. Recommended; disable only to reproduce the pre-fix behavior for comparison.
+        </div>
+        <div style={{ fontSize: 13, color: "#a8adb8" }}>
+          Results are saved to <span className="mono">data/localizations/&lt;run_id&gt;/results.json</span>.
+        </div>
         <div className="dialog-actions">
           <button className="primary" onClick={runLocalize} disabled={!reconstructionId || !imageDir.trim() || jobRunning}>
             {jobRunning ? "Localizing…" : "Run"}
@@ -204,7 +217,7 @@ export function LocalizeTab() {
         <>
           <div className="panel-header">
             <h2>
-              Run {result.run_id} — {result.images.length} images
+              Run {result.run_id} — {result.images.length} images ({result.use_chunking ? "chunking" : "no chunking"})
             </h2>
             <div className="actions">
               <button onClick={() => openSaveDialog("table")}>Save table</button>

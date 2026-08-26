@@ -11476,6 +11476,7 @@ class DefaultApi:
         image: Union[StrictBytes, StrictStr, Tuple[StrictStr, StrictBytes]],
         retrieval_top_k: Optional[StrictInt] = None,
         ransac_threshold: Optional[Union[StrictFloat, StrictInt]] = None,
+        use_chunking: Optional[StrictBool] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -11504,6 +11505,8 @@ class DefaultApi:
         :type retrieval_top_k: int
         :param ransac_threshold:
         :type ransac_threshold: float
+        :param use_chunking:
+        :type use_chunking: bool
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -11533,6 +11536,7 @@ class DefaultApi:
             image=image,
             retrieval_top_k=retrieval_top_k,
             ransac_threshold=ransac_threshold,
+            use_chunking=use_chunking,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -11563,6 +11567,7 @@ class DefaultApi:
         image: Union[StrictBytes, StrictStr, Tuple[StrictStr, StrictBytes]],
         retrieval_top_k: Optional[StrictInt] = None,
         ransac_threshold: Optional[Union[StrictFloat, StrictInt]] = None,
+        use_chunking: Optional[StrictBool] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -11591,6 +11596,8 @@ class DefaultApi:
         :type retrieval_top_k: int
         :param ransac_threshold:
         :type ransac_threshold: float
+        :param use_chunking:
+        :type use_chunking: bool
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -11620,6 +11627,7 @@ class DefaultApi:
             image=image,
             retrieval_top_k=retrieval_top_k,
             ransac_threshold=ransac_threshold,
+            use_chunking=use_chunking,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -11650,6 +11658,7 @@ class DefaultApi:
         image: Union[StrictBytes, StrictStr, Tuple[StrictStr, StrictBytes]],
         retrieval_top_k: Optional[StrictInt] = None,
         ransac_threshold: Optional[Union[StrictFloat, StrictInt]] = None,
+        use_chunking: Optional[StrictBool] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -11678,6 +11687,8 @@ class DefaultApi:
         :type retrieval_top_k: int
         :param ransac_threshold:
         :type ransac_threshold: float
+        :param use_chunking:
+        :type use_chunking: bool
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -11707,6 +11718,7 @@ class DefaultApi:
             image=image,
             retrieval_top_k=retrieval_top_k,
             ransac_threshold=ransac_threshold,
+            use_chunking=use_chunking,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -11732,6 +11744,7 @@ class DefaultApi:
         image,
         retrieval_top_k,
         ransac_threshold,
+        use_chunking,
         _request_auth,
         _content_type,
         _headers,
@@ -11767,6 +11780,8 @@ class DefaultApi:
             _form_params.append(('retrieval_top_k', retrieval_top_k))
         if ransac_threshold is not None:
             _form_params.append(('ransac_threshold', ransac_threshold))
+        if use_chunking is not None:
+            _form_params.append(('use_chunking', use_chunking))
         if image is not None:
             _files['image'] = image
         # process the body parameter

@@ -52,6 +52,7 @@ export function startLocalize(
   imageDir: string,
   retrievalTopK: number | null,
   ransacThreshold: number | null,
+  useChunking: boolean,
 ): Promise<{ job_id: string; run_id: string }> {
   return request("/api/localize", {
     method: "POST",
@@ -60,6 +61,7 @@ export function startLocalize(
       image_dir: imageDir,
       retrieval_top_k: retrievalTopK,
       ransac_threshold: ransacThreshold,
+      use_chunking: useChunking,
     }),
   });
 }

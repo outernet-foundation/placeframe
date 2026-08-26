@@ -203,6 +203,7 @@ class LocalizeRequest:
     image_dir: str
     retrieval_top_k: int | None = None
     ransac_threshold: float | None = None
+    use_chunking: bool = True
 
 
 @dataclass
@@ -300,6 +301,7 @@ async def _run_localize_job(job: Job, data: LocalizeRequest, run_id: str) -> Non
             args += ["--retrieval-top-k", str(data.retrieval_top_k)]
         if data.ransac_threshold is not None:
             args += ["--ransac-threshold", str(data.ransac_threshold)]
+        args.append("--use-chunking" if data.use_chunking else "--no-chunking")
         job.result = await _run_howard_test_json_async(*args)
         job.status = "succeeded"
     except Exception as exc:

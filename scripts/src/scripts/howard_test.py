@@ -465,6 +465,15 @@ def localize(
     ransac_threshold: Annotated[float, typer.Option(help="RANSAC inlier threshold in pixels")] = (
         RANSAC_THRESHOLD_DEFAULT
     ),
+    use_chunking: Annotated[
+        bool,
+        typer.Option(
+            "--use-chunking/--no-chunking",
+            help="Batch the localizer's feature-matching step in small chunks instead of one large "
+            "batch, capping peak GPU memory per query (see docker/localizer/src/localize.py's "
+            "MATCH_BATCH_SIZE). Disable to reproduce the pre-fix behavior for comparison.",
+        ),
+    ] = True,
     json_output: Annotated[bool, typer.Option("--json", help="Emit JSON instead of a table")] = False,
     run_id: Annotated[
         str | None, typer.Option("--run-id", help="Use this run id instead of generating a fresh one")
@@ -489,13 +498,16 @@ def localize(
     def report_progress(completed: int) -> None:
         progress_path.write_text(dumps({"completed": completed, "total": total}))
 
-    capture_id, entries = run(_localize(reconstruction_id, images, retrieval_top_k, ransac_threshold, report_progress))
+    capture_id, entries = run(
+        _localize(reconstruction_id, images, retrieval_top_k, ransac_threshold, use_chunking, report_progress)
+    )
     result: dict[str, Any] = {
         "run_id": resolved_run_id,
         "reconstruction_id": str(reconstruction_id),
         "capture_session_id": str(capture_id),
         "image_dir": str(image_dir.resolve()),
         "created_at": datetime.now(timezone.utc).isoformat(),
+        "use_chunking": use_chunking,
         "images": entries,
     }
     (run_dir / "results.json").write_text(dumps(result))
@@ -788,6 +800,7 @@ async def _localize(
     images: list[tuple[Path, str, bytes]],
     retrieval_top_k: int,
     ransac_threshold: float,
+    use_chunking: bool,
     report_progress: Callable[[int], None] | None = None,
 ) -> tuple[UUID, list[dict[str, Any]]]:
     async with authenticated_api_client() as api:
@@ -817,6 +830,7 @@ async def _localize(
                     image_bytes,
                     retrieval_top_k,
                     ransac_threshold,
+                    use_chunking,
                 )
                 entries.append(entry)
                 if report_progress is not None:
@@ -859,6 +873,7 @@ async def _localize_one_image(
     image_bytes: bytes,
     retrieval_top_k: int,
     ransac_threshold: float,
+    use_chunking: bool,
 ) -> dict[str, Any]:
     entry: dict[str, Any] = {
         "index": index,
@@ -882,6 +897,7 @@ async def _localize_one_image(
             image=(image_name, image_bytes),
             retrieval_top_k=retrieval_top_k,
             ransac_threshold=ransac_threshold,
+            use_chunking=use_chunking,
         )
     except ApiException as exception:
         entry["error"] = str(exception)

@@ -58,6 +58,7 @@ export interface LocalizationResult {
   capture_session_id: string;
   image_dir: string;
   created_at: string;
+  use_chunking: boolean;
   images: LocalizationImage[];
 }
 

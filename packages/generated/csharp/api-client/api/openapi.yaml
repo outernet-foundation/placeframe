@@ -3321,6 +3321,9 @@ components:
           format: double
           nullable: true
           type: number
+        use_chunking:
+          default: true
+          type: boolean
         image:
           format: binary
           type: string

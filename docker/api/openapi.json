@@ -5416,6 +5416,10 @@
             "type": "number",
             "format": "double"
           },
+          "use_chunking": {
+            "type": "boolean",
+            "default": true
+          },
           "image": {
             "type": "string",
             "format": "binary"
