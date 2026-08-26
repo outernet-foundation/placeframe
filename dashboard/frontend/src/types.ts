@@ -20,6 +20,9 @@ export interface Reconstruction {
   map_image_count: number | null;
   cached_tar_path: string | null;
   cached_png_path: string | null;
+  is_stereo: boolean | null;
+  total_frame_count: number | null;
+  registered_frame_count: number | null;
 }
 
 export type JobKind = "reconstruct" | "visualize" | "localize";
@@ -56,4 +59,12 @@ export interface LocalizationResult {
   image_dir: string;
   created_at: string;
   images: LocalizationImage[];
+}
+
+export interface LocalizationSummary {
+  run_id: string;
+  reconstruction_id: string | null;
+  created_at: string | null;
+  image_count: number;
+  valid_count: number;
 }

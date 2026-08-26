@@ -22,7 +22,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal, NoReturn
 
-from litestar import Litestar, Request, get, post
+from litestar import Litestar, Request, delete, get, post
 from litestar.config.cors import CORSConfig
 from litestar.exceptions import NotFoundException
 from litestar.response import File, Response
@@ -149,6 +149,43 @@ async def list_reconstructions() -> list[dict[str, Any]]:
     return await _run_howard_test_json_async("reconstructions")
 
 
+@delete("/api/reconstructions/{reconstruction_id:str}")
+async def delete_reconstruction(reconstruction_id: str) -> None:
+    # 204 No Content on success; a failure (including the API's "has an associated localization
+    # map" refusal — see docker/api/src/routers/reconstructions.py) raises RuntimeError from
+    # _run_howard_test_json, which the RuntimeError exception handler turns into a 500 with detail.
+    await _run_howard_test_json_async("delete-reconstruction", reconstruction_id)
+
+
+def _list_localizations() -> list[dict[str, Any]]:
+    if not LOCALIZATIONS_DIR.exists():
+        return []
+    runs: list[dict[str, Any]] = []
+    for run_dir in LOCALIZATIONS_DIR.iterdir():
+        results_path = run_dir / "results.json"
+        if not results_path.exists():
+            continue
+        try:
+            data = json.loads(results_path.read_text())
+        except json.JSONDecodeError:
+            continue
+        images = data.get("images", [])
+        runs.append({
+            "run_id": data.get("run_id", run_dir.name),
+            "reconstruction_id": data.get("reconstruction_id"),
+            "created_at": data.get("created_at"),
+            "image_count": len(images),
+            "valid_count": sum(1 for img in images if img.get("status") == "ok"),
+        })
+    runs.sort(key=lambda r: r["created_at"] or "", reverse=True)
+    return runs
+
+
+@get("/api/localizations")
+async def list_localizations() -> list[dict[str, Any]]:
+    return await asyncio.to_thread(_list_localizations)
+
+
 @dataclass
 class ReconstructRequest:
     capture_id: str
@@ -176,6 +213,12 @@ class SaveTableRequest:
 @dataclass
 class SaveImagesRequest:
     output_dir: str
+
+
+@dataclass
+class ExportPosesRequest:
+    reconstruction_id: str
+    output_path: str
 
 
 @post("/api/reconstruct")
@@ -328,6 +371,11 @@ async def save_localization_images(run_id: str, data: SaveImagesRequest) -> dict
     return await _run_howard_test_json_async("localize-save-images", run_id, data.output_dir)
 
 
+@post("/api/tools/export-poses")
+async def export_poses(data: ExportPosesRequest) -> dict[str, Any]:
+    return await _run_howard_test_json_async("export-poses", data.reconstruction_id, data.output_path)
+
+
 @dataclass
 class ScreenshotRequest:
     plot_title: str
@@ -371,6 +419,8 @@ app = Litestar(
         browse_directories,
         list_captures,
         list_reconstructions,
+        delete_reconstruction,
+        list_localizations,
         start_reconstruct,
         start_visualize,
         start_localize,
@@ -381,6 +431,7 @@ app = Litestar(
         get_localization_progress,
         save_localization_table,
         save_localization_images,
+        export_poses,
         save_screenshot,
     ],
     cors_config=cors_config,

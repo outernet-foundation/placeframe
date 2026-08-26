@@ -7,13 +7,33 @@ import { useLocalizationProgress } from "../useLocalizationProgress";
 
 type SaveDialog = "table" | "images" | null;
 
+const IMAGE_DIR_STORAGE_KEY = "placeframe-dashboard.localize.imageDir";
+
+// localStorage can throw (private browsing, quota, disabled site data) or come back empty — either
+// way, fall back to no remembered directory rather than breaking the tab.
+function readStoredImageDir(): string {
+  try {
+    return localStorage.getItem(IMAGE_DIR_STORAGE_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+function storeImageDir(path: string): void {
+  try {
+    localStorage.setItem(IMAGE_DIR_STORAGE_KEY, path);
+  } catch {
+    // ignore — remembering the directory is a convenience, not required for the tab to work
+  }
+}
+
 export function LocalizeTab() {
   const [reconstructions, setReconstructions] = useState<Reconstruction[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const [reconstructionId, setReconstructionId] = useState("");
-  const [imageDir, setImageDir] = useState("");
+  const [imageDir, setImageDirState] = useState(readStoredImageDir);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [activeRunId, setActiveRunId] = useState<string | null>(null);
   const [result, setResult] = useState<LocalizationResult | null>(null);
@@ -30,6 +50,11 @@ export function LocalizeTab() {
   const progress = useLocalizationProgress(activeRunId, jobRunning);
 
   const succeededReconstructions = reconstructions.filter((r) => r.status === "succeeded");
+
+  function setImageDir(path: string): void {
+    setImageDirState(path);
+    storeImageDir(path);
+  }
 
   async function refresh(): Promise<void> {
     setLoading(true);

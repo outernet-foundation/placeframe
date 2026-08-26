@@ -180,6 +180,76 @@ def _reconstruction_to_dict(reconstruction: ReconstructionReadWithQueue) -> dict
     }
 
 
+# Best-effort: a failure fetching either the manifest or frames.csv for a capture shouldn't abort
+# listing every reconstruction, so both halves degrade to None independently rather than raising.
+async def _fetch_capture_frame_stats(api: DefaultApi, capture_session_id: UUID) -> tuple[bool | None, int | None]:
+    is_stereo: bool | None = None
+    total_frame_count: int | None = None
+    try:
+        manifest_bytes = await api.get_capture_session_manifest_file(id=capture_session_id)
+        manifest = CaptureSessionManifest.model_validate_json(manifest_bytes)
+        if manifest.rigs:
+            is_stereo = len(manifest.rigs[0].cameras) > 1
+    except ApiException:
+        pass
+    try:
+        # One row per captured *rig* frame (not per camera image) — see docker/AGENTS.md's
+        # frames.csv schema note. This is the total-captured-frames denominator; map_image_count
+        # (already on every row) is registered *images*, so dividing the two would double-count
+        # for a stereo rig. registered_frame_count (below) is the matching rig-frame numerator.
+        csv_bytes = await api.get_capture_session_frames_csv(id=capture_session_id)
+        lines = csv_bytes.decode().strip().splitlines()
+        total_frame_count = max(0, len(lines) - 1)
+    except ApiException:
+        pass
+    return is_stereo, total_frame_count
+
+
+# Only populated when the reconstruction's tar is already cached locally — reading frame_poses.npz
+# out of a not-yet-downloaded multi-hundred-MB reconstruction tar just to report a count would be a
+# surprise download triggered by a dashboard page load. Reconstructions created via the dashboard's
+# Reconstruct tab already get their tar cached automatically once they succeed (see
+# dashboard/backend's _run_reconstruct_job), so this is populated for those without extra action.
+def _registered_frame_count(reconstruction_id: UUID) -> int | None:
+    cached = _cached_tar_path(reconstruction_id)
+    if not cached.exists():
+        return None
+    try:
+        with tarfile.open(cached, "r") as tar:
+            pose_member = tar.extractfile(FRAME_POSES_TAR_MEMBER)
+            if pose_member is None:
+                return None
+            pose_data = np.load(BytesIO(pose_member.read()))
+            return int(pose_data["positions"].shape[0])
+    except (tarfile.TarError, OSError):
+        return None
+
+
+async def _enrich_reconstruction_rows(rows: list[ReconstructionReadWithQueue]) -> list[dict[str, Any]]:
+    capture_ids = {r.capture_session_id for r in rows if r.capture_session_id is not None}
+    stats: dict[UUID, tuple[bool | None, int | None]] = {}
+    async with authenticated_api_client() as api:
+        for capture_id in capture_ids:
+            stats[capture_id] = await _fetch_capture_frame_stats(api, capture_id)
+
+    entries: list[dict[str, Any]] = []
+    for r in rows:
+        entry = _reconstruction_to_dict(r)
+        is_stereo, total_frame_count = (
+            stats.get(r.capture_session_id, (None, None))
+            if r.capture_session_id
+            else (
+                None,
+                None,
+            )
+        )
+        entry["is_stereo"] = is_stereo
+        entry["total_frame_count"] = total_frame_count
+        entry["registered_frame_count"] = _registered_frame_count(r.id)
+        entries.append(entry)
+    return entries
+
+
 @app.command()
 def captures(json_output: Annotated[bool, typer.Option("--json", help="Emit JSON instead of a table")] = False) -> None:
     sessions = sorted(run(_list_captures()), key=lambda s: s.recorded_at, reverse=True)
@@ -201,7 +271,10 @@ def reconstructions(
 ) -> None:
     rows = sorted(run(_list_reconstructions()), key=lambda r: r.created_at, reverse=True)
     if json_output:
-        typer.echo(dumps([_reconstruction_to_dict(r) for r in rows]))
+        # Stereo/mono + frame-usage stats are only fetched for --json (the dashboard's consumption
+        # path) — they cost extra API round trips (capture manifest, frames.csv) per unique capture
+        # that the plain-text table below has no use for.
+        typer.echo(dumps(run(_enrich_reconstruction_rows(rows))))
         return
     _print_table(
         ["ID", "Capture ID", "Status", "Created", "Map points"],
@@ -216,6 +289,21 @@ def reconstructions(
             for r in rows
         ],
     )
+
+
+@app.command(name="delete-reconstruction")
+def delete_reconstruction(
+    reconstruction_id: Annotated[UUID, typer.Argument(help="Reconstruction to permanently delete")],
+    json_output: Annotated[bool, typer.Option("--json", help="Emit JSON instead of text")] = False,
+) -> None:
+    # The API refuses to delete a reconstruction with an associated LocalizationMap (a 404-shaped
+    # error, oddly — see docker/api/src/routers/reconstructions.py's delete_reconstruction), which
+    # in practice only ever exists once someone has run `localize` against this reconstruction.
+    run(_delete_reconstruction(reconstruction_id))
+    if json_output:
+        typer.echo(dumps({"id": str(reconstruction_id), "deleted": True}))
+        return
+    typer.echo(f"Deleted reconstruction {reconstruction_id}")
 
 
 @app.command()
@@ -301,6 +389,36 @@ def points(
     stdout.write(np.ascontiguousarray(pose_positions, dtype="<f4").tobytes())
     stdout.write(np.ascontiguousarray(pose_orientations, dtype="<f4").tobytes())
     stdout.flush()
+
+
+@app.command(name="export-poses")
+def export_poses(
+    reconstruction_id: Annotated[UUID, typer.Argument(help="Reconstruction whose frame_poses.npz to convert")],
+    output_path: Annotated[Path, typer.Argument(help="Output JSON file path")],
+    json_output: Annotated[bool, typer.Option("--json", help="Emit JSON instead of text")] = False,
+) -> None:
+    # Reuses the same tar-caching fetch as `points`/`visualize` — no new download path.
+    _positions, _colors, pose_positions, pose_orientations = run(_fetch_reconstruction_geometry(reconstruction_id))
+    if len(pose_positions) == 0:
+        typer.echo(f"No camera poses found for reconstruction {reconstruction_id}", err=True)
+        raise typer.Exit(1)
+
+    images = [
+        _pose_to_localization_image(i, pose_positions[i], pose_orientations[i]) for i in range(len(pose_positions))
+    ]
+    result: dict[str, Any] = {
+        "reconstruction_id": str(reconstruction_id),
+        "source": "frame_poses.npz",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "images": images,
+    }
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(dumps(result))
+
+    if json_output:
+        typer.echo(dumps({"output_path": str(output_path), "count": len(images)}))
+        return
+    typer.echo(f"Exported {len(images)} poses from reconstruction {reconstruction_id} to {output_path}")
 
 
 @app.command()
@@ -518,6 +636,14 @@ async def _list_reconstructions() -> list[ReconstructionReadWithQueue]:
             _fail(exception)
 
 
+async def _delete_reconstruction(reconstruction_id: UUID) -> None:
+    async with authenticated_api_client() as api:
+        try:
+            await api.delete_reconstruction(id=reconstruction_id)
+        except ApiException as exception:
+            _fail(exception)
+
+
 def _format_size(num_bytes: int) -> str:
     size = float(num_bytes)
     for unit in ("B", "KB", "MB", "GB"):
@@ -587,6 +713,27 @@ def _load_reconstruction_geometry(tar_bytes: bytes) -> ReconstructionGeometry:
             pose_orientations = np.empty((0, 4), dtype=np.float32)
 
     return positions, colors, pose_positions, pose_orientations
+
+
+# Mirrors the `images[]` entry shape `_localize_one_image` produces (see LocalizationImage in the
+# dashboard's types.ts) so a reconstruction's own poses and a localization run's estimated poses
+# can be viewed/consumed with the same tooling. `path`/`thumbnail_base64` are always null here —
+# frame_poses.npz carries no image bytes or filenames, only one pose per registered rig frame.
+def _pose_to_localization_image(
+    index: int, position: NDArray[np.float32], quaternion_xyzw: NDArray[np.float32]
+) -> dict[str, Any]:
+    roll, pitch, yaw = Rotation.from_quat(quaternion_xyzw).as_euler("xyz", degrees=True)
+    return {
+        "index": index,
+        "filename": f"frame_{index:04d}",
+        "path": None,
+        "status": "ok",
+        "error": None,
+        "position": {"x": float(position[0]), "y": float(position[1]), "z": float(position[2])},
+        "quaternion_xyzw": [float(v) for v in quaternion_xyzw],
+        "rpy_deg": {"roll": float(roll), "pitch": float(pitch), "yaw": float(yaw)},
+        "thumbnail_base64": None,
+    }
 
 
 def _render_point_cloud(

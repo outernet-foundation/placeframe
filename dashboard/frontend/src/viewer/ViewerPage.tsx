@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { fetchPoints, getLocalization, saveScreenshot } from "../api";
-import { DEFAULT_POINT_SIZE, PointCloudScene, type CameraMode, type PointSize } from "./PointCloudScene";
+import { DEFAULT_POINT_SIZE, PointCloudScene, type CameraMode, type LocCameraMode, type PointSize } from "./PointCloudScene";
 import "./viewer.css";
 
 const POINT_SIZE_LEVELS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
@@ -29,6 +29,8 @@ export function ViewerPage() {
   const [cameraMode, setCameraModeState] = useState<CameraMode>("frustum");
   const [pointSize, setPointSizeState] = useState<PointSize>(DEFAULT_POINT_SIZE);
   const [localizedPoseCount, setLocalizedPoseCount] = useState<number | null>(null);
+  const [hasLocalizedPoses, setHasLocalizedPoses] = useState(false);
+  const [locCameraMode, setLocCameraModeState] = useState<LocCameraMode>("frustum");
 
   useEffect(() => {
     if (!containerRef.current || !reconstructionId) return;
@@ -45,6 +47,9 @@ export function ViewerPage() {
           const ok = result.images.filter((img) => img.status === "ok" && img.position && img.quaternion_xyzw);
           const positionsArray = new Float32Array(ok.length * 3);
           const orientationsArray = new Float32Array(ok.length * 4);
+          // Label pose i with the image's *original* results.json index, not its position in this
+          // filtered array — those diverge as soon as any image in the run failed to localize.
+          const labels = ok.map((img) => String(img.index));
           ok.forEach((img, i) => {
             const p = img.position as { x: number; y: number; z: number };
             const q = img.quaternion_xyzw as [number, number, number, number];
@@ -56,7 +61,8 @@ export function ViewerPage() {
             orientationsArray[i * 4 + 2] = q[2];
             orientationsArray[i * 4 + 3] = q[3];
           });
-          scene.setLocalizedPoses(positionsArray, orientationsArray, ok.length);
+          scene.setLocalizedPoses(positionsArray, orientationsArray, ok.length, labels);
+          setHasLocalizedPoses(scene.hasLocalizedPoses());
           setLocalizedPoseCount(ok.length);
         });
       })
@@ -71,6 +77,11 @@ export function ViewerPage() {
   function handleCameraModeChange(mode: CameraMode): void {
     setCameraModeState(mode);
     sceneRef.current?.setCameraMode(mode);
+  }
+
+  function handleLocCameraModeChange(mode: LocCameraMode): void {
+    setLocCameraModeState(mode);
+    sceneRef.current?.setLocCameraMode(mode);
   }
 
   function handlePointSizeChange(size: PointSize): void {
@@ -127,9 +138,16 @@ export function ViewerPage() {
           </select>
           {hasCameraPoses && (
             <select value={cameraMode} onChange={(e) => handleCameraModeChange(e.target.value as CameraMode)}>
-              <option value="frustum">Camera: Frustum</option>
-              <option value="arrows">Camera: Arrows</option>
-              <option value="off">Camera: Off</option>
+              <option value="frustum">Map cam: Frustum</option>
+              <option value="arrows">Map cam: Arrows</option>
+              <option value="off">Map cam: Off</option>
+            </select>
+          )}
+          {hasLocalizedPoses && (
+            <select value={locCameraMode} onChange={(e) => handleLocCameraModeChange(e.target.value as LocCameraMode)}>
+              <option value="frustum">Loc cam: Frustum</option>
+              <option value="axes">Loc cam: Axes</option>
+              <option value="off">Loc cam: Off</option>
             </select>
           )}
           <button onClick={() => sceneRef.current?.recenter()}>Recenter</button>

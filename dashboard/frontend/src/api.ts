@@ -1,4 +1,4 @@
-import type { CaptureSession, Job, LocalizationResult, Reconstruction } from "./types";
+import type { CaptureSession, Job, LocalizationResult, LocalizationSummary, Reconstruction } from "./types";
 
 const API_BASE = "http://localhost:8010";
 
@@ -20,6 +20,20 @@ export function listCaptures(): Promise<CaptureSession[]> {
 
 export function listReconstructions(): Promise<Reconstruction[]> {
   return request("/api/reconstructions");
+}
+
+export function listLocalizations(): Promise<LocalizationSummary[]> {
+  return request("/api/localizations");
+}
+
+// 204 No Content on success — no JSON body, so this bypasses `request()`'s response.json() call
+// (which would throw on an empty body).
+export async function deleteReconstruction(reconstructionId: string): Promise<void> {
+  const response = await fetch(`${API_BASE}/api/reconstructions/${reconstructionId}`, { method: "DELETE" });
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`${response.status} ${response.statusText}: ${body}`);
+  }
 }
 
 export function startReconstruct(captureId: string, optionsJson: string | null): Promise<{ job_id: string }> {
@@ -74,6 +88,13 @@ export function saveLocalizationImages(runId: string, outputDir: string): Promis
   return request(`/api/localizations/${runId}/save-images`, {
     method: "POST",
     body: JSON.stringify({ output_dir: outputDir }),
+  });
+}
+
+export function exportPoses(reconstructionId: string, outputPath: string): Promise<{ output_path: string; count: number }> {
+  return request("/api/tools/export-poses", {
+    method: "POST",
+    body: JSON.stringify({ reconstruction_id: reconstructionId, output_path: outputPath }),
   });
 }
 

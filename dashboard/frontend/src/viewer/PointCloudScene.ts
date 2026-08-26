@@ -32,6 +32,7 @@ function dimColor(color: THREE.Color): THREE.Color {
 }
 
 export type CameraMode = "frustum" | "arrows" | "off";
+export type LocCameraMode = "frustum" | "axes" | "off";
 export type PointSize = number | "off"; // 1-10, or "off"
 
 // Point size at level N is cloudRadius * POINT_SIZE_UNIT * N; level 2 matches the viewer's old
@@ -216,6 +217,7 @@ function buildCameraArrows(
   poseCount: number,
   center: THREE.Vector3,
   size: number,
+  highlightEvery: number = LABEL_EVERY_N,
 ): THREE.LineSegments {
   const axes: Axis[] = ["x", "y", "z"];
   const axisRgbFull = axes.map((axis) => new THREE.Color(AXIS_COLORS[axis]));
@@ -232,7 +234,7 @@ function buildCameraArrows(
   for (let i = 0; i < poseCount; i++) {
     q.set(poseOrientations[i * 4], poseOrientations[i * 4 + 1], poseOrientations[i * 4 + 2], poseOrientations[i * 4 + 3]);
     p.set(posePositions[i * 3] - center.x, posePositions[i * 3 + 1] - center.y, posePositions[i * 3 + 2] - center.z);
-    const axisRgb = i % LABEL_EVERY_N === 0 ? axisRgbFull : axisRgbDimmed;
+    const axisRgb = i % highlightEvery === 0 ? axisRgbFull : axisRgbDimmed;
 
     axes.forEach((axis, axisIndex) => {
       tip.copy(AXIS_VECTORS[axis]).multiplyScalar(size).applyQuaternion(q).add(p);
@@ -311,19 +313,21 @@ function buildLabelTexture(text: string): THREE.CanvasTexture {
 
 // A frame-number label (a screen-space-sized sprite, so it reads the same at any zoom) at every
 // Nth pose, offset toward true physical up (world -Y — see buildDefaultOrientation) so it sits
-// above rather than on top of that pose's frustum/arrow marker. depthTest is off so labels stay
-// legible even when a marker is behind the point cloud.
+// just above rather than on top of that pose's frustum/arrow marker — close enough that it's
+// unambiguous which marker a given label belongs to even when several poses are near each other.
+// depthTest is off so labels stay legible even when a marker is behind the point cloud.
 function buildPoseLabels(
   posePositions: Float32Array,
   poseCount: number,
   center: THREE.Vector3,
   size: number,
   labelEvery: number = LABEL_EVERY_N,
+  labelText: (index: number) => string = (index) => String(index),
 ): THREE.Group {
   const group = new THREE.Group();
-  const upOffset = size * 1.6;
+  const upOffset = size * 0.85;
   for (let i = 0; i < poseCount; i += labelEvery) {
-    const texture = buildLabelTexture(String(i));
+    const texture = buildLabelTexture(labelText(i));
     const material = new THREE.SpriteMaterial({ map: texture, sizeAttenuation: false, depthTest: false });
     const sprite = new THREE.Sprite(material);
     sprite.renderOrder = 10;
@@ -365,6 +369,7 @@ export class PointCloudScene {
   private cameraTrajectory: THREE.Line | null = null;
   private poseLabels: THREE.Group | null = null;
   private localizedFrustums: THREE.LineSegments | null = null;
+  private localizedAxes: THREE.LineSegments | null = null;
   private localizedLabels: THREE.Group | null = null;
 
   // The recentering offset setPoints computed (the point cloud's median center) — reused by
@@ -372,6 +377,7 @@ export class PointCloudScene {
   private recenterOffset = new THREE.Vector3(0, 0, 0);
   private cloudRadius = 1;
   private cameraMode: CameraMode = "frustum";
+  private locCameraMode: LocCameraMode = "frustum";
   private pointSize: PointSize = DEFAULT_POINT_SIZE;
 
   private cameraOrientation = DEFAULT_ORIENTATION.clone();
@@ -478,12 +484,14 @@ export class PointCloudScene {
     if (this.cameraTrajectory) this.scene.remove(this.cameraTrajectory);
     if (this.poseLabels) this.scene.remove(this.poseLabels);
     if (this.localizedFrustums) this.scene.remove(this.localizedFrustums);
+    if (this.localizedAxes) this.scene.remove(this.localizedAxes);
     if (this.localizedLabels) this.scene.remove(this.localizedLabels);
     this.cameraFrustums = null;
     this.cameraArrows = null;
     this.cameraTrajectory = null;
     this.poseLabels = null;
     this.localizedFrustums = null;
+    this.localizedAxes = null;
     this.localizedLabels = null;
     if (poseCount > 0) {
       const center = new THREE.Vector3(centerX, centerY, centerZ);
@@ -542,15 +550,20 @@ export class PointCloudScene {
     );
   }
 
-  // Overlays localized query poses (from the Localize tab's "Visualize poses" button) as a
-  // distinctly-colored frustum set with a label on every pose — unlike the reconstruction's own
-  // camera trail, localized-query counts are typically a handful of images, so no dimming/interval
-  // is needed. Positions/orientations must already be in the same world frame as the reconstruction
-  // (world_from_camera, xyzw) — see LocalizationImage.position/quaternion_xyzw in the dashboard API.
-  setLocalizedPoses(positions: Float32Array, orientations: Float32Array, count: number): void {
+  // Overlays localized query poses (from the Localize tab's "Visualize poses" button, or the
+  // Visualize tab's Localizations table) as a distinctly-colored frustum/axes set with a label on
+  // every pose — unlike the reconstruction's own camera trail, localized-query counts are
+  // typically a handful of images, so no dimming/interval is needed. Positions/orientations must
+  // already be in the same world frame as the reconstruction (world_from_camera, xyzw) — see
+  // LocalizationImage.position/quaternion_xyzw in the dashboard API. `labels[i]` (typically the
+  // image's original results.json index, which can differ from `i` once failed localizations are
+  // filtered out) is shown on pose `i`; falls back to `i` itself if omitted.
+  setLocalizedPoses(positions: Float32Array, orientations: Float32Array, count: number, labels: string[] = []): void {
     if (this.localizedFrustums) this.scene.remove(this.localizedFrustums);
+    if (this.localizedAxes) this.scene.remove(this.localizedAxes);
     if (this.localizedLabels) this.scene.remove(this.localizedLabels);
     this.localizedFrustums = null;
+    this.localizedAxes = null;
     this.localizedLabels = null;
     if (count === 0) return;
 
@@ -566,8 +579,21 @@ export class PointCloudScene {
       LOCALIZED_POSE_COLOR,
       1,
     );
-    this.localizedLabels = buildPoseLabels(positions, count, this.recenterOffset, markerSize, 1);
-    this.scene.add(this.localizedFrustums, this.localizedLabels);
+    this.localizedAxes = buildCameraArrows(positions, orientations, count, this.recenterOffset, markerSize, 1);
+    this.localizedLabels = buildPoseLabels(positions, count, this.recenterOffset, markerSize, 1, (i) => labels[i] ?? String(i));
+    this.scene.add(this.localizedFrustums, this.localizedAxes, this.localizedLabels);
+    this.setLocCameraMode(this.locCameraMode);
+  }
+
+  hasLocalizedPoses(): boolean {
+    return this.localizedFrustums !== null;
+  }
+
+  setLocCameraMode(mode: LocCameraMode): void {
+    this.locCameraMode = mode;
+    if (this.localizedFrustums) this.localizedFrustums.visible = mode === "frustum";
+    if (this.localizedAxes) this.localizedAxes.visible = mode === "axes";
+    if (this.localizedLabels) this.localizedLabels.visible = mode !== "off";
   }
 
   capturePng(): string {
