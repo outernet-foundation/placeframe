@@ -45,6 +45,20 @@ logger = logging.getLogger(__name__)
 # the residual non-determinism, which is below the discrete inlier-set threshold the fit cares about.
 LOCALIZER_RANDOM_SEED = 0
 
+# lightglue_match_tensors (core/lightglue.py) already chunks `pairs` into sub-batches of this size
+# — the call below previously passed batch_size=len(pairs), collapsing that into a single batch
+# containing every retrieval candidate (up to RETRIEVAL_TOP_K_DEFAULT=12) padded together via
+# pad_sequence (every image padded up to the batch's largest keypoint count). Peak GPU memory for
+# that one LightGlue forward pass scales with query keypoints x summed candidate keypoints in the
+# batch, which intermittently exceeded available headroom on small/shared GPUs and crashed with
+# torch.OutOfMemoryError (observed via 502s from the localize CLI). Chunking into smaller batches
+# caps peak memory to a roughly fixed ceiling independent of how keypoint-rich any single query
+# image is, at the cost of a few extra smaller forward passes instead of one large one. The size
+# itself is not cache-key-significant (doesn't affect localization output, only how it's computed),
+# so it's a plain constant; whether chunking is used at all is caller-controlled (`use_chunking`
+# below) so the dashboard's Localize tab can A/B it against the pre-fix unchunked behavior.
+MATCH_BATCH_SIZE = 4
+
 global_descriptor_extractor: Callable[[Tensor], TT[RetrievalDim]]
 local_feature_extractor: Callable[[Tensor], LocalFeatureOutput]
 local_feature_matcher: Callable[
@@ -81,6 +95,7 @@ def localize_image_against_reconstruction(
     ransac_threshold: float | None,
     pipeline_version: str,
     calibration: CalibrationArtifact,
+    use_chunking: bool = True,
 ) -> tuple[Transform, LocalizationMetrics]:
 
     set_random_seed(LOCALIZER_RANDOM_SEED)
@@ -147,7 +162,8 @@ def localize_image_against_reconstruction(
     # Match features between query and database images
     pairs = [(str(image_id), "query") for image_id in matched_image_ids]
 
-    match_indices = local_feature_matcher(pairs, keypoints, descriptors, sizes, len(pairs))
+    match_batch_size = MATCH_BATCH_SIZE if use_chunking else len(pairs)
+    match_indices = local_feature_matcher(pairs, keypoints, descriptors, sizes, match_batch_size)
     _gpu_sync()
     timings["matching"] = perf_counter() - t
 

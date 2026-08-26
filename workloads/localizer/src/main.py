@@ -76,6 +76,7 @@ class LocalizationRequest(MultipartRequestModel):
     axis_convention: AxisConvention
     retrieval_top_k: int | None = None
     ransac_threshold: float | None = None
+    use_chunking: bool = True
     image: UploadFile
 
 
@@ -109,6 +110,7 @@ async def localize_image(
                 data.ransac_threshold,
                 pipeline_version,
                 calibration,
+                data.use_chunking,
             )
 
             localizations.append(Localization(id=id, transform=result[0], metrics=result[1]))
