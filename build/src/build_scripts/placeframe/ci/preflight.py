@@ -11,6 +11,10 @@ from unity_buildkit.ci_step import ci_step
 from stack_lifecycle.context_sha import compute_service_shas
 from ..lock_python import lock_python
 
+# Keep in step with the prerequisites documented in score/README.md.
+SCORE_K8S_VERSION = "0.15.0"
+SCORE_COMPOSE_VERSION = "0.42.0"
+
 app = typer.Typer(add_completion=False, pretty_exceptions_show_locals=False)
 
 
@@ -86,3 +90,20 @@ def main() -> None:
             raise SystemExit(
                 "Generated API clients are stale. Run 'uv run generate-clients --config build/openapi-projects.json' locally."
             )
+
+    with ci_step("Check score codegen"):
+        # Fetched as release binaries rather than `go install`: score-spec tags without a leading
+        # v (0.15.0, not v0.15.0), which is not a resolvable Go module version. They land in the
+        # GOPATH bin the database step already prepended to PATH. Both artifacts are committed,
+        # so `generate-score` checks both.
+        for tool, version in (("score-k8s", SCORE_K8S_VERSION), ("score-compose", SCORE_COMPOSE_VERSION)):
+            archive = f"{tool}_{version}_linux_amd64.tar.gz"
+            bash(f"curl -fsSLO https://github.com/score-spec/{tool}/releases/download/{version}/{archive}")
+            bash(f"tar -xzf {archive} -C {gopath_bin} {tool}")
+            Path(archive).unlink()
+
+        bash("uv run generate-score")
+        staleness_output = bash_output("git status --porcelain -- score/")
+        if staleness_output.strip():
+            bash("git diff -- score/")
+            raise SystemExit("Generated Score artifacts are stale. Run 'uv run generate-score' locally.")

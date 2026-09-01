@@ -19,10 +19,10 @@
 .env
 .env.shas
 .secrets
-score/compose.yaml
 score/manifests.yaml
 score/.score-compose/
-score/.score-k8s/
+score/.score-k8s/*
+!score/.score-k8s/state.yaml
 metadata.json
 storage/
 tidy-commits.json

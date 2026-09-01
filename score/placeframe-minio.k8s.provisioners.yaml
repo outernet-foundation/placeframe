@@ -9,6 +9,7 @@
   state: |
     service: minio
     bucket: reconstructions
+    capturesBucket: dev-captures
   outputs: |
     endpoint: http://{{ .State.service }}:9000
     bucket: {{ .State.bucket }}
@@ -67,7 +68,7 @@
             name: data
           spec:
             accessModes: [ReadWriteOnce]
-            storageClassName: hcloud-volumes
+            storageClassName: {{ env "SCORE_STORAGE_CLASS" | default "hcloud-volumes" }}
             resources:
               requests:
                 storage: 50Gi
@@ -75,6 +76,12 @@
       kind: Job
       metadata:
         name: {{ .State.service }}-bucket
+        # A Job's spec.template is immutable, so Argo CD cannot patch this in place when the mc
+        # digest moves. As a Sync hook the previous Job is deleted first. Re-running is safe:
+        # mc mb --ignore-existing is a no-op against an existing bucket.
+        annotations:
+          argocd.argoproj.io/hook: Sync
+          argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
       spec:
         backoffLimit: 30
         template:
@@ -83,7 +90,10 @@
             containers:
             - name: bucket
               image: docker.io/minio/mc@sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727
-              command: ["/bin/sh","-c","mc alias set local http://{{ .State.service }}:9000 $(MINIO_ACCESS_KEY) $(MINIO_SECRET_KEY) && mc mb --ignore-existing local/{{ .State.bucket }}"]
+              # Both buckets, not just the resource's own. capturesBucket is the name the api
+              # hardcodes (docker/api/src/routers/capture_sessions.py) and the reconstructor reads
+              # from, so without it a capture upload fails against a bucket that does not exist.
+              command: ["/bin/sh","-c","mc alias set local http://{{ .State.service }}:9000 $(MINIO_ACCESS_KEY) $(MINIO_SECRET_KEY) && mc mb --ignore-existing local/{{ .State.bucket }} && mc mb --ignore-existing local/{{ .State.capturesBucket }}"]
               env:
               - name: MINIO_ACCESS_KEY
                 valueFrom:

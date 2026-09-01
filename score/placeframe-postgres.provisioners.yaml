@@ -2,91 +2,89 @@
 # roles and database are created by the actual database-manager image (the same
 # create-database logic the compose stack runs), rather than a vanilla postgres with a
 # single generated role. Registered via: score-compose init --provisioners <this file>.
+#
+# HERMETIC BY CONSTRUCTION: this provisioner resolves no secret at generation time. Every
+# credential is emitted as a literal ${VAR:?err} string, exactly as the hand-authored
+# compose.yml writes it, and docker compose resolves it from --env-file at run time. That
+# is what lets the generated compose.yaml be committed and consumed unchanged by
+# `uv run up --compose-file score/compose.yaml`. ${...} carries no meaning to Go's template
+# engine, so it passes through the provisioner and into the output verbatim.
+#
+# Consequently there is no `init:` block minting passwords and no password state: .env is
+# the single source of truth for credentials, shared with the hand-authored stack.
 - uri: template://placeframe/postgres
   type: placeframe-postgres
   description: Placeframe postgres with placeframe_* roles created by database-manager.
-  init: |
+  state: |
     dbName: placeframe
     serviceName: pf-postgres
-    adminPassword: {{ randAlphaNum 24 | quote }}
-    ownerPassword: {{ randAlphaNum 24 | quote }}
-    apiPassword: {{ randAlphaNum 24 | quote }}
-    authPassword: {{ randAlphaNum 24 | quote }}
-    orchestrationPassword: {{ randAlphaNum 24 | quote }}
-  # Persist the generated names/passwords so they are stable across regenerations.
-  state: |
-    dbName: {{ dig "dbName" .Init.dbName .State | quote }}
-    adminPassword: {{ dig "adminPassword" .Init.adminPassword .State | quote }}
-    ownerPassword: {{ dig "ownerPassword" .Init.ownerPassword .State | quote }}
-    apiPassword: {{ dig "apiPassword" .Init.apiPassword .State | quote }}
-    authPassword: {{ dig "authPassword" .Init.authPassword .State | quote }}
-    orchestrationPassword: {{ dig "orchestrationPassword" .Init.orchestrationPassword .State | quote }}
-  # Distinct outputs per role, matching what api / lease-server expect.
+  # Distinct outputs per role, matching what api / lease-server expect. The password
+  # outputs are placeholder strings, not values.
   outputs: |
-    host: {{ .Init.serviceName }}
+    host: {{ .State.serviceName }}
     port: 5432
     name: {{ .State.dbName }}
     owner_username: {{ .State.dbName }}_owner
-    owner_password: {{ .State.ownerPassword }}
+    owner_password: ${DATABASE_OWNER_PASSWORD:?err}
     api_username: {{ .State.dbName }}_api_user
-    api_password: {{ .State.apiPassword }}
+    api_password: ${DATABASE_API_USER_PASSWORD:?err}
     auth_username: {{ .State.dbName }}_auth_user
-    auth_password: {{ .State.authPassword }}
+    auth_password: ${DATABASE_AUTH_USER_PASSWORD:?err}
     orchestration_username: {{ .State.dbName }}_orchestration_user
-    orchestration_password: {{ .State.orchestrationPassword }}
+    orchestration_password: ${DATABASE_ORCHESTRATION_USER_PASSWORD:?err}
   volumes: |
     pf-postgres-data:
       driver: local
     pf-postgres-efs:
       driver: local
   services: |
-    {{ .Init.serviceName }}:
-      image: ghcr.io/outernet-foundation/placeframe/postgres:tree-2805e66eb8f946b3ff6fb0dc220b080d9bb0d984
+    {{ .State.serviceName }}:
+      image: ghcr.io/outernet-foundation/placeframe/postgres:{{ env "POSTGRES_SHA" }}
       entrypoint: /usr/local/bin/entrypoint-wrapper.sh
       restart: always
       environment:
-        POSTGRES_USER: postgres
-        POSTGRES_PASSWORD: {{ .State.adminPassword | quote }}
+        POSTGRES_USER: "${POSTGRES_ADMIN_USER:?err}"
+        POSTGRES_PASSWORD: "${POSTGRES_ADMIN_PASSWORD:?err}"
       volumes:
       - type: volume
         source: pf-postgres-data
         target: /var/lib/postgresql/data
       healthcheck:
-        test: ["CMD", "pg_isready", "-U", "postgres"]
+        test: ["CMD", "pg_isready", "-U", "${POSTGRES_ADMIN_USER:?err}"]
         interval: 2s
         timeout: 2s
         retries: 30
-    {{ .Init.serviceName }}-create:
-      image: ghcr.io/outernet-foundation/placeframe/database-manager:tree-fb027ea674d00a8c9079aa26c13bac5550f263f9
+    {{ .State.serviceName }}-create:
+      image: ghcr.io/outernet-foundation/placeframe/database-manager:{{ env "DATABASE_MANAGER_SHA" }}
       depends_on:
-        {{ .Init.serviceName }}:
+        {{ .State.serviceName }}:
           condition: service_healthy
       restart: "no"
       environment:
-        POSTGRES_HOST: {{ .Init.serviceName }}
-        POSTGRES_ADMIN_USER: postgres
-        POSTGRES_ADMIN_PASSWORD: {{ .State.adminPassword | quote }}
+        POSTGRES_HOST: {{ .State.serviceName }}
+        POSTGRES_ADMIN_USER: "${POSTGRES_ADMIN_USER:?err}"
+        POSTGRES_ADMIN_PASSWORD: "${POSTGRES_ADMIN_PASSWORD:?err}"
       volumes:
       - type: volume
         source: pf-postgres-efs
         target: /mnt/efs
       entrypoint: >-
         uv run --no-sync python -m src.main --op create --name {{ .State.dbName }}
-        --owner-password {{ .State.ownerPassword }}
-        --api-user-password {{ .State.apiPassword }}
-        --auth-user-password {{ .State.authPassword }}
-        --orchestration-user-password {{ .State.orchestrationPassword }}
-    {{ .Init.serviceName }}-migrate:
-      image: ghcr.io/outernet-foundation/placeframe/database-migrator:tree-0e358a9da5301a6399d56b4f9248d95edcd8f0c7
+        --owner-password ${DATABASE_OWNER_PASSWORD:?err}
+        --api-user-password ${DATABASE_API_USER_PASSWORD:?err}
+        --auth-user-password ${DATABASE_AUTH_USER_PASSWORD:?err}
+        --orchestration-user-password ${DATABASE_ORCHESTRATION_USER_PASSWORD:?err}
+    {{ .State.serviceName }}-migrate:
+      image: ghcr.io/outernet-foundation/placeframe/database-migrator:{{ env "DATABASE_MIGRATOR_SHA" }}
       depends_on:
-        {{ .Init.serviceName }}-create:
+        {{ .State.serviceName }}-create:
           condition: service_completed_successfully
       restart: "no"
       environment:
-        DB_HOST: {{ .Init.serviceName }}
+        DB_HOST: {{ .State.serviceName }}
         DB_PORT: "5432"
         DB_NAME: {{ .State.dbName }}
         DB_USER: {{ .State.dbName }}_owner
-        DB_PASSWORD: {{ .State.ownerPassword | quote }}
+        DB_PASSWORD: "${DATABASE_OWNER_PASSWORD:?err}"
         DATABASE_SCHEMA_DIR: database
         ALLOWED_HAZARDS: HAS_UNTRACKABLE_DEPENDENCIES

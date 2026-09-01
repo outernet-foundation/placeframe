@@ -1,0 +1,211 @@
+name: placeframe
+services:
+  api-api:
+    annotations:
+      compose.score.dev/workload-name: api
+    depends_on:
+      wait-for-resources:
+        condition: service_completed_successfully
+        required: true
+    environment:
+      AUTH_AUDIENCE: ${AUTH_AUDIENCE:?err}
+      AUTH_CERTS_URL: http://keycloak:8080/realms/placeframe-dev/protocol/openid-connect/certs
+      AUTH_ISSUER_URL: ${PUBLIC_URL:?err}/auth/realms/placeframe-dev
+      AUTH_MODE: ${AUTH_MODE:-keycloak}
+      AUTH_TOKEN_URL: ${PUBLIC_URL:?err}/auth/realms/placeframe-dev/protocol/openid-connect/token
+      AUTH_URL: ${PUBLIC_URL:?err}/auth/realms/placeframe-dev/protocol/openid-connect/auth
+      DATABASE_API_USER: placeframe_api_user
+      DATABASE_API_USER_PASSWORD: ${DATABASE_API_USER_PASSWORD:?err}
+      DATABASE_AUTH_USER: placeframe_auth_user
+      DATABASE_AUTH_USER_PASSWORD: ${DATABASE_AUTH_USER_PASSWORD:?err}
+      DATABASE_NAME: placeframe
+      DATABASE_ORCHESTRATION_USER: placeframe_orchestration_user
+      DATABASE_ORCHESTRATION_USER_PASSWORD: ${DATABASE_ORCHESTRATION_USER_PASSWORD:?err}
+      DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-development}
+      LOCALIZER_CONTAINER_URL: http://localhost:8000
+      LOKI_URL: http://localhost:3100
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:?err}
+      MINIO_ENDPOINT_URL: http://minio:9000
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:?err}
+      POSTGRES_HOST: pf-postgres
+      PUBLIC_URL: ${PUBLIC_URL:?err}
+      RECONSTRUCTIONS_BUCKET: dev-reconstructions
+    hostname: api
+    image: ghcr.io/outernet-foundation/placeframe/api:tree-87abad5b29588fd4833994ae68b7206630048efa
+    ports:
+      - target: 8000
+        published: "8000"
+    restart: unless-stopped
+  gateway-gateway:
+    annotations:
+      compose.score.dev/workload-name: gateway
+    depends_on:
+      wait-for-resources:
+        condition: service_completed_successfully
+        required: true
+    environment:
+      AUTH_MODE: ${AUTH_MODE:-keycloak}
+      PUBLIC_URL: ${PUBLIC_URL:?err}
+    hostname: gateway
+    image: ghcr.io/outernet-foundation/placeframe/gateway:tree-e76c85aba555014a1893fa117334d2f4d96812a0
+    ports:
+      - target: 8443
+        published: "8443"
+  keycloak:
+    command:
+      - start-dev
+      - --health-enabled=true
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    image: quay.io/keycloak/keycloak:26.3.5@sha256:357829ec7c4693397533035092ad13b0644bcc95ded311f33a3738c4d9e9bdba
+  lease-server-lease-server:
+    annotations:
+      compose.score.dev/workload-name: lease-server
+    depends_on:
+      wait-for-resources:
+        condition: service_completed_successfully
+        required: true
+    environment:
+      DATABASE_NAME: placeframe
+      DATABASE_ORCHESTRATION_USER: placeframe_orchestration_user
+      DATABASE_ORCHESTRATION_USER_PASSWORD: ${DATABASE_ORCHESTRATION_USER_PASSWORD:?err}
+      DEPLOYMENT_ENVIRONMENT: development
+      POSTGRES_HOST: pf-postgres
+    hostname: lease-server
+    image: ghcr.io/outernet-foundation/placeframe/lease-server:tree-45921fa7f7a5cdb9facaed759f94e4b6d7efd5ef
+  minio:
+    command:
+      - server
+      - /data
+      - --console-address
+      - :9001
+    environment:
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:?err}
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:?err}
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://localhost:9000/minio/health/ready
+      timeout: 2s
+      interval: 2s
+      retries: 30
+    image: docker.io/minio/minio@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
+    restart: always
+    volumes:
+      - type: volume
+        source: minio-data
+        target: /data
+  minio-init:
+    depends_on:
+      minio:
+        condition: service_healthy
+        required: false
+    entrypoint:
+      - /bin/sh
+      - -c
+      - mc alias set local http://minio:9000 ${MINIO_ACCESS_KEY:?err} ${MINIO_SECRET_KEY:?err} && mc mb --ignore-existing local/dev-captures && mc mb --ignore-existing local/dev-reconstructions && mc mb --ignore-existing local/loki
+    image: docker.io/minio/mc@sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727
+    restart: "no"
+  pf-postgres:
+    entrypoint:
+      - /usr/local/bin/entrypoint-wrapper.sh
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:?err}
+      POSTGRES_USER: ${POSTGRES_ADMIN_USER:?err}
+    healthcheck:
+      test:
+        - CMD
+        - pg_isready
+        - -U
+        - ${POSTGRES_ADMIN_USER:?err}
+      timeout: 2s
+      interval: 2s
+      retries: 30
+    image: ghcr.io/outernet-foundation/placeframe/postgres:tree-eb7831a824faa988d405832a2db86f1a653b9d06
+    restart: always
+    volumes:
+      - type: volume
+        source: pf-postgres-data
+        target: /var/lib/postgresql/data
+  pf-postgres-create:
+    depends_on:
+      pf-postgres:
+        condition: service_healthy
+        required: false
+    entrypoint:
+      - uv
+      - run
+      - --no-sync
+      - python
+      - -m
+      - src.main
+      - --op
+      - create
+      - --name
+      - placeframe
+      - --owner-password
+      - ${DATABASE_OWNER_PASSWORD:?err}
+      - --api-user-password
+      - ${DATABASE_API_USER_PASSWORD:?err}
+      - --auth-user-password
+      - ${DATABASE_AUTH_USER_PASSWORD:?err}
+      - --orchestration-user-password
+      - ${DATABASE_ORCHESTRATION_USER_PASSWORD:?err}
+    environment:
+      POSTGRES_ADMIN_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:?err}
+      POSTGRES_ADMIN_USER: ${POSTGRES_ADMIN_USER:?err}
+      POSTGRES_HOST: pf-postgres
+    image: ghcr.io/outernet-foundation/placeframe/database-manager:tree-3e76382e4690b5ff2bd196a09feb367ef6849690
+    restart: "no"
+    volumes:
+      - type: volume
+        source: pf-postgres-efs
+        target: /mnt/efs
+  pf-postgres-migrate:
+    depends_on:
+      pf-postgres-create:
+        condition: service_completed_successfully
+        required: false
+    environment:
+      ALLOWED_HAZARDS: HAS_UNTRACKABLE_DEPENDENCIES
+      DATABASE_SCHEMA_DIR: database
+      DB_HOST: pf-postgres
+      DB_NAME: placeframe
+      DB_PASSWORD: ${DATABASE_OWNER_PASSWORD:?err}
+      DB_PORT: "5432"
+      DB_USER: placeframe_owner
+    image: ghcr.io/outernet-foundation/placeframe/database-migrator:tree-4478a24131e87b3235f2a754c89938b72a25dd86
+    restart: "no"
+  wait-for-resources:
+    command:
+      - echo
+    depends_on:
+      keycloak:
+        condition: service_started
+        required: true
+      minio:
+        condition: service_healthy
+        required: true
+      minio-init:
+        condition: service_started
+        required: true
+      pf-postgres:
+        condition: service_healthy
+        required: true
+      pf-postgres-create:
+        condition: service_started
+        required: true
+      pf-postgres-migrate:
+        condition: service_started
+        required: true
+    image: alpine
+volumes:
+  minio-data:
+    driver: local
+  pf-postgres-data:
+    driver: local
+  pf-postgres-efs:
+    driver: local

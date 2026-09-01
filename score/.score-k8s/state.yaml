@@ -1,0 +1,183 @@
+workloads:
+  api:
+    spec:
+      apiVersion: score.dev/v1b1
+      containers:
+        api:
+          image: ghcr.io/outernet-foundation/placeframe/api:tree-87abad5b29588fd4833994ae68b7206630048efa
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+          variables:
+            AUTH_AUDIENCE: ${resources.config.auth_audience}
+            AUTH_CERTS_URL: ${resources.auth.certs_url}
+            AUTH_ISSUER_URL: ${resources.config.auth_issuer_url}
+            AUTH_MODE: ${resources.config.auth_mode}
+            AUTH_TOKEN_URL: ${resources.config.auth_token_url}
+            AUTH_URL: ${resources.config.auth_url}
+            DATABASE_API_USER: ${resources.db.api_username}
+            DATABASE_API_USER_PASSWORD: ${resources.db.api_password}
+            DATABASE_AUTH_USER: ${resources.db.auth_username}
+            DATABASE_AUTH_USER_PASSWORD: ${resources.db.auth_password}
+            DATABASE_NAME: ${resources.db.name}
+            DATABASE_ORCHESTRATION_USER: ${resources.db.orchestration_username}
+            DATABASE_ORCHESTRATION_USER_PASSWORD: ${resources.db.orchestration_password}
+            DEPLOYMENT_ENVIRONMENT: ${resources.config.deployment_environment}
+            LOCALIZER_CONTAINER_URL: http://localhost:8000
+            LOKI_URL: http://localhost:3100
+            MINIO_ACCESS_KEY: ${resources.bucket.access_key_id}
+            MINIO_ENDPOINT_URL: ${resources.bucket.endpoint}
+            MINIO_SECRET_KEY: ${resources.bucket.secret_key}
+            POSTGRES_HOST: ${resources.db.host}
+            PUBLIC_URL: ${resources.config.public_url}
+            RECONSTRUCTIONS_BUCKET: ${resources.bucket.bucket}
+      metadata:
+        name: api
+      resources:
+        auth:
+          id: placeframe-keycloak
+          type: placeframe-keycloak
+        bucket:
+          id: placeframe-bucket
+          type: s3
+        config:
+          id: placeframe-config
+          type: placeframe-config
+        db:
+          id: placeframe-db
+          type: placeframe-postgres
+      service:
+        ports:
+          http:
+            port: 8000
+            targetPort: 8000
+    file: api.yaml
+    instance_suffix: -7ae5e8b491
+  gateway:
+    spec:
+      apiVersion: score.dev/v1b1
+      containers:
+        gateway:
+          image: ghcr.io/outernet-foundation/placeframe/gateway:tree-e76c85aba555014a1893fa117334d2f4d96812a0
+          variables:
+            AUTH_MODE: ${resources.config.auth_mode}
+            PUBLIC_URL: ${resources.config.public_url}
+      metadata:
+        name: gateway
+      resources:
+        config:
+          id: placeframe-config
+          type: placeframe-config
+      service:
+        ports:
+          gateway:
+            port: 8443
+            targetPort: 8443
+    file: gateway.yaml
+    instance_suffix: -63f43f747f
+  lease-server:
+    spec:
+      apiVersion: score.dev/v1b1
+      containers:
+        lease-server:
+          image: ghcr.io/outernet-foundation/placeframe/lease-server:tree-45921fa7f7a5cdb9facaed759f94e4b6d7efd5ef
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+          variables:
+            DATABASE_NAME: ${resources.db.name}
+            DATABASE_ORCHESTRATION_USER: ${resources.db.orchestration_username}
+            DATABASE_ORCHESTRATION_USER_PASSWORD: ${resources.db.orchestration_password}
+            DEPLOYMENT_ENVIRONMENT: development
+            POSTGRES_HOST: ${resources.db.host}
+      metadata:
+        name: lease-server
+      resources:
+        db:
+          id: placeframe-db
+          type: placeframe-postgres
+      service:
+        ports:
+          http:
+            port: 8000
+            targetPort: 8000
+    file: lease-server.yaml
+    instance_suffix: -1ec460ca93
+resources:
+  placeframe-config.default#placeframe-config:
+    guid: 16d9cde6-bf6c-4582-2cb8-53d4df63c47c
+    type: placeframe-config
+    class: default
+    id: placeframe-config
+    metadata: {}
+    params: {}
+    source_workload: api
+    provisioner: template://placeframe/config-k8s
+    state: {}
+    outputs:
+      auth_audience: "\U0001F510\U0001F4ACplaceframe-secrets_AUTH_AUDIENCE\U0001F4AC\U0001F510"
+      auth_issuer_url: "\U0001F510\U0001F4ACplaceframe-secrets_AUTH_ISSUER_URL\U0001F4AC\U0001F510"
+      auth_mode: "\U0001F510\U0001F4ACplaceframe-secrets_AUTH_MODE\U0001F4AC\U0001F510"
+      auth_token_url: "\U0001F510\U0001F4ACplaceframe-secrets_AUTH_TOKEN_URL\U0001F4AC\U0001F510"
+      auth_url: "\U0001F510\U0001F4ACplaceframe-secrets_AUTH_URL\U0001F4AC\U0001F510"
+      deployment_environment: "\U0001F510\U0001F4ACplaceframe-secrets_DEPLOYMENT_ENVIRONMENT\U0001F4AC\U0001F510"
+      public_url: "\U0001F510\U0001F4ACplaceframe-secrets_PUBLIC_URL\U0001F4AC\U0001F510"
+  placeframe-keycloak.default#placeframe-keycloak:
+    guid: edb01605-84a0-4a62-fab9-ca9b4c771cc1
+    type: placeframe-keycloak
+    class: default
+    id: placeframe-keycloak
+    metadata: {}
+    params: {}
+    source_workload: api
+    provisioner: template://placeframe/keycloak-k8s
+    state:
+      realm: placeframe-dev
+      service: keycloak
+    outputs:
+      certs_url: http://keycloak:8080/realms/placeframe-dev/protocol/openid-connect/certs
+  placeframe-postgres.default#placeframe-db:
+    guid: 322c7046-1ba1-4cc5-efa6-ebfa4f3cc263
+    type: placeframe-postgres
+    class: default
+    id: placeframe-db
+    metadata: {}
+    params: {}
+    source_workload: api
+    provisioner: template://placeframe/postgres-k8s
+    state:
+      dbName: placeframe
+      service: pf-postgres
+    outputs:
+      api_password: "\U0001F510\U0001F4ACplaceframe-secrets_DATABASE_API_USER_PASSWORD\U0001F4AC\U0001F510"
+      api_username: placeframe_api_user
+      auth_password: "\U0001F510\U0001F4ACplaceframe-secrets_DATABASE_AUTH_USER_PASSWORD\U0001F4AC\U0001F510"
+      auth_username: placeframe_auth_user
+      host: pf-postgres
+      name: placeframe
+      orchestration_password: "\U0001F510\U0001F4ACplaceframe-secrets_DATABASE_ORCHESTRATION_USER_PASSWORD\U0001F4AC\U0001F510"
+      orchestration_username: placeframe_orchestration_user
+      owner_username: placeframe_owner
+      port: 5432
+  s3.default#placeframe-bucket:
+    guid: 80c9986f-4428-4364-0d1a-3246830f5cff
+    type: s3
+    class: default
+    id: placeframe-bucket
+    metadata: {}
+    params: {}
+    source_workload: api
+    provisioner: template://placeframe/minio-k8s
+    state:
+      bucket: reconstructions
+      capturesBucket: dev-captures
+      service: minio
+    outputs:
+      access_key_id: "\U0001F510\U0001F4ACplaceframe-secrets_MINIO_ACCESS_KEY\U0001F4AC\U0001F510"
+      bucket: reconstructions
+      endpoint: http://minio:9000
+      secret_key: "\U0001F510\U0001F4ACplaceframe-secrets_MINIO_SECRET_KEY\U0001F4AC\U0001F510"
+shared_state: {}
+patching_templates: []

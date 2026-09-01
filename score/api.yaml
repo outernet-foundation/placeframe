@@ -3,7 +3,7 @@ metadata:
   name: api
 containers:
   api:
-    image: ghcr.io/outernet-foundation/placeframe/api:tree-70fd47ea882fbc08321b1646ed9fd3c7f8801807
+    image: ghcr.io/outernet-foundation/placeframe/api:${API_SHA}
     variables:
       PUBLIC_URL: ${resources.config.public_url}
       AUTH_MODE: ${resources.config.auth_mode}
