@@ -11,7 +11,7 @@ namespace Placeframe.Core
 {
     [RequireComponent(typeof(MeshFilter))]
     [RequireComponent(typeof(MeshRenderer))]
-    public class LocalizationMap : MonoBehaviour
+    public class LocalizationMapVisualizer : MonoBehaviour
     {
         private static readonly Color DefaultColor = Color.white;
         private static readonly float DefaultThickness = 0.01f;
