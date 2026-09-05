@@ -125,6 +125,16 @@ export function exportPoses(reconstructionId: string, outputPath: string): Promi
   });
 }
 
+export function exportReconstructionZip(
+  reconstructionId: string,
+  outputPath: string,
+): Promise<{ output_path: string; file_count: number; size_bytes: number }> {
+  return request(`/api/reconstructions/${reconstructionId}/export-zip`, {
+    method: "POST",
+    body: JSON.stringify({ output_path: outputPath }),
+  });
+}
+
 export interface BrowseDirectoryEntry {
   name: string;
   path: string;

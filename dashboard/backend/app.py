@@ -501,6 +501,16 @@ async def export_poses(data: ExportPosesRequest) -> dict[str, Any]:
 
 
 @dataclass
+class ExportZipRequest:
+    output_path: str
+
+
+@post("/api/reconstructions/{reconstruction_id:str}/export-zip")
+async def export_reconstruction_zip(reconstruction_id: str, data: ExportZipRequest) -> dict[str, Any]:
+    return await _run_howard_test_json_async("export-zip", reconstruction_id, data.output_path)
+
+
+@dataclass
 class ScreenshotRequest:
     plot_title: str
     image_base64: str
@@ -566,6 +576,7 @@ app = Litestar(
         save_localization_table,
         save_localization_images,
         export_poses,
+        export_reconstruction_zip,
         save_screenshot,
     ],
     cors_config=cors_config,

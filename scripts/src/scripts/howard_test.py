@@ -5,6 +5,7 @@ import csv
 import re
 import sys
 import tarfile
+import zipfile
 from asyncio import run, sleep, to_thread
 from collections.abc import Callable
 from datetime import datetime, timezone
@@ -559,6 +560,53 @@ def export_poses(
         typer.echo(dumps({"output_path": str(output_path), "count": len(images)}))
         return
     typer.echo(f"Exported {len(images)} poses from reconstruction {reconstruction_id} to {output_path}")
+
+
+def _write_zip_from_tar(tar_path: Path, output_path: Path) -> int:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    # Nest every entry under a top-level folder named after the output file (stem, so a `.zip`
+    # extension doesn't leak into the folder name) rather than writing the tar's members flat —
+    # unzipping otherwise dumps 14+ loose files straight into whatever directory it's extracted
+    # into. Naming the folder after the chosen output filename (not e.g. the reconstruction id)
+    # means renaming the .zip before saving also renames the folder it expands into.
+    root = output_path.stem
+    file_count = 0
+    with tarfile.open(tar_path) as tar, zipfile.ZipFile(output_path, "w", zipfile.ZIP_DEFLATED) as zf:
+        for member in tar.getmembers():
+            if not member.isfile():
+                continue
+            extracted = tar.extractfile(member)
+            if extracted is None:
+                continue
+            zf.writestr(f"{root}/{member.name}", extracted.read())
+            file_count += 1
+    return file_count
+
+
+async def _export_zip(reconstruction_id: UUID, output_path: Path) -> dict[str, Any]:
+    # Reuses the same tar-caching fetch as `points`/`visualize`/`export-poses` — no new download path.
+    cached = _cached_tar_path(reconstruction_id)
+    if not cached.exists():
+        async with authenticated_api_client() as api:
+            try:
+                await _ensure_cached_tar(api, reconstruction_id)
+            except ApiException as exception:
+                _fail(exception)
+    file_count = await to_thread(_write_zip_from_tar, cached, output_path)
+    return {"output_path": str(output_path), "file_count": file_count, "size_bytes": output_path.stat().st_size}
+
+
+@app.command(name="export-zip")
+def export_zip(
+    reconstruction_id: Annotated[UUID, typer.Argument(help="Reconstruction to export")],
+    output_path: Annotated[Path, typer.Argument(help="Output .zip file path")],
+    json_output: Annotated[bool, typer.Option("--json", help="Emit JSON instead of text")] = False,
+) -> None:
+    result = run(_export_zip(reconstruction_id, output_path))
+    if json_output:
+        typer.echo(dumps(result))
+        return
+    typer.echo(f"Exported {result['file_count']} file(s) ({result['size_bytes']} bytes) to {result['output_path']}")
 
 
 @app.command()
