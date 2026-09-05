@@ -19,10 +19,11 @@ import subprocess
 import time
 import uuid
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Literal, NoReturn
 
-from litestar import Litestar, Request, delete, get, post
+from litestar import Litestar, Request, delete, get, patch, post
 from litestar.config.cors import CORSConfig
 from litestar.exceptions import NotFoundException
 from litestar.response import File, Response
@@ -31,6 +32,10 @@ PLACEFRAME_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = PLACEFRAME_ROOT / "data"
 RECONSTRUCTIONS_DIR = DATA_DIR / "reconstructions"
 LOCALIZATIONS_DIR = DATA_DIR / "localizations"
+VISUALIZATIONS_DIR = DATA_DIR / "visualizations"
+POSELESS_SETS_DIR = DATA_DIR / "poseless_sets"
+POSELESS_SETS_INDEX = POSELESS_SETS_DIR / "index.json"
+POSELESS_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
 
 # This backend runs from its own `uv`-managed venv (dashboard/backend/.venv); without stripping
 # VIRTUAL_ENV, the `uv run howard-test` subprocess below inherits it and prints a spurious "doesn't
@@ -186,6 +191,90 @@ async def list_localizations() -> list[dict[str, Any]]:
     return await asyncio.to_thread(_list_localizations)
 
 
+# "Poseless image sets" (Reconstruct tab): a plain sequentially-ordered folder of images with no
+# known camera pose (e.g. frames extracted from a video). Registering one here is purely local
+# bookkeeping — no placeframe capture session exists yet, just a reference to a server-local
+# directory plus a display name, persisted to POSELESS_SETS_INDEX so the table survives a dashboard
+# restart. The actual capture upload + synthetic-trajectory reconstruction only happens when
+# "Reconstruct" is clicked, via `howard-test reconstruct-poseless` (scripts/src/scripts/howard_test.py).
+def _load_poseless_index() -> dict[str, dict[str, Any]]:
+    if not POSELESS_SETS_INDEX.exists():
+        return {}
+    try:
+        return json.loads(POSELESS_SETS_INDEX.read_text())
+    except json.JSONDecodeError:
+        return {}
+
+
+def _save_poseless_index(index: dict[str, dict[str, Any]]) -> None:
+    POSELESS_SETS_DIR.mkdir(parents=True, exist_ok=True)
+    POSELESS_SETS_INDEX.write_text(json.dumps(index))
+
+
+def _scan_poseless_images(path: Path) -> tuple[int, str]:
+    images = [p for p in path.iterdir() if p.is_file() and p.suffix.lower() in POSELESS_IMAGE_EXTENSIONS]
+    if not images:
+        raise ValueError(f"No images (.jpg/.jpeg/.png) found in {path}")
+    earliest_mtime = min(p.stat().st_mtime for p in images)
+    recorded_at = datetime.fromtimestamp(earliest_mtime, tz=timezone.utc).isoformat()
+    return len(images), recorded_at
+
+
+def _register_poseless_set(path_str: str) -> dict[str, Any]:
+    path = Path(path_str).expanduser().resolve()
+    if not path.is_dir():
+        raise NotFoundException(f"Not a directory: {path}")
+    image_count, recorded_at = _scan_poseless_images(path)
+    entry = {
+        "id": str(uuid.uuid4()),
+        "name": path.name,
+        "path": str(path),
+        "image_count": image_count,
+        "recorded_at": recorded_at,
+    }
+    index = _load_poseless_index()
+    index[entry["id"]] = entry
+    _save_poseless_index(index)
+    return entry
+
+
+@dataclass
+class RegisterPoselessSetRequest:
+    path: str
+
+
+@post("/api/poseless-sets")
+async def register_poseless_set(data: RegisterPoselessSetRequest) -> dict[str, Any]:
+    return await asyncio.to_thread(_register_poseless_set, data.path)
+
+
+@get("/api/poseless-sets")
+async def list_poseless_sets() -> list[dict[str, Any]]:
+    entries = list((await asyncio.to_thread(_load_poseless_index)).values())
+    entries.sort(key=lambda e: e["recorded_at"], reverse=True)
+    return entries
+
+
+@dataclass
+class RenamePoselessSetRequest:
+    name: str
+
+
+def _rename_poseless_set(set_id: str, name: str) -> dict[str, Any]:
+    index = _load_poseless_index()
+    entry = index.get(set_id)
+    if entry is None:
+        raise NotFoundException(f"No poseless image set {set_id}")
+    entry["name"] = name
+    _save_poseless_index(index)
+    return entry
+
+
+@patch("/api/poseless-sets/{set_id:str}")
+async def rename_poseless_set(set_id: str, data: RenamePoselessSetRequest) -> dict[str, Any]:
+    return await asyncio.to_thread(_rename_poseless_set, set_id, data.name)
+
+
 @dataclass
 class ReconstructRequest:
     capture_id: str
@@ -230,6 +319,23 @@ async def start_reconstruct(data: ReconstructRequest) -> dict[str, str]:
     return {"job_id": job.id}
 
 
+@dataclass
+class PoselessReconstructRequest:
+    options_json: str | None = None
+
+
+@post("/api/poseless-sets/{set_id:str}/reconstruct")
+async def start_poseless_reconstruct(set_id: str, data: PoselessReconstructRequest) -> dict[str, str]:
+    index = await asyncio.to_thread(_load_poseless_index)
+    entry = index.get(set_id)
+    if entry is None:
+        raise NotFoundException(f"No poseless image set {set_id}")
+    job = Job(id=str(uuid.uuid4()), kind="reconstruct")
+    JOBS[job.id] = job
+    _spawn(_run_poseless_reconstruct_job(job, entry["path"], entry["name"], data.options_json))
+    return {"job_id": job.id}
+
+
 @post("/api/visualize")
 async def start_visualize(data: VisualizeRequest) -> dict[str, str]:
     job = Job(id=str(uuid.uuid4()), kind="visualize", reconstruction_id=data.reconstruction_id)
@@ -255,32 +361,48 @@ def _raise_poll_timeout(reconstruction_id: str | None) -> NoReturn:
     raise TimeoutError(f"Reconstruction {reconstruction_id} did not finish within {RECONSTRUCT_POLL_TIMEOUT_S}s")
 
 
+async def _poll_reconstruction_until_terminal(job: Job, created: dict[str, Any]) -> None:
+    job.reconstruction_id = created["id"]
+    job.result = created
+
+    deadline = time.monotonic() + RECONSTRUCT_POLL_TIMEOUT_S
+    status = created
+    while status["status"] not in ("succeeded", "failed", "cancelled"):
+        if time.monotonic() > deadline:
+            _raise_poll_timeout(job.reconstruction_id)
+        await asyncio.sleep(RECONSTRUCT_POLL_INTERVAL_S)
+        # --cache: once the reconstruction succeeds, download and cache its tar locally so
+        # the Visualize tab's "Create PNG" doesn't re-download it.
+        status = await _run_howard_test_json_async("show", job.reconstruction_id, "--cache")
+        job.result = status
+
+    if status["status"] == "succeeded":
+        job.status = "succeeded"
+    else:
+        job.status = "failed"
+        job.error = status.get("error") or f"Reconstruction ended as {status['status']}"
+
+
 async def _run_reconstruct_job(job: Job, capture_id: str, options_json: str | None) -> None:
     try:
         create_args = ["reconstruct", capture_id]
         if options_json:
             create_args += ["--options-json", options_json]
         created = await _run_howard_test_json_async(*create_args)
-        job.reconstruction_id = created["id"]
-        job.result = created
-
-        deadline = time.monotonic() + RECONSTRUCT_POLL_TIMEOUT_S
-        status = created
-        while status["status"] not in ("succeeded", "failed", "cancelled"):
-            if time.monotonic() > deadline:
-                _raise_poll_timeout(job.reconstruction_id)
-            await asyncio.sleep(RECONSTRUCT_POLL_INTERVAL_S)
-            # --cache: once the reconstruction succeeds, download and cache its tar locally so
-            # the Visualize tab's "Create PNG" doesn't re-download it.
-            status = await _run_howard_test_json_async("show", job.reconstruction_id, "--cache")
-            job.result = status
-
-        if status["status"] == "succeeded":
-            job.status = "succeeded"
-        else:
-            job.status = "failed"
-            job.error = status.get("error") or f"Reconstruction ended as {status['status']}"
+        await _poll_reconstruction_until_terminal(job, created)
     except Exception as exc:  # subprocess/parse failure, timeout, etc. — surfaced to the poller
+        job.status = "failed"
+        job.error = str(exc)
+
+
+async def _run_poseless_reconstruct_job(job: Job, image_dir: str, name: str, options_json: str | None) -> None:
+    try:
+        create_args = ["reconstruct-poseless", image_dir, "--name", name]
+        if options_json:
+            create_args += ["--options-json", options_json]
+        created = await _run_howard_test_json_async(*create_args)
+        await _poll_reconstruction_until_terminal(job, created)
+    except Exception as exc:
         job.status = "failed"
         job.error = str(exc)
 
@@ -382,6 +504,7 @@ async def export_poses(data: ExportPosesRequest) -> dict[str, Any]:
 class ScreenshotRequest:
     plot_title: str
     image_base64: str
+    localization_id: str | None = None
 
 
 _UNSAFE_TITLE_CHARS = re.compile(r"[^A-Za-z0-9._ -]")
@@ -394,18 +517,23 @@ def _sanitize_title(title: str) -> str:
     return cleaned or "reconstruction"
 
 
+def _next_capture_path(folder: Path, prefix: str) -> Path:
+    numbers = [int(m["n"]) for f in folder.glob(f"{prefix}_capture*.png") if (m := _CAPTURE_FILENAME.match(f.name))]
+    next_n = max(numbers) + 1 if numbers else 0
+    return folder / f"{prefix}_capture{next_n}.png"
+
+
 @post("/api/screenshots")
 async def save_screenshot(data: ScreenshotRequest) -> dict[str, str]:
-    title = _sanitize_title(data.plot_title)
-    folder = RECONSTRUCTIONS_DIR / title
-    folder.mkdir(parents=True, exist_ok=True)
-
-    next_n = 0
-    numbers = [int(m["n"]) for f in folder.glob(f"{title}_capture*.png") if (m := _CAPTURE_FILENAME.match(f.name))]
-    if numbers:
-        next_n = max(numbers) + 1
-
-    path = folder / f"{title}_capture{next_n}.png"
+    # All viewer captures go to one flat data/visualizations/ folder now, prefixed by the first 4
+    # characters of the identifying id — the localization run id when viewing a localization,
+    # otherwise the plot title (which defaults to the reconstruction id) for a plain reconstruction
+    # view. 4 chars isn't collision-proof, but this is a scratch/inspection folder, not a durable
+    # store — see dashboard/project.md if this needs to become collision-safe later.
+    identifier = data.localization_id or data.plot_title
+    prefix = _sanitize_title(identifier)[:4]
+    VISUALIZATIONS_DIR.mkdir(parents=True, exist_ok=True)
+    path = _next_capture_path(VISUALIZATIONS_DIR, prefix)
     path.write_bytes(base64.b64decode(data.image_base64))
     return {"path": str(path)}
 
@@ -423,7 +551,11 @@ app = Litestar(
         list_reconstructions,
         delete_reconstruction,
         list_localizations,
+        register_poseless_set,
+        list_poseless_sets,
+        rename_poseless_set,
         start_reconstruct,
+        start_poseless_reconstruct,
         start_visualize,
         start_localize,
         get_job,
@@ -437,5 +569,5 @@ app = Litestar(
         save_screenshot,
     ],
     cors_config=cors_config,
-    exception_handlers={RuntimeError: _exception_handler},
+    exception_handlers={RuntimeError: _exception_handler, ValueError: _exception_handler},
 )

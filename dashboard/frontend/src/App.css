@@ -71,6 +71,16 @@
   padding: 24px;
 }
 
+.editable-name {
+  cursor: pointer;
+  border-bottom: 1px dotted #6b7280;
+}
+
+.editable-name:hover {
+  color: #fff;
+  border-bottom-color: #fff;
+}
+
 .data-table .actions {
   display: flex;
   gap: 6px;

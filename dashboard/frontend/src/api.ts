@@ -1,4 +1,4 @@
-import type { CaptureSession, Job, LocalizationResult, LocalizationSummary, Reconstruction } from "./types";
+import type { CaptureSession, Job, LocalizationResult, LocalizationSummary, PoselessImageSet, Reconstruction } from "./types";
 
 const API_BASE = "http://localhost:8010";
 
@@ -40,6 +40,31 @@ export function startReconstruct(captureId: string, optionsJson: string | null):
   return request("/api/reconstruct", {
     method: "POST",
     body: JSON.stringify({ capture_id: captureId, options_json: optionsJson }),
+  });
+}
+
+export function listPoselessSets(): Promise<PoselessImageSet[]> {
+  return request("/api/poseless-sets");
+}
+
+export function registerPoselessSet(path: string): Promise<PoselessImageSet> {
+  return request("/api/poseless-sets", {
+    method: "POST",
+    body: JSON.stringify({ path }),
+  });
+}
+
+export function renamePoselessSet(id: string, name: string): Promise<PoselessImageSet> {
+  return request(`/api/poseless-sets/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ name }),
+  });
+}
+
+export function startPoselessReconstruct(id: string, optionsJson: string | null): Promise<{ job_id: string }> {
+  return request(`/api/poseless-sets/${id}/reconstruct`, {
+    method: "POST",
+    body: JSON.stringify({ options_json: optionsJson }),
   });
 }
 
@@ -163,9 +188,13 @@ export interface ScreenshotResult {
   path: string;
 }
 
-export function saveScreenshot(plotTitle: string, imageBase64: string): Promise<ScreenshotResult> {
+export function saveScreenshot(
+  plotTitle: string,
+  imageBase64: string,
+  localizationId?: string | null,
+): Promise<ScreenshotResult> {
   return request("/api/screenshots", {
     method: "POST",
-    body: JSON.stringify({ plot_title: plotTitle, image_base64: imageBase64 }),
+    body: JSON.stringify({ plot_title: plotTitle, image_base64: imageBase64, localization_id: localizationId ?? null }),
   });
 }

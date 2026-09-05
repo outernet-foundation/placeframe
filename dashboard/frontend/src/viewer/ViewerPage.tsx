@@ -28,7 +28,6 @@ export function ViewerPage() {
   const [hasCameraPoses, setHasCameraPoses] = useState(false);
   const [cameraMode, setCameraModeState] = useState<CameraMode>("frustum");
   const [pointSize, setPointSizeState] = useState<PointSize>(DEFAULT_POINT_SIZE);
-  const [localizedPoseCount, setLocalizedPoseCount] = useState<number | null>(null);
   const [hasLocalizedPoses, setHasLocalizedPoses] = useState(false);
   const [locCameraMode, setLocCameraModeState] = useState<LocCameraMode>("frustum");
 
@@ -63,7 +62,6 @@ export function ViewerPage() {
           });
           scene.setLocalizedPoses(positionsArray, orientationsArray, ok.length, labels);
           setHasLocalizedPoses(scene.hasLocalizedPoses());
-          setLocalizedPoseCount(ok.length);
         });
       })
       .catch((err: unknown) => {
@@ -99,7 +97,7 @@ export function ViewerPage() {
     if (!scene) return;
     const dataUrl = scene.capturePng();
     const base64 = dataUrl.split(",")[1] ?? "";
-    saveScreenshot(title, base64)
+    saveScreenshot(title, base64, localizationId)
       .then((result) => flashMessage(`Saved ${result.path}`))
       .catch((err: unknown) => flashMessage(err instanceof Error ? err.message : String(err)));
   }
@@ -163,9 +161,6 @@ export function ViewerPage() {
       {status === "loading" && <div className="viewer-banner">Loading point cloud…</div>}
       {status === "error" && <div className="viewer-banner viewer-banner-error">{error}</div>}
       {message && <div className="viewer-banner viewer-banner-success">{message}</div>}
-      {localizedPoseCount !== null && (
-        <div className="viewer-banner">Showing {localizedPoseCount} localized pose(s) in purple.</div>
-      )}
 
       <div ref={containerRef} className="viewer-canvas" />
 

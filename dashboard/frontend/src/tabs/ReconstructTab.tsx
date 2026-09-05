@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { listCaptures, startReconstruct } from "../api";
-import type { CaptureSession, Reconstruction } from "../types";
+import { listCaptures, listPoselessSets, registerPoselessSet, renamePoselessSet, startPoselessReconstruct, startReconstruct } from "../api";
+import { DirectoryBrowserDialog } from "../components/DirectoryBrowserDialog";
+import type { CaptureSession, PoselessImageSet, Reconstruction } from "../types";
 import { TERMINAL_STATUSES } from "../types";
 import { useJobPoll } from "../useJobPoll";
 
@@ -23,7 +24,16 @@ export function ReconstructTab() {
   const [optionsJson, setOptionsJson] = useState("");
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
 
+  const [poselessSets, setPoselessSets] = useState<PoselessImageSet[]>([]);
+  const [poselessLoading, setPoselessLoading] = useState(true);
+  const [poselessLoadError, setPoselessLoadError] = useState<string | null>(null);
+  const [showDirectoryPicker, setShowDirectoryPicker] = useState(false);
+  const [editingNameId, setEditingNameId] = useState<string | null>(null);
+  const [editingNameValue, setEditingNameValue] = useState("");
+  const [poselessActiveJobId, setPoselessActiveJobId] = useState<string | null>(null);
+
   const job = useJobPoll<Reconstruction>(activeJobId);
+  const poselessJob = useJobPoll<Reconstruction>(poselessActiveJobId);
 
   async function refresh(): Promise<void> {
     setLoading(true);
@@ -37,9 +47,56 @@ export function ReconstructTab() {
     }
   }
 
+  async function refreshPoseless(): Promise<void> {
+    setPoselessLoading(true);
+    setPoselessLoadError(null);
+    try {
+      setPoselessSets(await listPoselessSets());
+    } catch (err) {
+      setPoselessLoadError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setPoselessLoading(false);
+    }
+  }
+
   useEffect(() => {
     void refresh();
+    void refreshPoseless();
   }, []);
+
+  async function onSelectDirectory(path: string): Promise<void> {
+    setShowDirectoryPicker(false);
+    try {
+      await registerPoselessSet(path);
+      await refreshPoseless();
+    } catch (err) {
+      setPoselessLoadError(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  function startEditingName(set: PoselessImageSet): void {
+    setEditingNameId(set.id);
+    setEditingNameValue(set.name);
+  }
+
+  async function commitEditingName(): Promise<void> {
+    if (!editingNameId) return;
+    const id = editingNameId;
+    const name = editingNameValue.trim();
+    setEditingNameId(null);
+    if (!name) return;
+    try {
+      await renamePoselessSet(id, name);
+      await refreshPoseless();
+    } catch (err) {
+      setPoselessLoadError(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  async function reconstructPoseless(id: string): Promise<void> {
+    const { job_id } = await startPoselessReconstruct(id, null);
+    setPoselessActiveJobId(job_id);
+  }
 
   function openDialog(captureId: string): void {
     setDialogCaptureId(captureId);
@@ -56,7 +113,11 @@ export function ReconstructTab() {
   const jobDone = job !== null && job.status !== "running";
   const reconstruction = job?.result ?? null;
 
+  const poselessJobDone = poselessJob !== null && poselessJob.status !== "running";
+  const poselessReconstruction = poselessJob?.result ?? null;
+
   return (
+    <>
     <div className="panel">
       <div className="panel-header">
         <h2>Captures</h2>
@@ -159,5 +220,105 @@ export function ReconstructTab() {
         </div>
       )}
     </div>
+
+    <div className="panel" style={{ marginTop: 32 }}>
+      <div className="panel-header">
+        <h2>Poseless Image Sets</h2>
+        <button onClick={() => setShowDirectoryPicker(true)}>Upload</button>
+      </div>
+
+      {poselessLoadError && <div className="banner banner-error">{poselessLoadError}</div>}
+
+      <table className="data-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Number of images</th>
+            <th>Recorded</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {poselessSets.map((s) => (
+            <tr key={s.id}>
+              <td>
+                {editingNameId === s.id ? (
+                  <input
+                    autoFocus
+                    value={editingNameValue}
+                    onChange={(e) => setEditingNameValue(e.target.value)}
+                    onBlur={() => void commitEditingName()}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") void commitEditingName();
+                      if (e.key === "Escape") setEditingNameId(null);
+                    }}
+                  />
+                ) : (
+                  <span className="editable-name" onClick={() => startEditingName(s)} title="Click to rename">
+                    {s.name}
+                  </span>
+                )}
+              </td>
+              <td>{s.image_count}</td>
+              <td>{new Date(s.recorded_at).toLocaleString()}</td>
+              <td>
+                <button onClick={() => void reconstructPoseless(s.id)}>Reconstruct</button>
+              </td>
+            </tr>
+          ))}
+          {!poselessLoading && poselessSets.length === 0 && (
+            <tr>
+              <td colSpan={4} className="empty">
+                No poseless image sets yet — click Upload to pick a folder of sequentially-ordered images.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+
+      {poselessActiveJobId && (
+        <div
+          className={`banner ${
+            poselessJobDone ? (poselessJob?.status === "succeeded" ? "banner-success" : "banner-error") : "banner-info"
+          }`}
+        >
+          {poselessJob === null && <span>Starting…</span>}
+          {poselessJob !== null && (
+            <>
+              <div>
+                Reconstruction {poselessJob.reconstruction_id ?? "…"} — {poselessReconstruction?.status ?? poselessJob.status}
+                {poselessReconstruction?.queue_position != null &&
+                  ` (queue ${poselessReconstruction.queue_position}/${poselessReconstruction.queue_depth})`}
+              </div>
+              {poselessReconstruction?.progress_total != null && (
+                <div>
+                  Progress: {poselessReconstruction.progress_current}/{poselessReconstruction.progress_total}
+                </div>
+              )}
+              {poselessReconstruction?.status === "succeeded" && (
+                <div>
+                  Map points: {poselessReconstruction.map_point_count}, images: {poselessReconstruction.map_image_count}
+                </div>
+              )}
+              {(poselessJob.error ||
+                (poselessReconstruction &&
+                  TERMINAL_STATUSES.has(poselessReconstruction.status) &&
+                  poselessReconstruction.status !== "succeeded")) && (
+                <div>Error: {poselessJob.error ?? poselessReconstruction?.error ?? "unknown error"}</div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {showDirectoryPicker && (
+        <DirectoryBrowserDialog
+          title="Select a folder of images"
+          onSelect={(path) => void onSelectDirectory(path)}
+          onCancel={() => setShowDirectoryPicker(false)}
+        />
+      )}
+    </div>
+    </>
   );
 }

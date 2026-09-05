@@ -40,6 +40,14 @@ export interface Job<TResult = unknown> {
 
 export const TERMINAL_STATUSES = new Set(["succeeded", "failed", "cancelled"]);
 
+export interface PoselessImageSet {
+  id: string;
+  name: string;
+  path: string;
+  image_count: number;
+  recorded_at: string;
+}
+
 export interface LocalizationImage {
   index: number;
   filename: string;

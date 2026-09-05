@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import base64
 import csv
+import re
 import sys
 import tarfile
-from asyncio import run, sleep
+from asyncio import run, sleep, to_thread
 from collections.abc import Callable
 from datetime import datetime, timezone
 from io import BytesIO
@@ -72,6 +73,38 @@ LOCALIZATIONS_DIR = DATA_DIR / "localizations"
 LOCALIZATION_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
 LOCALIZATION_THUMBNAIL_SIZE = (200, 150)
 
+# "Poseless" captures: a plain sequentially-ordered folder of images with no known camera pose
+# (e.g. frames extracted from a video), packaged into a monocular capture with a synthetic
+# straight-line trajectory. Rig.__init__ (docker/reconstructor/src/reconstructor/rig.py) parses
+# frames.csv as a fixed 7-column `timestamp_ms,tx,ty,tz,qx,qy,qz,qw` layout — there is no 3/6-column
+# dispatch despite docker/reconstructor/AGENTS.md's "frames.csv schema is column-count-dispatched"
+# claim, which describes an aspirational/stale schema, not the code as it stands. An identity
+# quaternion keeps rotation a no-op (rig.py only uses it to derive gravity_in_rig_local, which comes
+# out as OPENCV down [0, 1, 0] regardless — exactly what a stationary-gravity assumption wants).
+POSELESS_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
+POSELESS_TARGET_KEYFRAMES = 30
+# Mirrors ReconstructionOptions.keyframe_min_distance_m's default (core/reconstruction_options.py —
+# verified directly, since docker/reconstructor/AGENTS.md's stated default of 0.3m does not match
+# the code). Used only to size the synthetic trajectory's step so it yields roughly
+# POSELESS_TARGET_KEYFRAMES keyframes regardless of how many images were supplied.
+POSELESS_KEYFRAME_MIN_DISTANCE_M = 1.0
+# Default milliseconds between synthetic frame timestamps; arbitrary since no real capture rate
+# exists, but must be nonzero and monotonically increasing per frame for frame_id uniqueness.
+POSELESS_FRAME_INTERVAL_MS = 200
+# Bundle adjustment treats position priors as a quadratic PosePrior loss (docker/reconstructor's
+# "priors-on vs priors-off" constraint) — with a synthetic trajectory this would inject fabricated
+# geometry into BA. Inflating the prior's assumed uncertainty this far makes that loss term
+# negligible, so COLMAP's own feature-matched geometry dominates instead, approximating the
+# multi-camera priors-off path without touching the reconstructor itself.
+POSELESS_POSE_PRIOR_SIGMA_M = 1000.0
+
+_NATURAL_SORT_SPLIT_RE = re.compile(r"(\d+)")
+
+
+def _natural_sort_key(name: str) -> list[int | str]:
+    return [int(part) if part.isdigit() else part.lower() for part in _NATURAL_SORT_SPLIT_RE.split(name)]
+
+
 _TERMINAL_STATUSES = (ReconstructionStatus.SUCCEEDED, ReconstructionStatus.FAILED, ReconstructionStatus.CANCELLED)
 
 
@@ -109,6 +142,76 @@ async def upload_capture_session(
     )
 
 
+def build_poseless_capture_tar(image_dir: Path, frame_interval_ms: int = POSELESS_FRAME_INTERVAL_MS) -> tuple[bytes, int]:
+    images = sorted(
+        (p for p in image_dir.iterdir() if p.is_file() and p.suffix.lower() in POSELESS_IMAGE_EXTENSIONS),
+        key=lambda p: _natural_sort_key(p.name),
+    )
+    if not images:
+        raise ValueError(f"No images (.jpg/.jpeg/.png) found in {image_dir}")
+
+    with Image.open(images[0]) as first_image:
+        width, height = first_image.size
+
+    manifest = {
+        "axis_convention": "OPENCV",
+        "rigs": [
+            {
+                "id": "rig0",
+                "cameras": [
+                    {
+                        "id": "camera0",
+                        "ref_sensor": True,
+                        "rotation": {"x": 0.0, "y": 0.0, "z": 0.0, "w": 1.0},
+                        "translation": {"x": 0.0, "y": 0.0, "z": 0.0},
+                        "camera_config": {
+                            "orientation": "TOP_LEFT",
+                            "width": width,
+                            "height": height,
+                            # No real calibration available for an arbitrary image folder; a
+                            # unit-aspect-ratio guess (fx=fy=width, principal point at center) is a
+                            # reasonable default for typical phone/webcam FOVs but will distort
+                            # scale/geometry if the source camera's real intrinsics differ.
+                            "fx": float(width),
+                            "fy": float(width),
+                            "cx": width / 2.0,
+                            "cy": height / 2.0,
+                        },
+                    }
+                ],
+            }
+        ],
+        "capture_interval_seconds": frame_interval_ms / 1000.0,
+    }
+
+    # Straight-line synthetic trajectory sized so keyframe selection (which keeps a frame every
+    # POSELESS_KEYFRAME_MIN_DISTANCE_M of translation) yields roughly POSELESS_TARGET_KEYFRAMES
+    # keyframes regardless of how many images were supplied.
+    step_m = (POSELESS_TARGET_KEYFRAMES * POSELESS_KEYFRAME_MIN_DISTANCE_M) / max(1, len(images) - 1)
+
+    frame_lines = ["timestamp_ms,tx,ty,tz,qx,qy,qz,qw"]
+    for index in range(len(images)):
+        timestamp_ms = index * frame_interval_ms
+        frame_lines.append(f"{timestamp_ms},{index * step_m:.6f},0,0,0,0,0,1")
+    frames_csv = "\n".join(frame_lines) + "\n"
+
+    buffer = BytesIO()
+    with tarfile.open(fileobj=buffer, mode="w") as tar:
+
+        def add_bytes(name: str, data: bytes) -> None:
+            info = tarfile.TarInfo(name=name)
+            info.size = len(data)
+            tar.addfile(info, BytesIO(data))
+
+        add_bytes("manifest.json", dumps(manifest).encode())
+        add_bytes("rig0/frames.csv", frames_csv.encode())
+        for index, image_path in enumerate(images):
+            timestamp_ms = index * frame_interval_ms
+            tar.add(image_path, arcname=f"rig0/camera0/{timestamp_ms}.jpg")
+
+    return buffer.getvalue(), len(images)
+
+
 async def create_reconstruction(
     api: DefaultApi,
     capture_session_id: UUID,
@@ -142,6 +245,12 @@ async def create_reconstruction(
 
 def _parse_options(options_json: str | None) -> ReconstructionOptions:
     return ReconstructionOptions.model_validate(loads(options_json)) if options_json else ReconstructionOptions()
+
+
+def _parse_poseless_options(options_json: str | None) -> ReconstructionOptions:
+    overrides = loads(options_json) if options_json else {}
+    overrides.setdefault("pose_prior_position_sigma_m", POSELESS_POSE_PRIOR_SIGMA_M)
+    return ReconstructionOptions.model_validate(overrides)
 
 
 def _metrics(reconstruction: ReconstructionReadWithQueue) -> dict[str, Any]:
@@ -330,6 +439,37 @@ def reconstruct(
     json_output: Annotated[bool, typer.Option("--json", help="Emit JSON instead of text")] = False,
 ) -> None:
     reconstruction = run(_reconstruct(capture_id, _parse_options(options_json), wait, timeout_s))
+    _report_reconstruction(reconstruction, json_output)
+
+
+@app.command(name="reconstruct-poseless")
+def reconstruct_poseless(
+    image_dir: Annotated[
+        Path, typer.Argument(help="Directory of sequentially-ordered, poseless images (.jpg/.jpeg/.png)")
+    ],
+    name: Annotated[str, typer.Option(help="Capture session name")],
+    frame_interval_ms: Annotated[
+        int, typer.Option(help="Synthetic milliseconds between frames; arbitrary, just needs to be nonzero")
+    ] = POSELESS_FRAME_INTERVAL_MS,
+    options_json: Annotated[
+        str | None,
+        typer.Option(
+            help="JSON overrides for ReconstructionOptions; pose_prior_position_sigma_m defaults to "
+            f"{POSELESS_POSE_PRIOR_SIGMA_M} unless overridden here, to neutralize the synthetic trajectory's "
+            "influence on bundle adjustment"
+        ),
+    ] = None,
+    wait: Annotated[bool, typer.Option(help="Poll until the reconstruction reaches a terminal status")] = False,
+    timeout_s: Annotated[float, typer.Option(help="Seconds to wait for --wait before giving up")] = (
+        RECONSTRUCTION_TIMEOUT_S
+    ),
+    json_output: Annotated[bool, typer.Option("--json", help="Emit JSON instead of text")] = False,
+) -> None:
+    reconstruction = run(
+        _reconstruct_poseless(
+            image_dir, name, _parse_poseless_options(options_json), frame_interval_ms, wait, timeout_s
+        )
+    )
     _report_reconstruction(reconstruction, json_output)
 
 
@@ -628,6 +768,24 @@ async def _reconstruct(
     async with authenticated_api_client() as api:
         try:
             return await create_reconstruction(api, capture_id, options, wait, timeout_s)
+        except ApiException as exception:
+            _fail(exception)
+
+
+async def _reconstruct_poseless(
+    image_dir: Path,
+    name: str,
+    options: ReconstructionOptions,
+    frame_interval_ms: int,
+    wait: bool,
+    timeout_s: float,
+) -> ReconstructionReadWithQueue:
+    tar_bytes, image_count = await to_thread(build_poseless_capture_tar, image_dir, frame_interval_ms)
+    async with authenticated_api_client() as api:
+        try:
+            capture = await upload_capture_session(api, f"{name}.tar", tar_bytes, DeviceType.ARFOUNDATION, name)
+            typer.echo(f"Uploaded poseless capture {capture.id} ({image_count} images)", err=True)
+            return await create_reconstruction(api, capture.id, options, wait, timeout_s)
         except ApiException as exception:
             _fail(exception)
 
