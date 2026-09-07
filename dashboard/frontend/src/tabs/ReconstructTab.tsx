@@ -5,6 +5,27 @@ import type { CaptureSession, PoselessImageSet, Reconstruction } from "../types"
 import { TERMINAL_STATUSES } from "../types";
 import { useJobPoll } from "../useJobPoll";
 
+const FOCAL_LENGTH_STORAGE_KEY = "placeframe-dashboard.reconstruct.poselessFocalLength";
+
+// localStorage can throw (private browsing, quota, disabled site data) or come back empty — either
+// way, fall back to no remembered value rather than breaking the tab. Same pattern as the Tools/
+// Visualize tabs' remembered output directories.
+function readStoredFocalLength(): string {
+  try {
+    return localStorage.getItem(FOCAL_LENGTH_STORAGE_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+function storeFocalLength(value: string): void {
+  try {
+    localStorage.setItem(FOCAL_LENGTH_STORAGE_KEY, value);
+  } catch {
+    // ignore — remembering the last-used focal length is a convenience, not required
+  }
+}
+
 function formatSize(bytes: number): string {
   const units = ["B", "KB", "MB", "GB"];
   let size = bytes;
@@ -31,6 +52,16 @@ export function ReconstructTab() {
   const [editingNameId, setEditingNameId] = useState<string | null>(null);
   const [editingNameValue, setEditingNameValue] = useState("");
   const [poselessActiveJobId, setPoselessActiveJobId] = useState<string | null>(null);
+
+  const [reconstructTarget, setReconstructTarget] = useState<PoselessImageSet | null>(null);
+  const [focalLength, setFocalLengthState] = useState(readStoredFocalLength);
+  const [useAllImages, setUseAllImages] = useState(false);
+  const [poselessOptionsJson, setPoselessOptionsJson] = useState("");
+
+  function setFocalLength(value: string): void {
+    setFocalLengthState(value);
+    storeFocalLength(value);
+  }
 
   const job = useJobPoll<Reconstruction>(activeJobId);
   const poselessJob = useJobPoll<Reconstruction>(poselessActiveJobId);
@@ -93,9 +124,22 @@ export function ReconstructTab() {
     }
   }
 
-  async function reconstructPoseless(id: string): Promise<void> {
-    const { job_id } = await startPoselessReconstruct(id, null);
+  function openReconstructDialog(set: PoselessImageSet): void {
+    setReconstructTarget(set);
+    setUseAllImages(false);
+    setPoselessOptionsJson("");
+  }
+
+  async function confirmReconstructPoseless(): Promise<void> {
+    if (!reconstructTarget || !focalLength.trim()) return;
+    const { job_id } = await startPoselessReconstruct(
+      reconstructTarget.id,
+      Number(focalLength),
+      useAllImages,
+      poselessOptionsJson.trim() || null,
+    );
     setPoselessActiveJobId(job_id);
+    setReconstructTarget(null);
   }
 
   function openDialog(captureId: string): void {
@@ -262,7 +306,7 @@ export function ReconstructTab() {
               <td>{s.image_count}</td>
               <td>{new Date(s.recorded_at).toLocaleString()}</td>
               <td>
-                <button onClick={() => void reconstructPoseless(s.id)}>Reconstruct</button>
+                <button onClick={() => openReconstructDialog(s)}>Reconstruct</button>
               </td>
             </tr>
           ))}
@@ -308,6 +352,45 @@ export function ReconstructTab() {
               )}
             </>
           )}
+        </div>
+      )}
+
+      {reconstructTarget && (
+        <div className="dialog-overlay" onClick={() => setReconstructTarget(null)}>
+          <div className="dialog" onClick={(e) => e.stopPropagation()}>
+            <h3>Reconstruct {reconstructTarget.name}</h3>
+            <label>
+              Focal length (pixels, used for both fx and fy)
+              <input
+                type="number"
+                placeholder="e.g. 1350"
+                value={focalLength}
+                onChange={(e) => setFocalLength(e.target.value)}
+              />
+            </label>
+            <label>
+              Image usage
+              <select value={useAllImages ? "all" : "auto"} onChange={(e) => setUseAllImages(e.target.value === "all")}>
+                <option value="auto">Auto (let the reconstructor pick keyframes)</option>
+                <option value="all">All (force every image to be used)</option>
+              </select>
+            </label>
+            <label>
+              Options (JSON, optional overrides for ReconstructionOptions)
+              <textarea
+                rows={4}
+                placeholder='{"ransac_max_error": 2.0}'
+                value={poselessOptionsJson}
+                onChange={(e) => setPoselessOptionsJson(e.target.value)}
+              />
+            </label>
+            <div className="dialog-actions">
+              <button onClick={() => setReconstructTarget(null)}>Cancel</button>
+              <button className="primary" onClick={() => void confirmReconstructPoseless()} disabled={!focalLength.trim()}>
+                Reconstruct
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

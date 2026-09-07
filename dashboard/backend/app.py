@@ -321,6 +321,8 @@ async def start_reconstruct(data: ReconstructRequest) -> dict[str, str]:
 
 @dataclass
 class PoselessReconstructRequest:
+    focal_length: float
+    use_all_images: bool = False
     options_json: str | None = None
 
 
@@ -332,7 +334,11 @@ async def start_poseless_reconstruct(set_id: str, data: PoselessReconstructReque
         raise NotFoundException(f"No poseless image set {set_id}")
     job = Job(id=str(uuid.uuid4()), kind="reconstruct")
     JOBS[job.id] = job
-    _spawn(_run_poseless_reconstruct_job(job, entry["path"], entry["name"], data.options_json))
+    _spawn(
+        _run_poseless_reconstruct_job(
+            job, entry["path"], entry["name"], data.focal_length, data.use_all_images, data.options_json
+        )
+    )
     return {"job_id": job.id}
 
 
@@ -395,9 +401,12 @@ async def _run_reconstruct_job(job: Job, capture_id: str, options_json: str | No
         job.error = str(exc)
 
 
-async def _run_poseless_reconstruct_job(job: Job, image_dir: str, name: str, options_json: str | None) -> None:
+async def _run_poseless_reconstruct_job(
+    job: Job, image_dir: str, name: str, focal_length: float, use_all_images: bool, options_json: str | None
+) -> None:
     try:
-        create_args = ["reconstruct-poseless", image_dir, "--name", name]
+        create_args = ["reconstruct-poseless", image_dir, "--name", name, "--focal-length", str(focal_length)]
+        create_args.append("--use-all-images" if use_all_images else "--auto-select-images")
         if options_json:
             create_args += ["--options-json", options_json]
         created = await _run_howard_test_json_async(*create_args)

@@ -143,7 +143,11 @@ async def upload_capture_session(
     )
 
 
-def build_poseless_capture_tar(image_dir: Path, frame_interval_ms: int = POSELESS_FRAME_INTERVAL_MS) -> tuple[bytes, int]:
+def build_poseless_capture_tar(
+    image_dir: Path,
+    focal_length: float,
+    frame_interval_ms: int = POSELESS_FRAME_INTERVAL_MS,
+) -> tuple[bytes, int]:
     images = sorted(
         (p for p in image_dir.iterdir() if p.is_file() and p.suffix.lower() in POSELESS_IMAGE_EXTENSIONS),
         key=lambda p: _natural_sort_key(p.name),
@@ -169,12 +173,13 @@ def build_poseless_capture_tar(image_dir: Path, frame_interval_ms: int = POSELES
                             "orientation": "TOP_LEFT",
                             "width": width,
                             "height": height,
-                            # No real calibration available for an arbitrary image folder; a
-                            # unit-aspect-ratio guess (fx=fy=width, principal point at center) is a
-                            # reasonable default for typical phone/webcam FOVs but will distort
-                            # scale/geometry if the source camera's real intrinsics differ.
-                            "fx": float(width),
-                            "fy": float(width),
+                            # No calibration exists for an arbitrary image folder, so the caller
+                            # supplies a real (or best-estimated, e.g. from a known FOV) focal
+                            # length in pixels rather than the tool guessing one — a wrong fx/fy
+                            # distorts scale/geometry, and unit-aspect-ratio guesses (fx=fy=width)
+                            # are frequently far off for wide/fisheye-ish lenses.
+                            "fx": focal_length,
+                            "fy": focal_length,
                             "cx": width / 2.0,
                             "cy": height / 2.0,
                         },
@@ -248,9 +253,16 @@ def _parse_options(options_json: str | None) -> ReconstructionOptions:
     return ReconstructionOptions.model_validate(loads(options_json)) if options_json else ReconstructionOptions()
 
 
-def _parse_poseless_options(options_json: str | None) -> ReconstructionOptions:
+def _parse_poseless_options(options_json: str | None, use_all_images: bool) -> ReconstructionOptions:
     overrides = loads(options_json) if options_json else {}
     overrides.setdefault("pose_prior_position_sigma_m", POSELESS_POSE_PRIOR_SIGMA_M)
+    if use_all_images:
+        # select_keyframes_by_distance (docker/reconstructor/src/reconstructor/keyframes.py) keeps
+        # a frame iff its distance from the last kept keyframe is >= this threshold. The synthetic
+        # trajectory's per-frame step is always well above 1e-6 (even at very high image counts),
+        # so this guarantees every supplied image is kept as a keyframe rather than thinned down to
+        # ~POSELESS_TARGET_KEYFRAMES — unless the caller's own options_json already sets this.
+        overrides.setdefault("keyframe_min_distance_m", 1e-6)
     return ReconstructionOptions.model_validate(overrides)
 
 
@@ -449,6 +461,21 @@ def reconstruct_poseless(
         Path, typer.Argument(help="Directory of sequentially-ordered, poseless images (.jpg/.jpeg/.png)")
     ],
     name: Annotated[str, typer.Option(help="Capture session name")],
+    focal_length: Annotated[
+        float,
+        typer.Option(
+            help="Focal length in pixels, used for both fx and fy (no calibration exists for an arbitrary "
+            "image folder, so this must be supplied rather than guessed)"
+        ),
+    ],
+    use_all_images: Annotated[
+        bool,
+        typer.Option(
+            "--use-all-images/--auto-select-images",
+            help="Force every supplied image to be kept as a keyframe, instead of letting the reconstructor's "
+            f"distance-based keyframe selection thin them down to roughly {POSELESS_TARGET_KEYFRAMES}",
+        ),
+    ] = False,
     frame_interval_ms: Annotated[
         int, typer.Option(help="Synthetic milliseconds between frames; arbitrary, just needs to be nonzero")
     ] = POSELESS_FRAME_INTERVAL_MS,
@@ -468,7 +495,13 @@ def reconstruct_poseless(
 ) -> None:
     reconstruction = run(
         _reconstruct_poseless(
-            image_dir, name, _parse_poseless_options(options_json), frame_interval_ms, wait, timeout_s
+            image_dir,
+            name,
+            focal_length,
+            _parse_poseless_options(options_json, use_all_images),
+            frame_interval_ms,
+            wait,
+            timeout_s,
         )
     )
     _report_reconstruction(reconstruction, json_output)
@@ -823,12 +856,13 @@ async def _reconstruct(
 async def _reconstruct_poseless(
     image_dir: Path,
     name: str,
+    focal_length: float,
     options: ReconstructionOptions,
     frame_interval_ms: int,
     wait: bool,
     timeout_s: float,
 ) -> ReconstructionReadWithQueue:
-    tar_bytes, image_count = await to_thread(build_poseless_capture_tar, image_dir, frame_interval_ms)
+    tar_bytes, image_count = await to_thread(build_poseless_capture_tar, image_dir, focal_length, frame_interval_ms)
     async with authenticated_api_client() as api:
         try:
             capture = await upload_capture_session(api, f"{name}.tar", tar_bytes, DeviceType.ARFOUNDATION, name)
