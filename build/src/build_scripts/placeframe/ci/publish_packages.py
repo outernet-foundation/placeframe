@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Iterator
+from collections.abc import Generator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
@@ -75,7 +75,7 @@ def patch_package_json(package_path: Path, version: str, dependency_updates: dic
 @contextmanager
 def ephemeral_patch(
     package_path: Path, version: str, dependency_updates: dict[str, str] | None = None
-) -> Iterator[None]:
+) -> Generator[None]:
     package_json = package_path / "package.json"
     original = package_json.read_text()
     try:

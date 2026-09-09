@@ -6,7 +6,7 @@ dependencies = []
 
 
 [dependency-groups]
-dev = ["build-scripts", "scripts", "basedpyright>=1.28.0", "deptry>=0.24.0", "ruff>=0.14.11", "pytest>=8.0.0", "pytest-asyncio>=0.24.0"]
+dev = ["build-scripts", "scripts", "basedpyright>=1.39.10", "deptry>=0.24.0", "ruff>=0.14.11", "pytest>=8.0.0", "pytest-asyncio>=0.24.0"]
 
 [tool.uv.workspace]
 members = [

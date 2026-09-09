@@ -22,6 +22,14 @@ ENV \
 # Create the virtual environment
 RUN uv venv $UV_PROJECT_ENVIRONMENT
 
+# Git is required to resolve VCS dependencies in the lock file (e.g. logconf)
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    git ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
 # Install dependencies
 COPY docker/lease-server/pylock.toml ./pylock.toml
 RUN --mount=type=cache,id=uvcache,sharing=locked,target=/root/.cache/uv \

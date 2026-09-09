@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from os import environ
 from pathlib import Path
@@ -13,7 +13,7 @@ from placeframe_api_client import ApiClient, Configuration, DefaultApi, ServerIn
 
 
 @asynccontextmanager
-async def authenticated_api_client() -> AsyncIterator[DefaultApi]:
+async def authenticated_api_client() -> AsyncGenerator[DefaultApi]:
     public_url = _read_public_url()
     async with ApiClient(Configuration(host=public_url)) as api_client:
         # The unauthenticated /server-info endpoint reports how the backend wants to be addressed:
