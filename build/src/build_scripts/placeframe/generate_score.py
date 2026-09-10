@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import re
-from collections.abc import Iterator
+from collections.abc import Generator
 from contextlib import contextmanager
 from enum import Enum
 from pathlib import Path
@@ -121,7 +121,7 @@ def _init_state(command: str, provisioners: list[str], patch_templates: list[str
 
 
 @contextmanager
-def _rendered_workloads() -> Iterator[str]:
+def _rendered_workloads() -> Generator[str]:
     # Workload files are Score spec documents, not Go templates, so they cannot read the
     # environment the way the provisioner files can. Expanding ${API_SHA} into a rendered copy
     # keeps one mechanism across both halves.
