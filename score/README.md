@@ -8,40 +8,116 @@ definitions that drift apart. It is a proof-of-concept covering a slice of the s
 **api**, **lease-server**, and the **gateway** (Caddy), backed by **postgres** (real
 `placeframe_*` roles and schema) and **MinIO** object storage.
 
-## Run it
+## Generate
 
-Two `uv run` commands do everything — first-time setup, generate, bring-up, tear-down.
-You do not run `score-compose` / `score-k8s` / `k3d` / `kubectl` by hand.
+Generation is a separate step from deployment. `generate-score` writes the artifacts and
+deploys nothing.
 
 ```bash
-uv run score-up                               # Docker (default)
-uv run score-up --target k3s                  # Kubernetes (throwaway k3d), StatefulSet postgres
-uv run score-up --target k3s --postgres cnpg  # Kubernetes, CloudNativePG-managed postgres
-uv run score-down                             # Docker: stop and wipe volumes
-uv run score-down --target k3s                # Kubernetes: delete the cluster + wipe state
+uv run generate-score                  # both artifacts
+uv run generate-score --target compose # score/compose.yaml only
+uv run generate-score --target k8s     # score/deploy/manifests.yaml only
 ```
 
-Then open the stack through the **gateway** (Caddy, the real front door):
+Both outputs are committed. Image tags resolve from `compute_service_shas` — the same
+function `up` and `build-docker` use — which reads **committed** state (`git ls-tree HEAD`),
+not your working tree. So the order is: commit the source change, then regenerate, then
+commit the artifacts. Generating first produces artifacts built against the previous tree,
+and CI will flag them.
 
-- **Docker** publishes it to your machine → `http://localhost:8443/schema/swagger`.
-- **k3s** has no host port → `kubectl port-forward deploy/gateway 8443:8443`, then
-  `http://localhost:8443`.
+Regeneration is deterministic: with no upstream change, `git status` comes back clean.
 
-Notes:
+## Deploy: Docker
 
-- `score-up` is re-runnable and only creates the k3d cluster when one isn't already there.
-- **`--postgres`** (k3s only) picks the postgres backend: `statefulset` (default) or
-  `cnpg` (see below). It is fixed per cluster — to switch, `score-down --target k3s`
-  first (that wipes the cluster and generated state), then bring up again.
+```bash
+uv run up   --compose-file score/compose.yaml --gpu none
+uv run down --compose-file score/compose.yaml --gpu none -v
+```
+
+`stack-lifecycle` needs no changes — `--compose-file` puts it on its consumer-stack path.
+`--gpu none` is required, not optional: both commands default to `--gpu auto`, which calls
+`detect_gpu()` and raises when neither `nvidia-smi` nor `rocminfo` is present. The Score
+stack has no GPU services.
+
+The generated compose reads the same `.env` as the hand-authored stack, so the two agree on
+every credential — there is no separate set of Score passwords to keep in step.
+
+Reach it at `http://localhost:8443/schema/swagger`.
+
+## Deploy: Kubernetes
+
+```bash
+kubectl apply -f score/deploy/manifests.yaml
+```
+
+The cluster is a precondition, not part of the deploy. On the real cluster, Argo CD applies
+this file itself (see the infra repo); the Pulumi program also creates the `placeframe-secrets`
+Secret every manifest references and installs the Hetzner CSI driver that provides
+`hcloud-volumes`.
+
+There is no host port, so reach the gateway with
+`kubectl port-forward deploy/gateway 8443:8443`.
+
+### Against a local cluster
+
+A PersistentVolumeClaim names the *kind* of disk it wants. The default is `hcloud-volumes`,
+Hetzner's CSI class; a local cluster has no such class, so its PVCs sit `Pending` forever and
+nothing starts. k3s offers `local-path` instead:
+
+```bash
+k3d cluster create score-poc --no-lb --k3s-arg "--disable=traefik@server:0"
+
+# No Pulumi locally, so mint the Secret the manifests reference:
+kubectl create secret generic placeframe-secrets \
+  --from-literal=POSTGRES_ADMIN_PASSWORD=$(openssl rand -hex 16) \
+  --from-literal=DATABASE_OWNER_PASSWORD=$(openssl rand -hex 16) \
+  --from-literal=DATABASE_API_USER_PASSWORD=$(openssl rand -hex 16) \
+  --from-literal=DATABASE_AUTH_USER_PASSWORD=$(openssl rand -hex 16) \
+  --from-literal=DATABASE_ORCHESTRATION_USER_PASSWORD=$(openssl rand -hex 16) \
+  --from-literal=MINIO_ACCESS_KEY=$(openssl rand -hex 8) \
+  --from-literal=MINIO_SECRET_KEY=$(openssl rand -hex 16) \
+  --from-literal=KEYCLOAK_ADMIN_PASSWORD=$(openssl rand -hex 16) \
+  --from-literal=PUBLIC_URL=http://localhost:8443 \
+  --from-literal=AUTH_MODE=disabled \
+  --from-literal=AUTH_AUDIENCE=placeframe-api \
+  --from-literal=AUTH_ISSUER_URL= --from-literal=AUTH_URL= --from-literal=AUTH_TOKEN_URL= \
+  --from-literal=DEPLOYMENT_ENVIRONMENT=development \
+  --from-literal=KEYCLOAK_HOSTNAME=http://localhost:8443/auth
+
+uv run generate-score --local --target k8s
+kubectl apply -f score/manifests.yaml
+```
+
+`--local` writes to `score/manifests.yaml`, which is gitignored, and leaves the committed
+`score/deploy/manifests.yaml` untouched. That separation is deliberate: `local-path` reaching
+the real cluster leaves the Postgres and MinIO volumes unbindable on the next rebuild.
+
+k3d pulls through Docker Hub, whose unauthenticated rate limit is low enough to fail a cold
+cluster. If pulls fail, preload the image into the node:
+
+```bash
+docker pull <image> && docker save <image> \
+  | docker exec -i k3d-score-poc-server-0 ctr -n k8s.io images import -
+```
+
+Tear down with `k3d cluster delete score-poc`.
 
 **Prerequisites:** `score-compose` 0.42.0 and `score-k8s` 0.15.0 on PATH, plus Docker; for
-the k3s target also [`k3d`](https://k3d.io) 5.x and `kubectl`. The service images must be
-available locally (`uv run build`) or pullable from `ghcr.io`.
+the Kubernetes path also [`k3d`](https://k3d.io) 5.x and `kubectl`. The service images must
+be available locally (`uv run build`) or pullable from `ghcr.io`.
 
-The wrappers live in `placeframe-stack` (`score_up.py` / `score_down.py`). That code is the
-reference for the exact steps each one runs (init, generate, k3d create, image preload,
-CNPG operator install, `kubectl apply`, readiness waits) — this README does not duplicate
-those command sequences.
+## CI enforces that the artifacts match their source
+
+`preflight` runs `generate-score` and fails when `score/` comes back dirty, in the same shape
+as its datamodel- and client-codegen checks. It checks and fails; it never commits, because
+CI in this repo must not create commits on any branch. When it fires, run `uv run
+generate-score` locally and commit the result.
+
+Two things make that gate viable. `score/.score-k8s/state.yaml` is committed, because
+`score-k8s` mints a random uid per workload on first sight and emits it as the
+`app.kubernetes.io/instance` label — without the state file a fresh checkout regenerates
+different manifests. And `generate-score` sorts the emitted documents, because `score-k8s`
+emits workloads in Go map order, which is randomised.
 
 ## What's in this directory
 
@@ -54,15 +130,21 @@ compose patch are the source; everything else is generated or tool-managed.
 | `placeframe-postgres.provisioners.yaml` | authored — custom postgres provisioner (Docker) | yes |
 | `placeframe-postgres.k8s.provisioners.yaml` | authored — custom postgres provisioner (k8s, StatefulSet) | yes |
 | `placeframe-postgres-cnpg.k8s.provisioners.yaml` | authored — alternative postgres provisioner (k8s, CloudNativePG) | yes |
-| `placeframe-s3.provisioners.yaml` | authored — fixed-name MinIO provisioner (for Loki; not yet wired to the workloads) | yes |
+| `placeframe-s3.provisioners.yaml` | authored — fixed-name MinIO provisioner, overrides the built-in `s3` | yes |
 | `../docker/postgres-cnpg/Dockerfile` | authored — trusted-PostGIS operand image for CNPG | yes |
 | `restart-policy.tpl` | authored — compose-only patch template | yes |
-| `compose.yaml`, `manifests.yaml` | generated | no — gitignored (resolved secrets) |
-| `.score-compose/`, `.score-k8s/` | `init` | state gitignored; provisioner catalogs regenerable |
+| `compose.yaml`, `deploy/manifests.yaml` | generated | yes — the reviewed artifacts |
+| `.score-k8s/state.yaml` | `init` + `generate` | yes — pins the per-workload uids so generation reproduces |
+| `.score-compose/`, rest of `.score-k8s/` | `init` | no — rewritten on every run |
 
-Generated DB/role passwords and MinIO keys appear only in the generated output and the
-`state.yaml` files — never in the authored files. Those paths are gitignored, so nothing
-sensitive is committed.
+Generation resolves no secret. The compose provisioners emit `${VAR:?err}` placeholders that
+docker resolves from `--env-file` at run time, exactly as the hand-authored `compose.yml`
+does; the k8s provisioners resolve every credential to an `encodeSecretRef` pointer into the
+externally-managed `placeframe-secrets` Secret. Both artifacts are therefore safe to commit.
+
+Image tags come from `compute_service_shas` at generation time — the same function `up` and
+`build-docker` use — so no `tree-<sha>` tag is ever hand-edited. The workload files carry
+`${API_SHA}`-style placeholders for this and are not standalone-valid Score documents.
 
 ## What the provisioners stand up
 
@@ -73,13 +155,14 @@ sensitive is committed.
   `database-migrator` (`pg-schema-diff`) applies the schema. `api` and `lease-server`
   share one database via a common resource `id`. **Result:** real data operations work,
   not just `/health`.
-- **`bucket` (type `s3`)** — the **default** provisioner: a real MinIO with a service
-  account, keys, and a bucket. No custom provisioner needed.
+- **`bucket` (type `s3`)** — a **custom** provisioner overriding the built-in, which mints
+  random credentials at generation time and uses a random service and bucket name that loki
+  (its config hardcodes `minio:9000` and bucket `loki`) cannot reach.
 
 ## Postgres backends: StatefulSet or CloudNativePG
 
-`--postgres` selects how postgres runs on Kubernetes; both use the same
-`placeframe-postgres` resource type, so the workloads are identical either way.
+Both use the same `placeframe-postgres` resource type, so the workloads are identical either
+way; which one applies is set by whichever provisioner file is registered.
 
 - **`statefulset`** (default) — a raw `StatefulSet` + Service + a create Job + a migrate
   Job, all authored directly.
@@ -89,8 +172,7 @@ sensitive is committed.
   **reuses the same tooling** as the StatefulSet path — the `Cluster` only bootstraps a
   bare database and owner (with `enableSuperuserAccess`), then the same `database-manager`
   create Job applies all roles/grants/RLS and the same `database-migrator` Job applies the
-  schema. `score-up --postgres cnpg` installs the operator and builds the operand image
-  automatically.
+  schema. The operator install and the operand-image build are manual steps.
 
   The operand image (`../docker/postgres-cnpg/Dockerfile`, tag `14-trusted`) exists because
   CNPG runs its own instance manager, so PostGIS is marked *trusted* at build time (instead
@@ -103,11 +185,14 @@ Every image *we* author or provision is SHA-pinned. The unpinned references all 
 tooling defaults and violate the repo-wide "pin everything / no `:latest`" rule — acceptable
 for a throwaway PoC, a blocker for real adoption:
 
-- `quay.io/minio/minio` (the default `s3` provisioner) — no tag.
 - `alpine` (the compose resource-wait gate) — no tag, no registry host.
-- `placeframe-postgres-cnpg:14-trusted` (the CNPG operand image) — built locally each
-  `--postgres cnpg` spin-up, not registry-hosted or digest-pinned (the CI token cannot push
-  to the placeframe `ghcr.io` namespace).
+- `placeframe-postgres-cnpg:14-trusted` (the CNPG operand image) — built locally, not
+  registry-hosted or digest-pinned (the CI token cannot push to the placeframe `ghcr.io`
+  namespace).
+
+MinIO is no longer on this list: the built-in `s3` provisioner's untagged
+`quay.io/minio/minio` was replaced by `placeframe-s3.provisioners.yaml`, which is
+digest-pinned.
 
 ## See also
 

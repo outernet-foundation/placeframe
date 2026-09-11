@@ -3,7 +3,7 @@ metadata:
   name: lease-server
 containers:
   lease-server:
-    image: ghcr.io/outernet-foundation/placeframe/lease-server:tree-afcc37506a2bdc482d4d2d4153a9dcf7eb0fe586
+    image: ghcr.io/outernet-foundation/placeframe/lease-server:${LEASE_SERVER_SHA}
     variables:
       POSTGRES_HOST: ${resources.db.host}
       DATABASE_NAME: ${resources.db.name}
