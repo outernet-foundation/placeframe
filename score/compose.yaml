@@ -92,7 +92,7 @@ services:
       timeout: 2s
       interval: 2s
       retries: 30
-    image: docker.io/minio/minio@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
+    image: quay.io/minio/minio@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
     restart: always
     volumes:
       - type: volume
@@ -107,7 +107,7 @@ services:
       - /bin/sh
       - -c
       - mc alias set local http://minio:9000 ${MINIO_ACCESS_KEY:?err} ${MINIO_SECRET_KEY:?err} && mc mb --ignore-existing local/dev-captures && mc mb --ignore-existing local/dev-reconstructions && mc mb --ignore-existing local/loki
-    image: docker.io/minio/mc@sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727
+    image: quay.io/minio/mc@sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727
     restart: "no"
   pf-postgres:
     entrypoint:
