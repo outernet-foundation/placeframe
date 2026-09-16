@@ -55,11 +55,6 @@ namespace Placeframe.Core
         private const int LockupRejectionThreshold = 5;
         private const float LockupSecondsThreshold = 5f;
 
-        // Discovery is a single quick GET; unlike the long-lived API client (whose timeout is
-        // infinite so uploads/reconstructions aren't cut off), it needs a finite bound so an
-        // unreachable host surfaces as a connect error instead of hanging the Connect button.
-        private static readonly TimeSpan DiscoveryTimeout = TimeSpan.FromSeconds(15);
-
         private static float _lastAcceptedTime = -1f;
 
         // Diagnostic bypass switches surfaced as toggles in the metrics dialog. Flipped at
@@ -71,6 +66,7 @@ namespace Placeframe.Core
 
         public static LocalizationMetrics MostRecentMetrics => _state.MostRecentMetrics;
         public static LocalizationMetrics LastReceivedMetrics { get; private set; }
+        public static DefaultApi Api => _api;
         public static bool Localizing => _localizationSubscription != null;
         public static int LocalizationMapCount => _maps.Count;
         public static IEnumerable<Guid> LocalizationMaps => _maps;

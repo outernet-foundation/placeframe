@@ -11,7 +11,6 @@ using FofX;
 using Newtonsoft.Json;
 using ObserveThing;
 using Placeframe.Client;
-using Placeframe.Core;
 #endif
 
 // Lives outside ZedCaptureController to keep zedStatus out of scope.
@@ -109,10 +108,10 @@ public static class LogDrainController
         if (!App.state.loggedIn.value)
             return;
 
-        // Built here, not in Initialize, because the backend auth handler reads the AuthMode and
-        // (under keycloak) the token minted by login — neither exists until we are logged in.
+        // Built here, not in Initialize, because the backend auth handler is minted by login —
+        // it does not exist until we are logged in.
         hostLokiHttpClient?.Dispose();
-        hostLokiHttpClient = new HttpClient(VisualPositioningSystem.CreateBackendAuthHandler(App.state.serverInfo.value));
+        hostLokiHttpClient = new HttpClient(AuthManager.HttpMessageHandler);
 
         logDrainTask = TaskHandle.Execute(LogDrainLoop);
     }

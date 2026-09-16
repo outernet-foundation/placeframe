@@ -15,4 +15,5 @@ public enum LogGroup
     [LogGroupColor("#59A14F")] Capture = 1 << 4,
     [LogGroupColor("#B07AA1")] Zed = 1 << 5,
     [LogGroupColor("#FF9D5C")] Android = 1 << 6,
+    [LogGroupColor("#F28E2B")] Auth = 1 << 7,
 }
