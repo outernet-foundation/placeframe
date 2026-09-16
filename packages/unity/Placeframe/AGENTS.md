@@ -36,7 +36,7 @@ The host Unity project's `Assets/Packages/` (NuGet-extracted via NuGetForUnity) 
         |  -- builds DefaultApi (generated PlaceframeApiClient) wrapped in AuthHttpHandler
         v
     SetLocalizationMaps(double3 ecefPosition, double radiusMeters) OR SetLocalizationMaps(Guid[])
-        |  -- diffs against the in-memory _maps set; adds/removes via LocalizationMapManager
+        |  -- diffs against the in-memory _maps set; adds/removes via LocalizationMapVisualizerManager
         v
     StartLocalizing(intervalSeconds)
         |  -- cameraProvider.CameraConfig().SelectMany(_ => cameraProvider.Frames(interval))
@@ -56,7 +56,7 @@ Public API surface:
 - **Diagnostic bypass switches**: `BypassInnovationGate` and `BypassKalman` are `public static bool` flags surfaced as toggles in the metrics dialog. Setting `BypassInnovationGate=true` skips the chi-squared outlier reject; `BypassKalman=true` snaps the posterior to each accepted measurement instead of merging it with the prior. Used to A/B individual pipeline stages against the same camera feed without a rebuild.
 - **Manual reset**: `SetEcefToUnityTransform(double4x4)` calls `RelocalizationFilter.Reset` -- wipes filter history, re-bootstraps the covariance.
 - **Reconstruction download**: `GetReconstructionPoints(Guid)`, `GetReconstructionFramePoses(Guid)` -- used by editor tooling.
-- **Map visualization**: `SetMapVisualizationsVisible(bool)`, `LocalizationMapManager.AddMap/RemoveMap` -- spawn ParticleSystem-based point-cloud renderers from the downloaded reconstruction points.
+- **Map visualization**: `SetMapVisualizationsVisible(bool)`, `LocalizationMapVisualizerManager.AddMap/RemoveMap` -- spawn ParticleSystem-based point-cloud renderers from the downloaded reconstruction points.
 
 ### Authentication
 
