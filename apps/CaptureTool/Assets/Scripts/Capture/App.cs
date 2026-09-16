@@ -17,7 +17,7 @@ namespace Placeframe.Client
         public SceneReferences sceneReferences;
         public UIPrimitiveSet uiPrimitives;
         public UIElementSet uiElements;
-        public LocalizationMapManager localizationMapManager;
+        public LocalizationMapVisualizerManager localizationMapManager;
 
         private IControl ui;
 
