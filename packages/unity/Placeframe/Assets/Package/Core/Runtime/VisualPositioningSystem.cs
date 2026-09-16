@@ -336,17 +336,17 @@ namespace Placeframe.Core
             double? positionZ = default,
             double? radius = default,
             CancellationToken cancellationToken = default
-        ) => _api.GetLocalizationMapsAsync(ids, reconstructionIds, positionX, positionY, positionZ, radius, cancellationToken);
+        ) => _api.GetLocalizationMapsAsync(ids, reconstructionIds, positionX, positionY, positionZ, radius, cancellationToken).AsUniTask();
 
         public static UniTask<LocalizationMapRead> GetMapData(Guid mapID)
         {
-            return _api.GetLocalizationMapAsync(mapID);
+            return _api.GetLocalizationMapAsync(mapID).AsUniTask();
         }
 
         public static async UniTask<ReconstructionPoint[]> GetReconstructionPoints(Guid reconstructionID, CancellationToken cancellationToken = default)
         {
             var pointPayload = await FetchPayloadAsync(
-                _api.GetReconstructionPointsAsync(reconstructionID, AxisConvention.UNITY),
+                _api.GetReconstructionPointsAsync(reconstructionID, AxisConvention.UNITY).AsUniTask(),
                 bytesPerElement: (3 * sizeof(float)) + 3,
                 cancellationToken
             );
@@ -378,7 +378,7 @@ namespace Placeframe.Core
         public static async UniTask<Vector3[]> GetReconstructionFramePoses(Guid reconstructionID, CancellationToken cancellationToken = default)
         {
             var framePayload = await FetchPayloadAsync(
-                _api.GetReconstructionFramePosesAsync(reconstructionID, AxisConvention.UNITY),
+                _api.GetReconstructionFramePosesAsync(reconstructionID, AxisConvention.UNITY).AsUniTask(),
                 bytesPerElement: (3 * sizeof(float)) + (4 * sizeof(float)),
                 cancellationToken
             );
