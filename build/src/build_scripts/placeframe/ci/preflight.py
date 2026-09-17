@@ -9,10 +9,27 @@ from bashrun import bash, bash_output
 
 from unity_buildkit.ci_step import ci_step
 from stack_lifecycle.context_sha import compute_service_shas
-from stack_lifecycle.image_refs import unpinned_references
+from stack_lifecycle.image_refs import VersionCoupling, VersionSite, unpinned_references, version_coupling_violations
 from ..lock_python import lock_python
 
 app = typer.Typer(add_completion=False, pretty_exceptions_show_locals=False)
+
+VERSION_COUPLINGS = [
+    VersionCoupling(
+        name="uv",
+        pyproject_key="tool.uv.required-version",
+        sites=(VersionSite("uv base tag", "compose*.bake.yml", r"uv:([^@]+?)-", "UV_BASE_DIGEST"),),
+    ),
+    VersionCoupling(
+        name="python",
+        pyproject_key="project.requires-python",
+        sites=(
+            VersionSite("uv base python component", "compose*.bake.yml", r"python([0-9][0-9.]*)", "UV_BASE_DIGEST"),
+            VersionSite("python base tag", "compose.zed.bake.yml", r"python:([0-9][0-9.]*)", "PYTHON_BASE_DIGEST"),
+            VersionSite("uv python install", "docker/zed-capture/Dockerfile", r"uv python install ([0-9][0-9.]*)"),
+        ),
+    ),
+]
 
 
 @app.command()
@@ -20,6 +37,10 @@ def main() -> None:
     with ci_step("Check image references"):
         if unpinned := unpinned_references(Path.cwd()):
             raise SystemExit(f"Unpinned image references (need tag or digest): {', '.join(sorted(unpinned))}")
+
+    with ci_step("Check image version couplings"):
+        if violations := version_coupling_violations(Path.cwd(), VERSION_COUPLINGS):
+            raise SystemExit(f"Image version coupling violations: {'; '.join(violations)}")
 
     with ci_step("Database setup"):
         os.environ.update(

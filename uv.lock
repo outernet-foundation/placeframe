@@ -233,7 +233,7 @@ requires-dist = [
     { name = "pyhumps", specifier = ">=3.8.0" },
     { name = "sqlacodegen", specifier = "==3.2.0" },
     { name = "sqlalchemy", specifier = ">=2.0.45" },
-    { name = "stack-lifecycle", git = "https://github.com/outernet-foundation/stack-lifecycle.git?rev=8134fc49b56e58bd14796f2defdf449b940865e8" },
+    { name = "stack-lifecycle", git = "https://github.com/outernet-foundation/stack-lifecycle.git?rev=8132ab66d6c6e8342d299fc4e76c8f9fe93ea2c1" },
     { name = "typer", specifier = ">=0.17.4" },
     { name = "unity-buildkit", git = "https://github.com/outernet-foundation/unity-buildkit.git?rev=70741126846015e001952d4465b7512c75643b2f" },
 ]
@@ -2481,7 +2481,7 @@ requires-dist = [
     { name = "pytransform3d", specifier = ">=3.5" },
     { name = "scikit-learn", specifier = ">=1.5" },
     { name = "scipy", specifier = ">=1.14" },
-    { name = "stack-lifecycle", git = "https://github.com/outernet-foundation/stack-lifecycle.git?rev=8134fc49b56e58bd14796f2defdf449b940865e8" },
+    { name = "stack-lifecycle", git = "https://github.com/outernet-foundation/stack-lifecycle.git?rev=8132ab66d6c6e8342d299fc4e76c8f9fe93ea2c1" },
     { name = "typer", specifier = ">=0.15" },
 ]
 
@@ -2566,7 +2566,7 @@ asyncio = [
 [[package]]
 name = "stack-lifecycle"
 version = "0.1.0"
-source = { git = "https://github.com/outernet-foundation/stack-lifecycle.git?rev=8134fc49b56e58bd14796f2defdf449b940865e8#8134fc49b56e58bd14796f2defdf449b940865e8" }
+source = { git = "https://github.com/outernet-foundation/stack-lifecycle.git?rev=8132ab66d6c6e8342d299fc4e76c8f9fe93ea2c1#8132ab66d6c6e8342d299fc4e76c8f9fe93ea2c1" }
 dependencies = [
     { name = "bashrun" },
     { name = "pathspec" },
