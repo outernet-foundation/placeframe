@@ -15,7 +15,7 @@ using TrackingState = UnityEngine.XR.ARSubsystems.TrackingState;
 
 namespace Placeframe.Core.ARFoundation
 {
-    public class CameraProvider : ICameraProvider
+    public class ARFoundationCameraProvider : ICameraProvider
     {
         private class AnchorChain
         {
@@ -101,7 +101,7 @@ namespace Placeframe.Core.ARFoundation
         private readonly ARCameraManager _cameraManager;
         private readonly ARAnchorManager _anchorManager;
 
-        public CameraProvider(ARCameraManager cameraManager, ARAnchorManager anchorManager)
+        public ARFoundationCameraProvider(ARCameraManager cameraManager, ARAnchorManager anchorManager)
         {
             _cameraManager = cameraManager;
             _anchorManager = anchorManager;
