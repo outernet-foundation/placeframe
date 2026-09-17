@@ -411,6 +411,14 @@
         "com.unity.xr.arfoundation": "6.0.6"
       }
     },
+    "org.outernet.placeframe.auth": {
+      "version": "file:../../../packages/unity/Placeframe/Assets/Package/Auth",
+      "depth": 0,
+      "source": "local",
+      "dependencies": {
+        "com.cysharp.unitask": "2.5.10"
+      }
+    },
     "com.unity.modules.accessibility": {
       "version": "1.0.0",
       "depth": 0,

@@ -15,7 +15,6 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Mime;
-using Cysharp.Threading.Tasks;
 using PlaceframeZedCaptureClient.Client;
 using PlaceframeZedCaptureClient.Model;
 
@@ -186,7 +185,7 @@ namespace PlaceframeZedCaptureClient.Api
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of void</returns>
-        Cysharp.Threading.Tasks.UniTask DeleteAllCaptureSessionsAsync(System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task DeleteAllCaptureSessionsAsync(System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// DeleteAllCaptureSessions
@@ -197,7 +196,7 @@ namespace PlaceframeZedCaptureClient.Api
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse</returns>
-        Cysharp.Threading.Tasks.UniTask<ApiResponse<Object>> DeleteAllCaptureSessionsWithHttpInfoAsync(System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task<ApiResponse<Object>> DeleteAllCaptureSessionsWithHttpInfoAsync(System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// DeleteCaptureSession
         /// </summary>
@@ -208,7 +207,7 @@ namespace PlaceframeZedCaptureClient.Api
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of void</returns>
-        Cysharp.Threading.Tasks.UniTask DeleteCaptureSessionAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task DeleteCaptureSessionAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// DeleteCaptureSession
@@ -220,7 +219,7 @@ namespace PlaceframeZedCaptureClient.Api
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse</returns>
-        Cysharp.Threading.Tasks.UniTask<ApiResponse<Object>> DeleteCaptureSessionWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task<ApiResponse<Object>> DeleteCaptureSessionWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// DownloadCaptureSessionTar
         /// </summary>
@@ -231,7 +230,7 @@ namespace PlaceframeZedCaptureClient.Api
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of FileParameter</returns>
-        Cysharp.Threading.Tasks.UniTask<FileParameter> DownloadCaptureSessionTarAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task<FileParameter> DownloadCaptureSessionTarAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// DownloadCaptureSessionTar
@@ -243,7 +242,7 @@ namespace PlaceframeZedCaptureClient.Api
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (FileParameter)</returns>
-        Cysharp.Threading.Tasks.UniTask<ApiResponse<FileParameter>> DownloadCaptureSessionTarWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task<ApiResponse<FileParameter>> DownloadCaptureSessionTarWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// GetCaptureSessions
         /// </summary>
@@ -253,7 +252,7 @@ namespace PlaceframeZedCaptureClient.Api
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;ZedCapture&gt;</returns>
-        Cysharp.Threading.Tasks.UniTask<List<ZedCapture>> GetCaptureSessionsAsync(System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task<List<ZedCapture>> GetCaptureSessionsAsync(System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// GetCaptureSessions
@@ -264,7 +263,7 @@ namespace PlaceframeZedCaptureClient.Api
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;ZedCapture&gt;)</returns>
-        Cysharp.Threading.Tasks.UniTask<ApiResponse<List<ZedCapture>>> GetCaptureSessionsWithHttpInfoAsync(System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task<ApiResponse<List<ZedCapture>>> GetCaptureSessionsWithHttpInfoAsync(System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// GetStatus
         /// </summary>
@@ -274,7 +273,7 @@ namespace PlaceframeZedCaptureClient.Api
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ZedStatus</returns>
-        Cysharp.Threading.Tasks.UniTask<ZedStatus> GetStatusAsync(System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task<ZedStatus> GetStatusAsync(System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// GetStatus
@@ -285,7 +284,7 @@ namespace PlaceframeZedCaptureClient.Api
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (ZedStatus)</returns>
-        Cysharp.Threading.Tasks.UniTask<ApiResponse<ZedStatus>> GetStatusWithHttpInfoAsync(System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task<ApiResponse<ZedStatus>> GetStatusWithHttpInfoAsync(System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// StartCapture
         /// </summary>
@@ -296,7 +295,7 @@ namespace PlaceframeZedCaptureClient.Api
         /// <param name="startCaptureRequest"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of Guid</returns>
-        Cysharp.Threading.Tasks.UniTask<Guid> StartCaptureAsync(StartCaptureRequest startCaptureRequest, System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task<Guid> StartCaptureAsync(StartCaptureRequest startCaptureRequest, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// StartCapture
@@ -308,7 +307,7 @@ namespace PlaceframeZedCaptureClient.Api
         /// <param name="startCaptureRequest"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (Guid)</returns>
-        Cysharp.Threading.Tasks.UniTask<ApiResponse<Guid>> StartCaptureWithHttpInfoAsync(StartCaptureRequest startCaptureRequest, System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task<ApiResponse<Guid>> StartCaptureWithHttpInfoAsync(StartCaptureRequest startCaptureRequest, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// StopCapture
         /// </summary>
@@ -319,7 +318,7 @@ namespace PlaceframeZedCaptureClient.Api
         /// <param name="stopCaptureRequest"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of void</returns>
-        Cysharp.Threading.Tasks.UniTask StopCaptureAsync(StopCaptureRequest stopCaptureRequest, System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task StopCaptureAsync(StopCaptureRequest stopCaptureRequest, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// StopCapture
@@ -331,7 +330,7 @@ namespace PlaceframeZedCaptureClient.Api
         /// <param name="stopCaptureRequest"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse</returns>
-        Cysharp.Threading.Tasks.UniTask<ApiResponse<Object>> StopCaptureWithHttpInfoAsync(StopCaptureRequest stopCaptureRequest, System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task<ApiResponse<Object>> StopCaptureWithHttpInfoAsync(StopCaptureRequest stopCaptureRequest, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// UpdateCaptureSession
         /// </summary>
@@ -343,7 +342,7 @@ namespace PlaceframeZedCaptureClient.Api
         /// <param name="updateCaptureSessionRequest"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of void</returns>
-        Cysharp.Threading.Tasks.UniTask UpdateCaptureSessionAsync(Guid id, UpdateCaptureSessionRequest updateCaptureSessionRequest, System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task UpdateCaptureSessionAsync(Guid id, UpdateCaptureSessionRequest updateCaptureSessionRequest, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// UpdateCaptureSession
@@ -356,7 +355,7 @@ namespace PlaceframeZedCaptureClient.Api
         /// <param name="updateCaptureSessionRequest"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse</returns>
-        Cysharp.Threading.Tasks.UniTask<ApiResponse<Object>> UpdateCaptureSessionWithHttpInfoAsync(Guid id, UpdateCaptureSessionRequest updateCaptureSessionRequest, System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task<ApiResponse<Object>> UpdateCaptureSessionWithHttpInfoAsync(Guid id, UpdateCaptureSessionRequest updateCaptureSessionRequest, System.Threading.CancellationToken cancellationToken = default);
         #endregion Asynchronous Operations
     }
 
@@ -622,9 +621,9 @@ namespace PlaceframeZedCaptureClient.Api
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of void</returns>
-        public async Cysharp.Threading.Tasks.UniTask DeleteAllCaptureSessionsAsync(System.Threading.CancellationToken cancellationToken = default)
+        public async System.Threading.Tasks.Task DeleteAllCaptureSessionsAsync(System.Threading.CancellationToken cancellationToken = default)
         {
-            await DeleteAllCaptureSessionsWithHttpInfoAsync(cancellationToken);
+            await DeleteAllCaptureSessionsWithHttpInfoAsync(cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -633,7 +632,7 @@ namespace PlaceframeZedCaptureClient.Api
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse</returns>
-        public async Cysharp.Threading.Tasks.UniTask<PlaceframeZedCaptureClient.Client.ApiResponse<Object>> DeleteAllCaptureSessionsWithHttpInfoAsync(System.Threading.CancellationToken cancellationToken = default)
+        public async System.Threading.Tasks.Task<PlaceframeZedCaptureClient.Client.ApiResponse<Object>> DeleteAllCaptureSessionsWithHttpInfoAsync(System.Threading.CancellationToken cancellationToken = default)
         {
 
             PlaceframeZedCaptureClient.Client.RequestOptions localVarRequestOptions = new PlaceframeZedCaptureClient.Client.RequestOptions();
@@ -656,7 +655,7 @@ namespace PlaceframeZedCaptureClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.DeleteAsync<Object>("/capture_sessions", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
+            var localVarResponse = await this.AsynchronousClient.DeleteAsync<Object>("/capture_sessions", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
 
             if (this.ExceptionFactory != null)
             {
@@ -724,9 +723,9 @@ namespace PlaceframeZedCaptureClient.Api
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of void</returns>
-        public async Cysharp.Threading.Tasks.UniTask DeleteCaptureSessionAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        public async System.Threading.Tasks.Task DeleteCaptureSessionAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
         {
-            await DeleteCaptureSessionWithHttpInfoAsync(id, cancellationToken);
+            await DeleteCaptureSessionWithHttpInfoAsync(id, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -736,7 +735,7 @@ namespace PlaceframeZedCaptureClient.Api
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse</returns>
-        public async Cysharp.Threading.Tasks.UniTask<PlaceframeZedCaptureClient.Client.ApiResponse<Object>> DeleteCaptureSessionWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        public async System.Threading.Tasks.Task<PlaceframeZedCaptureClient.Client.ApiResponse<Object>> DeleteCaptureSessionWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
         {
 
             PlaceframeZedCaptureClient.Client.RequestOptions localVarRequestOptions = new PlaceframeZedCaptureClient.Client.RequestOptions();
@@ -761,7 +760,7 @@ namespace PlaceframeZedCaptureClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.DeleteAsync<Object>("/capture_sessions/{id}", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
+            var localVarResponse = await this.AsynchronousClient.DeleteAsync<Object>("/capture_sessions/{id}", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
 
             if (this.ExceptionFactory != null)
             {
@@ -831,9 +830,9 @@ namespace PlaceframeZedCaptureClient.Api
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of FileParameter</returns>
-        public async Cysharp.Threading.Tasks.UniTask<FileParameter> DownloadCaptureSessionTarAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        public async System.Threading.Tasks.Task<FileParameter> DownloadCaptureSessionTarAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlaceframeZedCaptureClient.Client.ApiResponse<FileParameter> localVarResponse = await DownloadCaptureSessionTarWithHttpInfoAsync(id, cancellationToken);
+            PlaceframeZedCaptureClient.Client.ApiResponse<FileParameter> localVarResponse = await DownloadCaptureSessionTarWithHttpInfoAsync(id, cancellationToken).ConfigureAwait(false);
             return localVarResponse.Data;
         }
 
@@ -844,7 +843,7 @@ namespace PlaceframeZedCaptureClient.Api
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (FileParameter)</returns>
-        public async Cysharp.Threading.Tasks.UniTask<PlaceframeZedCaptureClient.Client.ApiResponse<FileParameter>> DownloadCaptureSessionTarWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        public async System.Threading.Tasks.Task<PlaceframeZedCaptureClient.Client.ApiResponse<FileParameter>> DownloadCaptureSessionTarWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
         {
 
             PlaceframeZedCaptureClient.Client.RequestOptions localVarRequestOptions = new PlaceframeZedCaptureClient.Client.RequestOptions();
@@ -870,7 +869,7 @@ namespace PlaceframeZedCaptureClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.GetAsync<FileParameter>("/capture_sessions/{id}/tar", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
+            var localVarResponse = await this.AsynchronousClient.GetAsync<FileParameter>("/capture_sessions/{id}/tar", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
 
             if (this.ExceptionFactory != null)
             {
@@ -935,9 +934,9 @@ namespace PlaceframeZedCaptureClient.Api
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;ZedCapture&gt;</returns>
-        public async Cysharp.Threading.Tasks.UniTask<List<ZedCapture>> GetCaptureSessionsAsync(System.Threading.CancellationToken cancellationToken = default)
+        public async System.Threading.Tasks.Task<List<ZedCapture>> GetCaptureSessionsAsync(System.Threading.CancellationToken cancellationToken = default)
         {
-            PlaceframeZedCaptureClient.Client.ApiResponse<List<ZedCapture>> localVarResponse = await GetCaptureSessionsWithHttpInfoAsync(cancellationToken);
+            PlaceframeZedCaptureClient.Client.ApiResponse<List<ZedCapture>> localVarResponse = await GetCaptureSessionsWithHttpInfoAsync(cancellationToken).ConfigureAwait(false);
             return localVarResponse.Data;
         }
 
@@ -947,7 +946,7 @@ namespace PlaceframeZedCaptureClient.Api
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;ZedCapture&gt;)</returns>
-        public async Cysharp.Threading.Tasks.UniTask<PlaceframeZedCaptureClient.Client.ApiResponse<List<ZedCapture>>> GetCaptureSessionsWithHttpInfoAsync(System.Threading.CancellationToken cancellationToken = default)
+        public async System.Threading.Tasks.Task<PlaceframeZedCaptureClient.Client.ApiResponse<List<ZedCapture>>> GetCaptureSessionsWithHttpInfoAsync(System.Threading.CancellationToken cancellationToken = default)
         {
 
             PlaceframeZedCaptureClient.Client.RequestOptions localVarRequestOptions = new PlaceframeZedCaptureClient.Client.RequestOptions();
@@ -971,7 +970,7 @@ namespace PlaceframeZedCaptureClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.GetAsync<List<ZedCapture>>("/capture_sessions", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
+            var localVarResponse = await this.AsynchronousClient.GetAsync<List<ZedCapture>>("/capture_sessions", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
 
             if (this.ExceptionFactory != null)
             {
@@ -1036,9 +1035,9 @@ namespace PlaceframeZedCaptureClient.Api
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ZedStatus</returns>
-        public async Cysharp.Threading.Tasks.UniTask<ZedStatus> GetStatusAsync(System.Threading.CancellationToken cancellationToken = default)
+        public async System.Threading.Tasks.Task<ZedStatus> GetStatusAsync(System.Threading.CancellationToken cancellationToken = default)
         {
-            PlaceframeZedCaptureClient.Client.ApiResponse<ZedStatus> localVarResponse = await GetStatusWithHttpInfoAsync(cancellationToken);
+            PlaceframeZedCaptureClient.Client.ApiResponse<ZedStatus> localVarResponse = await GetStatusWithHttpInfoAsync(cancellationToken).ConfigureAwait(false);
             return localVarResponse.Data;
         }
 
@@ -1048,7 +1047,7 @@ namespace PlaceframeZedCaptureClient.Api
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (ZedStatus)</returns>
-        public async Cysharp.Threading.Tasks.UniTask<PlaceframeZedCaptureClient.Client.ApiResponse<ZedStatus>> GetStatusWithHttpInfoAsync(System.Threading.CancellationToken cancellationToken = default)
+        public async System.Threading.Tasks.Task<PlaceframeZedCaptureClient.Client.ApiResponse<ZedStatus>> GetStatusWithHttpInfoAsync(System.Threading.CancellationToken cancellationToken = default)
         {
 
             PlaceframeZedCaptureClient.Client.RequestOptions localVarRequestOptions = new PlaceframeZedCaptureClient.Client.RequestOptions();
@@ -1072,7 +1071,7 @@ namespace PlaceframeZedCaptureClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.GetAsync<ZedStatus>("/status", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
+            var localVarResponse = await this.AsynchronousClient.GetAsync<ZedStatus>("/status", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
 
             if (this.ExceptionFactory != null)
             {
@@ -1146,9 +1145,9 @@ namespace PlaceframeZedCaptureClient.Api
         /// <param name="startCaptureRequest"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of Guid</returns>
-        public async Cysharp.Threading.Tasks.UniTask<Guid> StartCaptureAsync(StartCaptureRequest startCaptureRequest, System.Threading.CancellationToken cancellationToken = default)
+        public async System.Threading.Tasks.Task<Guid> StartCaptureAsync(StartCaptureRequest startCaptureRequest, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlaceframeZedCaptureClient.Client.ApiResponse<Guid> localVarResponse = await StartCaptureWithHttpInfoAsync(startCaptureRequest, cancellationToken);
+            PlaceframeZedCaptureClient.Client.ApiResponse<Guid> localVarResponse = await StartCaptureWithHttpInfoAsync(startCaptureRequest, cancellationToken).ConfigureAwait(false);
             return localVarResponse.Data;
         }
 
@@ -1159,7 +1158,7 @@ namespace PlaceframeZedCaptureClient.Api
         /// <param name="startCaptureRequest"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (Guid)</returns>
-        public async Cysharp.Threading.Tasks.UniTask<PlaceframeZedCaptureClient.Client.ApiResponse<Guid>> StartCaptureWithHttpInfoAsync(StartCaptureRequest startCaptureRequest, System.Threading.CancellationToken cancellationToken = default)
+        public async System.Threading.Tasks.Task<PlaceframeZedCaptureClient.Client.ApiResponse<Guid>> StartCaptureWithHttpInfoAsync(StartCaptureRequest startCaptureRequest, System.Threading.CancellationToken cancellationToken = default)
         {
             // verify the required parameter 'startCaptureRequest' is set
             if (startCaptureRequest == null)
@@ -1189,7 +1188,7 @@ namespace PlaceframeZedCaptureClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.PostAsync<Guid>("/capture_sessions/start", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
+            var localVarResponse = await this.AsynchronousClient.PostAsync<Guid>("/capture_sessions/start", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
 
             if (this.ExceptionFactory != null)
             {
@@ -1262,9 +1261,9 @@ namespace PlaceframeZedCaptureClient.Api
         /// <param name="stopCaptureRequest"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of void</returns>
-        public async Cysharp.Threading.Tasks.UniTask StopCaptureAsync(StopCaptureRequest stopCaptureRequest, System.Threading.CancellationToken cancellationToken = default)
+        public async System.Threading.Tasks.Task StopCaptureAsync(StopCaptureRequest stopCaptureRequest, System.Threading.CancellationToken cancellationToken = default)
         {
-            await StopCaptureWithHttpInfoAsync(stopCaptureRequest, cancellationToken);
+            await StopCaptureWithHttpInfoAsync(stopCaptureRequest, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -1274,7 +1273,7 @@ namespace PlaceframeZedCaptureClient.Api
         /// <param name="stopCaptureRequest"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse</returns>
-        public async Cysharp.Threading.Tasks.UniTask<PlaceframeZedCaptureClient.Client.ApiResponse<Object>> StopCaptureWithHttpInfoAsync(StopCaptureRequest stopCaptureRequest, System.Threading.CancellationToken cancellationToken = default)
+        public async System.Threading.Tasks.Task<PlaceframeZedCaptureClient.Client.ApiResponse<Object>> StopCaptureWithHttpInfoAsync(StopCaptureRequest stopCaptureRequest, System.Threading.CancellationToken cancellationToken = default)
         {
             // verify the required parameter 'stopCaptureRequest' is set
             if (stopCaptureRequest == null)
@@ -1304,7 +1303,7 @@ namespace PlaceframeZedCaptureClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.PostAsync<Object>("/capture_sessions/stop", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
+            var localVarResponse = await this.AsynchronousClient.PostAsync<Object>("/capture_sessions/stop", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
 
             if (this.ExceptionFactory != null)
             {
@@ -1381,9 +1380,9 @@ namespace PlaceframeZedCaptureClient.Api
         /// <param name="updateCaptureSessionRequest"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of void</returns>
-        public async Cysharp.Threading.Tasks.UniTask UpdateCaptureSessionAsync(Guid id, UpdateCaptureSessionRequest updateCaptureSessionRequest, System.Threading.CancellationToken cancellationToken = default)
+        public async System.Threading.Tasks.Task UpdateCaptureSessionAsync(Guid id, UpdateCaptureSessionRequest updateCaptureSessionRequest, System.Threading.CancellationToken cancellationToken = default)
         {
-            await UpdateCaptureSessionWithHttpInfoAsync(id, updateCaptureSessionRequest, cancellationToken);
+            await UpdateCaptureSessionWithHttpInfoAsync(id, updateCaptureSessionRequest, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -1394,7 +1393,7 @@ namespace PlaceframeZedCaptureClient.Api
         /// <param name="updateCaptureSessionRequest"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse</returns>
-        public async Cysharp.Threading.Tasks.UniTask<PlaceframeZedCaptureClient.Client.ApiResponse<Object>> UpdateCaptureSessionWithHttpInfoAsync(Guid id, UpdateCaptureSessionRequest updateCaptureSessionRequest, System.Threading.CancellationToken cancellationToken = default)
+        public async System.Threading.Tasks.Task<PlaceframeZedCaptureClient.Client.ApiResponse<Object>> UpdateCaptureSessionWithHttpInfoAsync(Guid id, UpdateCaptureSessionRequest updateCaptureSessionRequest, System.Threading.CancellationToken cancellationToken = default)
         {
             // verify the required parameter 'updateCaptureSessionRequest' is set
             if (updateCaptureSessionRequest == null)
@@ -1425,7 +1424,7 @@ namespace PlaceframeZedCaptureClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.PatchAsync<Object>("/capture_sessions/{id}", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
+            var localVarResponse = await this.AsynchronousClient.PatchAsync<Object>("/capture_sessions/{id}", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
 
             if (this.ExceptionFactory != null)
             {

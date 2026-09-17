@@ -1,0 +1,20 @@
+{
+  "name": "org.outernet.placeframe.auth",
+  "version": "0.0.0-local",
+  "displayName": "Placeframe - Auth",
+  "description": "Backend authorization handlers for Placeframe clients",
+  "unity": "6000.0",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/outernet-foundation/placeframe.git",
+    "directory": "packages/unity/Placeframe/Assets/Package/Auth"
+  },
+  "author": {
+    "name": "Elliot Pjecha",
+    "email": "epjecha@gmail.com"
+  },
+  "dependencies": {
+    "com.cysharp.unitask": "2.5.10"
+  }
+}

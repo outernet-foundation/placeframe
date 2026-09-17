@@ -2,23 +2,24 @@
 
 ## What this is
 
-The Unity-side wrapper around Placeframe's relocalization service. It exposes a static facade (`VisualPositioningSystem`) that authenticates against Placeframe's Keycloak, streams camera frames to `POST /localize`, runs a Bayesian SE(3) filter over the returned poses, and publishes a smoothly-slewed ECEF-to-Unity-world transform that consumers use to anchor virtual content to a real physical place. In-repo consumer: `apps/CaptureTool/`. The host Unity project at this directory is not the package -- it's the editor harness for developing the package; the package itself lives entirely under `Assets/Package/`.
+The Unity-side wrapper around Placeframe's relocalization service. It exposes a static facade (`VisualPositioningSystem`) that streams camera frames to `POST /localize`, runs a Bayesian SE(3) filter over the returned poses, and publishes a smoothly-slewed ECEF-to-Unity-world transform that consumers use to anchor virtual content to a real physical place. Authentication is not part of the facade: consumers build their own authorized `HttpMessageHandler` (see the `org.outernet.placeframe.auth` package below) and hand it to `Initialize`. In-repo consumer: `apps/CaptureTool/`. The host Unity project at this directory is not the package -- it's the editor harness for developing the packages; the packages themselves live entirely under `Assets/Package/`.
 
 ## Shape
 
-### Three UPM packages, one Unity project
+### Four UPM packages, one Unity project
 
-The directory is a Unity project that contains three co-located UPM packages, each with its own `package.json` and asmdef:
+The directory is a Unity project that contains four co-located UPM packages, each with its own `package.json` and asmdef:
 
 | Path                                  | Package name                            | What it provides                                                              |
 |---------------------------------------|-----------------------------------------|-------------------------------------------------------------------------------|
-| `Assets/Package/Core/`                | `org.outernet.placeframe`               | `VisualPositioningSystem`, `Auth`, `RelocalizationFilter`, `GeoPose`, `WGS84` |
+| `Assets/Package/Core/`                | `org.outernet.placeframe`               | `VisualPositioningSystem`, `RelocalizationFilter`, `GeoPose`, `WGS84`          |
+| `Assets/Package/Auth/`                | `org.outernet.placeframe.auth`          | `TokenServerHttpHandler`, `AnonymousIdentityHttpHandler`, `AuthorizationProvider` |
 | `Assets/Package/ARFoundation/`        | `org.outernet.placeframe.arfoundation`  | `ARFoundation.CameraProvider` -- ARCore/ARKit `ICameraProvider`                |
 | `Assets/Package/MagicLeap/`           | `org.outernet.placeframe.magicleap`     | `MagicLeapCameraProvider` -- ML2 native-camera `ICameraProvider`               |
 
 Core is platform-agnostic and testable headlessly. The two stack-specific packages provide concrete `ICameraProvider` implementations; consumers depend on whichever subset their target needs. The MagicLeap package is `includePlatforms: [Android, Editor]` only.
 
-The asmdef names are historical: `Plerion.VPS`, `Plerion.VPS.ARFoundation`, `Plerion.VPS.MagicLeap`, `Plerion.VPS.Editor`, plus `Placeframe.Core.Tests`. The namespace was renamed `Plerion` to `Placeframe` in commit `c93e7df8` but the runtime asmdef names were not updated.
+The asmdef names are historical: `Plerion.VPS`, `Plerion.VPS.ARFoundation`, `Plerion.VPS.MagicLeap`, `Plerion.VPS.Editor`, plus `Placeframe.Core.Tests`; `Placeframe.Auth` and `Placeframe.Core.ARFoundation` are the current names inside them. The namespace was renamed `Plerion` to `Placeframe` in commit `c93e7df8` but the Core runtime asmdef file names were not updated.
 
 The host Unity project's `Assets/Packages/` (NuGet-extracted via NuGetForUnity) supplies `MathNet.Numerics`, `R3`, `SharpZipLib`, etc. that the package needs in editor.
 
@@ -26,17 +27,14 @@ The host Unity project's `Assets/Packages/` (NuGet-extracted via NuGetForUnity) 
 
 `VisualPositioningSystem` (`Assets/Package/Core/Runtime/VisualPositioningSystem.cs`) is a public static class -- single global instance per process. Lifecycle:
 
-    Initialize(ICameraProvider, authAudience, logCallback, warnCallback, errorCallback, httpHandlerFactory?)
-        |  -- exactly once; second call throws InvalidOperationException
-        |  -- stores camera provider, installs log callbacks, calls Auth.Initialize,
+    Initialize(apiUrl, cameraProvider, logCallback, warnCallback, errorCallback, httpMessageHandler?)
+        |  -- exactly once per process; second call throws InvalidOperationException
+        |  -- builds the internal DefaultApi (generated PlaceframeApiClient) over the supplied
+        |     handler (long-lived: token refresh happens inside the handler's SendAsync),
         |     subscribes RelocalizationFilter.TickSlew to EveryUpdate(UnityFrameProvider.Update)
         v
-    Login(domain, username, password)
-        |  -- POSTs to https://{domain}/auth/realms/placeframe-dev/protocol/openid-connect/token
-        |  -- builds DefaultApi (generated PlaceframeApiClient) wrapped in AuthHttpHandler
-        v
     SetLocalizationMaps(double3 ecefPosition, double radiusMeters) OR SetLocalizationMaps(Guid[])
-        |  -- diffs against the in-memory _maps set; adds/removes via LocalizationMapManager
+        |  -- diffs against the in-memory _maps set; adds/removes via LocalizationMapVisualizerManager
         v
     StartLocalizing(intervalSeconds)
         |  -- cameraProvider.CameraConfig().SelectMany(_ => cameraProvider.Frames(interval))
@@ -48,6 +46,8 @@ The host Unity project's `Assets/Packages/` (NuGet-extracted via NuGetForUnity) 
                 -> OnMetricsReceived event
                 -> snap or slew -> OnEcefToUnityWorldTransformUpdated event
 
+There is no Login or Discover on the facade. The consumer authenticates first (see Authentication below), then calls `Initialize` with the resulting handler; because `Initialize` composes the API client and throws on a second call, re-login within a process reuses the existing client rather than rebuilding it.
+
 Public API surface:
 
 - **State**: `Localizing`, `EcefToUnityWorldTransform`, `UnityWorldToEcefTransform`, `CurrentUncertainty`, `MostRecentMetrics`, `LastReceivedMetrics`, `Api` (the underlying generated client, for advanced use).
@@ -56,15 +56,19 @@ Public API surface:
 - **Diagnostic bypass switches**: `BypassInnovationGate` and `BypassKalman` are `public static bool` flags surfaced as toggles in the metrics dialog. Setting `BypassInnovationGate=true` skips the chi-squared outlier reject; `BypassKalman=true` snaps the posterior to each accepted measurement instead of merging it with the prior. Used to A/B individual pipeline stages against the same camera feed without a rebuild.
 - **Manual reset**: `SetEcefToUnityTransform(double4x4)` calls `RelocalizationFilter.Reset` -- wipes filter history, re-bootstraps the covariance.
 - **Reconstruction download**: `GetReconstructionPoints(Guid)`, `GetReconstructionFramePoses(Guid)` -- used by editor tooling.
-- **Map visualization**: `SetMapVisualizationsVisible(bool)`, `LocalizationMapManager.AddMap/RemoveMap` -- spawn ParticleSystem-based point-cloud renderers from the downloaded reconstruction points.
+- **Map visualization**: `SetMapVisualizationsVisible(bool)`, `LocalizationMapVisualizerManager.AddMap/RemoveMap` -- spawn ParticleSystem-based point-cloud renderers from the downloaded reconstruction points.
 
 ### Authentication
 
-`Auth` (`Assets/Package/Core/Runtime/Auth.cs`) is a separate static class. The flow is OAuth 2.0 Resource Owner Password Credentials against Keycloak: `grant_type=password&client_id={audience}&username=...&password=...&scope=openid`. `AuthHttpHandler : DelegatingHandler` injects a bearer token on every request the generated API client makes.
+`org.outernet.placeframe.auth` (`Assets/Package/Auth/`) provides the authorization handlers; the flow is OAuth 2.0 Resource Owner Password Credentials against Keycloak: `grant_type=password&client_id={audience}&username=...&password=...&scope=openid`. `TokenServerHttpHandler : DelegatingHandler` performs login, injects the bearer token on every request, and refreshes it inside `SendAsync` (60s skew; Keycloak rotates the refresh token so the whole token response is replaced; a failed refresh falls back to full re-login with the cached username/password, held in the handler for the process lifetime). `AnonymousIdentityHttpHandler` attaches `X-Anonymous-Identity` (typically `SystemInfo.deviceUniqueIdentifier`) instead. `AuthorizationProvider` is the abstract MonoBehaviour base for scene-wired providers.
 
-`GetOrRefreshToken` short-circuits if the access token is unexpired (60s skew); otherwise it tries refresh-token rotation (Keycloak rotates the refresh token, so the entire token response is replaced); if that fails, full re-login using the cached username/password held in static properties for the process lifetime.
+The OIDC parameters are not hardcoded. The consumer first calls the backend's unauthenticated `GET /server-info` to learn `auth_mode` and, under keycloak, the `token_url` and `audience` (the OAuth `client_id`); the realm name lives only on the server. When `/server-info` reports `disabled`, the consumer skips the token flow and uses the anonymous handler; the branch keys off the discovered `auth_mode`, not a local toggle. CaptureTool implements this flow in `Assets/AuthManager.cs`.
 
-The OIDC parameters are not hardcoded. The client first calls the backend's unauthenticated `GET /server-info` (via an unauthenticated generated-client instance) to learn `auth_mode` and, under keycloak, the `token_url` and `audience` (the OAuth `client_id`). `Login` then uses the discovered `token_url` directly rather than constructing `{apiUrl}/auth/realms/<realm>/...`, so the realm name lives only on the server. When `/server-info` reports `disabled`, the client skips the token flow and attaches `X-Anonymous-Identity` (`SystemInfo.deviceUniqueIdentifier`) instead of a bearer token; the auth-handler branch keys off the discovered `auth_mode`, not a local toggle.
+The auth handler is the outermost layer: a consumer must set `InnerHandler` to its transport chain before handing it to an `HttpClient` -- used bare (null `InnerHandler`) it throws at the first request.
+
+**These handlers have a twin in lbe-toolkit.** `com.outernet.lbetoolkit`'s `Authorization/` carries its own port of this code (which is itself a port of the `Auth` static class this package's handlers replaced). Behavior here and there must stay mirrored until lbe-toolkit depends on this package instead. lbe-toolkit's concrete `TokenServerAuthorizationProvider`/`AnonymousIdentityAuthorizationProvider` (inspector-configured MonoBehaviours) were not ported -- their inspector UX depends on lbe-toolkit's `ToggleGroup` attribute -- so they remain lbe-toolkit-local.
+
+The auth package compiles against UniTask and a `Newtonsoft.Json` assembly; `package.json` declares only UniTask, and Newtonsoft arrives via the consumer's project (NuGetForUnity or `com.unity.nuget.newtonsoft-json`), the same way the generated client gets it.
 
 ### The relocalization filter
 
@@ -134,7 +138,7 @@ The contract (`Assets/Package/Core/Runtime/ICameraProvider.cs`):
 
 **Static API for a single-session assumption.** Placeframe is one localization session per process -- one set of maps, one filter, one set of camera frames. The static facade avoids `[SerializeField] VisualPositioningSystem _vps;` plumbing in every consumer scene at the cost of testability and runtime provider-swap. The filter is a pure-functional static class so the state can be tested in isolation despite the surrounding singleton.
 
-**Three asmdefs, not one.** Pulling ARFoundation into a MagicLeap-only build (or vice versa) creates compile-time conflicts and binary bloat. Per-stack camera providers in their own asmdefs compile only when their platform is the target. Core has zero AR/XR refs and can be tested in pure C#. The cost is three `package.json` files to keep version-aligned and three asmdefs to keep ref-correct.
+**Per-stack asmdefs, not one.** Pulling ARFoundation into a MagicLeap-only build (or vice versa) creates compile-time conflicts and binary bloat. Per-stack camera providers in their own asmdefs compile only when their platform is the target. Core has zero AR/XR refs and can be tested in pure C#. The cost is four `package.json` files to keep version-aligned and four asmdefs to keep ref-correct.
 
 **Bayesian filter in tangent space with chi-squared gate.** A naive moving average over the measurement transform is wrong on SE(3) -- averaging rotation matrices isn't a rotation. Working in se(3) tangent (the Lie algebra) makes the Kalman update linear-to-first-order around the current mean, and lets the innovation gate use a standard Mahalanobis distance against the analytic measurement covariance the server returns (`MeasurementCovariance = alpha * PnP + beta * I`, see `docker/localizer/AGENTS.md`). The trade-off: tangent-space accuracy degrades for large innovations, which is why large posterior shifts snap rather than slew.
 
@@ -146,7 +150,7 @@ The contract (`Assets/Package/Core/Runtime/ICameraProvider.cs`):
 
 **Server-computed measurement covariance.** Earlier versions of the filter applied a client-side confidence gate; commit `06bff440` dropped it in favor of consuming the calibrated `MeasurementCovariance` directly. The localizer's `fit_calibration` pipeline now solves for the alpha/beta formula at build time, and the client filter stays calibration-agnostic -- see `docker/localizer/AGENTS.md` Calibration runtime.
 
-**Keycloak ROPC over OAuth code flow.** Resource Owner Password Credentials is deprecated by OAuth 2.1 but is what Placeframe ships, because XR clients typing a username and password into a Unity-rendered text box is the lowest-friction path. A browser-redirect code flow would require an external WebView or platform browser handoff, which is awkward on Magic Leap and inappropriate for headless Capture Tool runs. The cost is the static `Password` property holding the plaintext for the process lifetime.
+**Keycloak ROPC over OAuth code flow.** Resource Owner Password Credentials is deprecated by OAuth 2.1 but is what Placeframe ships, because XR clients typing a username and password into a Unity-rendered text box is the lowest-friction path. A browser-redirect code flow would require an external WebView or platform browser handoff, which is awkward on Magic Leap and inappropriate for headless Capture Tool runs. The cost is the plaintext password held by the token handler for the process lifetime.
 
 **`GeoPose` round-trips ECEF on `Awake` in edit mode.** Authors place objects in Unity world coordinates via the editor; the alignment is identity at that point (no localization in the editor), so the basis-changed Unity coordinates are equivalent to ECEF-from-world-origin. The serialized ECEF survives a play-mode re-localization that shifts the alignment, anchoring the object to its real-world place rather than its scene-authored Unity coordinate.
 

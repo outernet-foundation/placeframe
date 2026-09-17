@@ -9,7 +9,7 @@ using UnityEngine.EventSystems;
 
 namespace Placeframe.MapRegistrationTool
 {
-    [RequireComponent(typeof(LocalizationMap))]
+    [RequireComponent(typeof(LocalizationMapVisualizer))]
     public class SceneMap : Control<SceneMap.Props>, IPointerClickHandler
     {
         public class Props : ObservableObject
@@ -39,12 +39,12 @@ namespace Placeframe.MapRegistrationTool
             }
         }
 
-        private LocalizationMap _localizationMapVisualizer;
+        private LocalizationMapVisualizer _localizationMapVisualizer;
         private CancellationTokenSource _loadReconstructionTokenSource;
 
         private void Awake()
         {
-            _localizationMapVisualizer = GetComponent<LocalizationMap>();
+            _localizationMapVisualizer = GetComponent<LocalizationMapVisualizer>();
         }
 
         private void Update()
