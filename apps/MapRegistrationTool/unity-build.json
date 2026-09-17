@@ -1,5 +1,5 @@
 {
-  "builds": ["linux64", "win64"],
+  "builds": null,
   "execute_methods": {
     "linux64": "Placeframe.MapRegistrationTool.Build.BuildForLinux64",
     "win64": "Placeframe.MapRegistrationTool.Build.BuildForWin64"
