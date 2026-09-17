@@ -40,9 +40,9 @@ Registered in `scripts/pyproject.toml`:
 
 The pipeline orchestrates over backend IDs and writes/reads through the API. There is no sidecar JSON file and no parallel store; the `localization_evaluations` DB table is the corpus cache.
 
-    Backend (PostgreSQL + MinIO)
+    Backend (PostgreSQL + SeaweedFS)
 
-      capture_sessions ---- tar in MinIO (frames.csv + images)
+      capture_sessions ---- tar in S3 (frames.csv + images)
             |
             v
       reconstructions
@@ -105,9 +105,9 @@ Output: `CalibrationArtifact(tight, loose, sigma_meas_alpha, sigma_meas_beta, lo
 
 ### Driver-side localization
 
-`fit_calibration` fetches each held-out frame image via `GET /capture_sessions/{id}/images/{frame_timestamp}`, POSTs it to the existing localizer `/localize` endpoint, computes truth-error labels driver-side, and POSTs the evaluation row to `/reconstructions/{id}/localization-evaluations`. The localizer stays a pure function with no awareness of `localization_evaluations`. The capture data path is via three API endpoints — `GET /capture_sessions/{id}/manifest.json`, `GET /capture_sessions/{id}/frames.csv`, `GET /capture_sessions/{id}/images/{frame_timestamp}` — not direct MinIO access; the API is the single read path.
+`fit_calibration` fetches each held-out frame image via `GET /capture_sessions/{id}/images/{frame_timestamp}`, POSTs it to the existing localizer `/localize` endpoint, computes truth-error labels driver-side, and POSTs the evaluation row to `/reconstructions/{id}/localization-evaluations`. The localizer stays a pure function with no awareness of `localization_evaluations`. The capture data path is via three API endpoints — `GET /capture_sessions/{id}/manifest.json`, `GET /capture_sessions/{id}/frames.csv`, `GET /capture_sessions/{id}/images/{frame_timestamp}` — not direct S3 access; the API is the single read path.
 
-The alternative — a server-side `POST /reconstructions/{id}/evaluate-frame` that would do fetch+localize+persist server-side — was rejected because it would couple the localizer to MinIO/captures and to the evaluations table for a workflow that's purely orchestration.
+The alternative — a server-side `POST /reconstructions/{id}/evaluate-frame` that would do fetch+localize+persist server-side — was rejected because it would couple the localizer to S3/captures and to the evaluations table for a workflow that's purely orchestration.
 
 ### Reconstruction reuse contract
 
@@ -134,7 +134,7 @@ Deterministic, scales to capture length, gives even temporal spacing → roughly
 
 **Auto-detect `pipeline_version` from the live localizer.** The `localization_evaluations` cache key is keyed on `pipeline_version`. If the operator mistypes the SHA, evaluation rows pool silently across incompatible pipeline runs and the fit is contaminated without warning. Pulling the value from `api.get_localizer_version()` makes that footgun unreachable. The override path remains for dev workflows where the operator iterates uncommitted changes and wants their cache rows labeled distinctly (e.g. `dev-tylerh-2026-05-03`). The runtime loader hard-fails on `pipeline_version` mismatch — the artifact is non-portable across localizer SHAs by design.
 
-**Driver-side localization, not server-side.** A `POST /reconstructions/{id}/evaluate-frame` that did fetch+localize+persist server-side was considered and rejected. The localizer is a pure function from `(image, map_ids, camera_config)` to a pose+metrics response; adding a path that reaches into MinIO and writes to the evaluations table would couple it to capture sessions, to the evaluations DB schema, and to the orchestration workflow's lifecycle. Keeping that orchestration in the driver script means the localizer stays cache-unaware and the script absorbs the per-frame retry / cache-skip / truth-comparison logic that has nothing to do with localization.
+**Driver-side localization, not server-side.** A `POST /reconstructions/{id}/evaluate-frame` that did fetch+localize+persist server-side was considered and rejected. The localizer is a pure function from `(image, map_ids, camera_config)` to a pose+metrics response; adding a path that reaches into S3 and writes to the evaluations table would couple it to capture sessions, to the evaluations DB schema, and to the orchestration workflow's lifecycle. Keeping that orchestration in the driver script means the localizer stays cache-unaware and the script absorbs the per-frame retry / cache-skip / truth-comparison logic that has nothing to do with localization.
 
 **Reconstruction reuse keys on the full options blob.** Calibrations are fit against one pipeline configuration. Mixing reconstructions built with different options (different RANSAC thresholds, different bundle-adjustment settings, different held-out sets) into one corpus contaminates the fit. The full-blob Pydantic-equality check is the strictest possible reuse predicate — looser checks admit silent contamination, and `tune_reconstruction.py` already covers the "exhaustive options sweep" use-case where reuse is undesired.
 

@@ -2,7 +2,7 @@
 
 ## What this is
 
-The reconstructor is a single-process GPU worker that turns capture sessions into sparse 3D maps. It pulls jobs over a Postgres-backed lease API, downloads a tar of images and VIO truth poses from MinIO, runs a six-phase pipeline (extract features, generate pairs, train OPQ/PQ, encode, match, verify two-view geometry, run COLMAP incremental SfM), and writes the resulting artifacts back to MinIO at `dev-reconstructions/<reconstruction_id>/`. It is built for preemptible (spot) compute: a SIGTERM eviction requeues the in-flight job rather than failing it, and re-running is safe because artifacts overwrite. Stack-level data flow and the recovery gap that motivates this SPEC's failure-mode section are in `docker/AGENTS.md`.
+The reconstructor is a single-process GPU worker that turns capture sessions into sparse 3D maps. It pulls jobs over a Postgres-backed lease API, downloads a tar of images and VIO truth poses from S3, runs a six-phase pipeline (extract features, generate pairs, train OPQ/PQ, encode, match, verify two-view geometry, run COLMAP incremental SfM), and writes the resulting artifacts back to S3 at `dev-reconstructions/<reconstruction_id>/`. It is built for preemptible (spot) compute: a SIGTERM eviction requeues the in-flight job rather than failing it, and re-running is safe because artifacts overwrite. Stack-level data flow and the recovery gap that motivates this SPEC's failure-mode section are in `docker/AGENTS.md`.
 
 ## Shape
 
@@ -27,7 +27,7 @@ docker/reconstructor/
 |   |-- options_builder.py ReconstructionOptions -> pycolmap option structs
 |   |-- metrics_builder.py Verified-match buckets + reconstruction-quality metrics
 |   |-- progress_publisher.py ~2 Hz throttled progress PUT into the API
-|   `-- settings.py        pydantic-settings: lease-server URL, MinIO creds, bucket names
+|   `-- settings.py        pydantic-settings: lease-server URL, S3 creds, bucket names
 `-- tests/
     `-- test_rig.py        Held-out-timestamp filter (the only test)
 ```
@@ -60,7 +60,7 @@ SIGTERM (a spot-eviction notice) is handled via `loop.add_signal_handler(SIGTERM
 
 The publisher (`src/reconstructor/progress_publisher.py`) uses `asyncio.run_coroutine_threadsafe` to dispatch `update_progress` calls from the executor thread back to the main event loop. `on_progress` is throttled to ~2 Hz; `set_phase` always flushes. Failures are logged via a done-callback but never raised back into the pipeline -- a long stretch of API failures during progress writes is silently swallowed.
 
-### Artifact layout in MinIO
+### Artifact layout in S3
 
 Per reconstruction id under `dev-reconstructions/<id>/`:
 
@@ -116,7 +116,7 @@ Sampling `Sensor.TYPE_GRAVITY` (Android) / `CMMotionManager.deviceMotion.gravity
 
 ### Held-out frames protocol
 
-`ReconstructionOptions.held_out_frame_timestamps: list[int] | None` (Unix milliseconds, matching the first column of each rig's `frames.csv`). Round-trips through MinIO via `manifest.options`; no SQL column exists for it. `Rig.__init__` drops matching frame rows from `frame_poses`, and the image-list construction in `run_reconstruction.py` drops the corresponding images naturally because their poses are no longer present. The calibration pipeline uses this to build a map with specific frames excluded so those frames can later be localized as held-out queries.
+`ReconstructionOptions.held_out_frame_timestamps: list[int] | None` (Unix milliseconds, matching the first column of each rig's `frames.csv`). Round-trips through S3 via `manifest.options`; no SQL column exists for it. `Rig.__init__` drops matching frame rows from `frame_poses`, and the image-list construction in `run_reconstruction.py` drops the corresponding images naturally because their poses are no longer present. The calibration pipeline uses this to build a map with specific frames excluded so those frames can later be localized as held-out queries.
 
 ### Lease lifecycle cross-reference
 
@@ -137,7 +137,7 @@ The full lease state machine lives in `docker/lease-server/src/routers/leases.py
 
 **Worker-loop-over-Postgres lease, not a message queue.** Reconstruction is long, restart-survivable, and at-most-once-execution semantics matter (running twice wastes GPU minutes and re-uploads identical artifacts). A Postgres row with `FOR UPDATE SKIP LOCKED` selection gives all three properties without standing up a separate queue. The row also doubles as the user-facing status, which removes a sync.
 
-**Eviction requeues; it does not fail.** A spot node reclaims its worker with a ~2-minute SIGTERM; a hard node loss gives no signal at all. On SIGTERM the worker requeues its in-flight lease and `os._exit(0)`s — it deliberately does not route through `fail_lease`, which is reserved for genuine pipeline errors that should stay `FAILED` rather than retry (and `os._exit` skips it regardless). A hard kill leaves the lease stuck until the 30-minute reaper requeues it. Both paths are bounded by `MAX_REQUEUE_ATTEMPTS` (5) so a job that always stalls eventually fails instead of looping forever; re-running is safe because artifacts overwrite under `<id>/`. Deliberately omitted: the reaper does not check MinIO for a completed `sfm_model/` before requeuing — re-running a finished-but-unreported job once is cheaper than coupling the lease service to object storage.
+**Eviction requeues; it does not fail.** A spot node reclaims its worker with a ~2-minute SIGTERM; a hard node loss gives no signal at all. On SIGTERM the worker requeues its in-flight lease and `os._exit(0)`s — it deliberately does not route through `fail_lease`, which is reserved for genuine pipeline errors that should stay `FAILED` rather than retry (and `os._exit` skips it regardless). A hard kill leaves the lease stuck until the 30-minute reaper requeues it. Both paths are bounded by `MAX_REQUEUE_ATTEMPTS` (5) so a job that always stalls eventually fails instead of looping forever; re-running is safe because artifacts overwrite under `<id>/`. Deliberately omitted: the reaper does not check S3 for a completed `sfm_model/` before requeuing — re-running a finished-but-unreported job once is cheaper than coupling the lease service to object storage.
 
 **Single-process, single-job worker.** GPU memory ownership is exclusive in practice (LightGlue + ALIKED + DIR + pycolmap allocations would fight for VRAM under concurrency). Letting the worker hold at most one job and scaling horizontally by replicas keeps the GPU-allocation model simple. The cost is that mutable globals (`_aliked_model.dkd.n_limit`, `DEVICE`) are safe -- a constraint that would break under in-process concurrency.
 
@@ -171,9 +171,9 @@ The full lease state machine lives in `docker/lease-server/src/routers/leases.py
 
 **`deterministic_seed` is the single reproducibility knob.** `ReconstructionOptions.deterministic_seed: int | None` is the only way to request a reproducible reconstruction. When set, the value pins the PRNG seed for the pipeline / triangulation / RANSAC AND forces single-threaded BA (`num_threads = 1` on both `IncrementalPipelineOptions` and the inner `mapper`). When `None`, the reconstruction is non-deterministic. The two older fields this replaces (`random_seed` and `single_threaded`) were footguns. `random_seed` alone was a lie: BA thread scheduling still varied between runs, so reruns drifted despite a pinned seed. `single_threaded` alone was a lie: each run drew a fresh PRNG seed, so reruns drifted despite pinned threading. Every "interesting" state of the original pair was the paired state; collapsing eliminates the broken-but-plausible combinations.
 
-### Manifest in MinIO as the round-trip for `ReconstructionOptions`
+### Manifest in S3 as the round-trip for `ReconstructionOptions`
 
-**Context:** `ReconstructionOptions` is a per-job request envelope with ~20 nullable fields. It needs to travel from the API (request-time) to the reconstructor (run-time) and survive in storage for later inspection. The two candidates were: mirror as SQL columns, or write into MinIO alongside the artifacts.
+**Context:** `ReconstructionOptions` is a per-job request envelope with ~20 nullable fields. It needs to travel from the API (request-time) to the reconstructor (run-time) and survive in storage for later inspection. The two candidates were: mirror as SQL columns, or write into S3 alongside the artifacts.
 
 **Constraint:** Store the full options structure in the row's `manifest` JSONB column under `Manifest.options`. The reconstructor reads it from the lease response; the API writes it at create-time. `held_out_frame_timestamps`, `is_indoor`, and post-run `ReconstructionMetrics` follow the same pattern.
 
@@ -211,7 +211,7 @@ The full lease state machine lives in `docker/lease-server/src/routers/leases.py
 
 ## See also
 
-- `docker/AGENTS.md` -- stack-level data flow, MinIO bucket layout, and the multi-service relationships this reconstructor sits inside.
+- `docker/AGENTS.md` -- stack-level data flow, S3 bucket layout, and the multi-service relationships this reconstructor sits inside.
 - `docker/AGENTS.md` (Debugging) -- operator runbook including the "`sfm_model/` presence means SfM completed regardless of DB status" recovery hazard.
 - `docker/lease-server/src/routers/leases.py` -- the lease state machine (request, progress, succeed, fail, reaper). Read this when reasoning about timeout or recovery behavior.
 - `packages/python/core/src/core/reconstruction_options.py` and `reconstruction_metrics.py` -- the shared option / metric schema. The reconstructor reads options, writes metrics; both flow through the row's `manifest` column.

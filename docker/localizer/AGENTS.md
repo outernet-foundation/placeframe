@@ -2,7 +2,7 @@
 
 ## What this is
 
-A Litestar ASGI service that answers `POST /localization`: given a query image plus one or more target reconstruction IDs, it returns each camera's 6-DOF pose in that reconstruction's coordinate frame, with a calibrated confidence pair and a 6x6 measurement covariance for the downstream Bayesian filter. Also exposes `GET /version` returning the build-time git SHA as the pipeline version. The phone client never reaches this service directly — it's behind `docker/api/`, which proxies via the generated `placeframe_localizer_client`. Stack-level context (where the localizer sits in the capture -> reconstruct -> localize flow, log query patterns, MinIO bucket layout) lives in `docker/AGENTS.md`; this file covers the subsystem.
+A Litestar ASGI service that answers `POST /localization`: given a query image plus one or more target reconstruction IDs, it returns each camera's 6-DOF pose in that reconstruction's coordinate frame, with a calibrated confidence pair and a 6x6 measurement covariance for the downstream Bayesian filter. Also exposes `GET /version` returning the build-time git SHA as the pipeline version. The phone client never reaches this service directly — it's behind `docker/api/`, which proxies via the generated `placeframe_localizer_client`. Stack-level context (where the localizer sits in the capture -> reconstruct -> localize flow, log query patterns, S3 bucket layout) lives in `docker/AGENTS.md`; this file covers the subsystem.
 
 ## Shape
 
@@ -18,10 +18,10 @@ docker/localizer/
     main.py                Litestar app + the /localization handler + S3 client
                            + calibration load + the per-process Map cache
     localize.py            load_models() (DIR/ALIKED/LightGlue) + the pipeline
-    map.py                 Map dataclass + load_map (MinIO download + hydrate)
+    map.py                 Map dataclass + load_map (S3 download + hydrate)
     build_metrics.py       PnP + features + calibration -> LocalizationMetrics
     schemas.py             Pydantic response models
-    settings.py            MinIO + RECONSTRUCTIONS_BUCKET env config
+    settings.py            S3 + RECONSTRUCTIONS_BUCKET env config
     torch_ops.py           per-rank @overload typed torch primitives
     dump_openapi.py        CODEGEN=1 + print app.openapi_schema.to_schema()
   tests/test_build_metrics.py   the only test file
@@ -164,7 +164,7 @@ localizer-cuda:
   networks: { default: { aliases: ["localizer"] } }   # api hits http://localizer:8000
   gpus: all
   environment:
-    MINIO_ENDPOINT_URL, MINIO_ACCESS_KEY, MINIO_SECRET_KEY, RECONSTRUCTIONS_BUCKET
+    S3_ENDPOINT_URL, S3_ACCESS_KEY, S3_SECRET_KEY, RECONSTRUCTIONS_BUCKET
 ```
 
 No healthcheck. No `restart` policy. No `depends_on`. The API service treats the localizer as a best-effort backend and returns 502 if the `localize_image` round-trip raises a non-422 `ApiException`.
@@ -193,7 +193,7 @@ The Dockerfile bakes `LOCALIZER_SHA` in the *last* `ENV` layer, so only that lay
 
 ## See also
 
-- `docker/AGENTS.md` — stack-level data flow, log query patterns, MinIO bucket layout, reconstructor lease lifecycle. The localizer is one consumer of `dev-reconstructions/`; this file does not restate the bucket schema.
+- `docker/AGENTS.md` — stack-level data flow, log query patterns, S3 bucket layout, reconstructor lease lifecycle. The localizer is one consumer of `dev-reconstructions/`; this file does not restate the bucket schema.
 - `packages/python/core/` — `calibration.py` (Features / CalibrationArtifact / apply_global_calibration), `h5.py`, `opq.py`, `image_preprocess.py`, `model_wrappers.py`, `localization_metrics.py` carry the shared domain types and the canonical hyperparameter defaults the localizer reads.
 - `scripts/src/scripts/fit_calibration.py` — produces `docker/localizer/calibration/global.json` from a labeled corpus. The localizer is strictly a consumer; refits land as commits to that file plus a paired image rebuild at the same `LOCALIZER_SHA`.
 - [`stack-lifecycle`](https://github.com/outernet-foundation/stack-lifecycle)'s `context_sha.py` — defines `compute_service_shas`, which derives `LOCALIZER_SHA` (and one such SHA per service) from the localizer image's build context per the `.dockerignore` allowlist convention described in the repo `CLAUDE.md`.
