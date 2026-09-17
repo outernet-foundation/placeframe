@@ -68,8 +68,7 @@
       "url": "https://package.openupm.com",
       "scopes": [
         "com.cysharp",
-        "org.nuget",
-        "org.nuget.placeframeapiclient"
+        "org.nuget"
       ]
     }
   ]

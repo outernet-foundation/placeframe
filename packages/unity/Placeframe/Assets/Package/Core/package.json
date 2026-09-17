@@ -1,6 +1,6 @@
 {
   "name": "org.outernet.placeframe",
-  "version": "0.0.0-local",
+  "version": "1.0.6-preview",
   "displayName": "Placeframe",
   "description": "Visual Localization System for Unity",
   "unity": "6000.0",

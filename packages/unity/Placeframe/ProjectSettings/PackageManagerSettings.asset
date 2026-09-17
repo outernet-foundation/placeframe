@@ -47,7 +47,6 @@ MonoBehaviour:
     m_Scopes:
     - com.cysharp
     - org.nuget
-    - org.nuget.placeframeapiclient
     m_IsDefault: 0
     m_Capabilities: 0
     m_ConfigSource: 4
