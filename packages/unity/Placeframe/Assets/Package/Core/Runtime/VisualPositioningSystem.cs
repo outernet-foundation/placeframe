@@ -195,7 +195,7 @@ namespace Placeframe.Core
                     onErrorResume: exception => LogDebug(exception.Message),
                     onCompleted: _ => { },
                     // Skip frames if they pile up
-                    awaitOperation: AwaitOperation.Drop
+                    awaitOperations: AwaitOperation.Drop
                 );
         }
 
