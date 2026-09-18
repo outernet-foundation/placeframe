@@ -34,6 +34,7 @@ members = [
 
 
 [tool.uv]
+required-version = "==0.12.15"
 config-settings-package.placeframe-api-client = { editable_mode = "compat" }
 config-settings-package.placeframe-lease-server-client = { editable_mode = "compat" }
 config-settings-package.placeframe-localizer-client = { editable_mode = "compat" }

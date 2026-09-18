@@ -1,5 +1,5 @@
 x-base-images:
-  UV_BASE_DIGEST: "ghcr.io/outernet-foundation/mirror/ghcr.io/astral-sh/uv:python3.13-bookworm-slim"
+  UV_BASE_DIGEST: "ghcr.io/outernet-foundation/mirror/ghcr.io/astral-sh/uv:0.12.15-python3.13-trixie-slim"
   DOTNET_SDK_DIGEST: "ghcr.io/outernet-foundation/mirror/mcr.microsoft.com/dotnet/sdk:8.0"
   DOTNET_ASPNET_DIGEST: "ghcr.io/outernet-foundation/mirror/mcr.microsoft.com/dotnet/aspnet:8.0"
   GOLANG_DIGEST: "ghcr.io/outernet-foundation/mirror/docker.io/library/golang:1.22-alpine"
