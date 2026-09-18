@@ -12,6 +12,7 @@ dev = ["build-scripts", "scripts", "basedpyright>=1.39.10", "deptry>=0.24.0", "r
 members = [
     "docker/aoa-bridge",
     "docker/database-manager",
+    "docker/s3-initializer",
     "docker/api",
     "docker/auth-initializer",
     "docker/lease-server",
@@ -75,4 +76,4 @@ include = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["build/tests", "packages/python/common/tests", "scripts/tests"]
+testpaths = ["build/tests", "packages/python/common/tests", "scripts/tests", "docker/s3-initializer/tests"]

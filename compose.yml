@@ -21,9 +21,17 @@ services:
     volumes:
       - seaweedfs_data:/data
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:9333/cluster/status" ]
+      # The readiness contract dependents gate on: master serving AND the S3
+      # listener accepting connections. weed binds its listeners staggered, so a
+      # single-port check passes before S3 is reachable.
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS http://127.0.0.1:9333/cluster/status && curl -s -o /dev/null http://127.0.0.1:8333/",
+        ]
       interval: 1s
       retries: 60
+      start_period: 90s
     environment:
       S3_ACCESS_KEY: "${S3_ACCESS_KEY:?err}"
       S3_SECRET_KEY: "${S3_SECRET_KEY:?err}"
@@ -53,23 +61,20 @@ services:
         mode: ingress
     command: admin -ip=0.0.0.0 -port=59001 -port.grpc=59002 -master=seaweedfs:9333 -adminPassword="${S3_SECRET_KEY:?err}"
 
+  # Converges the required buckets (verify if present, create if missing) and
+  # retries until the S3 endpoint accepts connections — safe on both cold and
+  # warm volumes. Gated on seaweedfs health, which asserts S3 readiness.
   initialize-s3:
-    x-image-ref: ghcr.io/outernet-foundation/mirror/docker.io/amazon/aws-cli:2.36.9
-    image: "${INITIALIZE_S3_IMAGE:?err}"
+    image: "ghcr.io/outernet-foundation/placeframe/s3-initializer:${S3_INITIALIZER_SHA:?err}"
     depends_on:
       seaweedfs:
         condition: service_healthy
     restart: "no"
-    entrypoint: >
-      /bin/sh -c "
-        aws s3api create-bucket --bucket dev-captures --endpoint-url http://seaweedfs:8333 && \
-        aws s3api create-bucket --bucket dev-reconstructions --endpoint-url http://seaweedfs:8333 && \
-        aws s3api create-bucket --bucket loki --endpoint-url http://seaweedfs:8333
-      "
     environment:
-      AWS_ACCESS_KEY_ID: "${S3_ACCESS_KEY:?err}"
-      AWS_SECRET_ACCESS_KEY: "${S3_SECRET_KEY:?err}"
-      AWS_REGION: us-east-1
+      S3_ENDPOINT_URL: "http://seaweedfs:8333"
+      S3_ACCESS_KEY: "${S3_ACCESS_KEY:?err}"
+      S3_SECRET_KEY: "${S3_SECRET_KEY:?err}"
+      S3_BUCKETS: "dev-captures dev-reconstructions loki"
 
   initialize-cloudbeaver:
     image: "ghcr.io/outernet-foundation/placeframe/cloudbeaver-initializer:${CLOUDBEAVER_INITIALIZER_SHA:?err}"

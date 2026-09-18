@@ -39,6 +39,15 @@ services:
         - "ghcr.io/outernet-foundation/placeframe/cloudbeaver-initializer:latest"
         - "ghcr.io/outernet-foundation/placeframe/cloudbeaver-initializer:${CLOUDBEAVER_INITIALIZER_SHA}"
 
+  s3-initializer:
+    build:
+      context: .
+      dockerfile: docker/s3-initializer/Dockerfile
+      args: *base-args
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/s3-initializer:latest"
+        - "ghcr.io/outernet-foundation/placeframe/s3-initializer:${S3_INITIALIZER_SHA}"
+
   create-database:
     build:
       context: .

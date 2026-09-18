@@ -34,6 +34,7 @@ members = [
     "placeframe-localizer-client",
     "placeframe-rathole-client",
     "placeframe-reconstructor",
+    "s3-initializer",
     "scripts",
     "zed",
 ]
@@ -2368,6 +2369,33 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/87/44/90fa543014c45560cae1fffc63ea059fb3575ee6e1cb654562197e5d16fb/ruff-0.14.14-py3-none-win_amd64.whl", hash = "sha256:3dde1435e6b6fe5b66506c1dff67a421d0b7f6488d466f651c07f4cab3bf20fd", size = 11630486, upload-time = "2026-01-22T22:30:10.852Z" },
     { url = "https://files.pythonhosted.org/packages/9e/6a/40fee331a52339926a92e17ae748827270b288a35ef4a15c9c8f2ec54715/ruff-0.14.14-py3-none-win_arm64.whl", hash = "sha256:56e6981a98b13a32236a72a8da421d7839221fa308b223b9283312312e5ac76c", size = 10920448, upload-time = "2026-01-22T22:30:15.417Z" },
 ]
+
+[[package]]
+name = "s3-initializer"
+version = "0.1.0"
+source = { editable = "docker/s3-initializer" }
+dependencies = [
+    { name = "boto3" },
+    { name = "botocore" },
+    { name = "pydantic" },
+    { name = "pydantic-settings" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "boto3-stubs", extra = ["s3"] },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "boto3", specifier = ">=1.39.5" },
+    { name = "botocore", specifier = ">=1.42.24" },
+    { name = "pydantic", specifier = ">=2.12.5" },
+    { name = "pydantic-settings", specifier = ">=2.10.1" },
+]
+
+[package.metadata.requires-dev]
+dev = [{ name = "boto3-stubs", extras = ["s3"], specifier = ">=1.40.29" }]
 
 [[package]]
 name = "s3transfer"
