@@ -10,6 +10,7 @@ from uuid import UUID
 import numpy as np
 import typer
 from bashrun import bash, bash_output
+from stack_lifecycle.modes import parse_env_file
 
 from .displacement_check import (
     DEFAULT_SEQUENTIAL_WINDOW,
@@ -20,6 +21,8 @@ from .displacement_check import (
     parse_rig_centers,
     summarize_track_extents,
 )
+
+REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
 RESULT_FIELD_NAMES = [
@@ -204,16 +207,27 @@ def persist_mapping(classified: list[ClassifiedReconstruction], mapping_path: Pa
     print(f"wrote {mapping_path}")
 
 
+def awscli_s3(arguments: str, volume_dir: Path) -> None:
+    env = parse_env_file(REPO_ROOT / ".env")
+    lock = parse_env_file(REPO_ROOT / ".env.lock")
+    bash(
+        "docker run --rm --network placeframe_default "
+        f"-e AWS_ACCESS_KEY_ID={env['S3_ACCESS_KEY']} -e AWS_SECRET_ACCESS_KEY={env['S3_SECRET_KEY']} "
+        f"-e AWS_DEFAULT_REGION=us-east-1 -v {volume_dir}:/work {lock['INITIALIZE_S3_IMAGE']} {arguments}"
+    )
+
+
 def ensure_capture_extracted(capture_id: UUID, output_dir: Path) -> Path:
     capture_dir = output_dir / "capture_extracted"
     if (capture_dir / "rig0" / "frames.csv").exists():
         return capture_dir
     capture_tar = output_dir / "capture.tar"
     if not capture_tar.exists():
-        print(f"downloading capture {capture_id} from MinIO")
-        bash(f"docker exec placeframe-minio-1 mc cp local/dev-captures/{capture_id}.tar /tmp/sweep_capture.tar")
-        bash(f"docker cp placeframe-minio-1:/tmp/sweep_capture.tar {capture_tar}")
-        bash("docker exec placeframe-minio-1 rm -f /tmp/sweep_capture.tar")
+        print(f"downloading capture {capture_id} from SeaweedFS")
+        awscli_s3(
+            f"s3 cp s3://dev-captures/{capture_id}.tar /work/capture.tar --endpoint-url http://seaweedfs:8333",
+            output_dir,
+        )
     capture_dir.mkdir(parents=True, exist_ok=True)
     bash(f"tar -xf {capture_tar} -C {capture_dir}")
     return capture_dir
@@ -224,14 +238,11 @@ def pull_sfm_artifacts(reconstruction_id: UUID, output_dir: Path) -> Path | None
     if (sfm_dir / "frames.txt").exists() and (sfm_dir / "points3D.txt").exists():
         return sfm_dir
     sfm_dir.mkdir(parents=True, exist_ok=True)
-    container_tmp = f"/tmp/sweep_pull_{reconstruction_id}"
-    bash(f"docker exec placeframe-minio-1 rm -rf {container_tmp}")
-    bash(
-        f"docker exec placeframe-minio-1 mc cp --recursive "
-        f"local/dev-reconstructions/{reconstruction_id}/sfm_model/ {container_tmp}/"
+    awscli_s3(
+        f"s3 cp s3://dev-reconstructions/{reconstruction_id}/sfm_model/ /work/ --recursive "
+        "--endpoint-url http://seaweedfs:8333",
+        sfm_dir,
     )
-    bash(f"docker cp placeframe-minio-1:{container_tmp}/. {sfm_dir}")
-    bash(f"docker exec placeframe-minio-1 rm -rf {container_tmp}")
     if not (sfm_dir / "frames.txt").exists():
         return None
     return sfm_dir

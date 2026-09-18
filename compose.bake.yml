@@ -11,6 +11,7 @@ x-base-images:
   GRAFANA_DIGEST: "ghcr.io/outernet-foundation/mirror/docker.io/grafana/grafana:11.6.0"
   POSTGIS_DIGEST: "ghcr.io/outernet-foundation/mirror/docker.io/postgis/postgis:16-3.4-alpine"
   POSTGRES_CNPG_DIGEST: "ghcr.io/outernet-foundation/mirror/ghcr.io/cloudnative-pg/postgis:14@sha256:8e05fbc908ffbdb34aaaf594ea8d108450266f686500fc6e6d78dd007f32c568"
+  SEAWEEDFS_DIGEST: "ghcr.io/outernet-foundation/mirror/docker.io/chrislusf/seaweedfs:4.47"
 
 x-base-args: &base-args
   UV_BASE_DIGEST: "${UV_BASE_DIGEST:-}"
@@ -24,6 +25,7 @@ x-base-args: &base-args
   ALLOY_DIGEST: "${ALLOY_DIGEST:-}"
   GRAFANA_DIGEST: "${GRAFANA_DIGEST:-}"
   POSTGIS_DIGEST: "${POSTGIS_DIGEST:-}"
+  SEAWEEDFS_DIGEST: "${SEAWEEDFS_DIGEST:-}"
 
 x-registry-cache: ghcr.io/outernet-foundation/placeframe/build-cache
 
@@ -139,6 +141,15 @@ services:
       tags:
         - "ghcr.io/outernet-foundation/placeframe/postgres:latest"
         - "ghcr.io/outernet-foundation/placeframe/postgres:${POSTGRES_SHA}"
+
+  seaweedfs:
+    build:
+      context: .
+      dockerfile: docker/seaweedfs/Dockerfile
+      args: *base-args
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/seaweedfs:latest"
+        - "ghcr.io/outernet-foundation/placeframe/seaweedfs:${SEAWEEDFS_SHA}"
 
   neural-networks-base-cuda:
     build:

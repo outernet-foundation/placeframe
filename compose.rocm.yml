@@ -15,9 +15,9 @@ services:
       - 110
     environment:
       LEASE_SERVER_URL: http://lease-server:8000
-      MINIO_ENDPOINT_URL: "http://minio:9000"
-      MINIO_ACCESS_KEY: "${MINIO_ACCESS_KEY:?err}"
-      MINIO_SECRET_KEY: "${MINIO_SECRET_KEY:?err}"
+      S3_ENDPOINT_URL: "http://seaweedfs:8333"
+      S3_ACCESS_KEY: "${S3_ACCESS_KEY:?err}"
+      S3_SECRET_KEY: "${S3_SECRET_KEY:?err}"
       RECONSTRUCTIONS_BUCKET: dev-reconstructions
       CAPTURES_BUCKET: dev-captures
       DEPLOYMENT_ENVIRONMENT: "${DEPLOYMENT_ENVIRONMENT:-development}"
@@ -38,9 +38,9 @@ services:
       - 44
       - 110
     environment:
-      MINIO_ENDPOINT_URL: "http://minio:9000"
-      MINIO_ACCESS_KEY: "${MINIO_ACCESS_KEY:?err}"
-      MINIO_SECRET_KEY: "${MINIO_SECRET_KEY:?err}"
+      S3_ENDPOINT_URL: "http://seaweedfs:8333"
+      S3_ACCESS_KEY: "${S3_ACCESS_KEY:?err}"
+      S3_SECRET_KEY: "${S3_SECRET_KEY:?err}"
       RECONSTRUCTIONS_BUCKET: dev-reconstructions
       DEPLOYMENT_ENVIRONMENT: "${DEPLOYMENT_ENVIRONMENT:-development}"
       SERVICE_VERSION: "${LOCALIZER_SHA:?err}"

@@ -42,7 +42,7 @@ def displacement_check(
     sfm_directory: Annotated[
         Path,
         typer.Argument(
-            help="Directory containing COLMAP images.txt, frames.txt, and optionally points3D.txt (the directory MinIO stores as <reconstruction_id>/sfm_model/)."
+            help="Directory containing COLMAP images.txt, frames.txt, and optionally points3D.txt (the directory S3 stores as <reconstruction_id>/sfm_model/)."
         ),
     ],
     frames_csv: Annotated[

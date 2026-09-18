@@ -401,7 +401,7 @@ def _extract_member_bytes(capture_id: UUID, member_name: str) -> bytes:
     # Stream-mode tar (`r|*`) avoids loading the full capture tar into memory; fit-calibration
     # calls /images/{ts} ~100x per capture and tars run 500MB–2GB. We still read sequentially
     # to find the member, so worst case is one full pass per call. A future optimization could
-    # store frames.csv + images as separate MinIO objects to make these endpoints O(1).
+    # store frames.csv + images as separate S3 objects to make these endpoints O(1).
     try:
         obj = get_storage().get_object(BUCKET, f"{capture_id}.tar")
         body = obj["Body"]

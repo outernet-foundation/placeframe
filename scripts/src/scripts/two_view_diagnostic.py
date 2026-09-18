@@ -241,7 +241,7 @@ def two_view_diagnostic(
     sfm_directory: Annotated[
         Path,
         typer.Argument(
-            help="Directory containing COLMAP images.txt (the directory MinIO stores as <reconstruction_id>/sfm_model/)."
+            help="Directory containing COLMAP images.txt (the directory S3 stores as <reconstruction_id>/sfm_model/)."
         ),
     ],
     frames_csv: Annotated[

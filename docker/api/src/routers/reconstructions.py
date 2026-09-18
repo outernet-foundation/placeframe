@@ -71,9 +71,9 @@ ARTIFACT_CHUNK = 1024 * 1024
 
 
 s3_client = create_s3_client(
-    minio_endpoint_url=settings.minio_endpoint_url,
-    minio_access_key=settings.minio_access_key,
-    minio_secret_key=settings.minio_secret_key,
+    s3_endpoint_url=settings.s3_endpoint_url,
+    s3_access_key=settings.s3_access_key,
+    s3_secret_key=settings.s3_secret_key,
 )
 
 
@@ -92,7 +92,7 @@ class ReconstructionReadWithQueue(ReconstructionRead):
     queue_depth: int | None = None
 
 
-# Carries only the reconstruction row; its relocalization inputs live in the MinIO prefix, and the
+# Carries only the reconstruction row; its relocalization inputs live in the S3 bucket, and the
 # capture session, localization map, camera positions and evaluations are per-backend state recreated
 # after import rather than transported.
 class ReconstructionTarManifest(BaseModel):
@@ -185,7 +185,7 @@ async def delete_reconstruction(session: AsyncSession, id: UUID) -> None:
         raise NotFoundException(f"Reconstruction with id {id} has an associated localization map and cannot be deleted")
 
     # Delete S3 objects before the row so a synchronous failure leaves a recoverable state.
-    # The row id is the only handle to find these objects in MinIO.
+    # The row id is the only handle to find these objects in S3.
     prefix = f"{id}/"
     paginator = s3_client.get_paginator("list_objects_v2")
     for page in paginator.paginate(Bucket=settings.reconstructions_bucket, Prefix=prefix):

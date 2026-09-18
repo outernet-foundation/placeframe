@@ -48,9 +48,9 @@ _maps: dict[UUID, Map] = {}
 
 settings = get_settings()
 s3_client = create_s3_client(
-    minio_endpoint_url=settings.minio_endpoint_url,
-    minio_access_key=settings.minio_access_key,
-    minio_secret_key=settings.minio_secret_key,
+    s3_endpoint_url=settings.s3_endpoint_url,
+    s3_access_key=settings.s3_access_key,
+    s3_secret_key=settings.s3_secret_key,
 )
 
 pipeline_version: str = ""
