@@ -38,9 +38,11 @@ RUN git clone https://github.com/libusb/libusb.git . \
     && make install DESTDIR=/staging
 
 
+FROM ghcr.io/outernet-foundation/mirror/ghcr.io/astral-sh/uv${UV_BASE_DIGEST} AS uv
+
 FROM ghcr.io/outernet-foundation/mirror/docker.io/library/python${PYTHON_BASE_DIGEST}
 
-COPY --from=ghcr.io/outernet-foundation/mirror/ghcr.io/astral-sh/uv${UV_BASE_DIGEST} /uv /uvx /usr/local/bin/
+COPY --from=uv /usr/local/bin/uv /usr/local/bin/uvx /usr/local/bin/
 
 WORKDIR /app/aoa-bridge
 
