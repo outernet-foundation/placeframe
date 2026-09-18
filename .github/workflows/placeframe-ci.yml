@@ -9,7 +9,7 @@ on:
         options: [default, air-gapped]
         default: default
   push:
-    branches: [dev, feature/seaweedfs]
+    branches: [dev]
   pull_request:
     branches: [dev]
 
