@@ -1,0 +1,632 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: keycloak
+  namespace: placeframe
+spec:
+  ports:
+    - port: 8080
+      targetPort: 8080
+  selector:
+    app: keycloak
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: keycloak
+  namespace: placeframe
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: keycloak
+  serviceName: keycloak
+  template:
+    metadata:
+      labels:
+        app: keycloak
+    spec:
+      containers:
+        - args:
+            - start-dev
+            - --import-realm
+            - --health-enabled=true
+          env:
+            - name: PUBLIC_URL
+              valueFrom:
+                secretKeyRef:
+                  key: PUBLIC_URL
+                  name: placeframe-secrets
+            - name: KC_HOSTNAME
+              valueFrom:
+                secretKeyRef:
+                  key: KEYCLOAK_HOSTNAME
+                  name: placeframe-secrets
+            - name: KC_HOSTNAME_ADMIN
+              valueFrom:
+                secretKeyRef:
+                  key: KEYCLOAK_HOSTNAME
+                  name: placeframe-secrets
+            - name: KC_PROXY_HEADERS
+              value: xforwarded
+            - name: KC_HOSTNAME_STRICT_HTTPS
+              value: "true"
+            - name: KEYCLOAK_ACCESS_TOKEN_LIFESPAN
+              value: "3600"
+            - name: KEYCLOAK_SSO_SESSION_IDLE_TIMEOUT
+              value: "2592000"
+            - name: KEYCLOAK_SSO_SESSION_MAX_LIFESPAN
+              value: "2592000"
+            - name: KEYCLOAK_ADMIN
+              value: admin
+            - name: KEYCLOAK_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: KEYCLOAK_ADMIN_PASSWORD
+                  name: placeframe-secrets
+          image: quay.io/keycloak/keycloak:26.3.5@sha256:357829ec7c4693397533035092ad13b0644bcc95ded311f33a3738c4d9e9bdba
+          name: keycloak
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 9000
+          volumeMounts:
+            - mountPath: /opt/keycloak/data/import
+              name: import
+              readOnly: true
+            - mountPath: /opt/keycloak/data
+              name: data
+      initContainers:
+        - image: ghcr.io/outernet-foundation/placeframe/auth-initializer:tree-10559874f4ec27dc9eab8bbf63e6ab8986ce556f
+          name: auth-initializer
+          volumeMounts:
+            - mountPath: /keycloak_import
+              name: import
+            - mountPath: /auth_data
+              name: auth-data
+      volumes:
+        - emptyDir: {}
+          name: import
+        - emptyDir: {}
+          name: auth-data
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pf-postgres
+  namespace: placeframe
+spec:
+  ports:
+    - port: 5432
+      targetPort: 5432
+  selector:
+    app.kubernetes.io/instance: pf-postgres
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
+  name: pf-postgres
+  namespace: placeframe
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: pf-postgres
+  serviceName: pf-postgres
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: pf-postgres
+    spec:
+      containers:
+        - command:
+            - /usr/local/bin/entrypoint-wrapper.sh
+          env:
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+            - name: POSTGRES_USER
+              value: postgres
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: POSTGRES_ADMIN_PASSWORD
+                  name: placeframe-secrets
+          image: ghcr.io/outernet-foundation/placeframe/postgres:tree-2805e66eb8f946b3ff6fb0dc220b080d9bb0d984
+          name: postgres-db
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: pv-data
+  volumeClaimTemplates:
+    - metadata:
+        name: pv-data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+        storageClassName: hcloud-volumes
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pf-postgres-create
+  namespace: placeframe
+spec:
+  backoffLimit: 30
+  template:
+    spec:
+      containers:
+        - command:
+            - uv
+            - run
+            - --no-sync
+            - python
+            - -m
+            - src.main
+            - --op
+            - create
+            - --name
+            - placeframe
+            - --owner-password
+            - $(DATABASE_OWNER_PASSWORD)
+            - --api-user-password
+            - $(DATABASE_API_USER_PASSWORD)
+            - --auth-user-password
+            - $(DATABASE_AUTH_USER_PASSWORD)
+            - --orchestration-user-password
+            - $(DATABASE_ORCHESTRATION_USER_PASSWORD)
+          env:
+            - name: POSTGRES_HOST
+              value: pf-postgres
+            - name: POSTGRES_ADMIN_USER
+              value: postgres
+            - name: POSTGRES_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: POSTGRES_ADMIN_PASSWORD
+                  name: placeframe-secrets
+            - name: DATABASE_OWNER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: DATABASE_OWNER_PASSWORD
+                  name: placeframe-secrets
+            - name: DATABASE_API_USER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: DATABASE_API_USER_PASSWORD
+                  name: placeframe-secrets
+            - name: DATABASE_AUTH_USER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: DATABASE_AUTH_USER_PASSWORD
+                  name: placeframe-secrets
+            - name: DATABASE_ORCHESTRATION_USER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: DATABASE_ORCHESTRATION_USER_PASSWORD
+                  name: placeframe-secrets
+          image: ghcr.io/outernet-foundation/placeframe/database-manager:tree-fb027ea674d00a8c9079aa26c13bac5550f263f9
+          name: create
+          volumeMounts:
+            - mountPath: /mnt/efs
+              name: efs
+      restartPolicy: OnFailure
+      volumes:
+        - emptyDir: {}
+          name: efs
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pf-postgres-migrate
+  namespace: placeframe
+spec:
+  backoffLimit: 30
+  template:
+    spec:
+      containers:
+        - env:
+            - name: DB_HOST
+              value: pf-postgres
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_NAME
+              value: placeframe
+            - name: DB_USER
+              value: placeframe_owner
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: DATABASE_OWNER_PASSWORD
+                  name: placeframe-secrets
+            - name: DATABASE_SCHEMA_DIR
+              value: database
+            - name: ALLOWED_HAZARDS
+              value: HAS_UNTRACKABLE_DEPENDENCIES
+          image: ghcr.io/outernet-foundation/placeframe/database-migrator:tree-0e358a9da5301a6399d56b4f9248d95edcd8f0c7
+          name: migrate
+      restartPolicy: OnFailure
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio
+  namespace: placeframe
+spec:
+  ports:
+    - port: 9000
+      targetPort: 9000
+  selector:
+    app.kubernetes.io/instance: minio
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
+  name: minio
+  namespace: placeframe
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: minio
+  serviceName: minio
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: minio
+    spec:
+      containers:
+        - args:
+            - server
+            - /data
+            - --console-address
+            - :9001
+          env:
+            - name: MINIO_ROOT_USER
+              valueFrom:
+                secretKeyRef:
+                  key: MINIO_ACCESS_KEY
+                  name: placeframe-secrets
+            - name: MINIO_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: MINIO_SECRET_KEY
+                  name: placeframe-secrets
+          image: docker.io/minio/minio@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
+          name: minio
+          ports:
+            - containerPort: 9000
+          volumeMounts:
+            - mountPath: /data
+              name: data
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 50Gi
+        storageClassName: hcloud-volumes
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: minio-bucket
+  namespace: placeframe
+spec:
+  backoffLimit: 30
+  template:
+    spec:
+      containers:
+        - command:
+            - /bin/sh
+            - -c
+            - mc alias set local http://minio:9000 $(MINIO_ACCESS_KEY) $(MINIO_SECRET_KEY) && mc mb --ignore-existing local/reconstructions
+          env:
+            - name: MINIO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: MINIO_ACCESS_KEY
+                  name: placeframe-secrets
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: MINIO_SECRET_KEY
+                  name: placeframe-secrets
+          image: docker.io/minio/mc@sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727
+          name: bucket
+      restartPolicy: OnFailure
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    k8s.score.dev/workload-name: api
+  labels:
+    app.kubernetes.io/instance: api-7ae5e8b491
+    app.kubernetes.io/managed-by: score-k8s
+    app.kubernetes.io/name: api
+  name: api
+  namespace: placeframe
+spec:
+  ports:
+    - name: http
+      port: 8000
+      protocol: TCP
+      targetPort: 8000
+  selector:
+    app.kubernetes.io/instance: api-7ae5e8b491
+status:
+  loadBalancer: {}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    k8s.score.dev/workload-name: api
+  labels:
+    app.kubernetes.io/instance: api-7ae5e8b491
+    app.kubernetes.io/managed-by: score-k8s
+    app.kubernetes.io/name: api
+  name: api
+  namespace: placeframe
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: api-7ae5e8b491
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        k8s.score.dev/workload-name: api
+      labels:
+        app.kubernetes.io/instance: api-7ae5e8b491
+        app.kubernetes.io/managed-by: score-k8s
+        app.kubernetes.io/name: api
+    spec:
+      containers:
+        - env:
+            - name: AUTH_AUDIENCE
+              valueFrom:
+                secretKeyRef:
+                  key: AUTH_AUDIENCE
+                  name: placeframe-secrets
+            - name: AUTH_CERTS_URL
+              value: http://keycloak:8080/realms/placeframe-dev/protocol/openid-connect/certs
+            - name: AUTH_ISSUER_URL
+              valueFrom:
+                secretKeyRef:
+                  key: AUTH_ISSUER_URL
+                  name: placeframe-secrets
+            - name: AUTH_MODE
+              valueFrom:
+                secretKeyRef:
+                  key: AUTH_MODE
+                  name: placeframe-secrets
+            - name: AUTH_TOKEN_URL
+              valueFrom:
+                secretKeyRef:
+                  key: AUTH_TOKEN_URL
+                  name: placeframe-secrets
+            - name: AUTH_URL
+              valueFrom:
+                secretKeyRef:
+                  key: AUTH_URL
+                  name: placeframe-secrets
+            - name: DATABASE_API_USER
+              value: placeframe_api_user
+            - name: DATABASE_API_USER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: DATABASE_API_USER_PASSWORD
+                  name: placeframe-secrets
+            - name: DATABASE_AUTH_USER
+              value: placeframe_auth_user
+            - name: DATABASE_AUTH_USER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: DATABASE_AUTH_USER_PASSWORD
+                  name: placeframe-secrets
+            - name: DATABASE_NAME
+              value: placeframe
+            - name: DATABASE_ORCHESTRATION_USER
+              value: placeframe_orchestration_user
+            - name: DATABASE_ORCHESTRATION_USER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: DATABASE_ORCHESTRATION_USER_PASSWORD
+                  name: placeframe-secrets
+            - name: DEPLOYMENT_ENVIRONMENT
+              valueFrom:
+                secretKeyRef:
+                  key: DEPLOYMENT_ENVIRONMENT
+                  name: placeframe-secrets
+            - name: LOCALIZER_CONTAINER_URL
+              value: http://localhost:8000
+            - name: LOKI_URL
+              value: http://localhost:3100
+            - name: MINIO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: MINIO_ACCESS_KEY
+                  name: placeframe-secrets
+            - name: MINIO_ENDPOINT_URL
+              value: http://minio:9000
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: MINIO_SECRET_KEY
+                  name: placeframe-secrets
+            - name: POSTGRES_HOST
+              value: pf-postgres
+            - name: PUBLIC_URL
+              valueFrom:
+                secretKeyRef:
+                  key: PUBLIC_URL
+                  name: placeframe-secrets
+            - name: RECONSTRUCTIONS_BUCKET
+              value: reconstructions
+          image: ghcr.io/outernet-foundation/placeframe/api:tree-70fd47ea882fbc08321b1646ed9fd3c7f8801807
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+          name: api
+          resources: {}
+status: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    k8s.score.dev/workload-name: gateway
+  labels:
+    app.kubernetes.io/instance: gateway-63f43f747f
+    app.kubernetes.io/managed-by: score-k8s
+    app.kubernetes.io/name: gateway
+  name: gateway
+  namespace: placeframe
+spec:
+  ports:
+    - name: gateway
+      port: 8443
+      protocol: TCP
+      targetPort: 8443
+  selector:
+    app.kubernetes.io/instance: gateway-63f43f747f
+status:
+  loadBalancer: {}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    k8s.score.dev/workload-name: gateway
+  labels:
+    app.kubernetes.io/instance: gateway-63f43f747f
+    app.kubernetes.io/managed-by: score-k8s
+    app.kubernetes.io/name: gateway
+  name: gateway
+  namespace: placeframe
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: gateway-63f43f747f
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        k8s.score.dev/workload-name: gateway
+      labels:
+        app.kubernetes.io/instance: gateway-63f43f747f
+        app.kubernetes.io/managed-by: score-k8s
+        app.kubernetes.io/name: gateway
+    spec:
+      containers:
+        - env:
+            - name: AUTH_MODE
+              valueFrom:
+                secretKeyRef:
+                  key: AUTH_MODE
+                  name: placeframe-secrets
+            - name: PUBLIC_URL
+              valueFrom:
+                secretKeyRef:
+                  key: PUBLIC_URL
+                  name: placeframe-secrets
+          image: ghcr.io/outernet-foundation/placeframe/gateway:tree-f265a9765c3b05b6ec5603e7c4e2e9e629785d35
+          name: gateway
+          resources: {}
+status: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    k8s.score.dev/workload-name: lease-server
+  labels:
+    app.kubernetes.io/instance: lease-server-1ec460ca93
+    app.kubernetes.io/managed-by: score-k8s
+    app.kubernetes.io/name: lease-server
+  name: lease-server
+  namespace: placeframe
+spec:
+  ports:
+    - name: http
+      port: 8000
+      protocol: TCP
+      targetPort: 8000
+  selector:
+    app.kubernetes.io/instance: lease-server-1ec460ca93
+status:
+  loadBalancer: {}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    k8s.score.dev/workload-name: lease-server
+  labels:
+    app.kubernetes.io/instance: lease-server-1ec460ca93
+    app.kubernetes.io/managed-by: score-k8s
+    app.kubernetes.io/name: lease-server
+  name: lease-server
+  namespace: placeframe
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: lease-server-1ec460ca93
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        k8s.score.dev/workload-name: lease-server
+      labels:
+        app.kubernetes.io/instance: lease-server-1ec460ca93
+        app.kubernetes.io/managed-by: score-k8s
+        app.kubernetes.io/name: lease-server
+    spec:
+      containers:
+        - env:
+            - name: DATABASE_NAME
+              value: placeframe
+            - name: DATABASE_ORCHESTRATION_USER
+              value: placeframe_orchestration_user
+            - name: DATABASE_ORCHESTRATION_USER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: DATABASE_ORCHESTRATION_USER_PASSWORD
+                  name: placeframe-secrets
+            - name: DEPLOYMENT_ENVIRONMENT
+              value: development
+            - name: POSTGRES_HOST
+              value: pf-postgres
+          image: ghcr.io/outernet-foundation/placeframe/lease-server:tree-afcc37506a2bdc482d4d2d4153a9dcf7eb0fe586
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+          name: lease-server
+          resources: {}
+status: {}

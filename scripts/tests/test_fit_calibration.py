@@ -25,7 +25,6 @@ _FIXED_MAP_METRICS = RawMapMetrics(
     map_image_count=95,
     map_point_count=20000,
     map_avg_track_length=4.5,
-    map_bounding_volume_m3=12.3,
     map_viewpoint_diversity=0.6,
 )
 
@@ -158,7 +157,7 @@ class TestFitCalibrationFromCorpus:
 class TestStrideHeldOutSelector:
     def test_picks_evenly_spaced_timestamps(self):
         timestamps = list(range(1_700_000_000_000, 1_700_000_000_500))
-        frames_csv = "timestamp,tx,ty,tz,qx,qy,qz,qw\n" + "".join(f"{ts},0,0,0,0,0,0,1\n" for ts in timestamps)
+        frames_csv = "timestamp_ms,tx,ty,tz,qx,qy,qz,qw\n" + "".join(f"{ts},0,0,0,0,0,0,1\n" for ts in timestamps)
 
         selected = StrideHeldOutSelector()(frames_csv, HeldOutSelectionOptions(target_count=10))
 
@@ -168,12 +167,12 @@ class TestStrideHeldOutSelector:
             assert curr - prev == 50
 
     def test_empty_input_returns_empty(self):
-        frames_csv = "timestamp,tx,ty,tz,qx,qy,qz,qw\n"
+        frames_csv = "timestamp_ms,tx,ty,tz,qx,qy,qz,qw\n"
         assert StrideHeldOutSelector()(frames_csv, HeldOutSelectionOptions(target_count=100)) == []
 
     def test_target_count_exceeds_available_falls_back_to_stride_one(self):
         timestamps = [1, 2, 3, 4, 5]
-        frames_csv = "timestamp,tx,ty,tz,qx,qy,qz,qw\n" + "".join(f"{ts},0,0,0,0,0,0,1\n" for ts in timestamps)
+        frames_csv = "timestamp_ms,tx,ty,tz,qx,qy,qz,qw\n" + "".join(f"{ts},0,0,0,0,0,0,1\n" for ts in timestamps)
 
         selected = StrideHeldOutSelector()(frames_csv, HeldOutSelectionOptions(target_count=100))
 

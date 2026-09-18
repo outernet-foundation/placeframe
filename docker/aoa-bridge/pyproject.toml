@@ -1,0 +1,20 @@
+[project]
+name = "aoa-bridge"
+version = "0.1.0"
+description = "AOA host daemon: handshake an Android phone into accessory mode and pipe its bulk endpoints to a local TCP socket"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "libusb1>=3.1.0",
+    "python-json-logger>=3.2.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/aoa_bridge"]
+
+[project.scripts]
+aoa-bridge = "aoa_bridge.main:main"

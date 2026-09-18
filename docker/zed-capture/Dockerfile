@@ -1,7 +1,9 @@
 ARG ZED_BASE_DIGEST
-FROM stereolabs/zed:5.2-runtime-jetson-jp6.1.0${ZED_BASE_DIGEST}
+ARG UV_BASE_DIGEST
+FROM ghcr.io/outernet-foundation/mirror/ghcr.io/astral-sh/uv${UV_BASE_DIGEST} AS uv
+FROM ghcr.io/outernet-foundation/mirror/docker.io/stereolabs/zed${ZED_BASE_DIGEST}
 
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
+COPY --from=uv /usr/local/bin/uv /usr/local/bin/uvx /usr/local/bin/
 
 WORKDIR /app/zed
 
@@ -27,6 +29,14 @@ RUN uv pip install requests && \
     ls pyzed*.whl && \
     uv pip install pyzed*.whl && \
     uv pip uninstall requests
+
+# Git is required to resolve VCS dependencies in the lock file (e.g. logconf)
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    git ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install remaining dependencies from lock file
 COPY docker/zed-capture/pylock.toml ./pylock.toml

@@ -1,6 +1,6 @@
 ARG UV_BASE_DIGEST
 
-FROM ghcr.io/astral-sh/uv${UV_BASE_DIGEST} AS dev
+FROM ghcr.io/outernet-foundation/mirror/ghcr.io/astral-sh/uv${UV_BASE_DIGEST} AS dev
 
 WORKDIR /app/docker/api
 
@@ -37,5 +37,7 @@ RUN uv pip check
 
 # Copy the entrypoint and make it executable
 COPY --chmod=0755 docker/auth-initializer/entrypoint.sh /usr/local/bin/entrypoint.sh
+
+COPY docker/auth-initializer/realm-export /templates
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

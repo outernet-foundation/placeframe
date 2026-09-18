@@ -3,8 +3,7 @@
   "references": [
     "Newtonsoft.Json",
     "Polly",
-    "JsonSubTypes",
-    "UniTask"
+    "JsonSubTypes"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

@@ -20,7 +20,7 @@ import json
 from pydantic import BaseModel, ConfigDict
 from typing import Any, ClassVar, Dict, List, Optional
 from uuid import UUID
-from placeframe_api_client.models.reconstruction_read import ReconstructionRead
+from placeframe_api_client.models.reconstruction_read_with_queue import ReconstructionReadWithQueue
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
@@ -29,7 +29,7 @@ class ExpandedReconstruction(BaseModel):
     """
     ExpandedReconstruction
     """ # noqa: E501
-    reconstruction: ReconstructionRead
+    reconstruction: ReconstructionReadWithQueue
     localization_map_id: Optional[UUID] = None
     additional_properties: Dict[str, Any] = {}
     __properties: ClassVar[List[str]] = ["reconstruction", "localization_map_id"]
@@ -100,7 +100,7 @@ class ExpandedReconstruction(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "reconstruction": ReconstructionRead.from_dict(obj["reconstruction"]) if obj.get("reconstruction") is not None else None,
+            "reconstruction": ReconstructionReadWithQueue.from_dict(obj["reconstruction"]) if obj.get("reconstruction") is not None else None,
             "localization_map_id": obj.get("localization_map_id")
         })
         # store additional fields in additional_properties

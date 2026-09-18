@@ -24,6 +24,8 @@ RUN uv pip check
 
 COPY --chmod=0755 docker/localizer/entrypoint.sh /usr/local/bin/entrypoint.sh
 
+COPY docker/localizer/calibration/global.json /etc/placeframe/calibration/global.json
+
 # Stamped late so only the trailing ENV layer invalidates per build; upstream pip-install layers stay cached.
 # LOCALIZER_SHA is the content-addressed hash of this image's build context (computed by build_scripts.placeframe.context_sha.compute_service_shas) and is used as the pipeline version in main.py for the calibration gate.
 ARG LOCALIZER_SHA

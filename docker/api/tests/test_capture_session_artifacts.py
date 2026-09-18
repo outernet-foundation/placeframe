@@ -2,21 +2,12 @@ from __future__ import annotations
 
 import io
 import json
-import os
-import subprocess
 import tarfile
 import time
 import uuid
-from pathlib import Path
 
 import httpx
 import pytest
-
-DEFAULT_API_CONTAINER = "placeframe-api-1"
-DEFAULT_API_PORT = 8000
-DEFAULT_REALM = "placeframe-dev"
-DEFAULT_CLIENT_ID = "placeframe-api"
-ENV_FILE_CANDIDATES = (Path("/placeframe/.env"), Path.cwd() / ".env")
 
 # 1×1 JPEG (smallest valid baseline JPEG; produced by `convert -size 1x1 xc:black -quality 10 out.jpg`)
 MINIMAL_JPEG = bytes.fromhex(
@@ -27,85 +18,6 @@ MINIMAL_JPEG = bytes.fromhex(
     "00000000010203040506070809000a0bffc400b5100002010303020403050504040000017d010203000411051221314106"
     "1361227181143291a1b1c109233352f1156272d10a162434e125f11718191a262728292a3536373839"
 )
-
-
-def _public_domain_from_env_file() -> str | None:
-    for env_file in ENV_FILE_CANDIDATES:
-        if not env_file.is_file():
-            continue
-        for line in env_file.read_text().splitlines():
-            if line.startswith("PUBLIC_DOMAIN="):
-                return line.split("=", 1)[1].strip()
-    return None
-
-
-def _resolve_api_base_url() -> str | None:
-    env_url = os.environ.get("API_BASE_URL")
-    if env_url:
-        return env_url
-    container = os.environ.get("API_CONTAINER", DEFAULT_API_CONTAINER)
-    try:
-        ip = subprocess.check_output(
-            [
-                "docker",
-                "inspect",
-                container,
-                "-f",
-                '{{ (index .NetworkSettings.Networks "placeframe_default").IPAddress }}',
-            ],
-            text=True,
-            stderr=subprocess.DEVNULL,
-        ).strip()
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        return None
-    if not ip:
-        return None
-    return f"http://{ip}:{DEFAULT_API_PORT}"
-
-
-def _resolve_auth_base_url() -> str | None:
-    explicit = os.environ.get("AUTH_BASE_URL")
-    if explicit:
-        return explicit
-    public_domain = os.environ.get("PUBLIC_DOMAIN") or _public_domain_from_env_file()
-    if public_domain:
-        return f"https://{public_domain}/auth"
-    return None
-
-
-def _fetch_access_token(auth_base_url: str) -> str | None:
-    url = f"{auth_base_url}/realms/{DEFAULT_REALM}/protocol/openid-connect/token"
-    try:
-        resp = httpx.post(
-            url,
-            data={
-                "grant_type": "password",
-                "client_id": DEFAULT_CLIENT_ID,
-                "username": os.environ.get("PLACEFRAME_TEST_USER", "user"),
-                "password": os.environ.get("PLACEFRAME_TEST_PASSWORD", "password"),
-                "scope": "openid",
-            },
-            timeout=10.0,
-        )
-    except httpx.RequestError:
-        return None
-    if resp.status_code != 200:
-        return None
-    return resp.json().get("access_token")
-
-
-@pytest.fixture(scope="module")
-def api_client() -> httpx.Client:
-    base_url = _resolve_api_base_url()
-    if base_url is None:
-        pytest.skip("API not reachable; set API_BASE_URL or run inside the placeframe stack")
-    auth_base_url = _resolve_auth_base_url()
-    if auth_base_url is None:
-        pytest.skip("Auth not reachable; set AUTH_BASE_URL or PUBLIC_DOMAIN")
-    token = _fetch_access_token(auth_base_url)
-    if token is None:
-        pytest.skip("Could not obtain Keycloak token; check PLACEFRAME_TEST_USER/PASSWORD env")
-    return httpx.Client(base_url=base_url, headers={"Authorization": f"Bearer {token}"}, timeout=60.0)
 
 
 def _build_capture_tar(timestamps_ms: list[int], image_bytes: bytes) -> bytes:

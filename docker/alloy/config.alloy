@@ -1,27 +1,43 @@
-discovery.docker "containers" {
-  host = "unix:///var/run/docker.sock"
+// OTLP/gRPC receiver → attributes processor (label-cardinality policy) → Loki
+// exporter → loki.write. Producers ship OTel log records with full SemConv
+// resource attributes (service.name, service.namespace, service.instance.id,
+// service.version, deployment.environment.name, container.name). Only the
+// low-cardinality subset becomes Loki indexed labels; everything else rides
+// as Loki structured metadata. Write endpoint is env-driven so this single
+// config serves both the main backend stack (writes to loki:3100) and the
+// ZED box stack (writes to 127.0.0.1:3100).
+
+otelcol.receiver.otlp "default" {
+  grpc {
+    endpoint = "0.0.0.0:4317"
+  }
+
+  output {
+    logs = [otelcol.processor.attributes.label_promotion.input]
+  }
 }
 
-discovery.relabel "containers" {
-  targets = discovery.docker.containers.targets
-  rule {
-    source_labels = ["__meta_docker_container_name"]
-    target_label  = "container"
+// The Loki exporter promotes resource attributes named in the
+// `loki.resource.labels` record attribute to indexed Loki labels. Everything
+// else stays as structured metadata. Severity is promoted automatically.
+otelcol.processor.attributes "label_promotion" {
+  action {
+    key    = "loki.resource.labels"
+    value  = "service.name,deployment.environment.name"
+    action = "insert"
   }
-  rule {
-    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
-    target_label  = "service"
+
+  output {
+    logs = [otelcol.exporter.loki.default.input]
   }
 }
 
-loki.source.docker "containers" {
-  host       = "unix:///var/run/docker.sock"
-  targets    = discovery.relabel.containers.output
+otelcol.exporter.loki "default" {
   forward_to = [loki.write.default.receiver]
 }
 
 loki.write "default" {
   endpoint {
-    url = "http://loki:3100/loki/api/v1/push"
+    url = sys.env("LOKI_WRITE_ENDPOINT")
   }
 }

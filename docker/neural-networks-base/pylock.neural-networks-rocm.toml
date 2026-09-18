@@ -324,8 +324,8 @@ name = "pytorch-triton-rocm"
 version = "3.5.1"
 index = "https://download.pytorch.org/whl/rocm6.4"
 wheels = [
-    { url = "https://download-r2.pytorch.org/whl/pytorch_triton_rocm-3.5.1-cp313-cp313-linux_x86_64.whl", upload-time = 2025-11-11T19:18:19Z, hashes = {} },
-    { url = "https://download-r2.pytorch.org/whl/pytorch_triton_rocm-3.5.1-cp313-cp313t-linux_x86_64.whl", upload-time = 2025-11-11T19:18:19Z, hashes = {} },
+    { url = "https://download-r2.pytorch.org/whl/pytorch_triton_rocm-3.5.1-cp313-cp313-linux_x86_64.whl", upload-time = 2025-11-11T19:18:19Z, hashes = { sha256 = "1e70d9c10266768521fa51fd26b299898461a288288ebadc2019cb3ec6404f51" } },
+    { url = "https://download-r2.pytorch.org/whl/pytorch_triton_rocm-3.5.1-cp313-cp313t-linux_x86_64.whl", upload-time = 2025-11-11T19:18:19Z, hashes = { sha256 = "46e34470cca821c3a60594bfbfad838a437c6cb03ddbed48cfb8f058dbd4ca01" } },
 ]
 
 [[packages]]

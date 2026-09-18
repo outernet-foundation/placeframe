@@ -7,7 +7,7 @@ requires-python = ">=3.13"
 dependencies = [
   "common",
   "core",
-  "pycolmap>=3.13.0",
+  "pycolmap>=4.0.4",
   "pydantic-settings>=2.11.0",
   "uvicorn[standard]>=0.35.0",
   "scipy>=1.16.2",

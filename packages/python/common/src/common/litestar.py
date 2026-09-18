@@ -1,16 +1,36 @@
 from logging import getLogger
-from typing import Any, Sequence
+from typing import Any, Sequence, cast
 
 from litestar import Litestar, Request, Response, get
 from litestar.exceptions import HTTPException, ValidationException
 from litestar.handlers import HTTPRouteHandler
 from litestar.logging import BaseLoggingConfig
 from litestar.openapi.config import OpenAPIConfig
+from litestar.openapi.spec import Schema
+from litestar.openapi.spec.enums import OpenAPIFormat, OpenAPIType
+from litestar.plugins import OpenAPISchemaPlugin
 from litestar.response import Redirect
 from litestar.types import ControllerRouterHandler, Method, Middleware, Empty, EmptyType
 from litestar.types.internal_types import PathParameterDefinition
+from litestar.typing import FieldDefinition
 
 logger = getLogger("uvicorn.error")
+
+
+class FloatFormatPlugin(OpenAPISchemaPlugin):
+    # OpenAPIFormat enum has no DOUBLE member but Schema.format serializes any
+    # string subclass; cast satisfies the static type and emits "format": "double".
+    _DOUBLE_FORMAT = cast(OpenAPIFormat, "double")
+
+    @staticmethod
+    def is_plugin_supported_type(value: Any) -> bool:
+        return value is float
+
+    def is_plugin_supported_field(self, field_definition: FieldDefinition) -> bool:
+        return field_definition.annotation is float
+
+    def to_openapi_schema(self, field_definition: FieldDefinition, schema_creator: Any) -> Schema:
+        return Schema(type=OpenAPIType.NUMBER, format=self._DOUBLE_FORMAT)
 
 
 # Make codegened client functions use the same name as their corresponding server functions
@@ -82,4 +102,5 @@ def create_litestar_app(
         request_max_body_size=1024 * 1024 * 1024,
         exception_handlers={HTTPException: log_http_exception, Exception: log_unhandled_exception},
         logging_config=logging_config,
+        plugins=[FloatFormatPlugin()],
     )

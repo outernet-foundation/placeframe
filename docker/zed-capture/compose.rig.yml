@@ -4,11 +4,6 @@ services:
     network_mode: host
     privileged: true
     runtime: nvidia
-    environment:
-      # Box hardware identity. The phone-relayed log stream uses this to label
-      # entries in Loki. Set by install-zed from /proc/device-tree/serial-number
-      # (Jetson) or /etc/machine-id (fallback). Fails compose-up if unset.
-      ZED_BOX_ID: ${ZED_BOX_ID:?err}
     devices:
       - /dev/bus/usb:/dev/bus/usb
     volumes:
@@ -20,57 +15,76 @@ services:
       - /tmp/argus_socket:/tmp/argus_socket
       - /tmp/nvscsock:/tmp/nvscsock
       - /tmp/camsock:/tmp/camsock
-    restart: no
+    environment:
+      ZED_BOX_ID: ${ZED_BOX_ID:?err}
+      DEPLOYMENT_ENVIRONMENT: production
+      SERVICE_VERSION: ${ZED_CAPTURE_SHA:?err}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://127.0.0.1:4317
+    # "no" so dockerd never starts a container on its own. Any policy other than
+    # "no" makes dockerd restart a was-running container on daemon startup (after
+    # an unclean power-cut the container object survives in running state), which
+    # happens during daemon init — before and independent of systemd ordering, so
+    # it bypasses placeframe-zed.service's readiness gate entirely. "no" makes the
+    # gated unit the sole starter: nothing comes up until the camera is ready.
+    restart: "no"
 
-  # Answers Android's connectivity probe to put the USB-ethernet link in
-  # NetworkMonitor's CAPTIVE_PORTAL state — deliberately NOT VALIDATED.
-  #
-  # Why not VALIDATED: a 204 reply is what Android wants for "validated", but
-  # validated TRANSPORT_ETHERNET outranks TRANSPORT_WIFI/CELLULAR in AOSP's
-  # NetworkRanker, so Android promotes the cable to the system default network
-  # for every app on the phone. Since the cable has no usable default route
-  # (we don't advertise a gateway), all unbound traffic on the phone gets
-  # black-holed — the Capture Tool's per-socket bound traffic still works,
-  # but every other app on the phone loses internet until the cable is
-  # unplugged. Browsers, Gmail, etc. all break.
-  #
-  # Why not NO_INTERNET (probe failure): EthernetNetworkFactory restarts
-  # IpClient every few seconds on probe failure, kernel-destroying live TCP
-  # sockets at 192.168.55.100 — silently kills any phone-side request that
-  # takes more than ~1s to complete (e.g. StartCapture during camera init).
-  #
-  # Why CAPTIVE_PORTAL: Android keeps the network alive (so our held
-  # requestNetwork callback in AndroidBoundHttpHandler still works and
-  # per-socket binding via Network.openConnection still routes ZED traffic
-  # over the cable), but the network is NOT promoted to default, so other
-  # apps' traffic continues over wifi/cellular as normal. The phone shows a
-  # one-time dismissable "Sign in to network" notification per cable plug-in.
-  # Tapping it opens our 200's HTML body, which explains there's nothing to
-  # sign in to.
-  #
-  # Two halves: tiny DNS server resolves Android's probe hostnames to the
-  # Jetson's gadget IP, and tiny HTTP server returns 200 with a stub HTML
-  # body. Pairs with install-zed's dhcpd.conf edit that advertises the Jetson
-  # as DNS server via DHCP option 6.
-  #
-  # Binds specifically to 192.168.55.1 (the gadget IP) rather than 0.0.0.0 to
-  # sidestep conflicts with services bound to 127.0.0.1:53 (e.g. NetworkManager's
-  # internal dnsmasq, systemd-resolved). Retries the bind so it survives starting
-  # before the USB cable is plugged in (l4tbr0 brought up by udev on cable connect).
-  captive-portal-responder:
-    image: python:3.13-alpine
+  # Caddy sidecar terminating h2c (HTTP/2 cleartext, prior-knowledge) on 9000
+  # and reverse-proxying HTTP/1.1 to uvicorn on 127.0.0.1:9001. Required so the
+  # phone-side AOA client can multiplex concurrent requests over the single
+  # accessory FD; uvicorn itself doesn't speak HTTP/2.
+  aoa-gateway:
+    image: ${AOA_GATEWAY_IMAGE:-ghcr.io/outernet-foundation/placeframe/aoa-gateway:${AOA_GATEWAY_SHA:?err}}
     network_mode: host
-    configs:
-      - source: captive-portal-script
-        target: /captive.py
-    command: ["python", "/captive.py"]
-    restart: unless-stopped
+    environment:
+      # Go HTTP/2 frame-level trace. Logs every SETTINGS/HEADERS/RST_STREAM/GOAWAY
+      # frame sent or received on stderr; aoa-alloy receives OTLP from the host
+      # network namespace and forwards to local box-Loki.
+      GODEBUG: http2debug=2
+    restart: "no"
 
-configs:
-  captive-portal-script:
-    file: ./captive_portal.py
+  # privileged + bind-mounted /dev/bus/usb for pyusb. network_mode: host so
+  # 127.0.0.1 resolves to aoa-gateway's bound port. The bind mount uses
+  # rslave propagation so the AOA handshake's phone re-enumeration (pid flips
+  # from MTP/PTP to a 0x2D0x accessory pid) is visible inside the container;
+  # `devices:` would have snapshot-mapped only the device nodes present at
+  # container start and would miss everything that hot-plugs after.
+  aoa-bridge:
+    image: ${AOA_BRIDGE_IMAGE:-ghcr.io/outernet-foundation/placeframe/aoa-bridge:${AOA_BRIDGE_SHA:?err}}
+    network_mode: host
+    privileged: true
+    volumes:
+      - /dev/bus/usb:/dev/bus/usb:rslave
+      - zed-logs:/var/log/zed-capture
+    restart: "no"
+
+  # Box-side Loki: monolithic mode, filesystem storage, 72h retention. Buffer
+  # between aoa-alloy (writes) and the phone-relay (reads through box-Caddy's
+  # /loki/* handle). Bound to 127.0.0.1:3100 so the wired ethernet doesn't
+  # expose the HTTP API. Reuses the placeframe-owned Loki wrapper image; the
+  # box-specific config is baked at /etc/loki/box.yaml alongside the main
+  # stack's /etc/loki/config.yaml — command picks the right one.
+  aoa-loki:
+    image: ${LOKI_IMAGE:-ghcr.io/outernet-foundation/placeframe/loki:${LOKI_SHA:?err}}
+    network_mode: host
+    volumes:
+      - aoa-loki:/loki
+    command: -config.file=/etc/loki/box.yaml
+    restart: "no"
+
+  # Box-side Alloy: receives OTLP from zed-capture and aoa-gateway, forwards
+  # to aoa-loki. Reuses the placeframe-owned Alloy wrapper image — the config
+  # baked at /etc/alloy/config.alloy is identical to the main stack's;
+  # LOKI_WRITE_ENDPOINT drives the only per-stack difference.
+  aoa-alloy:
+    image: ${ALLOY_IMAGE:-ghcr.io/outernet-foundation/placeframe/alloy:${ALLOY_SHA:?err}}
+    network_mode: host
+    environment:
+      LOKI_WRITE_ENDPOINT: http://127.0.0.1:3100/loki/api/v1/push
+    command: run /etc/alloy/config.alloy --server.http.listen-addr=127.0.0.1:12345
+    restart: "no"
 
 volumes:
   captures:
   zed-logs:
   zed-state:
+  aoa-loki:

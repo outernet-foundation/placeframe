@@ -3,8 +3,9 @@ name = "scripts"
 version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [
-    "build-scripts",
     "common",
+    "bashrun",
+    "stack-lifecycle",
     "core",
     "placeframe-api-client",
     "pydantic>=2",
@@ -26,7 +27,15 @@ packages = ["src/scripts"]
 [project.scripts]
 forward-unity-android-debug-port = "scripts.forward_unity_android_debug_port:main"
 list-debug-targets = "scripts.list_debug_targets:main"
-install = "scripts.install:app"
-install-zed = "scripts.install_zed:app"
+install-zed = "scripts.install_zed.orchestrator:app"
+loki-query = "scripts.loki_query:app"
 tune-reconstruction = "scripts.tune_reconstruction:app"
 fit-calibration = "scripts.fit_calibration:app"
+displacement-check = "scripts.displacement_check:app"
+audit-capture-reconstruction = "scripts.audit_capture_reconstruction:app"
+sweep-postprocess = "scripts.sweep_postprocess:app"
+two-view-diagnostic = "scripts.two_view_diagnostic:app"
+reconstruction = "scripts.reconstruction:app"
+score-up = "scripts.score_up:app"
+score-down = "scripts.score_down:app"
+pf-secrets = "scripts.secrets_exec:app"

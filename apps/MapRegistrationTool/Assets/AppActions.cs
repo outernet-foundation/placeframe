@@ -311,6 +311,7 @@ namespace Placeframe.MapRegistrationTool
         {
             target.settings.username.value = "user";
             target.settings.password.value = "password";
+            target.settings.useKeycloak.value = true;
             target.settings.restoreLocationAutomatically.value = true;
             target.settings.nodeFetchRadius.value = 25f;
             target.settings.loaded.value = true;

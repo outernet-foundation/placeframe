@@ -1078,270 +1078,6 @@
         "deprecated": false
       }
     },
-    "/internal/leases/request": {
-      "post": {
-        "tags": [
-          "Internal",
-          "Leases"
-        ],
-        "summary": "RequestLease",
-        "operationId": "request_lease",
-        "responses": {
-          "201": {
-            "description": "Document created, URL follows",
-            "headers": {},
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LeaseResponse"
-                }
-              }
-            }
-          }
-        },
-        "deprecated": false
-      }
-    },
-    "/internal/leases/{id}/progress": {
-      "put": {
-        "tags": [
-          "Internal",
-          "Leases"
-        ],
-        "summary": "UpdateProgress",
-        "operationId": "update_progress",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "required": true,
-            "deprecated": false
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ProgressUpdate"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Request fulfilled, document follows",
-            "headers": {}
-          },
-          "400": {
-            "description": "Bad request syntax or unsupported method",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "status_code": {
-                      "type": "integer"
-                    },
-                    "detail": {
-                      "type": "string"
-                    },
-                    "extra": {
-                      "additionalProperties": {},
-                      "anyOf": [
-                        {
-                          "type": "object"
-                        },
-                        {
-                          "type": "array",
-                          "items": {}
-                        }
-                      ],
-                      "nullable": true
-                    }
-                  },
-                  "type": "object",
-                  "required": [
-                    "detail",
-                    "status_code"
-                  ],
-                  "description": "Validation Exception",
-                  "example": {
-                    "status_code": 400,
-                    "detail": "Bad Request",
-                    "extra": {}
-                  }
-                }
-              }
-            }
-          }
-        },
-        "deprecated": false
-      }
-    },
-    "/internal/leases/{id}/succeed": {
-      "put": {
-        "tags": [
-          "Internal",
-          "Leases"
-        ],
-        "summary": "SucceedLease",
-        "operationId": "succeed_lease",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "required": true,
-            "deprecated": false
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ReconstructionMetrics"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Request fulfilled, document follows",
-            "headers": {}
-          },
-          "400": {
-            "description": "Bad request syntax or unsupported method",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "status_code": {
-                      "type": "integer"
-                    },
-                    "detail": {
-                      "type": "string"
-                    },
-                    "extra": {
-                      "additionalProperties": {},
-                      "anyOf": [
-                        {
-                          "type": "object"
-                        },
-                        {
-                          "type": "array",
-                          "items": {}
-                        }
-                      ],
-                      "nullable": true
-                    }
-                  },
-                  "type": "object",
-                  "required": [
-                    "detail",
-                    "status_code"
-                  ],
-                  "description": "Validation Exception",
-                  "example": {
-                    "status_code": 400,
-                    "detail": "Bad Request",
-                    "extra": {}
-                  }
-                }
-              }
-            }
-          }
-        },
-        "deprecated": false
-      }
-    },
-    "/internal/leases/{id}/fail": {
-      "put": {
-        "tags": [
-          "Internal",
-          "Leases"
-        ],
-        "summary": "FailLease",
-        "operationId": "fail_lease",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "required": true,
-            "deprecated": false
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "string"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Request fulfilled, document follows",
-            "headers": {}
-          },
-          "400": {
-            "description": "Bad request syntax or unsupported method",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "status_code": {
-                      "type": "integer"
-                    },
-                    "detail": {
-                      "type": "string"
-                    },
-                    "extra": {
-                      "additionalProperties": {},
-                      "anyOf": [
-                        {
-                          "type": "object"
-                        },
-                        {
-                          "type": "array",
-                          "items": {}
-                        }
-                      ],
-                      "nullable": true
-                    }
-                  },
-                  "type": "object",
-                  "required": [
-                    "detail",
-                    "status_code"
-                  ],
-                  "description": "Validation Exception",
-                  "example": {
-                    "status_code": 400,
-                    "detail": "Bad Request",
-                    "extra": {}
-                  }
-                }
-              }
-            }
-          }
-        },
-        "deprecated": false
-      }
-    },
     "/reconstructions": {
       "get": {
         "tags": [
@@ -1409,7 +1145,7 @@
               "application/json": {
                 "schema": {
                   "items": {
-                    "$ref": "#/components/schemas/ReconstructionRead"
+                    "$ref": "#/components/schemas/ReconstructionReadWithQueue"
                   },
                   "type": "array"
                 }
@@ -1483,7 +1219,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ReconstructionRead"
+                  "$ref": "#/components/schemas/ReconstructionReadWithQueue"
                 }
               }
             }
@@ -1559,7 +1295,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ReconstructionRead"
+                  "$ref": "#/components/schemas/ReconstructionReadWithQueue"
                 }
               }
             }
@@ -1779,7 +1515,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ReconstructionRead"
+                  "$ref": "#/components/schemas/ReconstructionReadWithQueue"
                 }
               }
             }
@@ -2007,6 +1743,233 @@
         "deprecated": false
       }
     },
+    "/reconstructions/{id}/metrics": {
+      "get": {
+        "tags": [
+          "Reconstructions"
+        ],
+        "summary": "GetReconstructionMetrics",
+        "operationId": "get_reconstruction_metrics",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "deprecated": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Request fulfilled, document follows",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconstructionMetrics"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request syntax or unsupported method",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status_code": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "anyOf": [
+                        {
+                          "type": "object"
+                        },
+                        {
+                          "type": "array",
+                          "items": {}
+                        }
+                      ],
+                      "nullable": true
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "description": "Validation Exception",
+                  "example": {
+                    "status_code": 400,
+                    "detail": "Bad Request",
+                    "extra": {}
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/reconstructions/{id}/tar": {
+      "get": {
+        "tags": [
+          "Reconstructions"
+        ],
+        "summary": "ExportReconstructionTar",
+        "operationId": "export_reconstruction_tar",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "deprecated": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Stream Response",
+            "headers": {},
+            "content": {
+              "application/x-tar": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request syntax or unsupported method",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status_code": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "anyOf": [
+                        {
+                          "type": "object"
+                        },
+                        {
+                          "type": "array",
+                          "items": {}
+                        }
+                      ],
+                      "nullable": true
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "description": "Validation Exception",
+                  "example": {
+                    "status_code": 400,
+                    "detail": "Bad Request",
+                    "extra": {}
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/reconstructions/tar": {
+      "post": {
+        "tags": [
+          "Reconstructions"
+        ],
+        "summary": "ImportReconstructionTar",
+        "operationId": "import_reconstruction_tar",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/ReconstructionTarUploadRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Document created, URL follows",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconstructionReadWithQueue"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request syntax or unsupported method",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status_code": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "anyOf": [
+                        {
+                          "type": "object"
+                        },
+                        {
+                          "type": "array",
+                          "items": {}
+                        }
+                      ],
+                      "nullable": true
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "description": "Validation Exception",
+                  "example": {
+                    "status_code": 400,
+                    "detail": "Bad Request",
+                    "extra": {}
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
     "/localization-maps": {
       "get": {
         "tags": [
@@ -2056,7 +2019,8 @@
             "in": "query",
             "schema": {
               "nullable": true,
-              "type": "number"
+              "type": "number",
+              "format": "double"
             },
             "required": false,
             "deprecated": false,
@@ -2068,7 +2032,8 @@
             "in": "query",
             "schema": {
               "nullable": true,
-              "type": "number"
+              "type": "number",
+              "format": "double"
             },
             "required": false,
             "deprecated": false,
@@ -2080,7 +2045,8 @@
             "in": "query",
             "schema": {
               "nullable": true,
-              "type": "number"
+              "type": "number",
+              "format": "double"
             },
             "required": false,
             "deprecated": false,
@@ -2092,7 +2058,8 @@
             "in": "query",
             "schema": {
               "nullable": true,
-              "type": "number"
+              "type": "number",
+              "format": "double"
             },
             "required": false,
             "deprecated": false,
@@ -3689,7 +3656,8 @@
             "in": "query",
             "schema": {
               "nullable": true,
-              "type": "number"
+              "type": "number",
+              "format": "double"
             },
             "required": false,
             "deprecated": false,
@@ -3701,7 +3669,8 @@
             "in": "query",
             "schema": {
               "nullable": true,
-              "type": "number"
+              "type": "number",
+              "format": "double"
             },
             "required": false,
             "deprecated": false,
@@ -3713,7 +3682,8 @@
             "in": "query",
             "schema": {
               "nullable": true,
-              "type": "number"
+              "type": "number",
+              "format": "double"
             },
             "required": false,
             "deprecated": false,
@@ -3725,7 +3695,8 @@
             "in": "query",
             "schema": {
               "nullable": true,
-              "type": "number"
+              "type": "number",
+              "format": "double"
             },
             "required": false,
             "deprecated": false,
@@ -4185,65 +4156,21 @@
         "deprecated": false
       }
     },
-    "/zed-boxes/logs": {
-      "post": {
+    "/server-info": {
+      "get": {
         "tags": [
-          "zed-box-logs"
+          "ServerInfo"
         ],
-        "summary": "PushZedBoxLogs",
-        "operationId": "push_zed_box_logs",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LogRelayBatch"
-              }
-            }
-          },
-          "required": true
-        },
+        "summary": "GetServerInfo",
+        "operationId": "get_server_info",
         "responses": {
-          "201": {
-            "description": "Document created, URL follows",
-            "headers": {}
-          },
-          "400": {
-            "description": "Bad request syntax or unsupported method",
+          "200": {
+            "description": "Request fulfilled, document follows",
+            "headers": {},
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "status_code": {
-                      "type": "integer"
-                    },
-                    "detail": {
-                      "type": "string"
-                    },
-                    "extra": {
-                      "additionalProperties": {},
-                      "anyOf": [
-                        {
-                          "type": "object"
-                        },
-                        {
-                          "type": "array",
-                          "items": {}
-                        }
-                      ],
-                      "nullable": true
-                    }
-                  },
-                  "type": "object",
-                  "required": [
-                    "detail",
-                    "status_code"
-                  ],
-                  "description": "Validation Exception",
-                  "example": {
-                    "status_code": 400,
-                    "detail": "Bad Request",
-                    "extra": {}
-                  }
+                  "$ref": "#/components/schemas/ServerInfo"
                 }
               }
             }
@@ -4278,6 +4205,11 @@
             "format": "date-time",
             "description": "datetime with the constraint that the value must have timezone info"
           },
+          "size_bytes": {
+            "title": "Size Bytes",
+            "nullable": true,
+            "type": "integer"
+          },
           "device_type": {
             "nullable": true,
             "$ref": "#/components/schemas/DeviceType"
@@ -4309,18 +4241,23 @@
             "format": "date-time",
             "description": "datetime with the constraint that the value must have timezone info"
           },
+          "size_bytes": {
+            "title": "Size Bytes",
+            "nullable": true,
+            "type": "integer"
+          },
           "device_type": {
             "$ref": "#/components/schemas/DeviceType"
           },
           "name": {
-            "title": "Name",
-            "nullable": true,
-            "type": "string"
+            "type": "string",
+            "title": "Name"
           }
         },
         "type": "object",
         "required": [
-          "device_type"
+          "device_type",
+          "name"
         ],
         "title": "CaptureSessionCreate"
       },
@@ -4337,7 +4274,8 @@
           },
           "capture_interval_seconds": {
             "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double"
           }
         },
         "type": "object",
@@ -4372,13 +4310,16 @@
             "title": "Created At",
             "description": "datetime with the constraint that the value must have timezone info"
           },
+          "size_bytes": {
+            "type": "integer",
+            "title": "Size Bytes"
+          },
           "device_type": {
             "$ref": "#/components/schemas/DeviceType"
           },
           "name": {
-            "title": "Name",
-            "nullable": true,
-            "type": "string"
+            "type": "string",
+            "title": "Name"
           }
         },
         "type": "object",
@@ -4386,7 +4327,9 @@
           "created_at",
           "device_type",
           "id",
+          "name",
           "recorded_at",
+          "size_bytes",
           "updated_at"
         ],
         "title": "CaptureSessionRead"
@@ -4399,6 +4342,11 @@
             "type": "string",
             "format": "date-time",
             "description": "datetime with the constraint that the value must have timezone info"
+          },
+          "size_bytes": {
+            "title": "Size Bytes",
+            "nullable": true,
+            "type": "integer"
           },
           "device_type": {
             "nullable": true,
@@ -4423,14 +4371,13 @@
             "type": "string",
             "format": "binary"
           },
+          "name": {
+            "type": "string"
+          },
           "id": {
             "nullable": true,
             "type": "string",
             "format": "uuid"
-          },
-          "name": {
-            "nullable": true,
-            "type": "string"
           },
           "recorded_at": {
             "nullable": true,
@@ -4443,7 +4390,8 @@
         "type": "object",
         "required": [
           "data",
-          "device_type"
+          "device_type",
+          "name"
         ],
         "title": "CaptureSessionUploadRequest"
       },
@@ -4533,7 +4481,7 @@
       "ExpandedReconstruction": {
         "properties": {
           "reconstruction": {
-            "$ref": "#/components/schemas/ReconstructionRead"
+            "$ref": "#/components/schemas/ReconstructionReadWithQueue"
           },
           "localization_map_id": {
             "nullable": true,
@@ -4550,13 +4498,16 @@
       "Float3": {
         "properties": {
           "x": {
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "y": {
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "z": {
-            "type": "number"
+            "type": "number",
+            "format": "double"
           }
         },
         "type": "object",
@@ -4570,16 +4521,20 @@
       "Float4": {
         "properties": {
           "x": {
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "y": {
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "z": {
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "w": {
-            "type": "number"
+            "type": "number",
+            "format": "double"
           }
         },
         "type": "object",
@@ -4785,28 +4740,6 @@
         ],
         "title": "LayerRead"
       },
-      "LeaseResponse": {
-        "properties": {
-          "reconstruction_id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "capture_session_id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "options": {
-            "$ref": "#/components/schemas/ReconstructionOptions"
-          }
-        },
-        "type": "object",
-        "required": [
-          "capture_session_id",
-          "options",
-          "reconstruction_id"
-        ],
-        "title": "LeaseResponse"
-      },
       "LinkType": {
         "type": "string",
         "enum": [
@@ -4832,6 +4765,7 @@
           },
           "ransac_threshold": {
             "type": "number",
+            "format": "double",
             "title": "Ransac Threshold"
           },
           "frame_timestamp": {
@@ -4840,18 +4774,22 @@
           },
           "inlier_coverage": {
             "type": "number",
+            "format": "double",
             "title": "Inlier Coverage"
           },
           "query_image_diagonal_px": {
             "type": "number",
+            "format": "double",
             "title": "Query Image Diagonal Px"
           },
           "reproj_error_median": {
             "type": "number",
+            "format": "double",
             "title": "Reproj Error Median"
           },
           "inlier_ratio": {
             "type": "number",
+            "format": "double",
             "title": "Inlier Ratio"
           },
           "retrieval_top_k": {
@@ -4881,12 +4819,14 @@
           "err_r_deg": {
             "title": "Err R Deg",
             "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "err_t_m": {
             "title": "Err T M",
             "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "pnp_covariance": {
             "title": "Pnp Covariance",
@@ -4933,6 +4873,7 @@
           },
           "ransac_threshold": {
             "type": "number",
+            "format": "double",
             "title": "Ransac Threshold"
           },
           "frame_timestamp": {
@@ -4947,6 +4888,7 @@
           },
           "inlier_coverage": {
             "type": "number",
+            "format": "double",
             "title": "Inlier Coverage"
           },
           "created_at": {
@@ -4957,14 +4899,17 @@
           },
           "query_image_diagonal_px": {
             "type": "number",
+            "format": "double",
             "title": "Query Image Diagonal Px"
           },
           "reproj_error_median": {
             "type": "number",
+            "format": "double",
             "title": "Reproj Error Median"
           },
           "inlier_ratio": {
             "type": "number",
+            "format": "double",
             "title": "Inlier Ratio"
           },
           "retrieval_top_k": {
@@ -4994,12 +4939,14 @@
           "err_r_deg": {
             "title": "Err R Deg",
             "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "err_t_m": {
             "title": "Err T M",
             "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "pnp_covariance": {
             "title": "Pnp Covariance",
@@ -5051,37 +4998,44 @@
           "rotation_y": {
             "title": "Rotation Y",
             "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "position_x": {
             "title": "Position X",
             "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "position_y": {
             "title": "Position Y",
             "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "position_z": {
             "title": "Position Z",
             "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "rotation_x": {
             "title": "Rotation X",
             "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "rotation_z": {
             "title": "Rotation Z",
             "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "rotation_w": {
             "title": "Rotation W",
             "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "color": {
             "title": "Color",
@@ -5125,30 +5079,37 @@
           },
           "rotation_y": {
             "type": "number",
+            "format": "double",
             "title": "Rotation Y"
           },
           "position_x": {
             "type": "number",
+            "format": "double",
             "title": "Position X"
           },
           "position_y": {
             "type": "number",
+            "format": "double",
             "title": "Position Y"
           },
           "position_z": {
             "type": "number",
+            "format": "double",
             "title": "Position Z"
           },
           "rotation_x": {
             "type": "number",
+            "format": "double",
             "title": "Rotation X"
           },
           "rotation_z": {
             "type": "number",
+            "format": "double",
             "title": "Rotation Z"
           },
           "rotation_w": {
             "type": "number",
+            "format": "double",
             "title": "Rotation W"
           },
           "color": {
@@ -5199,22 +5160,27 @@
           },
           "rotation_y": {
             "type": "number",
+            "format": "double",
             "title": "Rotation Y"
           },
           "position_x": {
             "type": "number",
+            "format": "double",
             "title": "Position X"
           },
           "position_y": {
             "type": "number",
+            "format": "double",
             "title": "Position Y"
           },
           "position_z": {
             "type": "number",
+            "format": "double",
             "title": "Position Z"
           },
           "rotation_x": {
             "type": "number",
+            "format": "double",
             "title": "Rotation X"
           },
           "updated_at": {
@@ -5225,10 +5191,12 @@
           },
           "rotation_z": {
             "type": "number",
+            "format": "double",
             "title": "Rotation Z"
           },
           "rotation_w": {
             "type": "number",
+            "format": "double",
             "title": "Rotation W"
           },
           "color": {
@@ -5285,37 +5253,44 @@
           "rotation_y": {
             "title": "Rotation Y",
             "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "position_x": {
             "title": "Position X",
             "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "position_y": {
             "title": "Position Y",
             "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "position_z": {
             "title": "Position Z",
             "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "rotation_x": {
             "title": "Rotation X",
             "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "rotation_z": {
             "title": "Rotation Z",
             "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "rotation_w": {
             "title": "Rotation W",
             "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "color": {
             "title": "Color",
@@ -5345,10 +5320,12 @@
       "LocalizationMetrics": {
         "properties": {
           "inlier_ratio": {
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "reprojection_error_median": {
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "num_inliers": {
             "type": "integer"
@@ -5360,13 +5337,16 @@
             "type": "integer"
           },
           "inlier_coverage": {
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "confidence_tight": {
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "confidence_loose": {
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "confidence_is_calibrated": {
             "type": "boolean"
@@ -5374,7 +5354,8 @@
           "measurement_covariance": {
             "items": {
               "items": {
-                "type": "number"
+                "type": "number",
+                "format": "double"
               },
               "type": "array"
             },
@@ -5383,7 +5364,8 @@
           "pnp_covariance": {
             "items": {
               "items": {
-                "type": "number"
+                "type": "number",
+                "format": "double"
               },
               "type": "array"
             },
@@ -5431,7 +5413,8 @@
           },
           "ransac_threshold": {
             "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "image": {
             "type": "string",
@@ -5446,22 +5429,6 @@
           "map_ids"
         ],
         "title": "LocalizationRequest"
-      },
-      "LogRelayBatch": {
-        "properties": {
-          "entries": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "minItems": 1
-          }
-        },
-        "type": "object",
-        "required": [
-          "entries"
-        ],
-        "title": "LogRelayBatch"
       },
       "MapLocalization": {
         "properties": {
@@ -5497,30 +5464,37 @@
           },
           "rotation_z": {
             "type": "number",
+            "format": "double",
             "title": "Rotation Z"
           },
           "position_y": {
             "type": "number",
+            "format": "double",
             "title": "Position Y"
           },
           "position_z": {
             "type": "number",
+            "format": "double",
             "title": "Position Z"
           },
           "rotation_x": {
             "type": "number",
+            "format": "double",
             "title": "Rotation X"
           },
           "rotation_y": {
             "type": "number",
+            "format": "double",
             "title": "Rotation Y"
           },
           "rotation_w": {
             "type": "number",
+            "format": "double",
             "title": "Rotation W"
           },
           "position_x": {
             "type": "number",
+            "format": "double",
             "title": "Position X"
           },
           "link_type": {
@@ -5549,17 +5523,20 @@
           "label_width": {
             "title": "Label Width",
             "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "label_height": {
             "title": "Label Height",
             "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "label_scale": {
             "title": "Label Scale",
             "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "link": {
             "title": "Link",
@@ -5602,37 +5579,44 @@
           "rotation_z": {
             "title": "Rotation Z",
             "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "position_y": {
             "title": "Position Y",
             "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "position_z": {
             "title": "Position Z",
             "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "rotation_x": {
             "title": "Rotation X",
             "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "rotation_y": {
             "title": "Rotation Y",
             "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "rotation_w": {
             "title": "Rotation W",
             "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "position_x": {
             "title": "Position X",
             "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "link_type": {
             "nullable": true,
@@ -5662,17 +5646,20 @@
           "label_width": {
             "title": "Label Width",
             "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "label_height": {
             "title": "Label Height",
             "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "label_scale": {
             "title": "Label Scale",
             "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "link": {
             "title": "Link",
@@ -5706,30 +5693,37 @@
           },
           "rotation_z": {
             "type": "number",
+            "format": "double",
             "title": "Rotation Z"
           },
           "position_y": {
             "type": "number",
+            "format": "double",
             "title": "Position Y"
           },
           "position_z": {
             "type": "number",
+            "format": "double",
             "title": "Position Z"
           },
           "rotation_x": {
             "type": "number",
+            "format": "double",
             "title": "Rotation X"
           },
           "rotation_y": {
             "type": "number",
+            "format": "double",
             "title": "Rotation Y"
           },
           "rotation_w": {
             "type": "number",
+            "format": "double",
             "title": "Rotation W"
           },
           "position_x": {
             "type": "number",
+            "format": "double",
             "title": "Position X"
           },
           "link_type": {
@@ -5758,17 +5752,20 @@
           "label_width": {
             "title": "Label Width",
             "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "label_height": {
             "title": "Label Height",
             "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "label_scale": {
             "title": "Label Scale",
             "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "link": {
             "title": "Link",
@@ -5809,22 +5806,27 @@
           },
           "rotation_z": {
             "type": "number",
+            "format": "double",
             "title": "Rotation Z"
           },
           "position_y": {
             "type": "number",
+            "format": "double",
             "title": "Position Y"
           },
           "position_z": {
             "type": "number",
+            "format": "double",
             "title": "Position Z"
           },
           "rotation_x": {
             "type": "number",
+            "format": "double",
             "title": "Rotation X"
           },
           "rotation_y": {
             "type": "number",
+            "format": "double",
             "title": "Rotation Y"
           },
           "created_at": {
@@ -5835,6 +5837,7 @@
           },
           "rotation_w": {
             "type": "number",
+            "format": "double",
             "title": "Rotation W"
           },
           "updated_at": {
@@ -5845,6 +5848,7 @@
           },
           "position_x": {
             "type": "number",
+            "format": "double",
             "title": "Position X"
           },
           "link_type": {
@@ -5872,17 +5876,20 @@
           "label_width": {
             "title": "Label Width",
             "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "label_height": {
             "title": "Label Height",
             "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "label_scale": {
             "title": "Label Scale",
             "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "link": {
             "title": "Link",
@@ -5918,6 +5925,25 @@
         ],
         "title": "NodeRead"
       },
+      "PhaseTiming": {
+        "properties": {
+          "phase": {
+            "type": "string",
+            "description": "ReconstructionStatus value of the phase, e.g. 'extracting_features'."
+          },
+          "duration_seconds": {
+            "type": "number",
+            "format": "double",
+            "description": "Wall-clock seconds the phase spent in-flight."
+          }
+        },
+        "type": "object",
+        "required": [
+          "duration_seconds",
+          "phase"
+        ],
+        "title": "PhaseTiming"
+      },
       "PinholeCameraConfig": {
         "properties": {
           "width": {
@@ -5940,16 +5966,20 @@
             ]
           },
           "fx": {
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "fy": {
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "cx": {
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "cy": {
-            "type": "number"
+            "type": "number",
+            "format": "double"
           }
         },
         "type": "object",
@@ -5964,52 +5994,28 @@
         ],
         "title": "PinholeCameraConfig"
       },
-      "ProgressUpdate": {
-        "properties": {
-          "status": {
-            "$ref": "#/components/schemas/ReconstructionStatus"
-          },
-          "progress_current": {
-            "nullable": true,
-            "type": "integer"
-          },
-          "progress_total": {
-            "nullable": true,
-            "type": "integer"
-          },
-          "progress_attempt": {
-            "nullable": true,
-            "type": "integer"
-          },
-          "error": {
-            "nullable": true,
-            "type": "string"
-          }
-        },
-        "type": "object",
-        "required": [
-          "status"
-        ],
-        "title": "ProgressUpdate"
-      },
       "ReconstructionCreate": {
         "properties": {
-          "capture_session_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Capture Session Id"
-          },
           "id": {
             "title": "Id",
+            "nullable": true,
+            "type": "string",
+            "format": "uuid"
+          },
+          "requeue_count": {
+            "title": "Requeue Count",
+            "nullable": true,
+            "type": "integer"
+          },
+          "capture_session_id": {
+            "title": "Capture Session Id",
             "nullable": true,
             "type": "string",
             "format": "uuid"
           }
         },
         "type": "object",
-        "required": [
-          "capture_session_id"
-        ],
+        "required": [],
         "title": "ReconstructionCreate"
       },
       "ReconstructionCreateWithOptions": {
@@ -6031,50 +6037,23 @@
       },
       "ReconstructionMetrics": {
         "properties": {
-          "total_images": {
-            "description": "Total number of input images considered for this reconstruction run.",
-            "nullable": true,
-            "type": "integer"
-          },
-          "registered_images": {
-            "description": "Number of images successfully registered into the final model.",
-            "nullable": true,
-            "type": "integer"
-          },
-          "registration_rate": {
-            "description": "Registration rate in percent: 100 \u00d7 (registered_images / total_images). Computed after selecting the best reconstruction (max registered images).",
-            "nullable": true,
-            "type": "number"
-          },
-          "num_3d_points": {
-            "description": "Count of 3D points in the selected 'best' reconstruction.",
-            "nullable": true,
-            "type": "integer"
-          },
-          "average_keypoints_per_image": {
-            "description": "Average number of detected keypoints per image (after ALIKED extraction), computed across all images.",
-            "nullable": true,
-            "type": "number"
-          },
           "reprojection_pixel_error_50th_percentile": {
-            "description": "Median (50th percentile) reprojection error in pixels across all valid 2D observations in registered images, measured using image.project_point(point3D.xyz) vs. observed 2D keypoint.",
+            "description": "Median reprojection error in pixels across all valid 2D observations in registered images.",
             "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "reprojection_pixel_error_90th_percentile": {
-            "description": "90th percentile reprojection error in pixels across all valid 2D observations, computed the same way as the median.",
+            "description": "90th percentile reprojection error in pixels across all valid 2D observations.",
             "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "track_length_50th_percentile": {
-            "description": "Median (50th percentile) track length across 3D points in the selected model. Track length = number of distinct images observing the point.",
+            "description": "Median number of distinct images observing each 3D point.",
             "nullable": true,
-            "type": "number"
-          },
-          "percent_tracks_with_length_greater_than_or_equal_to_3": {
-            "description": "Percentage of 3D points whose track length is \u2265 3 (a common robustness threshold). Computed as 100 \u00d7 (#points with length\u22653 / #points).",
-            "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "all_verified_matches": {
             "description": "Total number of verified matches across all image pairs.",
@@ -6082,79 +6061,45 @@
             "type": "integer"
           },
           "all_verified_match_rate": {
-            "description": "Percentage of verified matches across all image pairs.",
+            "description": "Percentage of image pairs that passed two-view geometry verification.",
             "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "all_verified_match_inliers_mean": {
-            "description": "Mean number of inliers for all verified matches.",
+            "description": "Mean inlier count among verified image pairs.",
             "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "all_verified_match_inliers_median": {
-            "description": "Median number of inliers for all verified matches.",
+            "description": "Median inlier count among verified image pairs.",
             "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "stereo_verified_matches": {
-            "description": "Number of verified matches for stereo pairs (same frame, different sensors).",
+            "description": "Number of verified stereo pairs (same frame, different sensors).",
             "nullable": true,
             "type": "integer"
           },
           "stereo_verified_match_rate": {
-            "description": "Percentage of verified matches for stereo pairs.",
+            "description": "Percentage of stereo pairs that passed verification.",
             "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "stereo_verified_match_inliers_mean": {
-            "description": "Mean number of inliers for verified matches for stereo pairs.",
+            "description": "Mean inlier count among verified stereo pairs.",
             "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "stereo_verified_match_inliers_median": {
-            "description": "Median number of inliers for verified matches for stereo pairs.",
+            "description": "Median inlier count among verified stereo pairs.",
             "nullable": true,
-            "type": "number"
-          },
-          "same_sensor_verified_matches": {
-            "description": "Number of verified matches for same-sensor pairs (across frames).",
-            "nullable": true,
-            "type": "integer"
-          },
-          "same_sensor_verified_match_rate": {
-            "description": "Percentage of verified matches for same-sensor pairs.",
-            "nullable": true,
-            "type": "number"
-          },
-          "same_sensor_verified_match_inliers_mean": {
-            "description": "Mean number of inliers for verified matches for same-sensor pairs.",
-            "nullable": true,
-            "type": "number"
-          },
-          "same_sensor_verified_match_inliers_median": {
-            "description": "Median number of inliers for verified matches for same-sensor pairs.",
-            "nullable": true,
-            "type": "number"
-          },
-          "cross_sensor_verified_matches": {
-            "description": "Number of verified matches for cross-sensor pairs (across frames).",
-            "nullable": true,
-            "type": "integer"
-          },
-          "cross_sensor_verified_match_rate": {
-            "description": "Percentage of verified matches for cross-sensor pairs.",
-            "nullable": true,
-            "type": "number"
-          },
-          "cross_sensor_verified_match_inliers_mean": {
-            "description": "Mean number of inliers for verified matches for cross-sensor pairs.",
-            "nullable": true,
-            "type": "number"
-          },
-          "cross_sensor_verified_match_inliers_median": {
-            "description": "Median number of inliers for verified matches for cross-sensor pairs.",
-            "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "map_image_count": {
             "description": "Number of registered images in the reconstruction.",
@@ -6167,29 +6112,51 @@
             "type": "integer"
           },
           "map_avg_track_length": {
-            "description": "Mean number of image observations per 3D point. Coarse density-of-evidence proxy.",
+            "description": "Mean number of image observations per 3D point.",
             "nullable": true,
-            "type": "number"
-          },
-          "map_bounding_volume_m3": {
-            "description": "Convex-hull volume of registered camera centers, in cubic meters. Captures spatial extent; complements image_count which only captures coverage density.",
-            "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "map_viewpoint_diversity": {
-            "description": "1 - |mean(unit viewing direction)| across registered cameras. Zero when all cameras face the same way; approaches one as viewing directions spread uniformly. Discriminates panoramic sweeps from single-viewpoint maps even when the rest of the metrics agree.",
+            "description": "1 minus the magnitude of the mean unit viewing direction across registered cameras; 0 means uniform direction, approaches 1 as viewpoints spread.",
             "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
-          "truth_alignment_rms_residual_m": {
-            "description": "RMS over registered cameras of ||T\u00b7c_map - c_truth|| in meters, where T is the rigid Umeyama alignment from map to truth applied during reconstruction. Diagnostic for VIO-truth quality: small (~cm) means the truth poses are internally consistent with the COLMAP geometry; large values indicate VIO drift, scale errors, or other capture-time pose noise that disqualifies the capture from calibration.",
+          "gravity_aligned_in_map_frame": {
+            "description": "True when per-frame gravity samples aligned the map's vertical axis; False when no samples were available and only origin-shift was applied.",
             "nullable": true,
-            "type": "number"
+            "type": "boolean"
           },
-          "truth_alignment_max_residual_m": {
-            "description": "Maximum over registered cameras of ||T\u00b7c_map - c_truth|| in meters. Companion to the RMS field; surfaces single-frame outliers that the RMS would smooth over.",
+          "gravity_sample_count": {
+            "description": "Number of registered frames that contributed gravity samples to the map-frame alignment.",
             "nullable": true,
-            "type": "number"
+            "type": "integer"
+          },
+          "prior_drift_residual_rms_m": {
+            "description": "RMS residual in meters of a rigid Umeyama fit from map camera centers to VIO position priors; None for multi-camera captures, which run priors-off and carry no per-frame positions.",
+            "nullable": true,
+            "type": "number",
+            "format": "double"
+          },
+          "prior_drift_residual_max_m": {
+            "description": "Maximum residual in meters of the same Umeyama fit; surfaces single-frame outliers the RMS smooths over.",
+            "nullable": true,
+            "type": "number",
+            "format": "double"
+          },
+          "phase_timings": {
+            "description": "Per-phase wall-clock durations in execution order, captured at each set_phase boundary.",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/PhaseTiming"
+            },
+            "type": "array"
+          },
+          "pipeline_version": {
+            "description": "RECONSTRUCTOR_SHA of the image that produced this reconstruction.",
+            "nullable": true,
+            "type": "string"
           }
         },
         "type": "object",
@@ -6198,118 +6165,106 @@
       },
       "ReconstructionOptions": {
         "properties": {
-          "random_seed": {
-            "description": "Random seed to use (for deterministic behavior).",
+          "deterministic_seed": {
+            "description": "PRNG seed and single-threaded gate for reproducible reconstructions; None means non-deterministic.",
             "nullable": true,
             "type": "integer"
           },
-          "single_threaded": {
-            "description": "If true, run reconstruction in single-threaded mode (for deterministic behavior).",
-            "nullable": true,
-            "type": "boolean"
+          "keyframe_min_distance_m": {
+            "type": "number",
+            "format": "double",
+            "description": "Minimum VIO-translation distance (meters) between successive kept keyframes; frames closer to the last kept frame than this are dropped before feature extraction.",
+            "default": 1.0
           },
-          "neighbors_count": {
-            "description": "How many pose-nearest neighbors to consider when generating image pairs. Use -1 for exhaustive matching (all pairs). If None, a sensible default is used (currently 12). Smaller values reduce weak overlaps and speed up matching at the cost of some coverage.",
-            "nullable": true,
-            "type": "integer"
+          "sequential_window_m": {
+            "type": "number",
+            "format": "double",
+            "description": "VIO-path-distance window (meters) used to enumerate same-rig sequential pairs. For each keyframe, every later keyframe whose cumulative segment-by-segment path length along the VIO trajectory is within this many metres is paired with it. Path distance \u2014 not straight-line distance \u2014 so doubling back along the trajectory (e.g. corridor return pass) walks away from earlier frames rather than landing on them. Scales the temporal match-graph backbone to actual device motion: stationary stretches shrink to almost no extra pairs, fast-motion stretches grow to cover the swept arc.",
+            "default": 3.0
           },
-          "rotation_threshold": {
-            "description": "Rotation angle threshold (degrees) for considering two images as neighbors when generating image pairs. Smaller values reduce weak overlaps and speed up matching at the cost of some coverage.",
-            "nullable": true,
-            "type": "number"
+          "retrieval_neighbors": {
+            "type": "integer",
+            "description": "Top-K most-similar images (DIR cosine) paired with each image for loop closures; 0 disables retrieval.",
+            "default": 20
           },
-          "lightglue_batch_size": {
-            "description": "Batch size to use when running LightGlue for feature matching. Larger batch sizes can improve GPU utilization but require more memory.",
-            "nullable": true,
-            "type": "integer"
+          "retrieval_min_score": {
+            "type": "number",
+            "format": "double",
+            "description": "Minimum cosine similarity for retrieval candidates; drops visually-weak matches before BA.",
+            "default": 0.35
           },
           "ransac_max_error": {
-            "description": "Two-view RANSAC inlier threshold (pixels) used by verify_matches(). Lower = stricter inlier test; removes borderline correspondences before SfM.",
-            "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double",
+            "description": "Two-view RANSAC inlier threshold in pixels; lower is stricter.",
+            "default": 2.0
           },
           "ransac_min_inlier_ratio": {
-            "description": "Two-view RANSAC minimum inlier ratio to accept the model. Higher = reject more weak pairs; typically 0.10\u20130.20 for stricter matching.",
-            "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double",
+            "description": "Two-view RANSAC minimum inlier ratio to accept a pair's geometry.",
+            "default": 0.25
           },
-          "use_prior_position": {
-            "description": "If true, use position priors during registration. This leverages PosePrior(position=...) written into the database to guide image registration.",
-            "nullable": true,
-            "type": "boolean"
-          },
-          "rig_verification": {
-            "description": "If true, perform rig-based verification during feature matching and two-view geometry verification. Requires images to be tagged with rig/camera IDs.",
-            "nullable": true,
-            "type": "boolean"
+          "two_view_min_num_inliers": {
+            "type": "integer",
+            "description": "Absolute minimum inlier count for a verified two-view geometry, applied alongside ransac_min_inlier_ratio. Raised above pycolmap's SIFT-era default of 15 to reject small false-positive clusters on repetitive structure.",
+            "default": 30
           },
           "triangulation_minimum_angle": {
-            "description": "Minimum triangulation angle (degrees). Applied at creation time (triangulation.min_angle) and again during mapper filtering (mapper.filter_min_tri_angle). Raising it removes low-parallax points.",
-            "nullable": true,
-            "type": "number"
-          },
-          "triangulation_complete_max_reprojection_error": {
-            "description": "Triangulation-time gate (pixels) for COMPLETING tracks into new 3D points (triangulation.complete_max_reproj_error). Lower \u2192 fewer borderline new points.",
-            "nullable": true,
-            "type": "number"
-          },
-          "triangulation_merge_max_reprojection_error": {
-            "description": "Triangulation-time gate (pixels) for MERGING near-duplicate 3D points (triangulation.merge_max_reproj_error). Lower \u2192 fewer merges; higher \u2192 more aggressive deduplication.",
-            "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double",
+            "description": "Minimum triangulation angle in degrees; applied at creation time and again in mapper filtering.",
+            "default": 3.0
           },
           "mapper_filter_max_reprojection_error": {
-            "description": "Mapper-level **post-BA outlier** threshold (pixels) (mapper.filter_max_reproj_error). Points exceeding this after local/global BA are culled. This is NOT a triangulation accept threshold.",
-            "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double",
+            "description": "Post-BA outlier reprojection threshold in pixels; points exceeding it are culled.",
+            "default": 2.0
           },
-          "bundle_adjustment_refine_sensor_from_rig": {
-            "description": "If true, refine per-camera extrinsics within the rig during BA (ba_refine_sensor_from_rig). Useful when rig calibration is approximate.",
-            "nullable": true,
-            "type": "boolean"
+          "bundle_adjustment_global_frames_ratio": {
+            "type": "number",
+            "format": "double",
+            "description": "Frame-count growth ratio that triggers a global BA event; larger = fewer events.",
+            "default": 1.5
           },
-          "bundle_adjustment_refine_focal_length": {
-            "description": "If true, refine the camera focal length during BA (ba_refine_focal_length).",
-            "nullable": true,
-            "type": "boolean"
-          },
-          "bundle_adjustment_refine_principal_point": {
-            "description": "If true, refine the camera principal point during BA (ba_refine_principal_point).",
-            "nullable": true,
-            "type": "boolean"
-          },
-          "bundle_adjustment_refine_additional_params": {
-            "description": "If true, refine model-specific additional parameters during BA (ba_refine_extra_params), e.g., radial/tangential distortion where applicable.",
-            "nullable": true,
-            "type": "boolean"
-          },
-          "compression_opq_number_of_subvectors": {
-            "description": "Number of subvectors for OPQ compression.",
-            "nullable": true,
-            "type": "integer"
-          },
-          "compression_opq_number_of_bits_per_subvector": {
-            "description": "Number of bits per subvector for OPQ compression.",
-            "nullable": true,
-            "type": "integer"
-          },
-          "compression_opq_number_of_training_iterations": {
-            "description": "Number of training iterations for OPQ compression.",
-            "nullable": true,
-            "type": "integer"
+          "bundle_adjustment_global_function_tolerance": {
+            "type": "number",
+            "format": "double",
+            "description": "Ceres function tolerance for global BA exit; larger = earlier exit on residual plateaus.",
+            "default": 0.001
           },
           "pose_prior_position_sigma_m": {
-            "description": "Standard deviation (meters) for position priors when writing PosePrior to the database. Smaller values = stronger priors.",
-            "nullable": true,
-            "type": "number"
+            "type": "number",
+            "format": "double",
+            "description": "Standard deviation in meters for the position prior covariance; consumed only by monocular captures (multi-camera captures run priors-off).",
+            "default": 0.05
+          },
+          "pair_vio_em_max_rotation_disagreement_deg": {
+            "type": "number",
+            "format": "double",
+            "description": "At two-view verification time, every sequential pair whose VIO poses carry rotation has its essential-matrix relative pose compared against the VIO-implied relative pose. The pair is rejected (its two-view geometry deleted from the database) when the angle between the two rotations exceeds this threshold. Sequential-only because retrieval pairs span genuine loop closures where VIO drift can disagree with the essential matrix legitimately, and intra-frame stereo is already validated by the rig constraint. 0 disables. Applied only to pairs with 7-column VIO rows (quaternion present).",
+            "default": 25.0
+          },
+          "pair_vio_em_max_translation_direction_deg": {
+            "type": "number",
+            "format": "double",
+            "description": "Companion to pair_vio_em_max_rotation_disagreement_deg: bounds the angle between the essential-matrix translation direction (camera-1 origin direction in camera-2) and the VIO-implied translation direction for the same camera pair. Skipped when the essential-matrix baseline is below pair_vio_em_min_baseline_m, where translation direction is ill-conditioned. 0 disables.",
+            "default": 60.0
+          },
+          "pair_vio_em_min_baseline_m": {
+            "type": "number",
+            "format": "double",
+            "description": "Essential-matrix-baseline floor below which the VIO-vs-essential-matrix translation-direction component is skipped. Near-co-located camera pairs (intra-rig stereo timing jitter, hover frames in slow motion) have ill-defined essential-matrix translation direction; the rotation component still applies.",
+            "default": 0.3
           },
           "max_keypoints_per_image": {
-            "description": "Maximum number of ALIKED keypoints to retain per image (acts as a safety cap in threshold mode). If None, a sensible default is used.",
-            "nullable": true,
-            "type": "integer"
+            "type": "integer",
+            "description": "Maximum ALIKED keypoints retained per image.",
+            "default": 2500
           },
           "held_out_frame_timestamps": {
-            "description": "Frame timestamps (Unix milliseconds, matching the first column of each rig's frames.csv) to exclude from this reconstruction. Held-out frames never enter the rig's frame_poses, so their images are skipped during feature extraction, pair generation, and SfM. Used by calibration to build a map without specific frames so those frames can later be localized as held-out queries.",
+            "description": "Frame timestamps (ms) to exclude from this reconstruction so they can later be localized as held-out queries.",
             "nullable": true,
             "items": {
               "type": "integer"
@@ -6321,13 +6276,8 @@
         "required": [],
         "title": "ReconstructionOptions"
       },
-      "ReconstructionRead": {
+      "ReconstructionReadWithQueue": {
         "properties": {
-          "capture_session_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Capture Session Id"
-          },
           "id": {
             "type": "string",
             "format": "uuid",
@@ -6345,6 +6295,10 @@
             "title": "Created At",
             "description": "datetime with the constraint that the value must have timezone info"
           },
+          "requeue_count": {
+            "type": "integer",
+            "title": "Requeue Count"
+          },
           "status": {
             "$ref": "#/components/schemas/ReconstructionStatus"
           },
@@ -6356,6 +6310,12 @@
             "additionalProperties": {},
             "type": "object",
             "title": "Manifest"
+          },
+          "capture_session_id": {
+            "title": "Capture Session Id",
+            "nullable": true,
+            "type": "string",
+            "format": "uuid"
           },
           "progress_current": {
             "title": "Progress Current",
@@ -6376,37 +6336,57 @@
             "title": "Error",
             "nullable": true,
             "type": "string"
+          },
+          "queue_position": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "queue_depth": {
+            "nullable": true,
+            "type": "integer"
           }
         },
         "type": "object",
         "required": [
-          "capture_session_id",
           "created_at",
           "id",
           "manifest",
           "manifest_version",
+          "requeue_count",
           "status",
           "updated_at"
         ],
-        "title": "ReconstructionRead"
+        "title": "ReconstructionReadWithQueue"
       },
       "ReconstructionStatus": {
         "type": "string",
         "enum": [
           "queued",
-          "downloading",
           "extracting_features",
           "matching_features",
           "training_opq_matrix",
           "training_product_quantizer",
           "verifying_geometry",
+          "verifying_rig_geometry",
           "reconstructing",
-          "uploading",
           "succeeded",
           "failed",
           "cancelled"
         ],
         "title": "ReconstructionStatus"
+      },
+      "ReconstructionTarUploadRequest": {
+        "properties": {
+          "data": {
+            "type": "string",
+            "format": "binary"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "ReconstructionTarUploadRequest"
       },
       "RigCameraConfig": {
         "properties": {
@@ -6454,6 +6434,38 @@
           "id"
         ],
         "title": "RigConfig"
+      },
+      "ServerInfo": {
+        "properties": {
+          "auth_mode": {
+            "type": "string",
+            "enum": [
+              "keycloak",
+              "disabled"
+            ]
+          },
+          "issuer_url": {
+            "nullable": true,
+            "type": "string"
+          },
+          "auth_url": {
+            "nullable": true,
+            "type": "string"
+          },
+          "token_url": {
+            "nullable": true,
+            "type": "string"
+          },
+          "audience": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object",
+        "required": [
+          "auth_mode"
+        ],
+        "title": "ServerInfo"
       },
       "Transform": {
         "properties": {

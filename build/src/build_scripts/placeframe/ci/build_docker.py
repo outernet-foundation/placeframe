@@ -4,13 +4,13 @@ import shlex
 from typing import Literal
 
 import typer
-from common.bash import bash
-from common.detect_gpu import Gpu
+from bashrun import bash
+from stack_lifecycle.detect_gpu import Gpu
 from pydantic_settings import BaseSettings
 
-from ...shared.ci_step import ci_step
-from ...shared.setup import configure_git, free_disk_space
-from ..build_docker import run_build
+from unity_buildkit.ci_step import ci_step
+from unity_buildkit.setup import configure_git, free_disk_space
+from stack_lifecycle.build_docker import run_build
 
 Variant = Literal["common", "cuda", "rocm"]
 
@@ -39,20 +39,7 @@ def ci_main(variant: Variant = typer.Option(help="Build variant: common, cuda, o
             stdin_text=settings.github_token,
         )
 
-    gpu: Gpu = variant if variant != "common" else "cuda"
-    targets = (
-        [f"localizer-{variant}", f"reconstructor-{variant}"]
-        if variant != "common"
-        else [
-            "api",
-            "auth-initializer",
-            "create-database",
-            "gateway",
-            "initialize-cloudbeaver",
-            "migrate-database",
-            "state-sync",
-        ]
-    )
+    gpu: Gpu = variant if variant != "common" else "none"
 
     with ci_step(f"Build images ({variant})"):
-        run_build(mode="ci", gpu=gpu, targets_opt=targets)
+        run_build(mode="ci", gpu=gpu, gpu_only=variant != "common")

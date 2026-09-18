@@ -7,14 +7,14 @@ import tempfile
 from pathlib import Path
 
 import typer
-from common.bash import bash, bash_check
+from bashrun import bash, bash_check
 from pydantic_settings import BaseSettings
 
-from ..shared.cache import restore
-from ..shared.ci_step import ci_step
-from ..shared.license_restore import restore_license
-from ..shared.setup import configure_git, free_disk_space, install_dotnet, install_node
-from ..shared.setup_oras import install_oras
+from unity_buildkit.cache import restore
+from unity_buildkit.ci_step import ci_step
+from unity_buildkit.license_restore import restore_license
+from unity_buildkit.setup import configure_git, free_disk_space, install_dotnet, install_node
+from unity_buildkit.setup_oras import install_oras
 from .clone import clone
 from .paths import get_cesium_build_paths
 

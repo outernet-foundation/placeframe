@@ -1,8 +1,6 @@
-from io import BytesIO
 from typing import Annotated
 from uuid import UUID
 
-from common.boto_clients import create_s3_client
 from datamodels.public_dtos import (
     LocalizationMapBatchUpdate,
     LocalizationMapCreate,
@@ -13,66 +11,20 @@ from datamodels.public_dtos import (
     localization_map_from_dto,
     localization_map_to_dto,
 )
-from datamodels.public_tables import LocalizationMap, LocalizationMapCameraPosition, ReconstructionStatus
+from datamodels.public_tables import LocalizationMap, ReconstructionStatus
 from litestar import Router, delete, get, patch, post
 from litestar.di import Provide
 from litestar.exceptions import ClientException, HTTPException, NotFoundException
 from litestar.params import Parameter
 from litestar.status_codes import HTTP_409_CONFLICT
-from numpy import load
-from scipy.spatial.transform import Rotation
-from sqlalchemy import delete as sqlalchemy_delete
-from sqlalchemy import exists, func, insert, select, text
+from sqlalchemy import exists, func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..camera_positions import sync_camera_positions
 from ..database import get_session
-from ..settings import get_settings
 from .reconstructions import fetch_reconstruction_status
 
-settings = get_settings()
-
-s3_client = create_s3_client(
-    minio_endpoint_url=settings.minio_endpoint_url,
-    minio_access_key=settings.minio_access_key,
-    minio_secret_key=settings.minio_secret_key,
-)
-
 _TRANSFORM_FIELDS = {"position_x", "position_y", "position_z", "rotation_x", "rotation_y", "rotation_z", "rotation_w"}
-
-
-async def _sync_camera_positions(session: AsyncSession, row: LocalizationMap) -> None:
-    """Compute world-space camera positions from the reconstruction's frame poses and store them in the DB."""
-    frame_poses_bytes = s3_client.get_object(
-        Bucket=settings.reconstructions_bucket, Key=f"{row.reconstruction_id}/sfm_model/frame_poses.npz"
-    )["Body"].read()
-
-    with load(BytesIO(frame_poses_bytes)) as npz:
-        frame_positions = npz["positions"]  # (N, 3)
-
-    rotation_matrix = Rotation.from_quat([row.rotation_x, row.rotation_y, row.rotation_z, row.rotation_w]).as_matrix()
-    translation = [row.position_x, row.position_y, row.position_z]
-    world_positions = (rotation_matrix @ frame_positions.T).T + translation
-
-    await session.execute(
-        sqlalchemy_delete(LocalizationMapCameraPosition).where(
-            LocalizationMapCameraPosition.localization_map_id == row.id
-        )
-    )
-
-    if len(world_positions) > 0:
-        await session.execute(
-            insert(LocalizationMapCameraPosition),
-            [
-                {
-                    "localization_map_id": row.id,
-                    "tenant_id": row.tenant_id,
-                    "position_x": float(p[0]),
-                    "position_y": float(p[1]),
-                    "position_z": float(p[2]),
-                }
-                for p in world_positions
-            ],
-        )
 
 
 @post("")
@@ -90,7 +42,7 @@ async def create_localization_map(session: AsyncSession, data: LocalizationMapCr
 
     await session.flush()
     await session.refresh(row)
-    await _sync_camera_positions(session, row)
+    await sync_camera_positions(session, row)
     return localization_map_to_dto(row)
 
 
@@ -217,7 +169,7 @@ async def update_localization_map(session: AsyncSession, id: UUID, data: Localiz
     await session.refresh(row)
 
     if any(f in _TRANSFORM_FIELDS for f in updated_fields):
-        await _sync_camera_positions(session, row)
+        await sync_camera_positions(session, row)
 
     return localization_map_to_dto(row)
 
@@ -241,7 +193,7 @@ async def update_localization_maps(
     for row, update in rows:
         await session.refresh(row)
         if any(f in _TRANSFORM_FIELDS for f in update.model_dump(exclude_unset=True).keys()):
-            await _sync_camera_positions(session, row)
+            await sync_camera_positions(session, row)
 
     return [localization_map_to_dto(r) for r, _ in rows]
 

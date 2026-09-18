@@ -98,7 +98,8 @@ namespace Placeframe.MapRegistrationTool
 
     public class UserSettings : ObservableObject
     {
-        public ObservablePrimitive<string> domain { get; private set; }
+        public ObservablePrimitive<string> apiUrl { get; private set; }
+        public ObservablePrimitive<bool> useKeycloak { get; private set; }
         public ObservablePrimitive<string> username { get; private set; }
         public ObservablePrimitive<string> password { get; private set; }
         public ObservablePrimitive<bool> loaded { get; private set; }

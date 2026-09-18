@@ -1,6 +1,6 @@
 ARG UV_BASE_DIGEST
 
-FROM ghcr.io/astral-sh/uv${UV_BASE_DIGEST} AS base
+FROM ghcr.io/outernet-foundation/mirror/ghcr.io/astral-sh/uv${UV_BASE_DIGEST} AS base
 
 WORKDIR /app/docker/api
 
@@ -21,6 +21,14 @@ ENV \
     UV_TOOLS_ENVIRONMENT=/opt/uv/tools
 
 RUN uv venv $UV_PROJECT_ENVIRONMENT 
+
+# Git is required to resolve VCS dependencies in the lock file (e.g. logconf)
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    git ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install dependencies
 COPY docker/api/pylock.toml ./pylock.toml

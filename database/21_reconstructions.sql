@@ -1,13 +1,12 @@
 CREATE TYPE reconstruction_status AS ENUM (
   'queued',
-  'downloading',
   'extracting_features',
   'matching_features',
   'training_opq_matrix',
   'training_product_quantizer',
   'verifying_geometry',
+  'verifying_rig_geometry',
   'reconstructing',
-  'uploading',
   'succeeded',
   'failed',
   'cancelled'
@@ -26,7 +25,6 @@ CREATE TABLE reconstructions(
     NOT NULL
     DEFAULT now(),
   capture_session_id uuid
-    NOT NULL
     REFERENCES capture_sessions(id)
     ON DELETE RESTRICT,
   status reconstruction_status
@@ -36,6 +34,10 @@ CREATE TABLE reconstructions(
   progress_current integer,
   progress_total integer,
   progress_attempt integer,
+
+  requeue_count integer
+    NOT NULL
+    DEFAULT 0,
 
   manifest jsonb NOT NULL,
   manifest_version smallint NOT NULL,

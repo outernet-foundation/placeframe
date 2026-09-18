@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
 import json
-import os
-
-os.environ["CODEGEN"] = "1"
 
 from .main import app
 

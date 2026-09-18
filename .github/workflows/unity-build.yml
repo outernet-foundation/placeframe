@@ -1,0 +1,146 @@
+name: Unity Build
+
+on:
+  workflow_call:
+    inputs:
+      runner-labels:
+        description: JSON-encoded runs-on value (string or array) for the license/build jobs
+        type: string
+        default: '"ubuntu-latest"'
+      build-env:
+        description: Newline-separated KEY=VALUE pairs injected into the Unity build process environment
+        type: string
+        default: ''
+    secrets:
+      UNITY_EMAIL:
+        required: true
+      UNITY_PASSWORD:
+        required: true
+      UNITY_SERIAL:
+        required: true
+
+env:
+  CACHE_REGISTRY: ghcr.io/${{ github.repository }}/cache
+
+jobs:
+  matrix:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      build-matrix: ${{ steps.generate.outputs.matrix }}
+      license-image: ${{ steps.generate.outputs.license-image }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          save-cache: "false"
+
+      - name: Sync dependencies
+        run: uv sync
+
+      - name: Generate build matrix
+        id: generate
+        run: uv run --no-sync unity-matrix >> "$GITHUB_OUTPUT"
+
+  activate-license:
+    needs: [matrix]
+    runs-on: ${{ fromJSON(inputs.runner-labels) }}
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      cache-tag: ${{ steps.tag.outputs.value }}
+    container:
+      image: ${{ needs.matrix.outputs.license-image }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          save-cache: "false"
+
+      - name: Sync dependencies
+        run: uv sync
+
+      - name: Compute license cache tag
+        id: tag
+        run: echo "value=$(uv run --no-sync unity-license-tag)" >> "$GITHUB_OUTPUT"
+
+      - name: Activate Unity license
+        run: uv run --no-sync activate-unity-license --oras-push
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          LICENSE_CACHE_TAG: ${{ steps.tag.outputs.value }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+
+  build-unity:
+    needs: [matrix, activate-license]
+    name: ${{ matrix.project-name }} (${{ matrix.platform }})
+    runs-on: ${{ fromJSON(inputs.runner-labels) }}
+    permissions:
+      contents: read
+      packages: write
+    container:
+      image: ${{ matrix.editor-image }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.matrix.outputs.build-matrix) }}
+    steps:
+      - name: Wipe workspace
+        run: |
+          find "$GITHUB_WORKSPACE" -mindepth 1 -delete
+          rm -rf ~/.cache/Unity
+
+      - uses: actions/checkout@v5
+
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          save-cache: "false"
+
+      - name: Sync dependencies
+        run: uv sync
+
+      - name: Cache UPM packages
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/Unity/upm
+          key: unity-upm-v3-${{ matrix.platform }}-${{ hashFiles(format('{0}/Packages/manifest.json', matrix.project)) }}
+
+      - name: Build
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          LICENSE_CACHE_TAG: ${{ needs.activate-license.outputs.cache-tag }}
+          BUILD_ENV: ${{ inputs.build-env }}
+        run: |
+          uv run --no-sync build-unity \
+            --project ${{ matrix.project-name }} \
+            --project-path ${{ matrix.project }} \
+            --platform ${{ matrix.platform }} \
+            --cache-key ${{ matrix.cache-key }} \
+            --run-number ${{ github.run_number }} \
+            --branch ${{ github.head_ref || github.ref_name }} \
+            --registry "$CACHE_REGISTRY" \
+            --build-env "$BUILD_ENV"
+
+      - name: Upload Build Artifacts
+        if: success()
+        uses: actions/upload-artifact@v6
+        with:
+          name: ${{ matrix.project-name }}-${{ matrix.platform }}
+          path: /tmp/unity-builds/
+          if-no-files-found: ignore
+
+      - name: Upload Build Report
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: ${{ matrix.project-name }}-${{ matrix.platform }}-build-report
+          path: ${{ matrix.project }}/Build/**/BuildReport.json
+          if-no-files-found: ignore

@@ -1,7 +1,7 @@
 from enum import Enum
 
 from numpy import array, float64
-from numpy.typing import NDArray  # noqa: TID251 — Phase T piece 3 follow-up migration
+from numpy.typing import NDArray  # noqa: TID251 — tracked in PLE-233
 from scipy.spatial.transform import Rotation
 
 

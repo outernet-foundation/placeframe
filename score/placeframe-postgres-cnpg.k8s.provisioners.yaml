@@ -1,0 +1,131 @@
+# Alternative score-k8s provisioner for the SAME resource type (placeframe-postgres):
+# instead of a raw StatefulSet, it emits a CloudNativePG Cluster that the CNPG operator
+# reconciles into a managed, PostGIS-enabled postgres. Register this INSTEAD of
+# placeframe-postgres.k8s.provisioners.yaml to run postgres via CNPG on Kubernetes; the
+# workloads and the Compose side are unchanged. Requires the CNPG operator installed.
+#
+# Roles, grants, and RLS are NOT declared here. The Cluster only bootstraps the database
+# and owner and turns on superuser access; the real database-manager (--op create) then
+# creates the placeframe_* roles and applies every grant and privilege exactly as the
+# StatefulSet provisioner does, and database-migrator applies the schema. The operand
+# image marks PostGIS trusted so the non-superuser owner can create the extension in
+# pg-schema-diff's shadow databases.
+- uri: template://placeframe/postgres-cnpg
+  type: placeframe-postgres
+  description: Managed PostGIS postgres via CloudNativePG, roles/grants by database-manager.
+  init: |
+    dbName: placeframe
+    ownerPassword: {{ randAlphaNum 24 | quote }}
+    apiPassword: {{ randAlphaNum 24 | quote }}
+    authPassword: {{ randAlphaNum 24 | quote }}
+    orchestrationPassword: {{ randAlphaNum 24 | quote }}
+  state: |
+    dbName: {{ dig "dbName" .Init.dbName .State | quote }}
+    ownerPassword: {{ dig "ownerPassword" .Init.ownerPassword .State | quote }}
+    apiPassword: {{ dig "apiPassword" .Init.apiPassword .State | quote }}
+    authPassword: {{ dig "authPassword" .Init.authPassword .State | quote }}
+    orchestrationPassword: {{ dig "orchestrationPassword" .Init.orchestrationPassword .State | quote }}
+  outputs: |
+    host: pf-postgres-rw
+    port: 5432
+    name: {{ .State.dbName }}
+    owner_username: {{ .State.dbName }}_owner
+    api_username: {{ .State.dbName }}_api_user
+    auth_username: {{ .State.dbName }}_auth_user
+    orchestration_username: {{ .State.dbName }}_orchestration_user
+    api_password: {{ encodeSecretRef "pf-postgres-app" "api_password" }}
+    auth_password: {{ encodeSecretRef "pf-postgres-app" "auth_password" }}
+    orchestration_password: {{ encodeSecretRef "pf-postgres-app" "orchestration_password" }}
+  manifests: |
+    - apiVersion: v1
+      kind: Secret
+      metadata:
+        name: pf-postgres-owner
+      type: kubernetes.io/basic-auth
+      data:
+        username: {{ printf "%s_owner" .State.dbName | b64enc }}
+        password: {{ .State.ownerPassword | b64enc }}
+    - apiVersion: v1
+      kind: Secret
+      metadata:
+        name: pf-postgres-app
+      data:
+        api_password: {{ .State.apiPassword | b64enc }}
+        auth_password: {{ .State.authPassword | b64enc }}
+        orchestration_password: {{ .State.orchestrationPassword | b64enc }}
+    - apiVersion: postgresql.cnpg.io/v1
+      kind: Cluster
+      metadata:
+        name: pf-postgres
+      spec:
+        instances: 1
+        imageName: placeframe-postgres-cnpg:14-trusted
+        imagePullPolicy: IfNotPresent
+        enableSuperuserAccess: true
+        storage:
+          size: 1Gi
+        bootstrap:
+          initdb:
+            database: {{ .State.dbName }}
+            owner: {{ .State.dbName }}_owner
+            secret:
+              name: pf-postgres-owner
+    - apiVersion: batch/v1
+      kind: Job
+      metadata:
+        name: pf-postgres-create
+      spec:
+        backoffLimit: 30
+        template:
+          spec:
+            restartPolicy: OnFailure
+            containers:
+            - name: create
+              image: ghcr.io/outernet-foundation/placeframe/database-manager:tree-fb027ea674d00a8c9079aa26c13bac5550f263f9
+              command: ["uv","run","--no-sync","python","-m","src.main","--op","create","--name","{{ .State.dbName }}","--owner-password","{{ .State.ownerPassword }}","--api-user-password","{{ .State.apiPassword }}","--auth-user-password","{{ .State.authPassword }}","--orchestration-user-password","{{ .State.orchestrationPassword }}"]
+              env:
+              - name: POSTGRES_HOST
+                value: pf-postgres-rw
+              - name: POSTGRES_ADMIN_USER
+                value: postgres
+              - name: POSTGRES_ADMIN_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: pf-postgres-superuser
+                    key: password
+              volumeMounts:
+              - name: efs
+                mountPath: /mnt/efs
+            volumes:
+            - name: efs
+              emptyDir: {}
+    - apiVersion: batch/v1
+      kind: Job
+      metadata:
+        name: pf-postgres-migrate
+      spec:
+        backoffLimit: 30
+        template:
+          spec:
+            restartPolicy: OnFailure
+            containers:
+            - name: migrate
+              image: ghcr.io/outernet-foundation/placeframe/database-migrator:tree-0e358a9da5301a6399d56b4f9248d95edcd8f0c7
+              env:
+              - name: DB_HOST
+                value: pf-postgres-rw
+              - name: DB_PORT
+                value: "5432"
+              - name: DB_NAME
+                value: {{ .State.dbName }}
+              - name: DB_USER
+                value: {{ .State.dbName }}_owner
+              - name: DB_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: pf-postgres-owner
+                    key: password
+              - name: DATABASE_SCHEMA_DIR
+                value: database
+              - name: ALLOWED_HAZARDS
+                value: HAS_UNTRACKABLE_DEPENDENCIES

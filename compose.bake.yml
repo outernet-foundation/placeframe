@@ -1,11 +1,17 @@
 x-base-images:
-  UV_BASE_DIGEST: "ghcr.io/astral-sh/uv:python3.13-bookworm-slim"
-  DOTNET_SDK_DIGEST: "mcr.microsoft.com/dotnet/sdk:8.0"
-  DOTNET_ASPNET_DIGEST: "mcr.microsoft.com/dotnet/aspnet:8.0"
-  GOLANG_DIGEST: "golang:1.22-alpine"
-  ALPINE_DIGEST: "alpine:3.20"
-  CADDY_DIGEST: "docker.io/library/caddy:2.8.4-alpine"
-  POSTGRES_BOOKWORM_DIGEST: "docker.io/library/postgres:16-bookworm"
+  UV_BASE_DIGEST: "ghcr.io/outernet-foundation/mirror/ghcr.io/astral-sh/uv:0.12.15-python3.13-trixie-slim"
+  DOTNET_SDK_DIGEST: "ghcr.io/outernet-foundation/mirror/mcr.microsoft.com/dotnet/sdk:8.0"
+  DOTNET_ASPNET_DIGEST: "ghcr.io/outernet-foundation/mirror/mcr.microsoft.com/dotnet/aspnet:8.0"
+  GOLANG_DIGEST: "ghcr.io/outernet-foundation/mirror/docker.io/library/golang:1.22-alpine"
+  ALPINE_DIGEST: "ghcr.io/outernet-foundation/mirror/docker.io/library/alpine:3.20"
+  CADDY_DIGEST: "ghcr.io/outernet-foundation/mirror/docker.io/library/caddy:2.8.4-alpine"
+  POSTGRES_BOOKWORM_DIGEST: "ghcr.io/outernet-foundation/mirror/docker.io/library/postgres:16-bookworm"
+  LOKI_DIGEST: "ghcr.io/outernet-foundation/mirror/docker.io/grafana/loki:3.5.0"
+  ALLOY_DIGEST: "ghcr.io/outernet-foundation/mirror/docker.io/grafana/alloy:v1.9.0"
+  GRAFANA_DIGEST: "ghcr.io/outernet-foundation/mirror/docker.io/grafana/grafana:11.6.0"
+  POSTGIS_DIGEST: "ghcr.io/outernet-foundation/mirror/docker.io/postgis/postgis:16-3.4-alpine"
+  POSTGRES_CNPG_DIGEST: "ghcr.io/outernet-foundation/mirror/ghcr.io/cloudnative-pg/postgis:14@sha256:8e05fbc908ffbdb34aaaf594ea8d108450266f686500fc6e6d78dd007f32c568"
+  SEAWEEDFS_DIGEST: "ghcr.io/outernet-foundation/mirror/docker.io/chrislusf/seaweedfs:4.47"
 
 x-base-args: &base-args
   UV_BASE_DIGEST: "${UV_BASE_DIGEST:-}"
@@ -15,6 +21,11 @@ x-base-args: &base-args
   ALPINE_DIGEST: "${ALPINE_DIGEST:-}"
   CADDY_DIGEST: "${CADDY_DIGEST:-}"
   POSTGRES_BOOKWORM_DIGEST: "${POSTGRES_BOOKWORM_DIGEST:-}"
+  LOKI_DIGEST: "${LOKI_DIGEST:-}"
+  ALLOY_DIGEST: "${ALLOY_DIGEST:-}"
+  GRAFANA_DIGEST: "${GRAFANA_DIGEST:-}"
+  POSTGIS_DIGEST: "${POSTGIS_DIGEST:-}"
+  SEAWEEDFS_DIGEST: "${SEAWEEDFS_DIGEST:-}"
 
 x-registry-cache: ghcr.io/outernet-foundation/placeframe/build-cache
 
@@ -27,6 +38,15 @@ services:
       tags:
         - "ghcr.io/outernet-foundation/placeframe/cloudbeaver-initializer:latest"
         - "ghcr.io/outernet-foundation/placeframe/cloudbeaver-initializer:${CLOUDBEAVER_INITIALIZER_SHA}"
+
+  s3-initializer:
+    build:
+      context: .
+      dockerfile: docker/s3-initializer/Dockerfile
+      args: *base-args
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/s3-initializer:latest"
+        - "ghcr.io/outernet-foundation/placeframe/s3-initializer:${S3_INITIALIZER_SHA}"
 
   create-database:
     build:
@@ -55,7 +75,16 @@ services:
         - "ghcr.io/outernet-foundation/placeframe/gateway:latest"
         - "ghcr.io/outernet-foundation/placeframe/gateway:${GATEWAY_SHA}"
 
-  migrate-database:
+  rathole-client:
+    build:
+      context: .
+      dockerfile: docker/rathole-client/Dockerfile
+      args: *base-args
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/rathole-client:latest"
+        - "ghcr.io/outernet-foundation/placeframe/rathole-client:${RATHOLE_CLIENT_SHA}"
+
+  database-migrator:
     build:
       context: .
       dockerfile: docker/database-migrator/Dockerfile
@@ -74,14 +103,62 @@ services:
         - "ghcr.io/outernet-foundation/placeframe/api:latest"
         - "ghcr.io/outernet-foundation/placeframe/api:${API_SHA}"
 
-  state-sync:
+  lease-server:
     build:
       context: .
-      dockerfile: docker/state-sync/Dockerfile
+      dockerfile: docker/lease-server/Dockerfile
+      target: dev
       args: *base-args
       tags:
-        - "ghcr.io/outernet-foundation/placeframe/state-sync:latest"
-        - "ghcr.io/outernet-foundation/placeframe/state-sync:${STATE_SYNC_SHA}"
+        - "ghcr.io/outernet-foundation/placeframe/lease-server:latest"
+        - "ghcr.io/outernet-foundation/placeframe/lease-server:${LEASE_SERVER_SHA}"
+
+  loki:
+    build:
+      context: .
+      dockerfile: docker/loki/Dockerfile
+      platforms: ["linux/amd64", "linux/arm64"]
+      args: *base-args
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/loki:latest"
+        - "ghcr.io/outernet-foundation/placeframe/loki:${LOKI_SHA}"
+
+  alloy:
+    build:
+      context: .
+      dockerfile: docker/alloy/Dockerfile
+      platforms: ["linux/amd64", "linux/arm64"]
+      args: *base-args
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/alloy:latest"
+        - "ghcr.io/outernet-foundation/placeframe/alloy:${ALLOY_SHA}"
+
+  grafana:
+    build:
+      context: .
+      dockerfile: docker/grafana/Dockerfile
+      args: *base-args
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/grafana:latest"
+        - "ghcr.io/outernet-foundation/placeframe/grafana:${GRAFANA_SHA}"
+
+  postgres:
+    build:
+      context: .
+      dockerfile: docker/postgres/Dockerfile
+      args: *base-args
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/postgres:latest"
+        - "ghcr.io/outernet-foundation/placeframe/postgres:${POSTGRES_SHA}"
+
+  seaweedfs:
+    build:
+      context: .
+      dockerfile: docker/seaweedfs/Dockerfile
+      args: *base-args
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/seaweedfs:latest"
+        - "ghcr.io/outernet-foundation/placeframe/seaweedfs:${SEAWEEDFS_SHA}"
 
   neural-networks-base-cuda:
     build:
@@ -106,6 +183,7 @@ services:
       args:
         <<: *base-args
         TORCH_DEVICE: "cuda"
+        RECONSTRUCTOR_SHA: "${RECONSTRUCTOR_SHA:?err}"
       tags:
         - "ghcr.io/outernet-foundation/placeframe/reconstructor-cuda:latest"
         - "ghcr.io/outernet-foundation/placeframe/reconstructor-cuda:${RECONSTRUCTOR_SHA}"
@@ -133,6 +211,7 @@ services:
       args:
         <<: *base-args
         TORCH_DEVICE: "rocm"
+        RECONSTRUCTOR_SHA: "${RECONSTRUCTOR_SHA:?err}"
       tags:
         - "ghcr.io/outernet-foundation/placeframe/reconstructor-rocm:latest"
         - "ghcr.io/outernet-foundation/placeframe/reconstructor-rocm:${RECONSTRUCTOR_SHA}"
