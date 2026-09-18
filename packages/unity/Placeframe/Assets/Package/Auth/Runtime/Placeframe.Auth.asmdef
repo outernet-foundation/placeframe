@@ -2,8 +2,7 @@
     "name": "Placeframe.Auth",
     "rootNamespace": "",
     "references": [
-        "UniTask",
-        "Newtonsoft.Json"
+        "UniTask"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
