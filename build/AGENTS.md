@@ -32,7 +32,7 @@ Defined in `build/pyproject.toml`'s `[project.scripts]`. All commands accept `--
 
 ### CI-only
 
-`build-docker`, `create-release`, `ensure-release-pr`, `fetch-ci-artifacts`, `protect-branches`, `publish-packages` live under `placeframe/ci/` and are wired up from `.github/workflows/`. They assume the CI environment (OCI cache registry, restored licenses, GitHub token) and are not intended to be invoked from a developer slot. The operator-facing `build` covers the local-use case.
+`build-docker`, `create-release`, `ensure-release-pr`, `fetch-ci-artifacts`, `mirror-images`, `protect-branches`, `publish-packages` live under `placeframe/ci/` and are wired up from `.github/workflows/`. They assume the CI environment (OCI cache registry, restored licenses, GitHub token) and are not intended to be invoked from a developer slot. The operator-facing `build` covers the local-use case. `mirror-images` populates the org-level ghcr mirror namespace (`ghcr.io/outernet-foundation/mirror/<registry>/<upstream-path>`) with every mirror-prefixed image reference the repo scan finds, via `crane copy`; it runs before every build so a PR can never depend on an unpopulated mirror ref.
 
 ### Layout
 

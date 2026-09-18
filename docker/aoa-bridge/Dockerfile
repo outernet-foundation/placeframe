@@ -1,3 +1,6 @@
+ARG UV_BASE_DIGEST
+ARG PYTHON_BASE_DIGEST
+
 # Rebuild libusb-1.0 with --disable-udev so its hotplug source is a
 # NETLINK_KOBJECT_UEVENT socket instead of libudev. The Debian package's
 # libudev path needs a udev daemon (not present in containers), so
@@ -8,7 +11,7 @@
 # namespace (plain Docker without userns-remap); it does not work in
 # rootless or user-namespaced containers, where uevents are filtered by
 # the kernel before they reach the container.
-FROM python:3.13-slim@sha256:dc1546eefcbe8caaa1f004f16ab76b204b5e1dbd58ff81b899f21cd40541232f AS libusb-builder
+FROM ghcr.io/outernet-foundation/mirror/docker.io/library/python${PYTHON_BASE_DIGEST} AS libusb-builder
 
 ARG LIBUSB_COMMIT=a61afe5f75d969c4561a1d0ad753aa23cee6329a
 
@@ -35,9 +38,11 @@ RUN git clone https://github.com/libusb/libusb.git . \
     && make install DESTDIR=/staging
 
 
-FROM python:3.13-slim@sha256:dc1546eefcbe8caaa1f004f16ab76b204b5e1dbd58ff81b899f21cd40541232f
+FROM ghcr.io/outernet-foundation/mirror/ghcr.io/astral-sh/uv${UV_BASE_DIGEST} AS uv
 
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
+FROM ghcr.io/outernet-foundation/mirror/docker.io/library/python${PYTHON_BASE_DIGEST}
+
+COPY --from=uv /usr/local/bin/uv /usr/local/bin/uvx /usr/local/bin/
 
 WORKDIR /app/aoa-bridge
 

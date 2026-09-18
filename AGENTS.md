@@ -30,13 +30,13 @@ uv run basedpyright          # Type check (strict mode)
 
 ## Server stack
 
-The server stack (API, localizer, reconstructor, Keycloak, MinIO, Postgres, Loki/Alloy/Grafana) is a set of Docker microservices under `docker/`. The reconstructor pulls work via API lease endpoints — there is no separate orchestrator service. See `docker/AGENTS.md` for service inventory, data flow, and authentication model. For debugging — querying Loki, inspecting MinIO buckets, hitting Postgres directly — see the Debugging section in `docker/AGENTS.md` (and `scripts/AGENTS.md` for zed-box SSH access).
+The server stack (API, localizer, reconstructor, Keycloak, SeaweedFS, Postgres, Loki/Alloy/Grafana) is a set of Docker microservices under `docker/`. The reconstructor pulls work via API lease endpoints — there is no separate orchestrator service. See `docker/AGENTS.md` for service inventory, data flow, and authentication model. For debugging — querying Loki, inspecting S3 buckets, hitting Postgres directly — see the Debugging section in `docker/AGENTS.md` (and `scripts/AGENTS.md` for zed-box SSH access).
 
 ## Python Workspace
 
 The repo is a `uv` monorepo. Shared Python code lives in `packages/python/`:
 
-- **`common`** — utilities for boto/MinIO, Docker SDK, Litestar, JWT
+- **`common`** — utilities for boto/S3, Docker SDK, Litestar, JWT
 - **`core`** — domain logic: camera configs, coordinate transforms, metrics
 - **`neural-networks`** — PyTorch models with conditional extras (`cpu`, `cuda`, `rocm`)
 - **`datamodels`** — auto-generated Pydantic models from the OpenAPI schema

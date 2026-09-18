@@ -2,7 +2,7 @@ ARG UV_BASE_DIGEST
 
 FROM ghcr.io/outernet-foundation/mirror/ghcr.io/astral-sh/uv${UV_BASE_DIGEST} AS dev
 
-WORKDIR /app/docker/database-manager
+WORKDIR /app/docker/s3-initializer
 
 ENV \
     # Don't buffer stdout/stderr (so logs appear immediately)
@@ -22,30 +22,20 @@ ENV \
 # Create the virtual environment
 RUN uv venv $UV_PROJECT_ENVIRONMENT
 
-# Git is required to resolve VCS dependencies in the lock file (e.g. logconf)
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    apt-get update \
-    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-    git ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
-
 # Install dependencies
-COPY docker/database-manager/pylock.toml ./pylock.toml
+COPY docker/s3-initializer/pylock.toml ./pylock.toml
 RUN --mount=type=cache,id=uvcache,sharing=locked,target=/root/.cache/uv \
     uv pip install -r pylock.toml
 
 # Install project
-COPY packages/python/common/ /app/packages/python/common
-COPY docker/database-manager/ /app/docker/database-manager/
+COPY docker/s3-initializer /app/docker/s3-initializer
 RUN uv pip install --no-deps --no-sources \
-    /app/packages/python/common \
-    /app/docker/database-manager
+    /app/docker/s3-initializer
 
 # Verify that all declared dependencies were installed
 RUN uv pip check
 
 # Copy the entrypoint and make it executable
-COPY --chmod=0755 docker/database-manager/entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY --chmod=0755 docker/s3-initializer/entrypoint.sh /usr/local/bin/entrypoint.sh
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

@@ -12,6 +12,7 @@ dev = ["build-scripts", "scripts", "basedpyright>=1.39.10", "deptry>=0.24.0", "r
 members = [
     "docker/aoa-bridge",
     "docker/database-manager",
+    "docker/s3-initializer",
     "docker/api",
     "docker/auth-initializer",
     "docker/lease-server",
@@ -34,6 +35,7 @@ members = [
 
 
 [tool.uv]
+required-version = "==0.12.15"
 config-settings-package.placeframe-api-client = { editable_mode = "compat" }
 config-settings-package.placeframe-lease-server-client = { editable_mode = "compat" }
 config-settings-package.placeframe-localizer-client = { editable_mode = "compat" }
@@ -52,7 +54,7 @@ scripts = { workspace = true }
 lightglue = { git = "https://github.com/cvg/LightGlue.git" }
 bashrun = { git = "https://github.com/outernet-foundation/bashrun.git", rev = "1a0add1eb9e53e19245dcdda3e2018577b4e1153" }
 logconf = { git = "https://github.com/outernet-foundation/logconf.git", rev = "3a8216eb39008e5769b71f98e65bffc60cd01f0a" }
-stack-lifecycle = { git = "https://github.com/outernet-foundation/stack-lifecycle.git", rev = "4fbbc256e5a761dd2aa8204ddd4ca840832a75d9" }
+stack-lifecycle = { git = "https://github.com/outernet-foundation/stack-lifecycle.git", rev = "8132ab66d6c6e8342d299fc4e76c8f9fe93ea2c1" }
 unity-buildkit = { git = "https://github.com/outernet-foundation/unity-buildkit.git", rev = "70741126846015e001952d4465b7512c75643b2f" }
 openapi-clientgen = { git = "https://github.com/outernet-foundation/openapi-clientgen.git", rev = "49913c5e90651f01b17632d3979d1650def02e8a" }
 
@@ -74,4 +76,4 @@ include = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["build/tests", "packages/python/common/tests", "scripts/tests"]
+testpaths = ["build/tests", "packages/python/common/tests", "scripts/tests", "docker/s3-initializer/tests"]

@@ -48,7 +48,7 @@
                 mountPath: /auth_data
             containers:
             - name: keycloak
-              image: quay.io/keycloak/keycloak:26.3.5@sha256:357829ec7c4693397533035092ad13b0644bcc95ded311f33a3738c4d9e9bdba
+              image: ghcr.io/outernet-foundation/mirror/quay.io/keycloak/keycloak:26.3.5@sha256:357829ec7c4693397533035092ad13b0644bcc95ded311f33a3738c4d9e9bdba
               args: ["start-dev", "--import-realm", "--health-enabled=true"]
               ports:
               - containerPort: 8080

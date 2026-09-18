@@ -20,21 +20,21 @@ Placeframe's server-side stack: a set of cooperating microservices that ingest c
 | `ngrok` | (no Dockerfile — upstream image) | ngrok | Always present in compose; self-skips when `NGROK_DOMAIN` is empty. When set, runs an [ngrok](https://ngrok.com) HTTP tunnel forwarding public traffic to the gateway at `http://gateway:8443` (cleartext, HTTP/2 upstream via h2c). Authenticates with `NGROK_AUTHTOKEN` from `.env`. Consumers that need UDP plumbing (e.g. LiveKit's RTC media plane in Make-it-Sing) layer a different tunnel agent in their own compose. |
 | `keycloak` | `keycloak/` | Keycloak 26 | OIDC / OAuth2 identity provider. Gated by the `keycloak` compose profile — present only when `AUTH_MODE=keycloak`. |
 
-**Observability**: `loki/` (log storage, monolithic mode), `alloy/` (Docker-socket log collector — auto-discovers new containers), `grafana/` (query UI). Loki writes to a `loki` bucket in the shared MinIO. Alloy mounts `/var/run/docker.sock` to discover containers; new services are picked up automatically with no per-service config.
+**Observability**: `loki/` (log storage, monolithic mode), `alloy/` (Docker-socket log collector — auto-discovers new containers), `grafana/` (query UI). Loki writes to a `loki` bucket in the shared SeaweedFS. Alloy mounts `/var/run/docker.sock` to discover containers; new services are picked up automatically with no per-service config.
 
-**Backing services**: PostgreSQL 16, MinIO (S3-compatible object storage), CloudBeaver (web DB UI).
+**Backing services**: PostgreSQL 16, SeaweedFS (S3-compatible object storage; `seaweedfs` server + `seaweedfs-admin` web console + `seaweedfs-audit` relay), CloudBeaver (web DB UI).
 
 **GPU**: `compose.yml` defines the stack; `compose.cuda.yml` and `compose.rocm.yml` add GPU overrides for `reconstructor` and `localizer`. The `up` script auto-detects the accelerator.
 
 ### Data flow
 
 ```
-phone --[tar]--> api --[row+blob]--> MinIO
-                                       ^
-                                       |
-              reconstructor <--[lease]-- lease-server
-                       |
-                       '--[h5/pq/sfm]--> MinIO
+phone --[tar]--> api --[row+blob]--> SeaweedFS
+                                        ^
+                                        |
+               reconstructor <--[lease]-- lease-server
+                        |
+                        '--[h5/pq/sfm]--> SeaweedFS
                                           ^
 phone --[query img]--> localizer --[lookup]'
 ```
@@ -65,7 +65,7 @@ The fourth combination, `http://…` + `keycloak`, is rejected at compose startu
 
 **`lease-server`** has no auth middleware in any mode. It is bound only to the compose-internal network, has no gateway upstream and no host port; the reconstructor reaches it by container DNS. Network isolation is the boundary.
 
-**Non-app services** (Grafana, CloudBeaver, MinIO) keep their own internal auth in every mode. `AUTH_MODE=disabled` disables Placeframe's app auth, not adjacent services' auth.
+**Non-app services** (Grafana, CloudBeaver, the SeaweedFS admin console) keep their own internal auth in every mode. `AUTH_MODE=disabled` disables Placeframe's app auth, not adjacent services' auth.
 
 ## Constraints
 
@@ -75,7 +75,7 @@ The fourth combination, `http://…` + `keycloak`, is rejected at compose startu
 - **`lease-server` is a separate service, not a route group on `api`, and has no auth**: the lease endpoints are an in-cluster control-plane surface — they carry no meaningful user identity, and the previous design (lease routes on `api`, reconstructor authenticating via Keycloak client-credentials JWT) put the auth boundary in the wrong place. Auth ceremony was pure overhead: the middleware extracted `claims["sub"]` but nothing read it, no row was keyed on it, no authz branched on token type. The correct boundary for in-cluster service-to-service traffic is **the network**: `lease-server` binds only to the compose network with no host port and no gateway upstream, the reconstructor reaches it by container DNS, and no token is fetched or verified. Isolating it as its own service (rather than a second listener inside `api`) also gives failure isolation (a bug in lease handlers cannot crash user-facing routes), independent restart/deploy, and a tiny image free of Scalar UI, OAuth schemes, and the user-facing `AuthMiddleware`. Codegen mirrors the split: `lease-server` produces its own `placeframe_lease_client`, consumed only by the reconstructor; `placeframe_api_client` no longer advertises lease routes it cannot reach.
 - **Keycloak instead of bespoke auth**: OIDC unlocks browser-based human flows for the user-facing `api` without writing token-issuance code. The cost is one extra container.
 - **`PUBLIC_URL` and `AUTH_MODE` are independent axes**: collapsing them into a single `MODE=public|airgap` switch would have been smaller, but the two concerns answer different questions — `PUBLIC_URL` controls how *clients connect* (domain vs. LAN IP, cleartext transport, port), `AUTH_MODE` controls whether *requests carry user identity* (Keycloak JWT vs. a single shared anonymous identity). The `https://… + disabled` combination — public tunnel, no auth — is a real configuration (demos, evaluation deployments) that a single switch could not express. The dangerous combination (`http://… + keycloak`, which would send OAuth credentials in cleartext) is rejected at compose startup rather than encoded structurally; the guard is a single scheme check in `modes.py`, the flexibility is worth keeping. LAN-with-self-signed (a third deployment shape that would need its own combination) is explicitly out of scope — distributing a per-deployment self-signed CA to every Unity client is the exact pain point the air-gap mode exists to remove.
-- **MinIO instead of a filesystem volume** for blobs: the same S3 API ports to a managed object store later, and Loki, captures, and reconstructions can all share one storage backend in dev without a migration when the stack moves out of compose.
+- **S3-compatible object storage (SeaweedFS) instead of a filesystem volume** for blobs: the same S3 API ports to a managed object store later, and Loki, captures, and reconstructions can all share one storage backend in dev without a migration when the stack moves out of compose. `weed server` runs master+filer+volume+S3 in one process; the S3 identity config and the fluent audit sink are rendered from `S3_ACCESS_KEY` / `S3_SECRET_KEY` at container start by `docker/seaweedfs/entrypoint-wrapper.sh`. The S3 audit log ships over the fluent protocol (no file/stdout mode in weed), so the `seaweedfs-audit` fluent-bit relay receives on 24224 and echoes every `s3.access` record to its own stdout, where alloy picks it up like any container. The admin console (`weed admin`) requires an explicit `-port.grpc` — its default gRPC port is HTTP port + 10000, which overflows the 16-bit range at 59001.
 - **Allowlist `.dockerignore`** (`*` then `!` entries) is the single source of truth for what affects image builds and the `CONTEXT_SHA` tag. BuildKit does not expose which context files a build actually used ([moby/buildkit#1181](https://github.com/moby/buildkit/issues/1181), open since 2019), so the allowlist is how we keep image identity deterministic. Adding a `COPY` for a path missing from the allowlist fails loudly; extra entries cause only spurious rebuilds.
 
 ## Debugging
@@ -92,33 +92,44 @@ docker exec placeframe-postgres-1 psql -U placeframe_owner -d placeframe -c "<qu
 
 A bare `psql -U postgres` lands in a default schema with no app tables visible.
 
-### MinIO
+### SeaweedFS / S3 buckets
 
-Configure the `mc` alias inside the MinIO container using the credentials from `.env` (`MINIO_ACCESS_KEY` / `MINIO_SECRET_KEY` — `admin` / `password` in dev):
+Read bucket contents with the awscli image (creds from `.env`: `S3_ACCESS_KEY` / `S3_SECRET_KEY` — `admin` / `password` in dev; image ref from `.env.lock`):
 
 ```bash
-docker exec placeframe-minio-1 mc alias set local http://localhost:9000 admin password
-docker exec placeframe-minio-1 mc ls --recursive local/dev-captures/
-docker exec placeframe-minio-1 mc ls --recursive local/dev-reconstructions/
+docker run --rm --network placeframe_default \
+  -e AWS_ACCESS_KEY_ID=admin -e AWS_SECRET_ACCESS_KEY=password -e AWS_DEFAULT_REGION=us-east-1 \
+  $(grep INITIALIZE_S3_IMAGE .env.lock | cut -d= -f2) \
+  s3 ls s3://dev-captures/ --recursive --endpoint-url http://seaweedfs:8333
 ```
 
-Bucket schema and what each prefix contains is the MinIO bucket layout under `## Constraints` above. The operationally relevant gotcha: presence of `sfm_model/` under `dev-reconstructions/<id>/` means SfM completed, regardless of what the DB says — the final `/succeed` PUT can fail and orphan a reconstruction at `uploading`.
+Single-object reads don't even need credentials — the weed filer serves buckets unauthenticated inside the compose network at `http://seaweedfs:8888/buckets/<bucket>/<key>`:
+
+```bash
+docker exec placeframe-seaweedfs-1 curl -s http://localhost:8888/buckets/dev-captures/<id>.tar -o /tmp/capture.tar
+```
+
+The web console (`weed admin`, login `admin` / `S3_SECRET_KEY`) is published at `SEAWEEDFS_ADMIN_PORT` (59001). For cluster operations there is also `weed shell`: `docker exec placeframe-seaweedfs-1 weed shell -master=localhost:9333`.
+
+Bucket schema and what each prefix contains is the bucket layout under `## Constraints` above. The operationally relevant gotcha: presence of `sfm_model/` under `dev-reconstructions/<id>/` means SfM completed, regardless of what the DB says — the final `/succeed` PUT can fail and orphan a reconstruction at `uploading`.
 
 ### Reconstruction audit
 
 Pull a reconstruction's SfM artifacts and its capture's priors side by side to check a finished map against its capture — the input to the consecutive-frame displacement check (`uv run displacement-check`) and the held-out-frame protocol described in `design/reconstruction-validation.md`.
 
-**Pull SfM artifacts + capture priors from MinIO** (after the `mc alias set` above):
+**Pull SfM artifacts + capture priors from SeaweedFS** (awscli invocation as above):
 
 ```bash
 RID=<recon_id>; CID=<capture_session_id>; WORK=/tmp/recon_audit/$RID
 mkdir -p "$WORK/sfm" "$WORK/cap"
 for f in frames.txt frame_poses.npz rigs.txt cameras.txt images.txt; do
-  docker exec placeframe-minio-1 mc cp local/dev-reconstructions/$RID/sfm_model/$f /tmp/$f
-  docker cp placeframe-minio-1:/tmp/$f "$WORK/sfm/$f"
+  docker run --rm --network placeframe_default -v "$WORK/sfm":/work \
+    -e AWS_ACCESS_KEY_ID=admin -e AWS_SECRET_ACCESS_KEY=password -e AWS_DEFAULT_REGION=us-east-1 \
+    $(grep INITIALIZE_S3_IMAGE .env.lock | cut -d= -f2) \
+    s3 cp s3://dev-reconstructions/$RID/sfm_model/$f /work/$f --endpoint-url http://seaweedfs:8333
 done
-docker exec placeframe-minio-1 mc cp local/dev-captures/$CID.tar /tmp/cap.tar
-docker cp placeframe-minio-1:/tmp/cap.tar "$WORK/cap.tar"
+docker exec placeframe-seaweedfs-1 curl -s http://localhost:8888/buckets/dev-captures/$CID.tar -o /tmp/cap.tar
+docker cp placeframe-seaweedfs-1:/tmp/cap.tar "$WORK/cap.tar"
 tar -xf "$WORK/cap.tar" -C "$WORK/cap" manifest.json rig0/frames.csv
 ```
 
@@ -155,7 +166,7 @@ Loki holds logs from every service plus the phone-side capture-tool relay. Avail
 
 ```
 alloy api capture-tool cloudbeaver gateway grafana keycloak loki
-minio minio-logger ngrok postgres reconstructor-cuda zed-capture
+ngrok postgres reconstructor-cuda seaweedfs seaweedfs-audit zed-capture
 ```
 
 Query template (LogQL via the HTTP API; run from the loki container so you don't have to plumb auth):
@@ -179,7 +190,7 @@ For repeated queries, use `uv run loki-query` (`scripts/AGENTS.md`) — it handl
 ### Where each service logs
 
 - **api** → Loki `service_name="api"`. Every HTTP request, including `/internal/leases/<id>/{progress,succeed,fail}` from the reconstructor.
-- **reconstructor-cuda** → Loki `service_name="reconstructor-cuda"` and `docker logs`. Per-image progress, MinIO put markers, lease lifecycle (`Acquired lease`, `Reconstruction succeeded`, `Reconstruction failed: …`). To observe end-to-end lease activity from the API side, query the **api** logs for `/internal/leases/` traffic — lease-request 404s mean "no work available", lease-progress 200s mean an active job is reporting in.
+- **reconstructor-cuda** → Loki `service_name="reconstructor-cuda"` and `docker logs`. Per-image progress, S3 put markers, lease lifecycle (`Acquired lease`, `Reconstruction succeeded`, `Reconstruction failed: …`). To observe end-to-end lease activity from the API side, query the **api** logs for `/internal/leases/` traffic — lease-request 404s mean "no work available", lease-progress 200s mean an active job is reporting in.
 - **capture-tool** (phone) → Loki `service_name="capture-tool"`, pushed directly from the Unity app via the gateway. See `apps/CaptureTool/CLAUDE.md` for relay details.
 - **zed-capture** (ZED box) → Loki `service_name="zed-capture"`, but **only while the phone is AOA-connected and logged in**. The box has no direct backend link: its logs are drained from box-side `aoa-loki` by the phone's `LogDrainController` and pushed verbatim to the backend Loki. An empty `{service_name="zed-capture"}` result usually means the phone isn't draining (no AOA link, not logged in, or nothing newer than the drain cursor) — not that the box logged nothing. To read the box directly, `ssh zed-box` (see `scripts/AGENTS.md`), then query box-side `aoa-loki` (`wget -qO- 'http://127.0.0.1:3100/loki/api/v1/query_range?query=%7Bservice_name%3D~%22.%2B%22%7D'`) or `sudo docker logs $(sudo docker ps -q --filter name=zed-capture)`. Full mechanism in `docker/zed-capture/CLAUDE.md`.
 

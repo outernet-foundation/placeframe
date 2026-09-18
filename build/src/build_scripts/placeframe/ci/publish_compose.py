@@ -8,12 +8,13 @@ from tempfile import TemporaryDirectory
 from typing import Literal
 
 import typer
-from bashrun import bash, bash_output
+from bashrun import bash
 from pydantic_settings import BaseSettings
 
 from unity_buildkit.ci_step import ci_step
 from unity_buildkit.setup import configure_git
 from stack_lifecycle.context_sha import compute_service_shas
+from stack_lifecycle.image_refs import resolve_remote_digest
 
 Variant = Literal["cuda", "rocm"]
 
@@ -78,25 +79,10 @@ def ci_main(variant: Variant = typer.Option(help="Publish variant: cuda or rocm"
 
         with ci_step("Pin placeframe service image digests"):
             digests: dict[str, str] = {}
-
-            def resolve(match: re.Match[str]) -> str:
-                reference = match.group(0)
-                if reference not in digests:
-                    output = bash_output(f"docker buildx imagetools inspect {shlex.quote(reference)}")
-                    digest_match = re.search(r"^Digest:\s+(sha256:[a-f0-9]+)", output, re.MULTILINE)
-                    if digest_match is None:
-                        raise RuntimeError(
-                            f"Could not parse manifest digest from `docker buildx imagetools inspect {reference}`"
-                        )
-                    digests[reference] = digest_match.group(1)
-                repository = reference.rsplit(":", 1)[0]
-                return f"{repository}@{digests[reference]}"
-
             for source_name in source_names:
                 baked_path = baked_directory / source_name
                 baked_path.write_text(
-                    _PLACEFRAME_IMAGE_PATTERN.sub(resolve, baked_path.read_text(encoding="utf-8")),
-                    encoding="utf-8",
+                    _pin_references(baked_path.read_text(encoding="utf-8"), digests), encoding="utf-8"
                 )
 
         sha_tag = f"{REGISTRY}/placeframe-{variant}:{settings.github_sha}"
@@ -106,6 +92,27 @@ def ci_main(variant: Variant = typer.Option(help="Publish variant: cuda or rocm"
         branch_tag = f"{REGISTRY}/placeframe-{variant}:{settings.branch_name.replace('/', '-')}"
         with ci_step(f"Publish {branch_tag}"):
             bash(f"docker compose {compose_files} publish {shlex.quote(branch_tag)} --yes")
+
+
+def _pin_references(text: str, digests: dict[str, str]) -> str:
+    matches = list(_PLACEFRAME_IMAGE_PATTERN.finditer(text))
+    if not matches:
+        return text
+    parts: list[str] = []
+    cursor = 0
+    for match in matches:
+        parts.append(text[cursor : match.start()])
+        parts.append(_pin_reference(match.group(0), digests))
+        cursor = match.end()
+    parts.append(text[cursor:])
+    return "".join(parts)
+
+
+def _pin_reference(reference: str, digests: dict[str, str]) -> str:
+    if reference not in digests:
+        digests[reference] = resolve_remote_digest(reference)
+    repository = reference.rsplit(":", 1)[0]
+    return f"{repository}@{digests[reference]}"
 
 
 def _load_env_file(path: Path) -> dict[str, str]:

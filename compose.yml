@@ -2,7 +2,7 @@ name: placeframe
 
 volumes:
   uv_cache:
-  minio_data:
+  seaweedfs_data:
   cloudbeaver_data:
   auth_data:
   keycloak_import:
@@ -11,58 +11,70 @@ volumes:
 
 
 services:
-  minio:
-    x-image-ref: docker.io/minio/minio:latest
-    image: "${MINIO_IMAGE:?err}"
-    ports:
-      - target: 9001
-        published: "${MINIO_CONSOLE_PORT:?err}"
-        protocol: tcp
-        mode: ingress
+  seaweedfs:
+    image: "ghcr.io/outernet-foundation/placeframe/seaweedfs:${SEAWEEDFS_SHA:?err}"
+    entrypoint: /usr/local/bin/entrypoint-wrapper.sh
+    command: >
+      server -filer -s3 -s3.port=8333
+      -s3.config=/etc/seaweedfs/s3.json
+      -s3.auditLogConfig=/etc/seaweedfs/fluent.json
     volumes:
-      - minio_data:/data
-    command: server /data --console-address ":9001"
+      - seaweedfs_data:/data
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/ready" ]
+      # The readiness contract dependents gate on: master serving AND the S3
+      # listener accepting connections. weed binds its listeners staggered, so a
+      # single-port check passes before S3 is reachable.
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS http://127.0.0.1:9333/cluster/status && curl -s -o /dev/null http://127.0.0.1:8333/",
+        ]
       interval: 1s
       retries: 60
+      start_period: 90s
     environment:
-      MINIO_ROOT_USER: "${MINIO_ACCESS_KEY:?err}"
-      MINIO_ROOT_PASSWORD: "${MINIO_SECRET_KEY:?err}"
+      S3_ACCESS_KEY: "${S3_ACCESS_KEY:?err}"
+      S3_SECRET_KEY: "${S3_SECRET_KEY:?err}"
 
-  initialize-minio:
-    x-image-ref: docker.io/minio/mc:latest
-    image: "${INITIALIZE_MINIO_IMAGE:?err}"
+  # weed's S3 audit log ships over the fluent protocol (no file/stdout mode),
+  # so this relay receives on 24224 and echoes to its own stdout for alloy.
+  seaweedfs-audit:
+    x-image-ref: ghcr.io/outernet-foundation/mirror/docker.io/fluent/fluent-bit:5.1.2
+    image: "${SEAWEEDFS_AUDIT_IMAGE:?err}"
     depends_on:
-      minio:
+      seaweedfs:
+        condition: service_healthy
+    command: ["-i", "forward", "-p", "listen=0.0.0.0", "-p", "port=24224", "-o", "stdout", "-m", "*"]
+
+  # `weed admin` derives its worker gRPC port as HTTP port + 10000, which
+  # overflows the 16-bit port range at 59001 — pass an explicit -port.grpc.
+  seaweedfs-admin:
+    image: "ghcr.io/outernet-foundation/placeframe/seaweedfs:${SEAWEEDFS_SHA:?err}"
+    entrypoint: /usr/local/bin/entrypoint-wrapper.sh
+    depends_on:
+      seaweedfs:
+        condition: service_healthy
+    ports:
+      - target: 59001
+        published: "${SEAWEEDFS_ADMIN_PORT:?err}"
+        protocol: tcp
+        mode: ingress
+    command: admin -ip=0.0.0.0 -port=59001 -port.grpc=59002 -master=seaweedfs:9333 -adminPassword="${S3_SECRET_KEY:?err}"
+
+  # Converges the required buckets (verify if present, create if missing) and
+  # retries until the S3 endpoint accepts connections — safe on both cold and
+  # warm volumes. Gated on seaweedfs health, which asserts S3 readiness.
+  initialize-s3:
+    image: "ghcr.io/outernet-foundation/placeframe/s3-initializer:${S3_INITIALIZER_SHA:?err}"
+    depends_on:
+      seaweedfs:
         condition: service_healthy
     restart: "no"
-    entrypoint: >
-      /bin/sh -c "
-        mc alias set local http://minio:9000 '${MINIO_ACCESS_KEY:?err}' '${MINIO_SECRET_KEY:?err}' && \
-        mc mb --ignore-existing local/dev-captures && \
-        mc mb --ignore-existing local/dev-reconstructions && \
-        mc mb --ignore-existing local/loki
-      "
     environment:
-      MINIO_ACCESS_KEY: "${MINIO_ACCESS_KEY:?err}"
-      MINIO_SECRET_KEY: "${MINIO_SECRET_KEY:?err}"
-
-  minio-logger:
-    x-image-ref: docker.io/minio/mc:latest
-    image: "${MINIO_LOGGER_IMAGE:?err}"
-    depends_on:
-      minio:
-        condition: service_healthy
-    entrypoint: >
-      /bin/sh -c "
-        set -e
-        mc alias set local http://minio:9000 '${MINIO_ACCESS_KEY:?err}' '${MINIO_SECRET_KEY:?err}'
-        mc admin trace --verbose --all local
-      "
-    environment:
-      MINIO_ACCESS_KEY: "${MINIO_ACCESS_KEY:?err}"
-      MINIO_SECRET_KEY: "${MINIO_SECRET_KEY:?err}"
+      S3_ENDPOINT_URL: "http://seaweedfs:8333"
+      S3_ACCESS_KEY: "${S3_ACCESS_KEY:?err}"
+      S3_SECRET_KEY: "${S3_SECRET_KEY:?err}"
+      S3_BUCKETS: "dev-captures dev-reconstructions loki"
 
   initialize-cloudbeaver:
     image: "ghcr.io/outernet-foundation/placeframe/cloudbeaver-initializer:${CLOUDBEAVER_INITIALIZER_SHA:?err}"
@@ -81,7 +93,7 @@ services:
 
   cloudbeaver:
     # Pinned: releases after 25.1.4 write to a non-writable $HOME/.local/share/DBeaverData and crash on startup (exit 13).
-    x-image-ref: docker.io/dbeaver/cloudbeaver:25.1.4
+    x-image-ref: ghcr.io/outernet-foundation/mirror/docker.io/dbeaver/cloudbeaver:25.1.4
     image: "${CLOUDBEAVER_IMAGE:?err}"
     depends_on:
       create-database:
@@ -134,7 +146,7 @@ services:
       - keycloak_import:/keycloak_import
 
   keycloak:
-    x-image-ref: quay.io/keycloak/keycloak:26.3.5
+    x-image-ref: ghcr.io/outernet-foundation/mirror/quay.io/keycloak/keycloak:26.3.5
     image: "${KEYCLOAK_IMAGE:?err}"
     profiles:
       - keycloak
@@ -187,7 +199,7 @@ services:
   # `:-` (not `:?err`): docker compose interpolates regardless of profile, so
   # `:?err` on NGROK_* would break rathole-only operators.
   ngrok:
-    x-image-ref: ngrok/ngrok:alpine
+    x-image-ref: ghcr.io/outernet-foundation/mirror/docker.io/ngrok/ngrok:alpine
     image: "${NGROK_IMAGE:?err}"
     profiles: [tunnel-ngrok]
     depends_on:
@@ -239,7 +251,7 @@ services:
       keycloak:
         condition: service_healthy
         required: false
-      initialize-minio:
+      initialize-s3:
         condition: service_completed_successfully
       database-migrator:
         condition: service_completed_successfully
@@ -265,9 +277,9 @@ services:
       DATABASE_AUTH_USER_PASSWORD: "${DATABASE_AUTH_USER_PASSWORD:?err}"
       DATABASE_ORCHESTRATION_USER: "${DATABASE_NAME:?err}_orchestration_user"
       DATABASE_ORCHESTRATION_USER_PASSWORD: "${DATABASE_ORCHESTRATION_USER_PASSWORD:?err}"
-      MINIO_ENDPOINT_URL: "http://minio:9000"
-      MINIO_ACCESS_KEY: "${MINIO_ACCESS_KEY:?err}"
-      MINIO_SECRET_KEY: "${MINIO_SECRET_KEY:?err}"
+      S3_ENDPOINT_URL: "http://seaweedfs:8333"
+      S3_ACCESS_KEY: "${S3_ACCESS_KEY:?err}"
+      S3_SECRET_KEY: "${S3_SECRET_KEY:?err}"
       RECONSTRUCTIONS_BUCKET: dev-reconstructions
       LOCALIZER_CONTAINER_URL: http://localizer:8000
       LOKI_URL: http://loki:3100
@@ -315,7 +327,7 @@ services:
   loki:
     image: "ghcr.io/outernet-foundation/placeframe/loki:${LOKI_SHA:?err}"
     depends_on:
-      initialize-minio:
+      initialize-s3:
         condition: service_completed_successfully
       initialize-loki:
         condition: service_completed_successfully
@@ -329,8 +341,8 @@ services:
       retries: 20
       start_period: 10s
     environment:
-      MINIO_ACCESS_KEY: "${MINIO_ACCESS_KEY:?err}"
-      MINIO_SECRET_KEY: "${MINIO_SECRET_KEY:?err}"
+      S3_ACCESS_KEY: "${S3_ACCESS_KEY:?err}"
+      S3_SECRET_KEY: "${S3_SECRET_KEY:?err}"
 
   alloy:
     image: "ghcr.io/outernet-foundation/placeframe/alloy:${ALLOY_SHA:?err}"

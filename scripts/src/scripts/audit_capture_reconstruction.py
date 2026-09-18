@@ -71,7 +71,7 @@ def audit(
     sfm_directory: Annotated[
         Path,
         typer.Argument(
-            help="COLMAP sfm_model directory (containing images.txt, frames.txt). Pulled from MinIO `<reconstruction_id>/sfm_model/`."
+            help="COLMAP sfm_model directory (containing images.txt, frames.txt). Pulled from S3 `<reconstruction_id>/sfm_model/`."
         ),
     ],
     frames_csv: Annotated[

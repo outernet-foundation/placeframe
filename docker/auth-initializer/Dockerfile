@@ -1,6 +1,6 @@
 ARG UV_BASE_DIGEST
 
-FROM ghcr.io/astral-sh/uv${UV_BASE_DIGEST} AS dev
+FROM ghcr.io/outernet-foundation/mirror/ghcr.io/astral-sh/uv${UV_BASE_DIGEST} AS dev
 
 WORKDIR /app/docker/api
 

@@ -39,25 +39,7 @@ def ci_main(variant: Variant = typer.Option(help="Build variant: common, cuda, o
             stdin_text=settings.github_token,
         )
 
-    gpu: Gpu = variant if variant != "common" else "cuda"
-    targets = (
-        [f"localizer-{variant}", f"reconstructor-{variant}"]
-        if variant != "common"
-        else [
-            "alloy",
-            "api",
-            "auth-initializer",
-            "create-database",
-            "database-migrator",
-            "gateway",
-            "grafana",
-            "initialize-cloudbeaver",
-            "lease-server",
-            "loki",
-            "postgres",
-            "rathole-client",
-        ]
-    )
+    gpu: Gpu = variant if variant != "common" else "none"
 
     with ci_step(f"Build images ({variant})"):
-        run_build(mode="ci", gpu=gpu, targets_opt=targets)
+        run_build(mode="ci", gpu=gpu, gpu_only=variant != "common")
