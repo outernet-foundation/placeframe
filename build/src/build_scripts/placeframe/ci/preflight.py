@@ -9,6 +9,7 @@ from bashrun import bash, bash_output
 
 from unity_buildkit.ci_step import ci_step
 from stack_lifecycle.context_sha import compute_service_shas
+from stack_lifecycle.image_refs import unpinned_references
 from ..lock_python import lock_python
 
 app = typer.Typer(add_completion=False, pretty_exceptions_show_locals=False)
@@ -16,6 +17,10 @@ app = typer.Typer(add_completion=False, pretty_exceptions_show_locals=False)
 
 @app.command()
 def main() -> None:
+    with ci_step("Check image references"):
+        if unpinned := unpinned_references(Path.cwd()):
+            raise SystemExit(f"Unpinned image references (need tag or digest): {', '.join(sorted(unpinned))}")
+
     with ci_step("Database setup"):
         os.environ.update(
             POSTGRES_ADMIN_USER="postgres",

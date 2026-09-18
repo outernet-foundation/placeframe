@@ -1,6 +1,6 @@
 ARG UV_BASE_DIGEST
 
-FROM ghcr.io/astral-sh/uv${UV_BASE_DIGEST} AS base
+FROM ghcr.io/outernet-foundation/mirror/ghcr.io/astral-sh/uv${UV_BASE_DIGEST} AS base
 
 WORKDIR /app/docker/lease-server
 

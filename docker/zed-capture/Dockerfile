@@ -1,7 +1,8 @@
 ARG ZED_BASE_DIGEST
-FROM stereolabs/zed:5.2-runtime-jetson-jp6.1.0${ZED_BASE_DIGEST}
+ARG UV_BASE_DIGEST
+FROM ghcr.io/outernet-foundation/mirror/docker.io/stereolabs/zed${ZED_BASE_DIGEST}
 
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
+COPY --from=ghcr.io/outernet-foundation/mirror/ghcr.io/astral-sh/uv${UV_BASE_DIGEST} /uv /uvx /usr/local/bin/
 
 WORKDIR /app/zed
 

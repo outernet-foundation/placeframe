@@ -81,7 +81,7 @@ services:
 
   cloudbeaver:
     # Pinned: releases after 25.1.4 write to a non-writable $HOME/.local/share/DBeaverData and crash on startup (exit 13).
-    x-image-ref: docker.io/dbeaver/cloudbeaver:25.1.4
+    x-image-ref: ghcr.io/outernet-foundation/mirror/docker.io/dbeaver/cloudbeaver:25.1.4
     image: "${CLOUDBEAVER_IMAGE:?err}"
     depends_on:
       create-database:
@@ -134,7 +134,7 @@ services:
       - keycloak_import:/keycloak_import
 
   keycloak:
-    x-image-ref: quay.io/keycloak/keycloak:26.3.5
+    x-image-ref: ghcr.io/outernet-foundation/mirror/quay.io/keycloak/keycloak:26.3.5
     image: "${KEYCLOAK_IMAGE:?err}"
     profiles:
       - keycloak
@@ -187,7 +187,7 @@ services:
   # `:-` (not `:?err`): docker compose interpolates regardless of profile, so
   # `:?err` on NGROK_* would break rathole-only operators.
   ngrok:
-    x-image-ref: ngrok/ngrok:alpine
+    x-image-ref: ghcr.io/outernet-foundation/mirror/docker.io/ngrok/ngrok:alpine
     image: "${NGROK_IMAGE:?err}"
     profiles: [tunnel-ngrok]
     depends_on:

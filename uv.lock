@@ -233,7 +233,7 @@ requires-dist = [
     { name = "pyhumps", specifier = ">=3.8.0" },
     { name = "sqlacodegen", specifier = "==3.2.0" },
     { name = "sqlalchemy", specifier = ">=2.0.45" },
-    { name = "stack-lifecycle", git = "https://github.com/outernet-foundation/stack-lifecycle.git?rev=4fbbc256e5a761dd2aa8204ddd4ca840832a75d9" },
+    { name = "stack-lifecycle", git = "https://github.com/outernet-foundation/stack-lifecycle.git?rev=c8a727fbf7b698ff15239fd350848faccdd56e31" },
     { name = "typer", specifier = ">=0.17.4" },
     { name = "unity-buildkit", git = "https://github.com/outernet-foundation/unity-buildkit.git?rev=70741126846015e001952d4465b7512c75643b2f" },
 ]
@@ -2481,7 +2481,7 @@ requires-dist = [
     { name = "pytransform3d", specifier = ">=3.5" },
     { name = "scikit-learn", specifier = ">=1.5" },
     { name = "scipy", specifier = ">=1.14" },
-    { name = "stack-lifecycle", git = "https://github.com/outernet-foundation/stack-lifecycle.git?rev=4fbbc256e5a761dd2aa8204ddd4ca840832a75d9" },
+    { name = "stack-lifecycle", git = "https://github.com/outernet-foundation/stack-lifecycle.git?rev=c8a727fbf7b698ff15239fd350848faccdd56e31" },
     { name = "typer", specifier = ">=0.15" },
 ]
 
@@ -2566,10 +2566,11 @@ asyncio = [
 [[package]]
 name = "stack-lifecycle"
 version = "0.1.0"
-source = { git = "https://github.com/outernet-foundation/stack-lifecycle.git?rev=4fbbc256e5a761dd2aa8204ddd4ca840832a75d9#4fbbc256e5a761dd2aa8204ddd4ca840832a75d9" }
+source = { git = "https://github.com/outernet-foundation/stack-lifecycle.git?rev=c8a727fbf7b698ff15239fd350848faccdd56e31#c8a727fbf7b698ff15239fd350848faccdd56e31" }
 dependencies = [
     { name = "bashrun" },
     { name = "pathspec" },
+    { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "pyyaml" },
     { name = "typer" },

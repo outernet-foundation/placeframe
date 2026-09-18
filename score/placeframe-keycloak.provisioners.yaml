@@ -11,7 +11,7 @@
     certs_url: http://{{ .State.service }}:8080/realms/{{ .State.realm }}/protocol/openid-connect/certs
   services: |
     {{ .State.service }}:
-      image: quay.io/keycloak/keycloak:26.3.5@sha256:357829ec7c4693397533035092ad13b0644bcc95ded311f33a3738c4d9e9bdba
+      image: ghcr.io/outernet-foundation/mirror/quay.io/keycloak/keycloak:26.3.5@sha256:357829ec7c4693397533035092ad13b0644bcc95ded311f33a3738c4d9e9bdba
       command: ["start-dev", "--health-enabled=true"]
       environment:
         KEYCLOAK_ADMIN: admin

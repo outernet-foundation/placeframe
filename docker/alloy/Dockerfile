@@ -1,4 +1,4 @@
 ARG ALLOY_DIGEST
-FROM grafana/alloy:v1.9.0${ALLOY_DIGEST}
+FROM ghcr.io/outernet-foundation/mirror/docker.io/grafana/alloy${ALLOY_DIGEST}
 
 COPY docker/alloy/config.alloy /etc/alloy/config.alloy
