@@ -230,7 +230,7 @@ requires-dist = [
     { name = "datamodel-code-generator", specifier = ">=0.33.0" },
     { name = "openapi-clientgen", git = "https://github.com/outernet-foundation/openapi-clientgen.git?rev=938bdf2a8b86263f65619681ab292cb3109386c8" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2.10" },
-    { name = "pubpkg", git = "https://github.com/outernet-foundation/pubpkg.git?rev=7b646f366f39767c4709315d0d908c610087a17a" },
+    { name = "pubpkg", git = "https://github.com/outernet-foundation/pubpkg.git?rev=b2c226c232ccfe2b81283932b2308327fdf500dc" },
     { name = "pydantic", specifier = ">=2.11.7" },
     { name = "pydantic-settings", specifier = ">=2.9.1" },
     { name = "pyhumps", specifier = ">=3.8.0" },
@@ -2084,7 +2084,7 @@ wheels = [
 [[package]]
 name = "pubpkg"
 version = "0.1.0"
-source = { git = "https://github.com/outernet-foundation/pubpkg.git?rev=7b646f366f39767c4709315d0d908c610087a17a#7b646f366f39767c4709315d0d908c610087a17a" }
+source = { git = "https://github.com/outernet-foundation/pubpkg.git?rev=b2c226c232ccfe2b81283932b2308327fdf500dc#b2c226c232ccfe2b81283932b2308327fdf500dc" }
 dependencies = [
     { name = "bashrun" },
     { name = "pydantic" },
