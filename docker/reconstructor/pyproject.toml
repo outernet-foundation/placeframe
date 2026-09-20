@@ -5,8 +5,8 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "core",
-    "common",
+    "placeframe-core",
+    "placeframe-common",
     "placeframe-lease-server-client",
     "httpx>=0.28.1",
     "numpy>=2.0",
@@ -27,7 +27,6 @@ neural-networks-cpu = ["neural-networks[cpu]"]
 neural-networks-cuda = ["neural-networks[cuda]"]
 neural-networks-rocm = ["neural-networks[rocm]"]
 
-
 [tool.deptry.per_rule_ignores]
 # Code in this package directly imports 'torch', but cannot directly depend on torch, because torch has multiple conflicting 
 # platform-specific variants that are declared using 'extras' in the 'neural-networks' package, and declaring bare 'torch' 
@@ -45,3 +44,4 @@ packages = ["src/reconstructor"]
 
 [project.scripts]
 reconstructor = "reconstructor.main:main"
+

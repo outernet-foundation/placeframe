@@ -12,10 +12,10 @@ from time import monotonic, perf_counter, sleep, time
 from typing import Union, cast
 from uuid import UUID, uuid4
 
-from core.axis_convention import AxisConvention
-from core.camera_config import PinholeCameraConfig
-from core.capture_session_manifest import CaptureSessionManifest, RigCameraConfig, RigConfig
-from core.transform import Float3, Float4
+from placeframe_core.axis_convention import AxisConvention
+from placeframe_core.camera_config import PinholeCameraConfig
+from placeframe_core.capture_session_manifest import CaptureSessionManifest, RigCameraConfig, RigConfig
+from placeframe_core.transform import Float3, Float4
 from numpy import asarray, float64, ndarray
 from PIL import Image
 from pyzed.sl import (  # pyright: ignore[reportMissingModuleSource]

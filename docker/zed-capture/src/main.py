@@ -11,7 +11,7 @@ if sys.platform == "win32":
         if os.path.isdir(p):
             os.add_dll_directory(p)
 
-from common.litestar import create_litestar_app
+from placeframe_common.litestar import create_litestar_app
 from litestar.openapi.config import OpenAPIConfig
 from litestar.openapi.plugins import ScalarRenderPlugin
 

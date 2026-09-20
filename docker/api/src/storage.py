@@ -2,7 +2,7 @@ from collections.abc import Iterator
 from functools import lru_cache
 from typing import TYPE_CHECKING, Any, BinaryIO
 
-from common.boto_clients import create_s3_client
+from placeframe_common.boto_clients import create_s3_client
 
 from .settings import get_settings
 

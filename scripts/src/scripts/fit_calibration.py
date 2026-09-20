@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Annotated, Any, cast
 from uuid import UUID
 
-from core.calibration import (
+from placeframe_core.calibration import (
     SCHEMA_VERSION,
     CalibrationArtifact,
     Features,
@@ -17,8 +17,8 @@ from core.calibration import (
     RawMapMetrics,
     ToleranceModel,
 )
-from core.capture_session_manifest import CaptureSessionManifest
-from core.localization_metrics import RANSAC_THRESHOLD_DEFAULT, RETRIEVAL_TOP_K_DEFAULT
+from placeframe_core.capture_session_manifest import CaptureSessionManifest
+from placeframe_core.localization_metrics import RANSAC_THRESHOLD_DEFAULT, RETRIEVAL_TOP_K_DEFAULT
 from numpy import asarray, degrees, eye, float64, inf, unique
 from numpy.linalg import LinAlgError, norm
 from numpy.typing import NDArray  # noqa: TID251 — Phase T piece 3 follow-up migration

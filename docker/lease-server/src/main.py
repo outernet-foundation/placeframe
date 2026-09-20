@@ -1,5 +1,5 @@
-from common.litestar import create_litestar_app
-from common.logging_config import configure_logging
+from placeframe_common.litestar import create_litestar_app
+from placeframe_common.logging_config import configure_logging
 from litestar.openapi.config import OpenAPIConfig
 from litestar.openapi.spec import Server
 

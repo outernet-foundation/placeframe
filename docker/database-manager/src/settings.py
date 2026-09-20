@@ -3,7 +3,7 @@ from __future__ import annotations
 from functools import cached_property, lru_cache
 from typing import Literal
 
-from common.boto_clients import create_secretsmanager_client
+from placeframe_common.boto_clients import create_secretsmanager_client
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 

@@ -2,11 +2,11 @@
 
 ## What this is
 
-`core` is the workspace Python package that holds the vocabulary shared between Placeframe's backend services. It contains the Pydantic schemas that travel over HTTP and through Postgres JSONB columns, the coordinate-frame primitives that bridge OpenCV-space (reconstructor / COLMAP) and Unity-space (phone clients / localizer responses), the image and intrinsics canonicalization used by both the map-builder and the query path, the HDF5 / FAISS-OPQ on-disk artifact formats, and the global confidence-calibration model. The distribution name is `core` and every import is `from core.<module>`. `docker/api/`, `docker/localizer/`, `docker/reconstructor/`, `docker/zed-capture/`, and `scripts/` declare it as a workspace dep. See `docker/AGENTS.md` for the service mesh that consumes these types.
+`placeframe_core` is the workspace Python package that holds the vocabulary shared between Placeframe's backend services. It contains the Pydantic schemas that travel over HTTP and through Postgres JSONB columns, the coordinate-frame primitives that bridge OpenCV-space (reconstructor / COLMAP) and Unity-space (phone clients / localizer responses), the image and intrinsics canonicalization used by both the map-builder and the query path, the HDF5 / FAISS-OPQ on-disk artifact formats, and the global confidence-calibration model. The distribution name is `placeframe-core` (published to PyPI under that name; tag ledger `placeframe-core-python-v*`) and every import is `from placeframe_core.<module>`. `docker/api/`, `docker/lease-server/`, `docker/localizer/`, `docker/reconstructor/`, `docker/zed-capture/`, and `scripts/` declare it as a workspace dep. See `docker/AGENTS.md` for the service mesh that consumes these types.
 
 ## Shape
 
-The package is flat: 16 leaf modules under `src/core/`, no `__init__.py` re-exports, every consumer imports from a leaf. There are no tests inside `core/`; behaviour is exercised end-to-end from the consumer test suites (`docker/localizer/tests/test_build_metrics.py`, `docker/reconstructor/tests/test_rig.py`, `scripts/tests/test_fit_calibration.py`).
+The package is flat: 16 leaf modules under `src/placeframe_core/`, no `__init__.py` re-exports, every consumer imports from a leaf. There are no tests inside `placeframe_core/`; behaviour is exercised end-to-end from the consumer test suites (`docker/localizer/tests/test_build_metrics.py`, `docker/reconstructor/tests/test_rig.py`, `scripts/tests/test_fit_calibration.py`).
 
 ### Modules by role
 
@@ -77,7 +77,7 @@ Flipping `LOCAL_FEATURE_RESIZE_SHORTER_SIDE`, `RETRIEVAL_TILE_OVERLAP_FRACTION`,
 
 ## Constraints
 
-**One flat package, no `__init__.py` re-exports.** Every consumer reaches into a leaf module, which makes the dependency graph immediately legible from import lines alone: `from core.opq import decode_descriptors` says exactly what the consumer touches. The cost is verbose import blocks at the call site (the localizer's `localize.py` imports from `core.model_wrappers` on two separate lines); the benefit is no parallel public-surface drift between `__init__.py` and the leaves.
+**One flat package, no `__init__.py` re-exports.** Every consumer reaches into a leaf module, which makes the dependency graph immediately legible from import lines alone: `from placeframe_core.opq import decode_descriptors` says exactly what the consumer touches. The cost is verbose import blocks at the call site (the localizer's `localize.py` imports from `placeframe_core.model_wrappers` on two separate lines); the benefit is no parallel public-surface drift between `__init__.py` and the leaves.
 
 **Pydantic on the schema side, pure numpy/torch on the math side.** Schemas need OpenAPI-generability and JSON round-tripping (they end up in C# via `generate-clients` and in Postgres JSONB via the API). Math functions need numpy-array-in / numpy-array-out so they compose with both the reconstructor's training loop and the localizer's per-query path with no Pydantic overhead. The two halves of the package never wrap each other.
 
@@ -98,5 +98,5 @@ Flipping `LOCAL_FEATURE_RESIZE_SHORTER_SIDE`, `RETRIEVAL_TILE_OVERLAP_FRACTION`,
 ## See also
 
 - `docker/AGENTS.md` -- the service mesh that consumes these types. Core is the vocabulary on the arrows between services; that doc describes the arrows.
-- `scripts/src/scripts/fit_calibration.py` -- the producer of `docker/localizer/calibration/global.json`. Reads `core.calibration`, `core.capture_session_manifest`, and `core.localization_metrics`'s defaults.
-- `packages/generated/` -- the OpenAPI client packages (Python and C#) generated from API routes that respond with `core` schemas. A schema change here requires running `generate-clients`.
+- `scripts/src/scripts/fit_calibration.py` -- the producer of `docker/localizer/calibration/global.json`. Reads `placeframe_core.calibration`, `placeframe_core.capture_session_manifest`, and `placeframe_core.localization_metrics`'s defaults.
+- `packages/generated/` -- the OpenAPI client packages (Python and C#) generated from API routes that respond with `placeframe_core` schemas. A schema change here requires running `generate-clients`.

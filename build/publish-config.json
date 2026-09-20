@@ -1,0 +1,67 @@
+{
+  "packages": [
+    {
+      "name": "placeframe-api-client",
+      "path": "packages/generated/csharp/api-client/src/PlaceframeApiClient",
+      "feeds": { "nuget": "PlaceframeApiClient", "npm": "org.outernet.placeframe.apiclient" }
+    },
+    {
+      "name": "placeframe-core",
+      "path": "packages/unity/Placeframe/Assets/Package/Core",
+      "feeds": { "npm": "org.outernet.placeframe" },
+      "depends_on": ["placeframe-api-client"],
+      "dependency_pins": { "org.outernet.placeframe.apiclient": "placeframe-api-client" }
+    },
+    {
+      "name": "placeframe-arfoundation",
+      "path": "packages/unity/Placeframe/Assets/Package/ARFoundation",
+      "feeds": { "npm": "org.outernet.placeframe.arfoundation" },
+      "depends_on": ["placeframe-core"],
+      "dependency_pins": { "org.outernet.placeframe": "placeframe-core" }
+    },
+    {
+      "name": "placeframe-magicleap",
+      "path": "packages/unity/Placeframe/Assets/Package/MagicLeap",
+      "feeds": { "npm": "org.outernet.placeframe.magicleap" },
+      "depends_on": ["placeframe-core"],
+      "dependency_pins": { "org.outernet.placeframe": "placeframe-core" }
+    },
+    {
+      "name": "placeframe-auth",
+      "path": "packages/unity/Placeframe/Assets/Package/Auth",
+      "feeds": { "npm": "org.outernet.placeframe.auth" }
+    },
+    {
+      "name": "placeframe-logging",
+      "path": "packages/unity/Logging/Assets/Package",
+      "feeds": { "npm": "org.outernet.logging" }
+    },
+    {
+      "name": "placeframe-common",
+      "path": "packages/python/common",
+      "feeds": { "pypi": "placeframe-common" }
+    },
+    {
+      "name": "placeframe-core-python",
+      "path": "packages/python/core",
+      "feeds": { "pypi": "placeframe-core" }
+    }
+  ],
+  "apps": [
+    {
+      "name": "MapRegistrationTool",
+      "path": "apps/MapRegistrationTool",
+      "tag_prefix": "map-registration-tool",
+      "display_name": "Map Registration Tool"
+    },
+    {
+      "name": "CaptureTool",
+      "path": "apps/CaptureTool",
+      "tag_prefix": "capture-tool",
+      "display_name": "Capture Tool"
+    }
+  ],
+  "compose_files": ["compose.bake.yml", "compose.zed.bake.yml"],
+  "ci_workflow": "placeframe-ci.yml",
+  "mirror_prefix": "ghcr.io/outernet-foundation/mirror"
+}

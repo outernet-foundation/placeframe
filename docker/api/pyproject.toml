@@ -5,9 +5,9 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "common",
+    "placeframe-common",
     "datamodels",
-    "core",
+    "placeframe-core",
     "placeframe-localizer-client",
     "uvicorn[standard]>=0.35.0",
     "psycopg[binary]>=3.2.10",
@@ -34,3 +34,4 @@ dev = [
 
 [tool.deptry.per_rule_ignores]
 DEP002 = ["uvicorn", "debugpy", "psycopg", "cryptography"]
+

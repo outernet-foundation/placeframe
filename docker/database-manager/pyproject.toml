@@ -5,7 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "common",
+    "placeframe-common",
     "pydantic-settings>=2.10.1",
     "typer>=0.17.4",
     "psycopg[binary]>=3.2.10",
@@ -24,3 +24,4 @@ packages = ["src/database_manager"]
 
 [project.scripts]
 database-manager = "database_manager.main:main"
+

@@ -37,7 +37,7 @@ docker/reconstructor/
 `main.worker_loop` (`src/reconstructor/main.py:30`) is a single coroutine that opens one `placeframe_lease_server_client.ApiClient` against `settings.lease_server_url` (no auth token — the lease server is an internal service reachable only inside the stack network) and then loops:
 
 - `await api.request_lease()`. An `ApiException` with status 404 (no queued jobs) -> sleep 5 s and re-poll. Any other `ApiException` -> log the error, sleep 5 s, re-poll. There is no exponential backoff.
-- Hand the granted lease to `_run_and_report`, which validates `lease.options` into a `core.ReconstructionOptions`, builds a `ReconstructionPublisher` over an `AsyncProgressFlusher`, and dispatches `run_reconstruction(reconstruction_id, capture_id, options, publisher, metrics_builder)` onto `loop.run_in_executor(None, ...)`. The pipeline is fully sync; the default executor (a `ThreadPoolExecutor`) runs it on a worker thread while the event loop stays live to service progress writes.
+- Hand the granted lease to `_run_and_report`, which validates `lease.options` into a `placeframe_core.ReconstructionOptions`, builds a `ReconstructionPublisher` over an `AsyncProgressFlusher`, and dispatches `run_reconstruction(reconstruction_id, capture_id, options, publisher, metrics_builder)` onto `loop.run_in_executor(None, ...)`. The pipeline is fully sync; the default executor (a `ThreadPoolExecutor`) runs it on a worker thread while the event loop stays live to service progress writes.
 - On success: `await api.succeed_lease(reconstruction_id, metrics)`. On any pipeline-or-succeed exception: `await api.fail_lease(reconstruction_id, FailLeaseRequest(error=str(e), metrics=partial_metrics))`, where `partial_metrics` is whatever the `MetricsBuilder` accumulated before the failure.
 - `CancelledError` exits the loop cleanly. Any other exception logs and sleeps 5 s before re-looping.
 
@@ -214,4 +214,4 @@ The full lease state machine lives in `docker/lease-server/src/routers/leases.py
 - `docker/AGENTS.md` -- stack-level data flow, S3 bucket layout, and the multi-service relationships this reconstructor sits inside.
 - `docker/AGENTS.md` (Debugging) -- operator runbook including the "`sfm_model/` presence means SfM completed regardless of DB status" recovery hazard.
 - `docker/lease-server/src/routers/leases.py` -- the lease state machine (request, progress, succeed, fail, reaper). Read this when reasoning about timeout or recovery behavior.
-- `packages/python/core/src/core/reconstruction_options.py` and `reconstruction_metrics.py` -- the shared option / metric schema. The reconstructor reads options, writes metrics; both flow through the row's `manifest` column.
+- `packages/python/core/src/placeframe_core/reconstruction_options.py` and `reconstruction_metrics.py` -- the shared option / metric schema. The reconstructor reads options, writes metrics; both flow through the row's `manifest` column.

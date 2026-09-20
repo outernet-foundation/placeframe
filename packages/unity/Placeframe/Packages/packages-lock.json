@@ -421,12 +421,6 @@
       },
       "url": "https://package.openupm.com"
     },
-    "org.nuget.placeframeapiclient": {
-      "version": "file:../../../../packages/generated/csharp/api-client/src/PlaceframeApiClient",
-      "depth": 0,
-      "source": "local",
-      "dependencies": {}
-    },
     "org.nuget.polly": {
       "version": "8.8.0",
       "depth": 0,
@@ -528,6 +522,16 @@
         "org.nuget.system.runtime.compilerservices.unsafe": "4.5.3"
       },
       "url": "https://package.openupm.com"
+    },
+    "org.outernet.placeframe.apiclient": {
+      "version": "file:../../../../packages/generated/csharp/api-client/src/PlaceframeApiClient",
+      "depth": 0,
+      "source": "local",
+      "dependencies": {
+        "com.unity.nuget.newtonsoft-json": "3.x",
+        "org.nuget.polly": "8.x",
+        "org.nuget.jsonsubtypes": "2.x"
+      }
     },
     "com.unity.modules.accessibility": {
       "version": "1.0.0",

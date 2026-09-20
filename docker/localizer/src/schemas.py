@@ -1,8 +1,8 @@
 from enum import Enum
 from uuid import UUID
 
-from core.localization_metrics import LocalizationMetrics
-from core.transform import Transform
+from placeframe_core.localization_metrics import LocalizationMetrics
+from placeframe_core.transform import Transform
 from pydantic import BaseModel
 
 

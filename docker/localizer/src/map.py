@@ -5,17 +5,17 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Mapping, NewType, cast
 from uuid import UUID
 
-from core.calibration import RawMapMetrics
-from core.h5 import FEATURES_FILE, GLOBAL_DESCRIPTORS_FILE, read_features, read_global_descriptors
-from core.opq import OPQ_MATRIX_FILE, PQ_QUANTIZER_FILE, read_opq_matrix, read_pq_quantizer
-from core.reconstruction_metrics import ReconstructionMetrics
+from placeframe_core.calibration import RawMapMetrics
+from placeframe_core.h5 import FEATURES_FILE, GLOBAL_DESCRIPTORS_FILE, read_features, read_global_descriptors
+from placeframe_core.opq import OPQ_MATRIX_FILE, PQ_QUANTIZER_FILE, read_opq_matrix, read_pq_quantizer
+from placeframe_core.reconstruction_metrics import ReconstructionMetrics
 from faiss import OPQMatrix, ProductQuantizer  # type: ignore
 from numpy import dtype, float32, ndarray, stack, uint8
 from numpy.typing import NDArray  # noqa: TID251 — tracked in PLE-233
 from pycolmap import Reconstruction
 from pycolmap._core import ImageMap, Point3DMap
 
-from core.model_wrappers import RetrievalDim
+from placeframe_core.model_wrappers import RetrievalDim
 
 NumImages = NewType("NumImages", int)
 

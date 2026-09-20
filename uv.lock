@@ -19,8 +19,6 @@ members = [
     "aoa-bridge",
     "auth-initializer",
     "build-scripts",
-    "common",
-    "core",
     "database-manager",
     "datamodels",
     "dirtorch",
@@ -28,6 +26,8 @@ members = [
     "placeframe",
     "placeframe-api",
     "placeframe-api-client",
+    "placeframe-common",
+    "placeframe-core",
     "placeframe-lease-server",
     "placeframe-lease-server-client",
     "placeframe-localizer",
@@ -213,6 +213,7 @@ dependencies = [
     { name = "datamodel-code-generator" },
     { name = "openapi-clientgen" },
     { name = "psycopg", extra = ["binary"] },
+    { name = "pubpkg" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "pyhumps" },
@@ -227,8 +228,9 @@ dependencies = [
 requires-dist = [
     { name = "bashrun", git = "https://github.com/outernet-foundation/bashrun.git?rev=1a0add1eb9e53e19245dcdda3e2018577b4e1153" },
     { name = "datamodel-code-generator", specifier = ">=0.33.0" },
-    { name = "openapi-clientgen", git = "https://github.com/outernet-foundation/openapi-clientgen.git?rev=49913c5e90651f01b17632d3979d1650def02e8a" },
+    { name = "openapi-clientgen", git = "https://github.com/outernet-foundation/openapi-clientgen.git?rev=938bdf2a8b86263f65619681ab292cb3109386c8" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2.10" },
+    { name = "pubpkg", git = "https://github.com/outernet-foundation/pubpkg.git?rev=b2c226c232ccfe2b81283932b2308327fdf500dc" },
     { name = "pydantic", specifier = ">=2.11.7" },
     { name = "pydantic-settings", specifier = ">=2.9.1" },
     { name = "pyhumps", specifier = ">=3.8.0" },
@@ -293,35 +295,6 @@ wheels = [
 ]
 
 [[package]]
-name = "common"
-version = "0.1.0"
-source = { editable = "packages/python/common" }
-dependencies = [
-    { name = "boto3" },
-    { name = "botocore" },
-    { name = "litestar" },
-    { name = "logconf", extra = ["otlp"] },
-    { name = "pydantic" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "boto3-stubs", extra = ["batch", "ecs", "lambda", "s3", "secretsmanager"] },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "boto3", specifier = ">=1.39.5" },
-    { name = "botocore", specifier = ">=1.42.24" },
-    { name = "litestar", specifier = ">=2.19.0" },
-    { name = "logconf", extras = ["otlp"], git = "https://github.com/outernet-foundation/logconf.git?rev=3a8216eb39008e5769b71f98e65bffc60cd01f0a" },
-    { name = "pydantic", specifier = ">=2.12.5" },
-]
-
-[package.metadata.requires-dev]
-dev = [{ name = "boto3-stubs", extras = ["batch", "ecs", "secretsmanager", "s3", "lambda"], specifier = ">=1.40.29" }]
-
-[[package]]
 name = "contourpy"
 version = "1.3.3"
 source = { registry = "https://pypi.org/simple" }
@@ -353,37 +326,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/b2/dd/880f890a6663b84d9e34a6f88cded89d78f0091e0045a284427cb6b18521/contourpy-1.3.3-cp313-cp313t-win_amd64.whl", hash = "sha256:87acf5963fc2b34825e5b6b048f40e3635dd547f590b04d2ab317c2619ef7ae8", size = 240570, upload-time = "2025-07-26T12:02:12.754Z" },
     { url = "https://files.pythonhosted.org/packages/80/99/2adc7d8ffead633234817ef8e9a87115c8a11927a94478f6bb3d3f4d4f7d/contourpy-1.3.3-cp313-cp313t-win_arm64.whl", hash = "sha256:3c30273eb2a55024ff31ba7d052dde990d7d8e5450f4bbb6e913558b3d6c2301", size = 199713, upload-time = "2025-07-26T12:02:14.4Z" },
 ]
-
-[[package]]
-name = "core"
-version = "0.1.0"
-source = { editable = "packages/python/core" }
-dependencies = [
-    { name = "faiss-cpu" },
-    { name = "h5py" },
-    { name = "numpy" },
-    { name = "pillow" },
-    { name = "pydantic" },
-    { name = "scipy" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "scipy-stubs" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "faiss-cpu", specifier = ">=1.12.0" },
-    { name = "h5py", specifier = ">=3.15.1" },
-    { name = "numpy", specifier = ">=2.4.0" },
-    { name = "pillow", specifier = ">=12.0.0" },
-    { name = "pydantic", specifier = ">=2.12.5" },
-    { name = "scipy", specifier = ">=1.16.3" },
-]
-
-[package.metadata.requires-dev]
-dev = [{ name = "scipy-stubs", specifier = ">=1.16.3.0" }]
 
 [[package]]
 name = "cryptography"
@@ -462,7 +404,7 @@ name = "database-manager"
 version = "0.1.0"
 source = { editable = "docker/database-manager" }
 dependencies = [
-    { name = "common" },
+    { name = "placeframe-common" },
     { name = "psycopg", extra = ["binary"] },
     { name = "pydantic" },
     { name = "pydantic-settings" },
@@ -476,7 +418,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "common", editable = "packages/python/common" },
+    { name = "placeframe-common", editable = "packages/python/common" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2.10" },
     { name = "pydantic", specifier = ">=2.12.5" },
     { name = "pydantic-settings", specifier = ">=2.10.1" },
@@ -1518,7 +1460,7 @@ wheels = [
 [[package]]
 name = "openapi-clientgen"
 version = "0.1.0"
-source = { git = "https://github.com/outernet-foundation/openapi-clientgen.git?rev=49913c5e90651f01b17632d3979d1650def02e8a#49913c5e90651f01b17632d3979d1650def02e8a" }
+source = { git = "https://github.com/outernet-foundation/openapi-clientgen.git?rev=938bdf2a8b86263f65619681ab292cb3109386c8#938bdf2a8b86263f65619681ab292cb3109386c8" }
 dependencies = [
     { name = "bashrun" },
     { name = "typer" },
@@ -1724,14 +1666,14 @@ version = "0.1.0"
 source = { virtual = "docker/api" }
 dependencies = [
     { name = "botocore" },
-    { name = "common" },
-    { name = "core" },
     { name = "cryptography" },
     { name = "datamodels" },
     { name = "debugpy" },
     { name = "httpx" },
     { name = "litestar" },
     { name = "numpy" },
+    { name = "placeframe-common" },
+    { name = "placeframe-core" },
     { name = "placeframe-localizer-client" },
     { name = "psycopg", extra = ["binary"] },
     { name = "pydantic" },
@@ -1753,14 +1695,14 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "botocore", specifier = ">=1.42.24" },
-    { name = "common", editable = "packages/python/common" },
-    { name = "core", editable = "packages/python/core" },
     { name = "cryptography", specifier = ">=46.0.3" },
     { name = "datamodels", editable = "packages/generated/python/datamodels" },
     { name = "debugpy", specifier = ">=1.8.16" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "litestar", specifier = ">=2.19.0" },
     { name = "numpy", specifier = ">=2.3.4" },
+    { name = "placeframe-common", editable = "packages/python/common" },
+    { name = "placeframe-core", editable = "packages/python/core" },
     { name = "placeframe-localizer-client", editable = "packages/generated/python/localizer-client" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2.10" },
     { name = "pydantic", specifier = ">=2.12.5" },
@@ -1799,15 +1741,75 @@ requires-dist = [
 ]
 
 [[package]]
+name = "placeframe-common"
+version = "0.0.0.dev0"
+source = { editable = "packages/python/common" }
+dependencies = [
+    { name = "boto3" },
+    { name = "botocore" },
+    { name = "litestar" },
+    { name = "logconf", extra = ["otlp"] },
+    { name = "pydantic" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "boto3-stubs", extra = ["batch", "ecs", "lambda", "s3", "secretsmanager"] },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "boto3", specifier = ">=1.39.5" },
+    { name = "botocore", specifier = ">=1.42.24" },
+    { name = "litestar", specifier = ">=2.19.0" },
+    { name = "logconf", extras = ["otlp"], git = "https://github.com/outernet-foundation/logconf.git?rev=3a8216eb39008e5769b71f98e65bffc60cd01f0a" },
+    { name = "pydantic", specifier = ">=2.12.5" },
+]
+
+[package.metadata.requires-dev]
+dev = [{ name = "boto3-stubs", extras = ["batch", "ecs", "secretsmanager", "s3", "lambda"], specifier = ">=1.40.29" }]
+
+[[package]]
+name = "placeframe-core"
+version = "0.0.0.dev0"
+source = { editable = "packages/python/core" }
+dependencies = [
+    { name = "faiss-cpu" },
+    { name = "h5py" },
+    { name = "numpy" },
+    { name = "pillow" },
+    { name = "pydantic" },
+    { name = "scipy" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "scipy-stubs" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "faiss-cpu", specifier = ">=1.12.0" },
+    { name = "h5py", specifier = ">=3.15.1" },
+    { name = "numpy", specifier = ">=2.4.0" },
+    { name = "pillow", specifier = ">=12.0.0" },
+    { name = "pydantic", specifier = ">=2.12.5" },
+    { name = "scipy", specifier = ">=1.16.3" },
+]
+
+[package.metadata.requires-dev]
+dev = [{ name = "scipy-stubs", specifier = ">=1.16.3.0" }]
+
+[[package]]
 name = "placeframe-lease-server"
 version = "0.1.0"
 source = { virtual = "docker/lease-server" }
 dependencies = [
-    { name = "common" },
-    { name = "core" },
     { name = "datamodels" },
     { name = "debugpy" },
     { name = "litestar" },
+    { name = "placeframe-common" },
+    { name = "placeframe-core" },
     { name = "psycopg", extra = ["binary"] },
     { name = "pydantic" },
     { name = "pydantic-settings" },
@@ -1817,11 +1819,11 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "common", editable = "packages/python/common" },
-    { name = "core", editable = "packages/python/core" },
     { name = "datamodels", editable = "packages/generated/python/datamodels" },
     { name = "debugpy", specifier = ">=1.8.16" },
     { name = "litestar", specifier = ">=2.19.0" },
+    { name = "placeframe-common", editable = "packages/python/common" },
+    { name = "placeframe-core", editable = "packages/python/core" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2.10" },
     { name = "pydantic", specifier = ">=2.12.5" },
     { name = "pydantic-settings", specifier = ">=2.10.1" },
@@ -1853,11 +1855,11 @@ name = "placeframe-localizer"
 version = "0.1.0"
 source = { editable = "docker/localizer" }
 dependencies = [
-    { name = "common" },
-    { name = "core" },
     { name = "faiss-cpu" },
     { name = "litestar" },
     { name = "numpy" },
+    { name = "placeframe-common" },
+    { name = "placeframe-core" },
     { name = "pycolmap" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
@@ -1886,11 +1888,11 @@ neural-networks-rocm = [
 
 [package.metadata]
 requires-dist = [
-    { name = "common", editable = "packages/python/common" },
-    { name = "core", editable = "packages/python/core" },
     { name = "faiss-cpu", specifier = ">=1.12.0" },
     { name = "litestar", specifier = ">=2.19.0" },
     { name = "numpy", specifier = ">=2.4.0" },
+    { name = "placeframe-common", editable = "packages/python/common" },
+    { name = "placeframe-core", editable = "packages/python/core" },
     { name = "pycolmap", specifier = ">=4.0.4" },
     { name = "pydantic", specifier = ">=2.12.5" },
     { name = "pydantic-settings", specifier = ">=2.11.0" },
@@ -1943,11 +1945,11 @@ name = "placeframe-reconstructor"
 version = "0.1.0"
 source = { editable = "docker/reconstructor" }
 dependencies = [
-    { name = "common" },
-    { name = "core" },
     { name = "cryptography" },
     { name = "httpx" },
     { name = "numpy" },
+    { name = "placeframe-common" },
+    { name = "placeframe-core" },
     { name = "placeframe-lease-server-client" },
     { name = "pycolmap" },
     { name = "pydantic" },
@@ -1976,11 +1978,11 @@ neural-networks-rocm = [
 
 [package.metadata]
 requires-dist = [
-    { name = "common", editable = "packages/python/common" },
-    { name = "core", editable = "packages/python/core" },
     { name = "cryptography", specifier = ">=46.0.3" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "numpy", specifier = ">=2.0" },
+    { name = "placeframe-common", editable = "packages/python/common" },
+    { name = "placeframe-core", editable = "packages/python/core" },
     { name = "placeframe-lease-server-client", editable = "packages/generated/python/lease-server-client" },
     { name = "pycolmap", specifier = ">=4.0.4" },
     { name = "pydantic", specifier = ">=2.12.5" },
@@ -2077,6 +2079,19 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/d1/2a/0d45e4f4da2bd78c3237ffa03475ef3751f69a81919c54a6e610eb1a7c96/psycopg_binary-3.3.2-cp313-cp313-musllinux_1_2_riscv64.whl", hash = "sha256:e22bf6b54df994aff37ab52695d635f1ef73155e781eee1f5fa75bc08b58c8da", size = 3910544, upload-time = "2025-12-06T17:34:08.251Z" },
     { url = "https://files.pythonhosted.org/packages/3a/62/a8e0f092f4dbef9a94b032fb71e214cf0a375010692fbe7493a766339e47/psycopg_binary-3.3.2-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:8db9034cde3bcdafc66980f0130813f5c5d19e74b3f2a19fb3cfbc25ad113121", size = 4220070, upload-time = "2025-12-06T17:34:11.392Z" },
     { url = "https://files.pythonhosted.org/packages/09/e6/5fc8d8aff8afa114bb4a94a0341b9309311e8bf3ab32d816032f8b984d4e/psycopg_binary-3.3.2-cp313-cp313-win_amd64.whl", hash = "sha256:df65174c7cf6b05ea273ce955927d3270b3a6e27b0b12762b009ce6082b8d3fc", size = 3540922, upload-time = "2025-12-06T17:34:14.88Z" },
+]
+
+[[package]]
+name = "pubpkg"
+version = "0.1.0"
+source = { git = "https://github.com/outernet-foundation/pubpkg.git?rev=b2c226c232ccfe2b81283932b2308327fdf500dc#b2c226c232ccfe2b81283932b2308327fdf500dc" }
+dependencies = [
+    { name = "bashrun" },
+    { name = "pydantic" },
+    { name = "pydantic-settings" },
+    { name = "stack-lifecycle" },
+    { name = "typer" },
+    { name = "unity-buildkit" },
 ]
 
 [[package]]
@@ -2484,11 +2499,11 @@ version = "0.1.0"
 source = { editable = "scripts" }
 dependencies = [
     { name = "bashrun" },
-    { name = "common" },
-    { name = "core" },
     { name = "httpx" },
     { name = "numpy" },
     { name = "placeframe-api-client" },
+    { name = "placeframe-common" },
+    { name = "placeframe-core" },
     { name = "pydantic" },
     { name = "pytransform3d" },
     { name = "scikit-learn" },
@@ -2500,11 +2515,11 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "bashrun", git = "https://github.com/outernet-foundation/bashrun.git?rev=1a0add1eb9e53e19245dcdda3e2018577b4e1153" },
-    { name = "common", editable = "packages/python/common" },
-    { name = "core", editable = "packages/python/core" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "numpy", specifier = ">=2.1" },
     { name = "placeframe-api-client", editable = "packages/generated/python/api-client" },
+    { name = "placeframe-common", editable = "packages/python/common" },
+    { name = "placeframe-core", editable = "packages/python/core" },
     { name = "pydantic", specifier = ">=2" },
     { name = "pytransform3d", specifier = ">=3.5" },
     { name = "scikit-learn", specifier = ">=1.5" },
@@ -3040,11 +3055,11 @@ name = "zed"
 version = "0.1.0"
 source = { virtual = "docker/zed-capture" }
 dependencies = [
-    { name = "common" },
-    { name = "core" },
     { name = "litestar" },
     { name = "numpy" },
     { name = "pillow" },
+    { name = "placeframe-common" },
+    { name = "placeframe-core" },
     { name = "pydantic" },
     { name = "scipy" },
     { name = "uvicorn" },
@@ -3057,11 +3072,11 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "common", editable = "packages/python/common" },
-    { name = "core", editable = "packages/python/core" },
     { name = "litestar", specifier = ">=2.19.0" },
     { name = "numpy", specifier = ">=2.4.0" },
     { name = "pillow", specifier = ">=12.1.0" },
+    { name = "placeframe-common", editable = "packages/python/common" },
+    { name = "placeframe-core", editable = "packages/python/core" },
     { name = "pydantic", specifier = ">=2.0.0" },
     { name = "scipy", specifier = ">=1.16.1" },
     { name = "uvicorn", specifier = ">=0.35.0" },

@@ -4,7 +4,7 @@ from typing import Annotated
 import typer
 from stack_lifecycle.context_sha import compute_service_shas
 from bashrun import bash
-from common.logging_config import configure_logging
+from placeframe_common.logging_config import configure_logging
 
 from .box_install import install_box
 from .constants import BAKE_FILE, BOX_SSH_TARGET, REPO_ROOT, SSH_KEY

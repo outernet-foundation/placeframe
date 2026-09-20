@@ -5,8 +5,8 @@ from signal import SIGTERM
 from typing import NoReturn, cast
 from uuid import UUID
 
-from common.logging_config import configure_logging
-from core.reconstruction_options import ReconstructionOptions as CoreReconstructionOptions
+from placeframe_common.logging_config import configure_logging
+from placeframe_core.reconstruction_options import ReconstructionOptions as CoreReconstructionOptions
 from placeframe_lease_server_client import (
     ApiClient,
     ApiException,

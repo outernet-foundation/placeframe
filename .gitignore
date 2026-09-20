@@ -4,6 +4,7 @@
 **/*.pyd
 **/.venv/
 **/*.egg-info
+**/dist/
 **/build/
 !/build/
 **/*.sln

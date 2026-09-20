@@ -3,10 +3,10 @@ name = "scripts"
 version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [
-    "common",
+    "placeframe-common",
     "bashrun",
     "stack-lifecycle",
-    "core",
+    "placeframe-core",
     "placeframe-api-client",
     "pydantic>=2",
     "httpx>=0.28.1",

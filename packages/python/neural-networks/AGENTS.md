@@ -35,7 +35,7 @@ The vendored library is exposed to the workspace as a separate package named `di
 
 ### Consumers
 
-`docker/localizer/src/localize.py:62` and `docker/reconstructor/src/reconstructor/run_reconstruction.py:28` both import the same three loaders identically and feed each into a typed wrapper from `packages/python/core/src/core/model_wrappers.py`  -  `make_global_descriptor_extractor`, `make_local_feature_extractor`, `make_local_feature_matcher_for_tensors` (localizer) or `_for_arrays` (reconstructor). The neural-networks package returns loosely-typed `Any` models; `core.model_wrappers` is where typed-tensor signatures get stamped on the call path.
+`docker/localizer/src/localize.py:62` and `docker/reconstructor/src/reconstructor/run_reconstruction.py:28` both import the same three loaders identically and feed each into a typed wrapper from `packages/python/core/src/placeframe_core/model_wrappers.py`  -  `make_global_descriptor_extractor`, `make_local_feature_extractor`, `make_local_feature_matcher_for_tensors` (localizer) or `_for_arrays` (reconstructor). The neural-networks package returns loosely-typed `Any` models; `placeframe_core.model_wrappers` is where typed-tensor signatures get stamped on the call path.
 
 The reconstructor additionally keeps a bare reference to the ALIKED model (`run_reconstruction.py:64-71`) so it can override `dkd.n_limit` per job. The typed wrapper is the call entry point; the bare reference exists only for configuration.
 
@@ -137,8 +137,8 @@ Cold weight downloads at service-startup time would add tens of seconds of laten
 
 ## See also
 
-- `packages/python/core/src/core/model_wrappers.py`  -  typed-tensor seam over the three model callables. Returns `Any`-typed models from `neural-networks` get their typed signatures stamped here; both services consume the wrapped versions.
-- `packages/python/core/src/core/lightglue.py`  -  `Keypoints` / `Descriptors` / `KeypointsArrays` / `DescriptorsArrays` / `MatchIndices` `NewType` brands and the `lightglue_match` / `lightglue_match_tensors` batching code that the wrappers drive.
+- `packages/python/core/src/placeframe_core/model_wrappers.py`  -  typed-tensor seam over the three model callables. Returns `Any`-typed models from `neural-networks` get their typed signatures stamped here; both services consume the wrapped versions.
+- `packages/python/core/src/placeframe_core/lightglue.py`  -  `Keypoints` / `Descriptors` / `KeypointsArrays` / `DescriptorsArrays` / `MatchIndices` `NewType` brands and the `lightglue_match` / `lightglue_match_tensors` batching code that the wrappers drive.
 - `docker/neural-networks-base/Dockerfile`  -  base image build steps, `TORCH_HOME` location, and the `preload` import that bakes weights into a layer.
 - `docker/localizer/src/localize.py:58-69` and `docker/reconstructor/src/reconstructor/run_reconstruction.py:67-74`  -  the two consumer call sites. Both load all three models once at module import.
 - The 30-line comment on `load_lightglue` in `src/neural_networks/models.py`  -  the source of truth for LightGlue tuning. Re-read before changing `width_confidence`, `depth_confidence`, or `mp`.
