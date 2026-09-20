@@ -228,7 +228,7 @@ dependencies = [
 requires-dist = [
     { name = "bashrun", git = "https://github.com/outernet-foundation/bashrun.git?rev=1a0add1eb9e53e19245dcdda3e2018577b4e1153" },
     { name = "datamodel-code-generator", specifier = ">=0.33.0" },
-    { name = "openapi-clientgen", git = "https://github.com/outernet-foundation/openapi-clientgen.git?rev=49913c5e90651f01b17632d3979d1650def02e8a" },
+    { name = "openapi-clientgen", git = "https://github.com/outernet-foundation/openapi-clientgen.git?rev=938bdf2a8b86263f65619681ab292cb3109386c8" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2.10" },
     { name = "pubpkg", git = "https://github.com/outernet-foundation/pubpkg.git?rev=7b646f366f39767c4709315d0d908c610087a17a" },
     { name = "pydantic", specifier = ">=2.11.7" },
@@ -1460,7 +1460,7 @@ wheels = [
 [[package]]
 name = "openapi-clientgen"
 version = "0.1.0"
-source = { git = "https://github.com/outernet-foundation/openapi-clientgen.git?rev=49913c5e90651f01b17632d3979d1650def02e8a#49913c5e90651f01b17632d3979d1650def02e8a" }
+source = { git = "https://github.com/outernet-foundation/openapi-clientgen.git?rev=938bdf2a8b86263f65619681ab292cb3109386c8#938bdf2a8b86263f65619681ab292cb3109386c8" }
 dependencies = [
     { name = "bashrun" },
     { name = "typer" },

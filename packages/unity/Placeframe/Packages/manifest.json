@@ -19,7 +19,7 @@
     "com.unity.visualscripting": "1.9.7",
     "org.nuget.mathnet.numerics": "5.0.0",
     "org.nuget.observablecollections.r3": "3.3.4",
-    "org.nuget.placeframeapiclient": "file:../../../../packages/generated/csharp/api-client/src/PlaceframeApiClient",
+    "org.outernet.placeframe.apiclient": "file:../../../../packages/generated/csharp/api-client/src/PlaceframeApiClient",
     "org.nuget.polly": "8.8.0",
     "org.nuget.sharpziplib": "1.4.2",
     "com.unity.modules.accessibility": "1.0.0",

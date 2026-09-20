@@ -12,6 +12,9 @@ from openapi_clientgen import (
 from typer import Option, Typer
 
 ROOT_NAME = "placeframe"
+NPM_SCOPE = "org.outernet.placeframe"
+LICENSE_SPDX = "Apache-2.0"
+REPOSITORY_URL = "https://github.com/outernet-foundation/placeframe.git"
 REPO_ROOT = Path(__file__).parents[4]
 GENERATED_ROOT = REPO_ROOT / "packages" / "generated"
 
@@ -45,7 +48,16 @@ def cli(
                     continue
 
                 output_dir = GENERATED_ROOT / client_name / names.base
-                generate_client(openapi_spec, client_name, output_dir, names, templates_dir=templates_directory)
+                generate_client(
+                    openapi_spec,
+                    client_name,
+                    output_dir,
+                    names,
+                    templates_dir=templates_directory,
+                    npm_scope=NPM_SCOPE,
+                    license_spdx=LICENSE_SPDX,
+                    repository_url=REPOSITORY_URL,
+                )
 
 
 def _dump_openapi_spec(project: Path, no_cache: bool) -> str | None:

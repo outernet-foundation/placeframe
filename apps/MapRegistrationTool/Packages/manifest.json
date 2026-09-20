@@ -18,7 +18,7 @@
     "com.cysharp.yetanotherhttphandler": "https://github.com/Cysharp/YetAnotherHttpHandler.git?path=src/YetAnotherHttpHandler#1.5.3",
     "com.github-glitchenzo.nugetforunity": "https://github.com/GlitchEnzo/NuGetForUnity.git?path=/src/NuGetForUnity",
     "org.outernet.placeframe": "file:../../../packages/unity/Placeframe/Assets/Package/Core",
-    "org.nuget.placeframeapiclient": "file:../../../packages/generated/csharp/api-client/src/PlaceframeApiClient",
+    "org.outernet.placeframe.apiclient": "file:../../../packages/generated/csharp/api-client/src/PlaceframeApiClient",
     "com.unity.2d.sprite": "1.0.0",
     "com.unity.cloud.gltfast": "6.14.1",
     "com.unity.collab-proxy": "2.11.2",

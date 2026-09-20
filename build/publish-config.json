@@ -3,7 +3,7 @@
     {
       "name": "placeframe-api-client",
       "path": "packages/generated/csharp/api-client/src/PlaceframeApiClient",
-      "feeds": { "nuget": "PlaceframeApiClient" }
+      "feeds": { "nuget": "PlaceframeApiClient", "npm": "org.outernet.placeframe.apiclient" }
     },
     {
       "name": "placeframe-core",
