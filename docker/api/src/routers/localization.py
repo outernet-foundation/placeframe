@@ -1,16 +1,16 @@
 from typing import Annotated, cast
 from uuid import UUID
 
-from common.multipart_requests import (
+from placeframe_common.multipart_requests import (
     MultipartRequestModel,
     MultipartRequestOperation,
     multipart_json,
     multipart_json_list,
 )
-from core.axis_convention import AxisConvention
-from core.camera_config import PinholeCameraConfig
-from core.localization_metrics import LocalizationMetrics
-from core.transform import Float3, Float4, Transform
+from placeframe_core.axis_convention import AxisConvention
+from placeframe_core.camera_config import PinholeCameraConfig
+from placeframe_core.localization_metrics import LocalizationMetrics
+from placeframe_core.transform import Float3, Float4, Transform
 from datamodels.public_tables import Reconstruction
 from litestar import Router, get, post
 from litestar.datastructures import UploadFile

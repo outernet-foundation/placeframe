@@ -29,6 +29,16 @@
       "feeds": { "npm": "org.outernet.placeframe.magicleap" },
       "depends_on": ["placeframe-core"],
       "dependency_pins": { "org.outernet.placeframe": "placeframe-core" }
+    },
+    {
+      "name": "placeframe-common",
+      "path": "packages/python/common",
+      "feeds": { "pypi": "placeframe-common" }
+    },
+    {
+      "name": "placeframe-core-python",
+      "path": "packages/python/core",
+      "feeds": { "pypi": "placeframe-core" }
     }
   ],
   "apps": [

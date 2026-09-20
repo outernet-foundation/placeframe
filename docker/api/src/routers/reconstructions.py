@@ -12,17 +12,17 @@ from uuid import UUID
 if TYPE_CHECKING:
     from mypy_boto3_s3.type_defs import ObjectIdentifierTypeDef
 
-from common.boto_clients import create_s3_client
-from common.multipart_requests import MultipartRequestModel, MultipartRequestOperation
-from common.tar import iter_tar_file_members
-from core.axis_convention import (
+from placeframe_common.boto_clients import create_s3_client
+from placeframe_common.multipart_requests import MultipartRequestModel, MultipartRequestOperation
+from placeframe_common.tar import iter_tar_file_members
+from placeframe_core.axis_convention import (
     AxisConvention,
     change_basis_unity_from_opencv_points,
     change_basis_unity_from_opencv_poses,
 )
-from core.reconstruction_manifest import MANIFEST_VERSION, Manifest
-from core.reconstruction_metrics import ReconstructionMetrics
-from core.reconstruction_options import ReconstructionOptions
+from placeframe_core.reconstruction_manifest import MANIFEST_VERSION, Manifest
+from placeframe_core.reconstruction_metrics import ReconstructionMetrics
+from placeframe_core.reconstruction_options import ReconstructionOptions
 from datamodels.public_dtos import (
     CaptureSessionCreate,
     LocalizationMapCreate,

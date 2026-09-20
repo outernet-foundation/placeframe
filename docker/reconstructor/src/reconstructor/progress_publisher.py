@@ -8,7 +8,7 @@ from typing import Any, Protocol
 from uuid import UUID
 
 import httpx
-from core.reconstruction_metrics import PhaseTiming
+from placeframe_core.reconstruction_metrics import PhaseTiming
 from placeframe_lease_server_client import DefaultApi, ProgressUpdate, ReconstructionStatus
 
 

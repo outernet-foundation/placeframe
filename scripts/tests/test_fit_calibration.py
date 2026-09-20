@@ -7,7 +7,7 @@ from typing import Any
 from uuid import uuid4
 
 import pytest
-from core.calibration import CalibrationArtifact, Features, RawMapMetrics
+from placeframe_core.calibration import CalibrationArtifact, Features, RawMapMetrics
 from numpy import asarray, eye, exp, float64
 from numpy.random import default_rng
 

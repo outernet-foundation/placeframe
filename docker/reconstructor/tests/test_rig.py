@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import pytest
-from core.axis_convention import AxisConvention
-from core.camera_config import PinholeCameraConfig
-from core.capture_session_manifest import CaptureSessionManifest, RigCameraConfig, RigConfig
-from core.transform import Float3, Float4
+from placeframe_core.axis_convention import AxisConvention
+from placeframe_core.camera_config import PinholeCameraConfig
+from placeframe_core.capture_session_manifest import CaptureSessionManifest, RigCameraConfig, RigConfig
+from placeframe_core.transform import Float3, Float4
 from reconstructor.rig import Rig
 
 

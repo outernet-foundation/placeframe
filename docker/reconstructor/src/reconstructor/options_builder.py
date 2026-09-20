@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from core.reconstruction_options import ReconstructionOptions
+from placeframe_core.reconstruction_options import ReconstructionOptions
 from pycolmap import BundleAdjustmentOptions, IncrementalPipelineOptions, TwoViewGeometryOptions
 
 

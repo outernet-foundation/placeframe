@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Annotated
 from uuid import UUID
 
-from core.reconstruction_metrics import ReconstructionMetrics
+from placeframe_core.reconstruction_metrics import ReconstructionMetrics
 from typer import Exit, Option, Typer, echo
 
 from placeframe_api_client import (

@@ -41,8 +41,8 @@ config-settings-package.placeframe-lease-server-client = { editable_mode = "comp
 config-settings-package.placeframe-localizer-client = { editable_mode = "compat" }
 
 [tool.uv.sources]
-common = { workspace = true }
-core = { workspace = true }
+placeframe-common = { workspace = true }
+placeframe-core = { workspace = true }
 neural-networks = { workspace = true }
 datamodels = { workspace = true }
 placeframe-lease-server-client = { workspace = true }
@@ -57,7 +57,7 @@ logconf = { git = "https://github.com/outernet-foundation/logconf.git", rev = "3
 stack-lifecycle = { git = "https://github.com/outernet-foundation/stack-lifecycle.git", rev = "8132ab66d6c6e8342d299fc4e76c8f9fe93ea2c1" }
 unity-buildkit = { git = "https://github.com/outernet-foundation/unity-buildkit.git", rev = "70741126846015e001952d4465b7512c75643b2f" }
 openapi-clientgen = { git = "https://github.com/outernet-foundation/openapi-clientgen.git", rev = "49913c5e90651f01b17632d3979d1650def02e8a" }
-pubpkg = { git = "https://github.com/outernet-foundation/pubpkg.git", rev = "eb1f6bd26b085e3853fde8c8647511e296e113de" }
+pubpkg = { git = "https://github.com/outernet-foundation/pubpkg.git", rev = "7b646f366f39767c4709315d0d908c610087a17a" }
 
 [tool.basedpyright]
 venvPath = "."

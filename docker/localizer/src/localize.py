@@ -5,21 +5,21 @@ from os import environ
 from time import perf_counter
 from typing import Any, cast
 
-from core.axis_convention import AxisConvention, change_basis_unity_from_opencv_pose
-from core.camera_config import PinholeCameraConfig
-from core.image_preprocess import canonicalize_image, canonicalize_intrinsics
-from core.lightglue import Descriptors, Keypoints, MatchIndices
-from core.localization_metrics import RANSAC_THRESHOLD_DEFAULT, RETRIEVAL_TOP_K_DEFAULT, LocalizationMetrics
-from core.model_wrappers import (
+from placeframe_core.axis_convention import AxisConvention, change_basis_unity_from_opencv_pose
+from placeframe_core.camera_config import PinholeCameraConfig
+from placeframe_core.image_preprocess import canonicalize_image, canonicalize_intrinsics
+from placeframe_core.lightglue import Descriptors, Keypoints, MatchIndices
+from placeframe_core.localization_metrics import RANSAC_THRESHOLD_DEFAULT, RETRIEVAL_TOP_K_DEFAULT, LocalizationMetrics
+from placeframe_core.model_wrappers import (
     LocalFeatureOutput,
     make_global_descriptor_extractor,
     make_local_feature_extractor,
     make_local_feature_matcher_for_tensors,
 )
-from core.opq import decode_descriptors
-from core.model_wrappers import RetrievalDim
-from core.tensor_types import TT
-from core.transform import Float3, Float4, Transform
+from placeframe_core.opq import decode_descriptors
+from placeframe_core.model_wrappers import RetrievalDim
+from placeframe_core.tensor_types import TT
+from placeframe_core.transform import Float3, Float4, Transform
 from numpy import asarray, float32, vstack
 from pycolmap import AbsolutePoseEstimationOptions, RANSACOptions
 from pycolmap import Camera as ColmapCamera
@@ -28,7 +28,7 @@ from scipy.spatial.transform import Rotation
 from torch import Tensor, cuda, inference_mode, manual_seed, topk  # type: ignore
 
 from .build_metrics import build_localization_metrics
-from core.calibration import CalibrationArtifact
+from placeframe_core.calibration import CalibrationArtifact
 from .map import Map
 from .torch_ops import from_numpy, to
 

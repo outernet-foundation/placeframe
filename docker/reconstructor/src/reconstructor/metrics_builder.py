@@ -4,7 +4,7 @@ from pathlib import Path
 from statistics import mean, median
 from typing import Any, Iterable, List, Optional, Sequence, cast
 
-from core.reconstruction_metrics import ReconstructionMetrics
+from placeframe_core.reconstruction_metrics import ReconstructionMetrics
 from numpy import asarray, float64, percentile
 from numpy.linalg import norm
 from numpy.typing import NDArray  # noqa: TID251 — tracked in PLE-233

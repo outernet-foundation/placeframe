@@ -1,6 +1,6 @@
 from io import BytesIO
 
-from common.boto_clients import create_s3_client
+from placeframe_common.boto_clients import create_s3_client
 from datamodels.public_tables import LocalizationMap, LocalizationMapCameraPosition
 from numpy import load
 from scipy.spatial.transform import Rotation

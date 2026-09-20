@@ -7,18 +7,18 @@ from threading import Lock
 from typing import Annotated
 from uuid import UUID
 
-from common.boto_clients import create_s3_client
-from common.litestar import create_litestar_app
-from common.logging_config import configure_logging
-from common.multipart_requests import (
+from placeframe_common.boto_clients import create_s3_client
+from placeframe_common.litestar import create_litestar_app
+from placeframe_common.logging_config import configure_logging
+from placeframe_common.multipart_requests import (
     MultipartRequestModel,
     MultipartRequestOperation,
     multipart_json,
     multipart_json_list,
 )
-from core.axis_convention import AxisConvention
-from core.camera_config import PinholeCameraConfig
-from core.reconstruction_metrics import ReconstructionMetrics
+from placeframe_core.axis_convention import AxisConvention
+from placeframe_core.camera_config import PinholeCameraConfig
+from placeframe_core.reconstruction_metrics import ReconstructionMetrics
 from litestar import get, post
 from litestar.datastructures import UploadFile
 from litestar.enums import RequestEncodingType
@@ -29,7 +29,7 @@ from litestar.params import Body
 from litestar.status_codes import HTTP_422_UNPROCESSABLE_ENTITY
 from pydantic import BeforeValidator, Json
 
-from core.calibration import CalibrationArtifact
+from placeframe_core.calibration import CalibrationArtifact
 from .map import Map, load_map
 from .schemas import LoadState, Localization
 from .settings import get_settings
@@ -57,7 +57,7 @@ pipeline_version: str = ""
 calibration: CalibrationArtifact | None = None
 
 if not environ.get("CODEGEN"):
-    from core.calibration import load_global_calibration
+    from placeframe_core.calibration import load_global_calibration
     from .localize import load_models
 
     load_models()

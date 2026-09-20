@@ -5,8 +5,8 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-  "common",
-  "core",
+  "placeframe-common",
+  "placeframe-core",
   "pycolmap>=4.0.4",
   "pydantic-settings>=2.11.0",
   "uvicorn[standard]>=0.35.0",
@@ -22,7 +22,6 @@ dev = ["h5py-stubs>=0.1.2", "scipy-stubs>=1.16.2.4", "debugpy>=1.6.7"]
 neural-networks-cpu = ["neural-networks[cpu]"]
 neural-networks-cuda = ["neural-networks[cuda]"]
 neural-networks-rocm = ["neural-networks[rocm]"]
-
 
 [tool.deptry.per_rule_ignores]
 # Code in this package directly imports 'torch', but cannot directly depend on torch, because torch has multiple conflicting 
@@ -45,3 +44,4 @@ packages = ["src/localize"]
 
 [project.scripts]
 localize = "localize.main:main"
+

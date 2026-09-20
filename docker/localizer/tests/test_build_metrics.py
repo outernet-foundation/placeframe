@@ -3,7 +3,7 @@ from types import SimpleNamespace
 
 import numpy as np
 import pytest
-from core.calibration import (
+from placeframe_core.calibration import (
     CalibrationArtifact,
     Features,
     RawLocalizationMetrics,

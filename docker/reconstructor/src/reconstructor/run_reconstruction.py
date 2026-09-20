@@ -8,23 +8,29 @@ from pathlib import Path
 from typing import Any
 from uuid import UUID
 
-from common.boto_clients import create_s3_client
-from core.camera_config import PinholeCameraConfig
-from core.capture_session_manifest import CaptureSessionManifest
-from core.image_preprocess import canonicalize_image
-from core.h5 import write_features, write_global_descriptors
-from core.lightglue import DescriptorsArrays, KeypointsArrays, MatchIndices
-from core.model_wrappers import (
+from placeframe_common.boto_clients import create_s3_client
+from placeframe_core.camera_config import PinholeCameraConfig
+from placeframe_core.capture_session_manifest import CaptureSessionManifest
+from placeframe_core.image_preprocess import canonicalize_image
+from placeframe_core.h5 import write_features, write_global_descriptors
+from placeframe_core.lightglue import DescriptorsArrays, KeypointsArrays, MatchIndices
+from placeframe_core.model_wrappers import (
     LocalFeatureOutput,
     make_global_descriptor_extractor,
     make_local_feature_extractor,
     make_local_feature_matcher_for_arrays,
 )
-from core.opq import encode_descriptors, train_opq_matrix, train_pq_quantizer, write_opq_matrix, write_pq_quantizer
-from core.reconstruction_metrics import ReconstructionMetrics
-from core.reconstruction_options import ReconstructionOptions
-from core.model_wrappers import RetrievalDim
-from core.tensor_types import TT
+from placeframe_core.opq import (
+    encode_descriptors,
+    train_opq_matrix,
+    train_pq_quantizer,
+    write_opq_matrix,
+    write_pq_quantizer,
+)
+from placeframe_core.reconstruction_metrics import ReconstructionMetrics
+from placeframe_core.reconstruction_options import ReconstructionOptions
+from placeframe_core.model_wrappers import RetrievalDim
+from placeframe_core.tensor_types import TT
 from neural_networks.models import load_aliked, load_DIR, load_lightglue
 from numpy import asarray, ascontiguousarray, float32, float64, random, vstack
 from numpy.typing import NDArray  # noqa: TID251 — tracked in PLE-233

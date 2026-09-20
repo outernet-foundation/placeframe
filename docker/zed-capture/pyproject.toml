@@ -10,8 +10,8 @@ requires-python = ">=3.13, <3.14"
 # wheel matching the installed SDK version. It is installed at Docker build time inside
 # the Stereolabs base image — see zed/Dockerfile.
 dependencies = [
-    "common",
-    "core",
+    "placeframe-common",
+    "placeframe-core",
     "scipy>=1.16.1",
     "uvicorn>=0.35.0",
     "litestar>=2.19.0",
@@ -27,3 +27,4 @@ dev = ["scipy-stubs"]
 DEP001 = ["pyzed"]
 # uvicorn: ASGI server entrypoint, only invoked from entrypoint.sh.
 DEP002 = ["uvicorn"]
+

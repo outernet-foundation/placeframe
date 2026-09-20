@@ -5,8 +5,8 @@ description = "Internal control-plane work-queue: lease endpoints the reconstruc
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "common",
-    "core",
+    "placeframe-common",
+    "placeframe-core",
     "datamodels",
     "debugpy>=1.8.16",
     "litestar>=2.19.0",
@@ -19,3 +19,4 @@ dependencies = [
 
 [tool.deptry.per_rule_ignores]
 DEP002 = ["uvicorn", "debugpy", "psycopg"]
+

@@ -36,8 +36,8 @@ The server stack (API, localizer, reconstructor, Keycloak, SeaweedFS, Postgres, 
 
 The repo is a `uv` monorepo. Shared Python code lives in `packages/python/`:
 
-- **`common`** — utilities for boto/S3, Docker SDK, Litestar, JWT
-- **`core`** — domain logic: camera configs, coordinate transforms, metrics
+- **`placeframe_common`** — utilities for boto/S3, Docker SDK, Litestar, JWT
+- **`placeframe_core`** — domain logic: camera configs, coordinate transforms, metrics
 - **`neural-networks`** — PyTorch models with conditional extras (`cpu`, `cuda`, `rocm`)
 - **`datamodels`** — auto-generated Pydantic models from the OpenAPI schema
 - **`api-client` / `localizer-client`** — auto-generated async API clients

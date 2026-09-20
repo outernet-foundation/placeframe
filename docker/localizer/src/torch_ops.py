@@ -8,7 +8,7 @@ from torch import Tensor
 from torch import from_numpy as _from_numpy  # pyright: ignore[reportUnknownVariableType]
 from torch import stack as _stack
 
-from core.tensor_types import TT
+from placeframe_core.tensor_types import TT
 
 
 @overload

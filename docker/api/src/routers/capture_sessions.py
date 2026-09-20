@@ -5,10 +5,10 @@ from typing import IO, Annotated, BinaryIO, cast
 from uuid import UUID
 
 from botocore.exceptions import ReadTimeoutError
-from common.multipart_requests import MultipartRequestModel, MultipartRequestOperation
-from common.tar import iter_tar_file_members
-from core.axis_convention import AxisConvention
-from core.capture_session_manifest import CaptureSessionManifest
+from placeframe_common.multipart_requests import MultipartRequestModel, MultipartRequestOperation
+from placeframe_common.tar import iter_tar_file_members
+from placeframe_core.axis_convention import AxisConvention
+from placeframe_core.capture_session_manifest import CaptureSessionManifest
 from datamodels.public_dtos import (
     CaptureSessionBatchUpdate,
     CaptureSessionCreate,

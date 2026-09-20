@@ -1,13 +1,13 @@
 from typing import Any
 
-from core.localization_metrics import LocalizationMetrics
+from placeframe_core.localization_metrics import LocalizationMetrics
 from numpy import asarray, eye, float64, hypot, median, ndarray
 from numpy.linalg import norm
 from numpy.typing import NDArray  # noqa: TID251 — tracked in PLE-233
 from pycolmap import Camera as ColmapCamera
 from scipy.spatial import ConvexHull
 
-from core.calibration import (
+from placeframe_core.calibration import (
     CalibrationArtifact,
     Features,
     RawLocalizationMetrics,

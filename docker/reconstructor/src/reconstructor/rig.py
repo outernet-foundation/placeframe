@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 
-from core.axis_convention import AxisConvention, basis_change_opencv_from_unity
-from core.capture_session_manifest import RigCameraConfig, RigConfig
-from core.image_preprocess import canonicalize_intrinsics
-from core.transform import Float3, Float4
+from placeframe_core.axis_convention import AxisConvention, basis_change_opencv_from_unity
+from placeframe_core.capture_session_manifest import RigCameraConfig, RigConfig
+from placeframe_core.image_preprocess import canonicalize_intrinsics
+from placeframe_core.transform import Float3, Float4
 from numpy import array, float64
 from numpy.typing import NDArray  # noqa: TID251 — tracked in PLE-233
 from pycolmap import Camera as ColmapCamera

@@ -1,7 +1,7 @@
 from os import environ
 from pathlib import Path
 
-from common.logging_config import configure_logging
+from placeframe_common.logging_config import configure_logging
 
 # Module-level invocation. Imported by src/__init__.py so logging is set up
 # before any other application module (including litestar) is imported and

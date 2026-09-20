@@ -2,7 +2,7 @@ from typing import Annotated
 from uuid import UUID, uuid4
 
 import pytest
-from common.multipart_requests import (
+from placeframe_common.multipart_requests import (
     MultipartRequestModel,
     MultipartRequestOperation,
     multipart_json,
