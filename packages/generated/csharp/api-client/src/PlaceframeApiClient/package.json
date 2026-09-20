@@ -3,9 +3,9 @@
   "displayName": "PlaceframeApiClient",
   "version": "0.0.0-local",
   "dependencies": {
-    "com.unity.nuget.newtonsoft-json": "3.x",
-    "org.nuget.polly": "8.x",
-    "org.nuget.jsonsubtypes": "2.x"
+    "com.unity.nuget.newtonsoft-json": "3.2.1",
+    "org.nuget.polly": "8.1.0",
+    "org.nuget.jsonsubtypes": "2.0.1"
   },
   "license": "Apache-2.0",
   "repository": {
