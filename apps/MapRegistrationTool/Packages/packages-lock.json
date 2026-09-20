@@ -161,6 +161,13 @@
       "dependencies": {},
       "url": "https://packages.unity.com"
     },
+    "com.unity.nuget.newtonsoft-json": {
+      "version": "3.2.1",
+      "depth": 1,
+      "source": "registry",
+      "dependencies": {},
+      "url": "https://packages.unity.com"
+    },
     "com.unity.performance.profile-analyzer": {
       "version": "1.2.4",
       "depth": 1,
@@ -370,6 +377,15 @@
       },
       "url": "https://packages.unity.com"
     },
+    "org.nuget.jsonsubtypes": {
+      "version": "2.0.1",
+      "depth": 1,
+      "source": "registry",
+      "dependencies": {
+        "org.nuget.newtonsoft.json": "13.0.1"
+      },
+      "url": "https://unitynuget-registry.openupm.com"
+    },
     "org.nuget.mathnet.numerics": {
       "version": "5.0.0",
       "depth": 1,
@@ -393,6 +409,13 @@
       "dependencies": {
         "org.nuget.microsoft.bcl.asyncinterfaces": "6.0.0"
       },
+      "url": "https://unitynuget-registry.openupm.com"
+    },
+    "org.nuget.newtonsoft.json": {
+      "version": "13.0.1",
+      "depth": 2,
+      "source": "registry",
+      "dependencies": {},
       "url": "https://unitynuget-registry.openupm.com"
     },
     "org.nuget.observablecollections": {
@@ -551,9 +574,9 @@
       "depth": 0,
       "source": "local",
       "dependencies": {
-        "com.unity.nuget.newtonsoft-json": "3.x",
-        "org.nuget.polly": "8.x",
-        "org.nuget.jsonsubtypes": "2.x"
+        "com.unity.nuget.newtonsoft-json": "3.2.1",
+        "org.nuget.polly": "8.1.0",
+        "org.nuget.jsonsubtypes": "2.0.1"
       }
     },
     "com.unity.modules.accessibility": {
