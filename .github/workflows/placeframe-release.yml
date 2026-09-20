@@ -44,15 +44,15 @@ jobs:
         id: fetch-ci-artifacts
         env:
           GH_TOKEN: ${{ github.token }}
-        run: uv run --no-sync fetch-ci-artifacts ${{ inputs.ci-run-id && format('--ci-run-id {0}', inputs.ci-run-id) || '' }}
+        run: uv run --no-sync fetch-ci-artifacts --config build/publish-config.json ${{ inputs.ci-run-id && format('--ci-run-id {0}', inputs.ci-run-id) || '' }}
 
       - name: Publish packages
         env:
           NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: uv run --no-sync publish-packages
+        run: uv run --no-sync publish-packages --config build/publish-config.json
 
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: uv run --no-sync create-release
+        run: uv run --no-sync create-release --config build/publish-config.json

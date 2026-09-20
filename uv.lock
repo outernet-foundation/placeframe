@@ -213,6 +213,7 @@ dependencies = [
     { name = "datamodel-code-generator" },
     { name = "openapi-clientgen" },
     { name = "psycopg", extra = ["binary"] },
+    { name = "pubpkg" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "pyhumps" },
@@ -229,6 +230,7 @@ requires-dist = [
     { name = "datamodel-code-generator", specifier = ">=0.33.0" },
     { name = "openapi-clientgen", git = "https://github.com/outernet-foundation/openapi-clientgen.git?rev=49913c5e90651f01b17632d3979d1650def02e8a" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2.10" },
+    { name = "pubpkg", git = "https://github.com/outernet-foundation/pubpkg.git?rev=eb1f6bd26b085e3853fde8c8647511e296e113de" },
     { name = "pydantic", specifier = ">=2.11.7" },
     { name = "pydantic-settings", specifier = ">=2.9.1" },
     { name = "pyhumps", specifier = ">=3.8.0" },
@@ -2077,6 +2079,19 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/d1/2a/0d45e4f4da2bd78c3237ffa03475ef3751f69a81919c54a6e610eb1a7c96/psycopg_binary-3.3.2-cp313-cp313-musllinux_1_2_riscv64.whl", hash = "sha256:e22bf6b54df994aff37ab52695d635f1ef73155e781eee1f5fa75bc08b58c8da", size = 3910544, upload-time = "2025-12-06T17:34:08.251Z" },
     { url = "https://files.pythonhosted.org/packages/3a/62/a8e0f092f4dbef9a94b032fb71e214cf0a375010692fbe7493a766339e47/psycopg_binary-3.3.2-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:8db9034cde3bcdafc66980f0130813f5c5d19e74b3f2a19fb3cfbc25ad113121", size = 4220070, upload-time = "2025-12-06T17:34:11.392Z" },
     { url = "https://files.pythonhosted.org/packages/09/e6/5fc8d8aff8afa114bb4a94a0341b9309311e8bf3ab32d816032f8b984d4e/psycopg_binary-3.3.2-cp313-cp313-win_amd64.whl", hash = "sha256:df65174c7cf6b05ea273ce955927d3270b3a6e27b0b12762b009ce6082b8d3fc", size = 3540922, upload-time = "2025-12-06T17:34:14.88Z" },
+]
+
+[[package]]
+name = "pubpkg"
+version = "0.1.0"
+source = { git = "https://github.com/outernet-foundation/pubpkg.git?rev=eb1f6bd26b085e3853fde8c8647511e296e113de#eb1f6bd26b085e3853fde8c8647511e296e113de" }
+dependencies = [
+    { name = "bashrun" },
+    { name = "pydantic" },
+    { name = "pydantic-settings" },
+    { name = "stack-lifecycle" },
+    { name = "typer" },
+    { name = "unity-buildkit" },
 ]
 
 [[package]]

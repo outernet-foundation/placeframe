@@ -1,0 +1,51 @@
+{
+  "packages": [
+    {
+      "name": "placeframe-api-client",
+      "path": "packages/generated/csharp/api-client/src/PlaceframeApiClient",
+      "feeds": { "nuget": "PlaceframeApiClient" }
+    },
+    {
+      "name": "placeframe-zed-client",
+      "path": "packages/generated/csharp/zed-client/src/PlaceframeZedClient",
+      "feeds": { "nuget": "PlaceframeZedClient" }
+    },
+    {
+      "name": "placeframe-core",
+      "path": "packages/unity/Placeframe/Assets/Package/Core",
+      "feeds": { "npm": "org.outernet.placeframe" },
+      "dependency_pins": { "org.nuget.placeframeapiclient": "placeframe-api-client" }
+    },
+    {
+      "name": "placeframe-arfoundation",
+      "path": "packages/unity/Placeframe/Assets/Package/ARFoundation",
+      "feeds": { "npm": "org.outernet.placeframe.arfoundation" },
+      "depends_on": ["placeframe-core"],
+      "dependency_pins": { "org.outernet.placeframe": "placeframe-core" }
+    },
+    {
+      "name": "placeframe-magicleap",
+      "path": "packages/unity/Placeframe/Assets/Package/MagicLeap",
+      "feeds": { "npm": "org.outernet.placeframe.magicleap" },
+      "depends_on": ["placeframe-core"],
+      "dependency_pins": { "org.outernet.placeframe": "placeframe-core" }
+    }
+  ],
+  "apps": [
+    {
+      "name": "MapRegistrationTool",
+      "path": "apps/MapRegistrationTool",
+      "tag_prefix": "map-registration-tool",
+      "display_name": "Map Registration Tool"
+    },
+    {
+      "name": "CaptureTool",
+      "path": "apps/CaptureTool",
+      "tag_prefix": "capture-tool",
+      "display_name": "Capture Tool"
+    }
+  ],
+  "compose_files": ["compose.bake.yml", "compose.zed.bake.yml"],
+  "ci_workflow": "placeframe-ci.yml",
+  "mirror_prefix": "ghcr.io/outernet-foundation/mirror"
+}
