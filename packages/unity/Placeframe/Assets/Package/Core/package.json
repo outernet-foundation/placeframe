@@ -20,7 +20,7 @@
     "com.unity.xr.arfoundation": "6.0.6",
     "com.unity.mathematics": "1.3.2",
     "com.unity.cloud.gltfast": "6.15.1",
-    "org.nuget.placeframeapiclient": "0.1.5",
+    "org.outernet.placeframe.apiclient": "0.1.5",
     "org.nuget.mathnet.numerics": "5.0.0",
     "org.nuget.observablecollections.r3": "3.3.4",
     "org.nuget.sharpziplib": "1.4.2",

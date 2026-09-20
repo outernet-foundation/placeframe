@@ -6,15 +6,11 @@
       "feeds": { "nuget": "PlaceframeApiClient" }
     },
     {
-      "name": "placeframe-zed-client",
-      "path": "packages/generated/csharp/zed-client/src/PlaceframeZedClient",
-      "feeds": { "nuget": "PlaceframeZedClient" }
-    },
-    {
       "name": "placeframe-core",
       "path": "packages/unity/Placeframe/Assets/Package/Core",
       "feeds": { "npm": "org.outernet.placeframe" },
-      "dependency_pins": { "org.nuget.placeframeapiclient": "placeframe-api-client" }
+      "depends_on": ["placeframe-api-client"],
+      "dependency_pins": { "org.outernet.placeframe.apiclient": "placeframe-api-client" }
     },
     {
       "name": "placeframe-arfoundation",
@@ -29,6 +25,16 @@
       "feeds": { "npm": "org.outernet.placeframe.magicleap" },
       "depends_on": ["placeframe-core"],
       "dependency_pins": { "org.outernet.placeframe": "placeframe-core" }
+    },
+    {
+      "name": "placeframe-auth",
+      "path": "packages/unity/Placeframe/Assets/Package/Auth",
+      "feeds": { "npm": "org.outernet.placeframe.auth" }
+    },
+    {
+      "name": "placeframe-logging",
+      "path": "packages/unity/Logging/Assets/Package",
+      "feeds": { "npm": "org.outernet.logging" }
     },
     {
       "name": "placeframe-common",
