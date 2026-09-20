@@ -124,10 +124,30 @@ Using this tool, previously constructed localization maps can be visualized usin
 
 ## Unity Packages
 
-Placeframe has Unity packages for ARFoundation and Magic Leap 2 that handle communication between a Unity app and a Placeframe backend deployment. They are published to npm and can be installed via the Unity Package Manager using a [scoped registry](https://docs.unity3d.com/Manual/upm-scoped.html):
+Placeframe ships Unity packages for communicating with a Placeframe backend deployment: the core relocalization facade, per-stack camera providers (ARFoundation, Magic Leap 2), the generated API client, auth handlers, and structured logging. They are published to npm under the `org.outernet.*` scope and installed via the Unity Package Manager using a [scoped registry](https://docs.unity3d.com/Manual/upm-scoped.html):
 
 | Package | npm |
 |---|---|
 | `org.outernet.placeframe` | [Core](https://www.npmjs.com/package/org.outernet.placeframe) |
 | `org.outernet.placeframe.arfoundation` | [ARFoundation](https://www.npmjs.com/package/org.outernet.placeframe.arfoundation) |
 | `org.outernet.placeframe.magicleap` | [Magic Leap](https://www.npmjs.com/package/org.outernet.placeframe.magicleap) |
+| `org.outernet.placeframe.apiclient` | [API Client](https://www.npmjs.com/package/org.outernet.placeframe.apiclient) |
+| `org.outernet.placeframe.auth` | [Auth](https://www.npmjs.com/package/org.outernet.placeframe.auth) |
+| `org.outernet.logging` | [Logging](https://www.npmjs.com/package/org.outernet.logging) |
+
+Consumers need two scoped registries in `Packages/manifest.json` — npmjs for the `org.outernet` scope, and [UnityNuGet](https://github.com/xoofx/UnityNuGet) for the third-party `org.nuget.*` dependencies (Polly, JsonSubTypes, MathNet.Numerics, ...):
+
+```json
+  "scopedRegistries": [
+    {
+      "name": "npmjs",
+      "url": "https://registry.npmjs.org",
+      "scopes": [ "org.outernet" ]
+    },
+    {
+      "name": "UnityNuGet",
+      "url": "https://unitynuget-registry.openupm.com",
+      "scopes": [ "org.nuget" ]
+    }
+  ]
+```
