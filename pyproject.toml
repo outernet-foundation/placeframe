@@ -52,12 +52,12 @@ dirtorch = { workspace = true }
 build-scripts = { workspace = true }
 scripts = { workspace = true }
 lightglue = { git = "https://github.com/cvg/LightGlue.git" }
-bashrun = { git = "https://github.com/outernet-foundation/bashrun.git", rev = "1a0add1eb9e53e19245dcdda3e2018577b4e1153" }
+bashrun = { git = "https://github.com/outernet-foundation/bashrun.git", rev = "0a9e9a466a3ef99c95e316a6f46842741d32ca11" }
 logconf = { git = "https://github.com/outernet-foundation/logconf.git", rev = "3a8216eb39008e5769b71f98e65bffc60cd01f0a" }
-stack-lifecycle = { git = "https://github.com/outernet-foundation/stack-lifecycle.git", rev = "8132ab66d6c6e8342d299fc4e76c8f9fe93ea2c1" }
-unity-buildkit = { git = "https://github.com/outernet-foundation/unity-buildkit.git", rev = "70741126846015e001952d4465b7512c75643b2f" }
-openapi-clientgen = { git = "https://github.com/outernet-foundation/openapi-clientgen.git", rev = "938bdf2a8b86263f65619681ab292cb3109386c8" }
-pubpkg = { git = "https://github.com/outernet-foundation/pubpkg.git", rev = "b2c226c232ccfe2b81283932b2308327fdf500dc" }
+stack-lifecycle = { git = "https://github.com/outernet-foundation/stack-lifecycle.git", rev = "da2c88cab0500b9aabaeaffb81429adde44fcced" }
+unity-buildkit = { git = "https://github.com/outernet-foundation/unity-buildkit.git", rev = "df5997fd8b0fae3b1ce700b9edecd15b2b096f12" }
+openapi-clientgen = { git = "https://github.com/outernet-foundation/openapi-clientgen.git", rev = "a121154730376a1f91d3b3073fbd594e76e04b70" }
+pubpkg = { git = "https://github.com/outernet-foundation/pubpkg.git", rev = "05b740f4e06f38bf370fcfa4b4a72684ea1b600f" }
 
 [tool.basedpyright]
 venvPath = "."
