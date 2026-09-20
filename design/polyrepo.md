@@ -1,0 +1,56 @@
+# Polyrepo initiative — thread index
+
+Four threads, executed in this order:
+
+1. **prepo** — [polyrepo-workbench.md](polyrepo-workbench.md). Expand pgit into the polyrepo workbench: workspace transparency (discovery-based enumeration, the VSCode extension, pane naming) and the local dependency overlay (git filter pair, `link`/`unlink`/`bump`).
+2. **Publishing** — [package-publishing-redesign.md](package-publishing-redesign.md). In-house UPM derivation, nuget + npm + PyPI feeds, the publication-machinery repo, the immutable dev channel.
+3. **Repo boundaries** — [repo-extraction.md](repo-extraction.md). Extract capture-tool and the ZED appliance into standalone repos; the four cross-repo contracts; fresh-clone autonomy.
+4. **Internal tools on registries** — [internal-tool-registries.md](internal-tool-registries.md). Convert every remaining intra-org package reference from git URL to registry pin by publishing the tool tier (bashrun, logconf, stack-lifecycle, unity-buildkit, openapi-clientgen, pubpkg) to the feeds. Design pass not yet done; does not open until threads 2 and 3 land.
+
+Each doc is self-contained: problem, ground truth, design, change set, discarded alternatives, open parameters. Cross-thread couplings are recorded as facts inside the docs where they bite (e.g. prepo's `bump` resolves only stable releases until the dev channel exists; boundaries' cross-repo consumption requires the feeds to exist).
+
+## Pre-merge review-tractability pass
+
+Before the dev merge, `polyrepo-initiative`'s commits (58 as of this plan) fold into 9: seven code commits plus two prose capstones. The design docs are the initiative's record — rulings, discarded alternatives, and landed-with notes live in the doc bodies at higher fidelity than commit messages — so git history must not duplicate that record; the bulk of the branch is pure checkpoint/bookkeeping noise. The fold happens on a **new** branch (`package-publishing-redesign`, named for the [plan doc](package-publishing-redesign.md) since the branch's changes are the publishing thread), never by rewriting `polyrepo-initiative`: the PR rides the fold branch and `origin/polyrepo-initiative` simply goes stale — no force-push anywhere.
+
+Method — path-scoped rebuild from the original trees, not a cherry-pick replay (deferring prose across picks leaves `.md` files dirty and breaks subsequent picks; snapshot restores cannot conflict). Prose placement rule: every `.md` change lands in a prose capstone unless it is a carve-out — a doc change belonging to a code change's own review story rides with that code commit:
+
+1. Backup ref first (`git branch backup/polyrepo-initiative-pre-review-fold` — the repo's `backup/*` convention). Work in a `prepo new` worktree; the primary checkout carries pre-existing dirt that must not enter commits or stashes.
+2. `git checkout -b package-publishing-redesign origin/dev`. The merge-base is `origin/dev`'s tip (`d7e85958`); `origin/polyrepo-initiative`'s one commit beyond dev (`04a6aba4`) is simply the first fold input.
+3. For each code group below, `git restore -s <boundary> --staged --worktree -- . ':(exclude)*.md'` from the group's boundary commit — its chronologically-last code commit (`0a870fad`, `94404027`, `c0a0730d`, `f66c158c`, `84532348`, `99e0e29e`, `6e92c6f8`) — then commit. Restore converges matched paths to the source state, deletions included; no commit after `6e92c6f8` touches a non-`.md` path, so code-at-boundaries + prose-at-tip partitions the tip tree exactly.
+4. Carve-outs into the rename commit (group 2): the two package READMEs restored from `94404027` (`ffbb6fa2`/`544f4240` carry the rename's doc mentions) and `f78cf65c`'s six agent-doc updates restored from `f78cf65c`. A carve-out is safe only when no later commit in the range touches the file — verified by a last-touch audit over all eight; a file touched again later must ride to a capstone instead.
+5. Two prose capstones land last: `git restore -s <tip> -- '*.md'`, commit the non-`design` files as the agent-docs capstone, then `design/` — carrying this plan's own rewrite — as the final design-docs capstone.
+6. Verify: the tree diff against `polyrepo-initiative` is **empty** before this doc's rewrite (the rewrite is the review branch's only delta — no preflight re-run needed); the code/prose classifier over `origin/dev..polyrepo-initiative` partitions into exactly the 14 code commits named in groups 1-7 plus prose commits only — every sha mapped to a group; and every commit outside the two capstones touches non-`.md` paths only, the rename commit excepted for its eight carved files.
+
+The nine commits, chronological, target subjects exact:
+
+| # | Subject | Folds |
+|---|---|---|
+| 1 | Absorb the publish cohort into pubpkg | bb7dd462, 0a870fad |
+| 2 | Rename the Python packages to placeframe-common and placeframe-core | ffbb6fa2, 9123750a, 544f4240, 94404027 + carve-outs: the two package READMEs, `f78cf65c`'s agent docs |
+| 3 | Finalize the Unity and PyPI publish set | c0a0730d |
+| 4 | Wire the npm identity into codegen and repoint consumers | 6037fce9, 014002f7, f66c158c |
+| 5 | Run generate-clients | 84532348 — the canonical codegen commit; exact message, standalone |
+| 6 | Add Unity meta files and regenerate package locks | b854b548, 99e0e29e |
+| 7 | Publish dev prereleases from the release workflow on green dev pushes | 6e92c6f8 |
+| 8 | Update agent docs and README for the publishing thread | every remaining non-`design` prose change |
+| 9 | Add the polyrepo initiative design docs | every `design/` prose change — the capstone, landed last |
+
+## Session resume
+
+Thread 1 (prepo) is complete — every change-set item landed; separate-session complexity iteration does not reopen it. The pre-merge review-tractability pass is complete: the branch is folded 58→9 on `package-publishing-redesign` — seven code commits, the agent-docs capstone, then the design-docs capstone landed last. All verifications passed: the tree diff against `polyrepo-initiative` was empty before this doc's rewrite (the rewrite is the review branch's only delta), the code/prose classifier over `origin/dev..polyrepo-initiative` partitions into exactly the 14 code commits named in groups 1-7 plus 44 prose-only commits, and every commit outside the capstones and the rename's eight carved files is non-`.md` only. Thread 2 (publishing) has items 1-9 done; a fresh session resumes at the first unchecked item in [package-publishing-redesign.md](package-publishing-redesign.md)'s Change set (item 10: end-to-end verification from `dev`, operator-gated — the operator steps below must run first), with that doc as the plan of record. The machinery repo is `pubpkg`. Thread 4 is recorded but gated (its design pass has not happened); do not resume into it.
+
+Push state at this checkpoint: `pubpkg` `main` is pushed through `b2c226c` and placeframe's `pubpkg` pin points at it; `openapi-clientgen` `main` is pushed through `938bdf2` and placeframe's pin points at it. Full `preflight` is green at this checkpoint (see the sandbox note below for how to run it). The folded branch `package-publishing-redesign` (9 commits over `origin/dev`) is the branch the operator pushes and PRs; `polyrepo-initiative`, the interim `polyrepo-initiative-review` (the pre-rename fold branch, same tip), and the `backup/polyrepo-initiative-pre-review-fold`, `backup/polyrepo-initiative-review-pre-prose-split` refs simply go stale — no force-push, `origin/polyrepo-initiative` is left behind as-is.
+
+Item 10 is operator-gated verification; the dev-publish job (`publish-dev` in `placeframe-release.yml`, firing via `workflow_run` when the Placeframe CI workflow completes green on `dev`) is built but has never run. Operator steps, in order:
+
+1. Configure PyPI **pending publishers** for `placeframe-common` and `placeframe-core` (owner `outernet-foundation`, repo `placeframe`) naming workflow file `placeframe-release.yml` — before the dev job's first run, or its PyPI publishes fail.
+2. On npmjs.com, verify every existing npm package's **trusted publisher** names `placeframe-release.yml` exactly — the workflow file was renamed twice since npm OIDC was configured (`placeframe.yml` → `release.yml` → `placeframe-release.yml`) and npm matches filenames exactly, so a stale name breaks npm publishes with ENEEDAUTH.
+3. Bootstrap the three new npm identities (`org.outernet.placeframe.apiclient`, `org.outernet.placeframe.auth`, `org.outernet.logging`) with a one-time publish by any means — npm OIDC cannot first-publish a name that does not exist yet — then point each package's trusted publisher at `placeframe-release.yml`.
+4. Push the review branch produced by the tractability pass, PR it into `dev`, merge; the Placeframe CI run goes green and the `publish-dev` job fires, printing the exact `-dev.<ci-run-id>` versions.
+
+Then verification proper (the next session's work): each feed serves the exact printed versions (nuget + npm for api-client and the UPM packages, PyPI for `placeframe-common`/`placeframe-core`), a fresh Unity project carrying the two scoped registries installs them by exact pin, and a fresh venv installs the PyPI pair by exact pin. `main` stays untouched throughout — item 11's stable cutover only opens after item 10's checkbox flips. The first dev publish set will include every package (every path differs from its last stable tag), so all three feeds prove themselves in one run.
+
+Sandbox verification note: the toolchain uv (0.11.14) predates the repo's uv pin (0.12.15), and `uv run` strips its own bin dir from child PATH while the sandbox's `UV_PYTHON` points nested `uv pip` at the externally-managed base interpreter — codegen and preflight therefore fail under plain `uv run`. Workaround: `~/.local/bin/uv` is already 0.12.15 (if missing, `uv self update` installs it); invoke venv entry points directly with `env -u UV_PYTHON PATH="$HOME/.local/bin:$PATH" .venv/bin/preflight` (same pattern for `uv sync`, `lock-python`, `pytest`). Preflight tears down and re-brings-up `compose.postgres.yml` and runs ~10 minutes — always capture its exit code explicitly (`... ; echo EXIT=$?`) rather than piping through `tail`, which masks failures. The working tree carries pre-existing unrelated dirt (two CaptureTool `.asset.meta` files, `apps/CaptureTool/Packages/packages-lock.json`, untracked `apps/AndroidMobile/`) — leave it out of all commits and stashes.
+
+Linear is nonfunctional in this environment — ignore every Linear rule and workflow (including trackable-work conventions and the design-doc orphan lint); this resume protocol replaces them for this initiative.
