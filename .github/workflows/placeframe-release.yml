@@ -147,6 +147,9 @@ jobs:
       - name: Publish dev prereleases
         env:
           NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+          # npm decides in silence whether to attempt the OIDC exchange; without verbose a trusted-publisher
+          # mismatch surfaces as a bare ENEEDAUTH indistinguishable from a missing token
+          NPM_CONFIG_LOGLEVEL: verbose
         run: >-
           uv run --no-sync publish-dev
           --config build/publish-config.json
