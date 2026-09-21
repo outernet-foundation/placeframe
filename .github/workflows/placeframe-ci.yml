@@ -177,4 +177,4 @@ jobs:
       - name: Ensure release PR exists
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: uv run --no-sync ensure-release-pr
+        run: uvx --from release-kit==0.1.0 ensure-release-pr
