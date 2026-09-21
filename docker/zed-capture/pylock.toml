@@ -165,9 +165,11 @@ sdist = { url = "https://files.pythonhosted.org/packages/3f/b9/7e296aa1adada25cc
 wheels = [{ url = "https://files.pythonhosted.org/packages/f2/24/8d99982f0aa9c1cd82073c6232b54a0dbe6797c7d63c0583a6c68ee3ddf2/litestar_htmx-0.5.0-py3-none-any.whl", upload-time = 2025-06-11T21:19:44Z, size = 9970, hashes = { sha256 = "92833aa47e0d0e868d2a7dbfab75261f124f4b83d4f9ad12b57b9a68f86c50e6" } }]
 
 [[packages]]
-name = "logconf"
+name = "logger-conf"
 version = "0.1.0"
-vcs = { type = "git", url = "https://github.com/outernet-foundation/logconf.git", requested-revision = "3a8216eb39008e5769b71f98e65bffc60cd01f0a", commit-id = "3a8216eb39008e5769b71f98e65bffc60cd01f0a" }
+index = "https://pypi.org/simple"
+sdist = { url = "https://files.pythonhosted.org/packages/f3/7e/f836b08067cbfff8a87449acb69c409b0cb15b2307b75ff9c6fc0d4b06be/logger_conf-0.1.0.tar.gz", upload-time = 2026-09-21T01:50:23Z, size = 23345, hashes = { sha256 = "f2cb1d2221c2a189b88e02b5096fc17cf59977902111ff7fe2febb395ff213ef" } }
+wheels = [{ url = "https://files.pythonhosted.org/packages/82/63/40764f48a441c28e949fbb2d02d95e868b8b892a6b146988e0c8df1e7f75/logger_conf-0.1.0-py3-none-any.whl", upload-time = 2026-09-21T01:50:22Z, size = 8561, hashes = { sha256 = "efb6b633a77432aee36d028533282dadb2a89ace672a07f4775fcc2f2595fa39" } }]
 
 [[packages]]
 name = "markdown-it-py"

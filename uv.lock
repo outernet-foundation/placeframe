@@ -110,7 +110,11 @@ wheels = [
 [[package]]
 name = "bashrun"
 version = "0.1.0"
-source = { git = "https://github.com/outernet-foundation/bashrun.git?rev=0a9e9a466a3ef99c95e316a6f46842741d32ca11#0a9e9a466a3ef99c95e316a6f46842741d32ca11" }
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/24/cd/dc3df91cbe2bfbe57b6d9bfe225f5808a22888d636cf30005d89133237c8/bashrun-0.1.0.tar.gz", hash = "sha256:e376f34693ba12ec907a6ab43626ed425c876c2b7be6569563a6492e11c79bc7", size = 18983, upload-time = "2026-09-21T01:47:56.971Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/be/9a/749dd28f3defde3690e0280131f9461e4100c43c117f9363798f6dedbb91/bashrun-0.1.0-py3-none-any.whl", hash = "sha256:80f87924f88336460890d669aa1abb6fb8c389b675fdb41ac8d2b6861d4ebddb", size = 7634, upload-time = "2026-09-21T01:47:56.233Z" },
+]
 
 [[package]]
 name = "black"
@@ -211,34 +215,32 @@ source = { editable = "build" }
 dependencies = [
     { name = "bashrun" },
     { name = "datamodel-code-generator" },
-    { name = "openapi-clientgen" },
+    { name = "openapi-client-codegen" },
     { name = "psycopg", extra = ["binary"] },
-    { name = "pubpkg" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "pyhumps" },
     { name = "sqlacodegen" },
     { name = "sqlalchemy" },
-    { name = "stack-lifecycle" },
+    { name = "stack-toolkit" },
     { name = "typer" },
     { name = "unity-buildkit" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "bashrun", git = "https://github.com/outernet-foundation/bashrun.git?rev=0a9e9a466a3ef99c95e316a6f46842741d32ca11" },
+    { name = "bashrun", specifier = ">=0.1.0" },
     { name = "datamodel-code-generator", specifier = ">=0.33.0" },
-    { name = "openapi-clientgen", git = "https://github.com/outernet-foundation/openapi-clientgen.git?rev=a121154730376a1f91d3b3073fbd594e76e04b70" },
+    { name = "openapi-client-codegen", specifier = ">=0.1.0" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2.10" },
-    { name = "pubpkg", git = "https://github.com/outernet-foundation/pubpkg.git?rev=ea2ecf35a93a3c6405b9430a651d2a7b3d2faa6c" },
     { name = "pydantic", specifier = ">=2.11.7" },
     { name = "pydantic-settings", specifier = ">=2.9.1" },
     { name = "pyhumps", specifier = ">=3.8.0" },
     { name = "sqlacodegen", specifier = "==3.2.0" },
     { name = "sqlalchemy", specifier = ">=2.0.45" },
-    { name = "stack-lifecycle", git = "https://github.com/outernet-foundation/stack-lifecycle.git?rev=da2c88cab0500b9aabaeaffb81429adde44fcced" },
+    { name = "stack-toolkit", specifier = ">=0.1.0" },
     { name = "typer", specifier = ">=0.17.4" },
-    { name = "unity-buildkit", git = "https://github.com/outernet-foundation/unity-buildkit.git?rev=df5997fd8b0fae3b1ce700b9edecd15b2b096f12" },
+    { name = "unity-buildkit", specifier = ">=0.1.0" },
 ]
 
 [[package]]
@@ -914,11 +916,15 @@ wheels = [
 ]
 
 [[package]]
-name = "logconf"
+name = "logger-conf"
 version = "0.1.0"
-source = { git = "https://github.com/outernet-foundation/logconf.git?rev=3a8216eb39008e5769b71f98e65bffc60cd01f0a#3a8216eb39008e5769b71f98e65bffc60cd01f0a" }
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "python-json-logger" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f3/7e/f836b08067cbfff8a87449acb69c409b0cb15b2307b75ff9c6fc0d4b06be/logger_conf-0.1.0.tar.gz", hash = "sha256:f2cb1d2221c2a189b88e02b5096fc17cf59977902111ff7fe2febb395ff213ef", size = 23345, upload-time = "2026-09-21T01:50:23.036Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/82/63/40764f48a441c28e949fbb2d02d95e868b8b892a6b146988e0c8df1e7f75/logger_conf-0.1.0-py3-none-any.whl", hash = "sha256:efb6b633a77432aee36d028533282dadb2a89ace672a07f4775fcc2f2595fa39", size = 8561, upload-time = "2026-09-21T01:50:22.3Z" },
 ]
 
 [package.optional-dependencies]
@@ -1458,12 +1464,16 @@ wheels = [
 ]
 
 [[package]]
-name = "openapi-clientgen"
+name = "openapi-client-codegen"
 version = "0.1.0"
-source = { git = "https://github.com/outernet-foundation/openapi-clientgen.git?rev=a121154730376a1f91d3b3073fbd594e76e04b70#a121154730376a1f91d3b3073fbd594e76e04b70" }
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "bashrun" },
     { name = "typer" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/70/5b/2447f3e7255bb0b4b7d88a807083e065c52cb8aaa9ebe2dd9f895021014b/openapi_client_codegen-0.1.0.tar.gz", hash = "sha256:9a5c62fc4664b0dba1e0b267b1997bd94a75473afa42143d49ea17e25f6b7e6c", size = 29717, upload-time = "2026-09-21T02:08:01.084Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/50/21/5c4197421e5c9f540e2698c6cc3119c979dd4cec1ec040417922f57c4c33/openapi_client_codegen-0.1.0-py3-none-any.whl", hash = "sha256:8cb21c67310dc83978af3fc5d3a3e9d754666ba3c9ad830c44f422b56873bed4", size = 22356, upload-time = "2026-09-21T02:08:00.165Z" },
 ]
 
 [[package]]
@@ -1748,7 +1758,7 @@ dependencies = [
     { name = "boto3" },
     { name = "botocore" },
     { name = "litestar" },
-    { name = "logconf", extra = ["otlp"] },
+    { name = "logger-conf", extra = ["otlp"] },
     { name = "pydantic" },
 ]
 
@@ -1762,7 +1772,7 @@ requires-dist = [
     { name = "boto3", specifier = ">=1.39.5" },
     { name = "botocore", specifier = ">=1.42.24" },
     { name = "litestar", specifier = ">=2.19.0" },
-    { name = "logconf", extras = ["otlp"], git = "https://github.com/outernet-foundation/logconf.git?rev=3a8216eb39008e5769b71f98e65bffc60cd01f0a" },
+    { name = "logger-conf", extras = ["otlp"] },
     { name = "pydantic", specifier = ">=2.12.5" },
 ]
 
@@ -2079,19 +2089,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/d1/2a/0d45e4f4da2bd78c3237ffa03475ef3751f69a81919c54a6e610eb1a7c96/psycopg_binary-3.3.2-cp313-cp313-musllinux_1_2_riscv64.whl", hash = "sha256:e22bf6b54df994aff37ab52695d635f1ef73155e781eee1f5fa75bc08b58c8da", size = 3910544, upload-time = "2025-12-06T17:34:08.251Z" },
     { url = "https://files.pythonhosted.org/packages/3a/62/a8e0f092f4dbef9a94b032fb71e214cf0a375010692fbe7493a766339e47/psycopg_binary-3.3.2-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:8db9034cde3bcdafc66980f0130813f5c5d19e74b3f2a19fb3cfbc25ad113121", size = 4220070, upload-time = "2025-12-06T17:34:11.392Z" },
     { url = "https://files.pythonhosted.org/packages/09/e6/5fc8d8aff8afa114bb4a94a0341b9309311e8bf3ab32d816032f8b984d4e/psycopg_binary-3.3.2-cp313-cp313-win_amd64.whl", hash = "sha256:df65174c7cf6b05ea273ce955927d3270b3a6e27b0b12762b009ce6082b8d3fc", size = 3540922, upload-time = "2025-12-06T17:34:14.88Z" },
-]
-
-[[package]]
-name = "pubpkg"
-version = "0.1.0"
-source = { git = "https://github.com/outernet-foundation/pubpkg.git?rev=ea2ecf35a93a3c6405b9430a651d2a7b3d2faa6c#ea2ecf35a93a3c6405b9430a651d2a7b3d2faa6c" }
-dependencies = [
-    { name = "bashrun" },
-    { name = "pydantic" },
-    { name = "pydantic-settings" },
-    { name = "stack-lifecycle" },
-    { name = "typer" },
-    { name = "unity-buildkit" },
 ]
 
 [[package]]
@@ -2508,13 +2505,13 @@ dependencies = [
     { name = "pytransform3d" },
     { name = "scikit-learn" },
     { name = "scipy" },
-    { name = "stack-lifecycle" },
+    { name = "stack-toolkit" },
     { name = "typer" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "bashrun", git = "https://github.com/outernet-foundation/bashrun.git?rev=0a9e9a466a3ef99c95e316a6f46842741d32ca11" },
+    { name = "bashrun", specifier = ">=0.1.0" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "numpy", specifier = ">=2.1" },
     { name = "placeframe-api-client", editable = "packages/generated/python/api-client" },
@@ -2524,7 +2521,7 @@ requires-dist = [
     { name = "pytransform3d", specifier = ">=3.5" },
     { name = "scikit-learn", specifier = ">=1.5" },
     { name = "scipy", specifier = ">=1.14" },
-    { name = "stack-lifecycle", git = "https://github.com/outernet-foundation/stack-lifecycle.git?rev=da2c88cab0500b9aabaeaffb81429adde44fcced" },
+    { name = "stack-toolkit", specifier = ">=0.1.0" },
     { name = "typer", specifier = ">=0.15" },
 ]
 
@@ -2607,9 +2604,9 @@ asyncio = [
 ]
 
 [[package]]
-name = "stack-lifecycle"
+name = "stack-toolkit"
 version = "0.1.0"
-source = { git = "https://github.com/outernet-foundation/stack-lifecycle.git?rev=da2c88cab0500b9aabaeaffb81429adde44fcced#da2c88cab0500b9aabaeaffb81429adde44fcced" }
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "bashrun" },
     { name = "pathspec" },
@@ -2617,6 +2614,10 @@ dependencies = [
     { name = "pydantic-settings" },
     { name = "pyyaml" },
     { name = "typer" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/62/46/e7649dd0ec7e5cdb3fc48019910171a161bb2cfce3da76331819787c0435/stack_toolkit-0.1.0.tar.gz", hash = "sha256:112f0dbbf09d99863e898518d7a6a4ad5d5cce29121d7ecbeba808407ff81325", size = 40160, upload-time = "2026-09-21T02:06:36.239Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/fd/06/b76e3094584e75298cae5d903da725d34cd0855f47ea695137b531e68abb/stack_toolkit-0.1.0-py3-none-any.whl", hash = "sha256:b8a821d525b9f20631fe7795fbaf28dd74e34259fd720b8fae0b6323c82566a0", size = 18156, upload-time = "2026-09-21T02:06:35.281Z" },
 ]
 
 [[package]]
@@ -2922,12 +2923,16 @@ wheels = [
 [[package]]
 name = "unity-buildkit"
 version = "0.1.0"
-source = { git = "https://github.com/outernet-foundation/unity-buildkit.git?rev=df5997fd8b0fae3b1ce700b9edecd15b2b096f12#df5997fd8b0fae3b1ce700b9edecd15b2b096f12" }
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "bashrun" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "typer" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/d9/b6/b1ac6f7ee9724ce540990f094d1bcab8d0704afce3377e72e13575d5f3b9/unity_buildkit-0.1.0.tar.gz", hash = "sha256:079962316f58acc5f8fcd49cf06e946d1a751b3751f35fe24f78c3645b58ceba", size = 49979, upload-time = "2026-09-21T02:07:29.701Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/bf/98/d63855e9671a48cfc94275bdd03422240878df0449a17f40a55255d5c706/unity_buildkit-0.1.0-py3-none-any.whl", hash = "sha256:ffaef44bf94445e467facb465def4b98e217dc0918d6c42be543de5f3efe91c4", size = 38946, upload-time = "2026-09-21T02:07:28.534Z" },
 ]
 
 [[package]]

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from logconf import configure_logging as _configure_logging
+from logger_conf import configure_logging as _configure_logging
 
 
 def configure_logging(

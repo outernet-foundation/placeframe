@@ -8,8 +8,8 @@ import typer
 from bashrun import bash, bash_output
 
 from unity_buildkit.ci_step import ci_step
-from stack_lifecycle.context_sha import compute_service_shas
-from stack_lifecycle.image_refs import VersionCoupling, VersionSite, unpinned_references, version_coupling_violations
+from stack_toolkit.context_sha import compute_service_shas
+from stack_toolkit.image_refs import VersionCoupling, VersionSite, unpinned_references, version_coupling_violations
 from ..lock_python import lock_python
 
 app = typer.Typer(add_completion=False, pretty_exceptions_show_locals=False)

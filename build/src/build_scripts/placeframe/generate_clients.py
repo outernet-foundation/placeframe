@@ -3,7 +3,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from bashrun import bash_output
-from openapi_clientgen import (
+from openapi_client_codegen import (
     DefaultNamingPolicy,
     downgrade_openapi_3_1_to_3_0,
     generate_client,
