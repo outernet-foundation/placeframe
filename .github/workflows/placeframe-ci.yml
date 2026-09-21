@@ -55,7 +55,7 @@ jobs:
         run: echo "$GITHUB_TOKEN" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Populate image mirror
-        run: uv run --no-sync mirror-images --config build/publish-config.json
+        run: uvx --from release-kit==0.1.0 mirror-images --config build/publish-config.json
 
   unity:
     permissions:
