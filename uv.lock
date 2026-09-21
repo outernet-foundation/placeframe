@@ -2605,7 +2605,7 @@ asyncio = [
 
 [[package]]
 name = "stack-toolkit"
-version = "0.1.0"
+version = "0.1.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "bashrun" },
@@ -2615,9 +2615,9 @@ dependencies = [
     { name = "pyyaml" },
     { name = "typer" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/62/46/e7649dd0ec7e5cdb3fc48019910171a161bb2cfce3da76331819787c0435/stack_toolkit-0.1.0.tar.gz", hash = "sha256:112f0dbbf09d99863e898518d7a6a4ad5d5cce29121d7ecbeba808407ff81325", size = 40160, upload-time = "2026-09-21T02:06:36.239Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/3c/31/4eed8a96b1bad081d1b8061155cb1cedf6251841078bbc504c019efe6e5a/stack_toolkit-0.1.1.tar.gz", hash = "sha256:dcea86f6f28be474baa18fcb40407ca2116f668178f8c53d05f417cec1e537dd", size = 40117, upload-time = "2026-09-21T03:02:28.283Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/fd/06/b76e3094584e75298cae5d903da725d34cd0855f47ea695137b531e68abb/stack_toolkit-0.1.0-py3-none-any.whl", hash = "sha256:b8a821d525b9f20631fe7795fbaf28dd74e34259fd720b8fae0b6323c82566a0", size = 18156, upload-time = "2026-09-21T02:06:35.281Z" },
+    { url = "https://files.pythonhosted.org/packages/7a/17/70dfe38cc5141b39526ca18470e9235f06de27c87b87ab4aea1928fb3d31/stack_toolkit-0.1.1-py3-none-any.whl", hash = "sha256:47b2470b9fe424367573be13c68c79fd0ca33f8e3cc92e283d6d61c9df93f1bf", size = 18153, upload-time = "2026-09-21T03:02:27.101Z" },
 ]
 
 [[package]]
