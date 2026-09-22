@@ -78,7 +78,7 @@ Verified end-to-end in the browser: capture list loads, dialog opens, reconstruc
 
 ## Running it
 
-Both dev servers run independently, outside Docker:
+`dashboard/run.sh` starts both dev servers, waits until they respond, prints the URL to open, and stops both on Ctrl+C (logs in `dashboard/.logs/`). Equivalently, both dev servers run independently, outside Docker:
 
 ```bash
 cd dashboard/backend && uv run uvicorn app:app --reload --port 8010

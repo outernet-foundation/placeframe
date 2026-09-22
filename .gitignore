@@ -35,3 +35,4 @@ bookmark.md
 /data/
 **/node_modules/
 dashboard/frontend/dist/
+dashboard/.logs/
