@@ -4,6 +4,7 @@ version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [
   "bashrun>=0.1.0",
+  "ci-devkit>=0.1.0",
   "docker-devkit>=0.1.0",
   "unity-devkit>=0.1.0",
   "openapi-client-codegen>=0.1.0",
@@ -36,7 +37,6 @@ build-cesium = "build_scripts.cesium.build:app"
 build-docker = "build_scripts.placeframe.ci.build_docker:ci_app"
 codegen-cesium = "build_scripts.cesium.codegen:app"
 combine-cesium = "build_scripts.cesium.combine:app"
-deptry-check = "build_scripts.placeframe.deptry_check:main"
 generate-clients = "build_scripts.placeframe.generate_clients:app"
 generate-datamodels = "build_scripts.placeframe.generate_datamodels:main"
   preflight = "build_scripts.placeframe.ci.preflight:app"

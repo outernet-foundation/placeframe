@@ -11,8 +11,8 @@ import typer
 from bashrun import bash
 from pydantic_settings import BaseSettings
 
-from unity_devkit.ci_step import ci_step
-from unity_devkit.setup import configure_git
+from ci_devkit.ci_step import ci_step
+from ci_devkit.setup import configure_git
 from docker_devkit.context_sha import compute_service_shas
 from docker_devkit.image_refs import resolve_remote_digest
 

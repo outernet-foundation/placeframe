@@ -479,28 +479,6 @@ wheels = [
 ]
 
 [[package]]
-name = "deptry"
-version = "0.24.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "click" },
-    { name = "colorama", marker = "sys_platform == 'win32' or (extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-cuda') or (extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-rocm') or (extra == 'extra-15-neural-networks-cuda' and extra == 'extra-15-neural-networks-rocm')" },
-    { name = "packaging" },
-    { name = "requirements-parser" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/58/aa/5cae0f25a2ac5334d5bd2782a6bcd80eecf184f433ff74b2fb0387cfbbb6/deptry-0.24.0.tar.gz", hash = "sha256:852e88af2087e03cdf9ece6916f3f58b74191ab51cc8074897951bd496ee7dbb", size = 440158, upload-time = "2025-11-09T00:31:44.637Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/21/5a/c1552996499911b6eabe874a994d9eede58ac3936d7fe7f865857b97c03f/deptry-0.24.0-cp39-abi3-macosx_10_12_x86_64.whl", hash = "sha256:a575880146bab671a62babb9825b85b4f1bda8aeaade4fcb59f9262caf91d6c7", size = 1774138, upload-time = "2025-11-09T00:31:41.896Z" },
-    { url = "https://files.pythonhosted.org/packages/32/b6/1dcc011fc3e6eec71601569c9de3215530563412b3714fba80dcd1a88ec8/deptry-0.24.0-cp39-abi3-macosx_11_0_arm64.whl", hash = "sha256:00ec34b968a13c03a5268ce0211f891ace31851d916415e0a748fae9596c00d5", size = 1677340, upload-time = "2025-11-09T00:31:39.676Z" },
-    { url = "https://files.pythonhosted.org/packages/4a/e2/af81dfd46b457be9e8ded9472872141777fbda8af661f5d509157b165359/deptry-0.24.0-cp39-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:6ddfedafafe5cbfce31a50d4ea99d7b9074edcd08b9b94350dc739e2fb6ed7f9", size = 1782740, upload-time = "2025-11-09T00:31:28.302Z" },
-    { url = "https://files.pythonhosted.org/packages/ab/28/960c311aae084deef57ece41aac13cb359b06ce31b7771139e79c394a1b7/deptry-0.24.0-cp39-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:dd22fa2dbbdf4b38061ca9504f2a6ce41ec14fa5c9fe9b0b763ccc1275efebd5", size = 1845477, upload-time = "2025-11-09T00:31:33.452Z" },
-    { url = "https://files.pythonhosted.org/packages/f5/6c/4b972b011a06611e0cf8f4bb6bc04a3d0f9c651950ad9abe320fcbac6983/deptry-0.24.0-cp39-abi3-musllinux_1_1_aarch64.whl", hash = "sha256:0fbe50a2122d79cec53fdfd73a7092c05f316555a1139bcbacf3432572675977", size = 1960410, upload-time = "2025-11-09T00:31:31.174Z" },
-    { url = "https://files.pythonhosted.org/packages/1b/08/0eac3c72a9fd79a043cc492f3ba350c47a7be2160288353218b2c8c1bf3a/deptry-0.24.0-cp39-abi3-musllinux_1_1_x86_64.whl", hash = "sha256:92bd8d331a5a6f8e6247436bc6fe384bcf86a8d69fe33442d195996fb9b20547", size = 2023832, upload-time = "2025-11-09T00:31:36.381Z" },
-    { url = "https://files.pythonhosted.org/packages/35/e4/23dcbc505f6f35c70ba68015774cf891ceda080331d7fd6d75e84ada9f73/deptry-0.24.0-cp39-abi3-win_amd64.whl", hash = "sha256:94b354848130d45e16d3a3039ae8177bce33828f62028c4ff8f2e1b04f7182ba", size = 1631631, upload-time = "2025-11-09T00:31:47.108Z" },
-    { url = "https://files.pythonhosted.org/packages/39/69/6ec1e18e27dd6f80e4fb6c5fc05a6527242ff83b81c0711d0ba470e9a144/deptry-0.24.0-cp39-abi3-win_arm64.whl", hash = "sha256:ea58709e5f3aa77c0737d8fb76166b7703201cf368fbbb14072ccda968b6703a", size = 1550504, upload-time = "2025-11-09T00:31:45.988Z" },
-]
-
-[[package]]
 name = "dirtorch"
 version = "0.0.0"
 source = { editable = "packages/python/neural-networks/third-party/deep-image-retrieval" }
@@ -1667,7 +1645,6 @@ source = { virtual = "." }
 dev = [
     { name = "basedpyright" },
     { name = "build-scripts" },
-    { name = "deptry" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "ruff" },
@@ -1680,7 +1657,6 @@ dev = [
 dev = [
     { name = "basedpyright", specifier = ">=1.39.10" },
     { name = "build-scripts", editable = "build" },
-    { name = "deptry", specifier = ">=0.24.0" },
     { name = "pytest", specifier = ">=8.0.0" },
     { name = "pytest-asyncio", specifier = ">=0.24.0" },
     { name = "ruff", specifier = ">=0.14.11" },
@@ -2332,18 +2308,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/de/94/980b50a6531b3019e45ddeada0626d45fa85cbe22300844a7983285bed3b/pyyaml-6.0.3-cp313-cp313-win32.whl", hash = "sha256:d0eae10f8159e8fdad514efdc92d74fd8d682c933a6dd088030f3834bc8e6b26", size = 137427, upload-time = "2025-09-25T21:32:32.58Z" },
     { url = "https://files.pythonhosted.org/packages/97/c9/39d5b874e8b28845e4ec2202b5da735d0199dbe5b8fb85f91398814a9a46/pyyaml-6.0.3-cp313-cp313-win_amd64.whl", hash = "sha256:79005a0d97d5ddabfeeea4cf676af11e647e41d81c9a7722a193022accdb6b7c", size = 154090, upload-time = "2025-09-25T21:32:33.659Z" },
     { url = "https://files.pythonhosted.org/packages/73/e8/2bdf3ca2090f68bb3d75b44da7bbc71843b19c9f2b9cb9b0f4ab7a5a4329/pyyaml-6.0.3-cp313-cp313-win_arm64.whl", hash = "sha256:5498cd1645aa724a7c71c8f378eb29ebe23da2fc0d7a08071d89469bf1d2defb", size = 140246, upload-time = "2025-09-25T21:32:34.663Z" },
-]
-
-[[package]]
-name = "requirements-parser"
-version = "0.13.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "packaging" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/95/96/fb6dbfebb524d5601d359a47c78fe7ba1eef90fc4096404aa60c9a906fbb/requirements_parser-0.13.0.tar.gz", hash = "sha256:0843119ca2cb2331de4eb31b10d70462e39ace698fd660a915c247d2301a4418", size = 22630, upload-time = "2025-05-21T13:42:05.464Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/bd/60/50fbb6ffb35f733654466f1a90d162bcbea358adc3b0871339254fbc37b2/requirements_parser-0.13.0-py3-none-any.whl", hash = "sha256:2b3173faecf19ec5501971b7222d38f04cb45bb9d87d0ad629ca71e2e62ded14", size = 14782, upload-time = "2025-05-21T13:42:04.007Z" },
 ]
 
 [[package]]
