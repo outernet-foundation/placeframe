@@ -88,7 +88,7 @@ placeframe: five root `[tool.uv.sources]` entries deleted (bashrun, stack-toolki
 
 ### The bridge: CaptureTool repoints to npmjs exact pins
 
-CaptureTool's manifest swaps five `file:` refs for exact dev-channel pins from run `35547537192` (`org.outernet.placeframe.apiclient` `0.1.8-dev.35547537192`; `org.outernet.placeframe` and `-.arfoundation` `1.0.6-dev.35547537192`; `org.outernet.placeframe.auth` and `org.outernet.logging` `0.1.0-dev.35547537192`) — the Unity-side registry-consumption proof, exercising a real project rather than a scratch one. `org.outernet.placeframe.zedcaptureclient` stays `file:` until the zed repo's first publish (thread 4); `lock-unity` regenerates the lock; `compile-unity` is the sanity gate. MapRegistrationTool keeps its `file:` refs — the intra-repo consumption path stays exercised where it remains intra-repo.
+CaptureTool's manifest swaps five `file:` refs for exact dev-channel pins from run `35547537192` (`org.outernet.placeframe.apiclient` `0.1.8-dev.35547537192`; `org.outernet.placeframe` and `-.arfoundation` `1.0.6-dev.35547537192`; `org.outernet.placeframe.auth` and `org.outernet.logging` `0.1.0-dev.35547537192`) — the Unity-side registry-consumption proof, exercising a real project rather than a scratch one. `org.outernet.placeframe.zedcaptureclient` stays `file:` until the capture repo's first publish (thread 4); `lock-unity` regenerates the lock; `compile-unity` is the sanity gate. MapRegistrationTool keeps its `file:` refs — the intra-repo consumption path stays exercised where it remains intra-repo.
 
 ## Change set
 
