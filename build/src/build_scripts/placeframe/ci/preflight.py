@@ -83,7 +83,7 @@ def main() -> None:
 
     spec_paths = " ".join(
         f"{project}/openapi.json"
-        for project in json.loads(Path("build/openapi-projects.json").read_text(encoding="utf-8"))
+        for project in json.loads(Path("build/openapi-projects.json").read_text(encoding="utf-8"))["projects"]
     )
     _check_generated("datamodels", "uv run generate-datamodels", "packages/generated/python/datamodels/")
     _check_generated(
