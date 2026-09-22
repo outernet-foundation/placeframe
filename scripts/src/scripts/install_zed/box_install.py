@@ -9,7 +9,7 @@ from pathlib import Path
 from subprocess import CalledProcessError
 
 import typer
-from bashrun import bash, bash_check, bash_output
+from bashrun.bash import bash, bash_check, bash_output
 
 from .constants import (
     APPLIANCE_BANNER_PATHS,

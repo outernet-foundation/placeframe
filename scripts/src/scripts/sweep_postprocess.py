@@ -9,7 +9,7 @@ from uuid import UUID
 
 import numpy as np
 import typer
-from bashrun import bash, bash_output
+from bashrun.bash import bash, bash_output
 from docker_devkit.modes import parse_env_file
 
 from .displacement_check import (

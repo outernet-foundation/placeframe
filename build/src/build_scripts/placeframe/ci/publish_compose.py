@@ -8,7 +8,7 @@ from tempfile import TemporaryDirectory
 from typing import Literal
 
 import typer
-from bashrun import bash
+from bashrun.bash import bash
 from pydantic_settings import BaseSettings
 
 from ci_devkit.ci_step import ci_step

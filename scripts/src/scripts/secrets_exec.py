@@ -6,7 +6,7 @@ from pathlib import Path
 from subprocess import CalledProcessError
 
 import typer
-from bashrun import bash_handoff, bash_output
+from bashrun.bash import bash_handoff, bash_output
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_INFRA_PROJECT = REPO_ROOT.parent / "infra" / "placeframe"

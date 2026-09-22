@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
-from bashrun import bash, bash_check, bash_pipe
+from bashrun.bash import bash, bash_check, bash_pipe
 
 SCORE_DIR = Path("score")
 PROJECT = "score-poc"

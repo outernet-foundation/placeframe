@@ -7,7 +7,7 @@ import tempfile
 from pathlib import Path
 
 import typer
-from bashrun import bash, bash_check
+from bashrun.bash import bash, bash_check
 from pydantic_settings import BaseSettings
 
 from ci_devkit.cache import restore

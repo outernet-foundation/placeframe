@@ -6,7 +6,7 @@ from enum import Enum
 from pathlib import Path
 
 import typer
-from bashrun import bash, bash_check_stream
+from bashrun.bash import bash, bash_check_stream
 from pydantic_settings import BaseSettings
 
 from ci_devkit.cache import restore, save

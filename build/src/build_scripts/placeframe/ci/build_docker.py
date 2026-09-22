@@ -4,7 +4,7 @@ import shlex
 from typing import Literal
 
 import typer
-from bashrun import bash
+from bashrun.bash import bash
 from docker_devkit.detect_gpu import Gpu
 from pydantic_settings import BaseSettings
 

@@ -194,5 +194,11 @@ ignore = [
 # that pytest consumes implicitly; pytest-style test classes need no self use
 "**/tests/**" = ["S101", "ARG001", "ARG002", "PLR6301"]
 
+[lint.ruff]
+# RUF067 in strict mode: __init__.py files must be empty — no re-exports, no
+# side effects. Consumers import submodule paths (from pkg.mod import thing);
+# the package layout is the public surface.
+strictly-empty-init-modules = true
+
 [lint.flake8-builtins]
 ignorelist = ["id", "map"]

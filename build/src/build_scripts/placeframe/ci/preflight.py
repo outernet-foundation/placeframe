@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 
 import typer
-from bashrun import bash, bash_output
+from bashrun.bash import bash, bash_output
 
 from ci_devkit.ci_step import ci_step
 from docker_devkit.context_sha import compute_service_shas

@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
-from bashrun import bash
+from bashrun.bash import bash
 
 SCORE_DIR = Path("score")
 PROJECT = "score-poc"
