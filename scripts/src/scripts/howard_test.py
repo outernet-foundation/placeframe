@@ -439,6 +439,20 @@ def upload(
     typer.echo(f"Uploaded capture session {session.id} ({session.name}, {session.size_bytes} bytes)")
 
 
+@app.command(name="import-reconstruction")
+def import_reconstruction(
+    tar_path: Annotated[
+        Path, typer.Argument(help="Reconstruction tar (metadata.json + artifacts); its stem names the map")
+    ],
+    json_output: Annotated[bool, typer.Option("--json", help="Emit JSON instead of text")] = False,
+) -> None:
+    reconstruction = run(_import_reconstruction(tar_path.name, tar_path.read_bytes()))
+    if json_output:
+        typer.echo(dumps(_reconstruction_to_dict(reconstruction)))
+        return
+    typer.echo(f"Imported reconstruction {reconstruction.id} (capture session {reconstruction.capture_session_id})")
+
+
 @app.command()
 def reconstruct(
     capture_id: Annotated[UUID, typer.Argument(help="Capture session to reconstruct")],
@@ -843,6 +857,14 @@ async def _upload(
             _fail(exception)
 
 
+async def _import_reconstruction(tar_name: str, tar_bytes: bytes) -> ReconstructionReadWithQueue:
+    async with authenticated_api_client() as api:
+        try:
+            return await api.import_reconstruction_tar(data=(tar_name, tar_bytes), _request_timeout=REQUEST_TIMEOUT)
+        except ApiException as exception:
+            _fail(exception)
+
+
 async def _reconstruct(
     capture_id: UUID, options: ReconstructionOptions, wait: bool, timeout_s: float
 ) -> ReconstructionReadWithQueue:
@@ -1050,10 +1072,7 @@ async def _localize(
             if capture_id is None:
                 raise RuntimeError(f"Reconstruction {reconstruction_id} has no capture session")
 
-            manifest_bytes = await api.get_capture_session_manifest_file(id=capture_id)
-            manifest = CaptureSessionManifest.model_validate_json(manifest_bytes)
-            camera_config = PinholeCameraConfig(**manifest.rigs[0].cameras[0].camera_config.model_dump())
-            axis_convention = AxisConvention(manifest.axis_convention.value)
+            camera_config, axis_convention = await _query_camera(api, reconstruction_id, capture_id)
 
             map_id = await _get_or_create_localization_map(api, reconstruction_id)
 
@@ -1078,6 +1097,48 @@ async def _localize(
         except ApiException as exception:
             _fail(exception)
     return capture_id, entries
+
+
+async def _query_camera(
+    api: DefaultApi, reconstruction_id: UUID, capture_id: UUID
+) -> tuple[PinholeCameraConfig, AxisConvention]:
+    # Query images are assumed to come from the capture's camera. An imported reconstruction
+    # (POST /reconstructions/tar) hangs off a stand-in capture session with no tar, so the manifest
+    # fetch fails (500 "Download failed", or 404 if the tar lacks manifest.json); fall back to the
+    # map's own camera, in the OpenCV convention every sfm_model is written in.
+    try:
+        manifest_bytes = await api.get_capture_session_manifest_file(id=capture_id)
+    except ApiException as exception:
+        if cast("int | None", exception.status) not in (404, 500):
+            raise
+        typer.echo(
+            f"Capture {capture_id} has no manifest (imported reconstruction?); using the reconstruction's own camera",
+            err=True,
+        )
+        return _camera_config_from_tar(await _ensure_cached_tar(api, reconstruction_id)), AxisConvention.OPENCV
+    manifest = CaptureSessionManifest.model_validate_json(manifest_bytes)
+    camera_config = PinholeCameraConfig(**manifest.rigs[0].cameras[0].camera_config.model_dump())
+    return camera_config, AxisConvention(manifest.axis_convention.value)
+
+
+def _camera_config_from_tar(tar_path: Path) -> PinholeCameraConfig:
+    with tarfile.open(tar_path) as tar:
+        member = tar.extractfile("sfm_model/cameras.txt")
+        if member is None:
+            raise RuntimeError(f"{tar_path} has no sfm_model/cameras.txt")
+        lines = [line.split() for line in member.read().decode().splitlines() if line and not line.startswith("#")]
+    if len(lines) != 1 or lines[0][1] != "PINHOLE":
+        raise RuntimeError(f"Expected exactly one PINHOLE camera in {tar_path}, got {[line[:2] for line in lines]}")
+    _camera_id, _model, width, height, fx, fy, cx, cy = lines[0]
+    return PinholeCameraConfig(
+        width=int(width),
+        height=int(height),
+        orientation="TOP_LEFT",
+        fx=float(fx),
+        fy=float(fy),
+        cx=float(cx),
+        cy=float(cy),
+    )
 
 
 async def _get_or_create_localization_map(api: DefaultApi, reconstruction_id: UUID) -> UUID:
