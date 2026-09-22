@@ -6,7 +6,7 @@ from os import environ
 from pathlib import Path
 from typing import cast
 
-from stack_toolkit.modes import parse_env_file
+from docker_devkit.modes import parse_env_file
 from httpx import AsyncClient
 
 from placeframe_api_client import ApiClient, Configuration, DefaultApi, ServerInfo

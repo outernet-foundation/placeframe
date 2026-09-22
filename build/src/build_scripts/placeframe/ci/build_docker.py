@@ -5,12 +5,12 @@ from typing import Literal
 
 import typer
 from bashrun import bash
-from stack_toolkit.detect_gpu import Gpu
+from docker_devkit.detect_gpu import Gpu
 from pydantic_settings import BaseSettings
 
-from unity_buildkit.ci_step import ci_step
-from unity_buildkit.setup import configure_git, free_disk_space
-from stack_toolkit.build_docker import run_build
+from unity_devkit.ci_step import ci_step
+from unity_devkit.setup import configure_git, free_disk_space
+from docker_devkit.build_docker import run_build
 
 Variant = Literal["common", "cuda", "rocm"]
 

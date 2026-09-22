@@ -10,7 +10,7 @@ from uuid import UUID
 import numpy as np
 import typer
 from bashrun import bash, bash_output
-from stack_toolkit.modes import parse_env_file
+from docker_devkit.modes import parse_env_file
 
 from .displacement_check import (
     DEFAULT_SEQUENTIAL_WINDOW,

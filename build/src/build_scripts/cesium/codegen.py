@@ -9,11 +9,11 @@ import typer
 from bashrun import bash, bash_check_stream
 from pydantic_settings import BaseSettings
 
-from unity_buildkit.cache import restore, save
-from unity_buildkit.ci_step import ci_step
-from unity_buildkit.license_restore import restore_license
-from unity_buildkit.setup import configure_git, free_disk_space, install_dotnet
-from unity_buildkit.setup_oras import install_oras
+from unity_devkit.cache import restore, save
+from unity_devkit.ci_step import ci_step
+from unity_devkit.license_restore import restore_license
+from unity_devkit.setup import configure_git, free_disk_space, install_dotnet
+from unity_devkit.setup_oras import install_oras
 from .clone import clone
 from .paths import get_cesium_build_paths
 

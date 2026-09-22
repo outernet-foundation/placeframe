@@ -11,10 +11,10 @@ import typer
 from bashrun import bash
 from pydantic_settings import BaseSettings
 
-from unity_buildkit.ci_step import ci_step
-from unity_buildkit.setup import configure_git
-from stack_toolkit.context_sha import compute_service_shas
-from stack_toolkit.image_refs import resolve_remote_digest
+from unity_devkit.ci_step import ci_step
+from unity_devkit.setup import configure_git
+from docker_devkit.context_sha import compute_service_shas
+from docker_devkit.image_refs import resolve_remote_digest
 
 Variant = Literal["cuda", "rocm"]
 
