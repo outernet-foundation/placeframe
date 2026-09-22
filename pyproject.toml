@@ -40,6 +40,13 @@ config-settings-package.placeframe-api-client = { editable_mode = "compat" }
 config-settings-package.placeframe-lease-server-client = { editable_mode = "compat" }
 config-settings-package.placeframe-localizer-client = { editable_mode = "compat" }
 
+[tool.python-devkit.lock-python]
+# Dependency groups matching a pattern export into the mapped directory (once, deduplicated
+# across members) instead of the member directory. The neural-networks accelerator groups are
+# declared identically by the localizer and reconstructor but consumed only by the
+# neural-networks-base image, which is not a workspace member.
+group-export-dirs = { "neural-networks-*" = "docker/neural-networks-base" }
+
 [tool.uv.sources]
 placeframe-common = { workspace = true }
 placeframe-core = { workspace = true }

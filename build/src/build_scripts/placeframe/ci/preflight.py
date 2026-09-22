@@ -10,7 +10,7 @@ from bashrun import bash, bash_output
 from unity_devkit.ci_step import ci_step
 from docker_devkit.context_sha import compute_service_shas
 from docker_devkit.image_refs import VersionCoupling, VersionSite, unpinned_references, version_coupling_violations
-from ..lock_python import lock_python
+from python_devkit.lock_python import lock_python
 
 app = typer.Typer(add_completion=False, pretty_exceptions_show_locals=False)
 
