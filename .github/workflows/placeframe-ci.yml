@@ -61,7 +61,7 @@ jobs:
     permissions:
       contents: read
       packages: write
-    uses: ./.github/workflows/unity-build.yml
+    uses: outernet-foundation/unity-devkit/.github/workflows/unity-build.yml@85726f37caad2c9b0d894af4a9c24f1c7d4eaa2c
     with:
       runner-labels: '["self-hosted","unity"]'
       build-env: CONFIG_TYPE=${{ inputs.config_type || 'default' }}
