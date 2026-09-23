@@ -32,10 +32,10 @@ permissions:
   actions: read
 
 jobs:
-  release-pypi:
+  publish-stable-pypi:
     # PyPI trusted publishers are identified by (owner, repo, workflow filename, environment) and
     # that tuple is unique per project — so every PyPI package publishes from its own job under its
-    # own pypi-<project> environment. Runs before the main release job so create-release sees all tags.
+    # own pypi-<project> environment. Runs before the main publish-stable job so create-release sees all tags.
     if: github.event_name != 'workflow_run' && inputs.dev-publish != true
     strategy:
       matrix:
@@ -70,11 +70,11 @@ jobs:
       - name: Publish Python package
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: uvx --from release-devkit==0.1.3 publish-packages --config build/publish-config.json --only ${{ matrix.package }}
+        run: uvx --from release-devkit==0.1.8 publish-stable --config build/publish-config.json --only ${{ matrix.package }}
 
-  release:
+  publish-stable:
     if: github.event_name != 'workflow_run' && inputs.dev-publish != true
-    needs: [release-pypi]
+    needs: [publish-stable-pypi]
     runs-on: ubuntu-latest
     steps:
       - name: Generate app token
@@ -98,14 +98,14 @@ jobs:
         id: fetch-ci-artifacts
         env:
           GH_TOKEN: ${{ github.token }}
-        run: uvx --from release-devkit==0.1.3 fetch-ci-artifacts --config build/publish-config.json ${{ inputs.ci-run-id && format('--ci-run-id {0}', inputs.ci-run-id) || '' }}
+        run: uvx --from release-devkit==0.1.8 fetch-ci-artifacts --config build/publish-config.json ${{ inputs.ci-run-id && format('--ci-run-id {0}', inputs.ci-run-id) || '' }}
 
-      - name: Publish packages
+      - name: Publish stable
         env:
           NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: >-
-          uvx --from release-devkit==0.1.3 publish-packages
+          uvx --from release-devkit==0.1.8 publish-stable
           --config build/publish-config.json
           --exclude placeframe-common --exclude placeframe-core-python
           --with-apps
@@ -113,7 +113,7 @@ jobs:
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: uvx --from release-devkit==0.1.3 create-release --config build/publish-config.json
+        run: uvx --from release-devkit==0.1.8 create-release --config build/publish-config.json
 
   publish-dev:
     # The dev channel: every green dev push publishes immutable -dev.<ci-run-id> prereleases.
@@ -151,14 +151,14 @@ jobs:
           # mismatch surfaces as a bare ENEEDAUTH indistinguishable from a missing token
           NPM_CONFIG_LOGLEVEL: verbose
         run: >-
-          uvx --from release-devkit==0.1.3 publish-dev
+          uvx --from release-devkit==0.1.8 publish-dev
           --config build/publish-config.json
           --run-id ${{ github.event.workflow_run.id || inputs.dev-run-id }}
           --exclude placeframe-common --exclude placeframe-core-python
 
   publish-dev-pypi:
     # Dev channel for the PyPI pair — one job per package under its pypi-<project> environment,
-    # same trigger and same workflow file as publish-dev (see release-pypi for the tuple rule).
+    # same trigger and same workflow file as publish-dev (see publish-stable-pypi for the tuple rule).
     if: >-
       (github.event_name == 'workflow_run'
         && github.event.workflow_run.event == 'push'
@@ -189,7 +189,7 @@ jobs:
 
       - name: Publish dev prerelease
         run: >-
-          uvx --from release-devkit==0.1.3 publish-dev
+          uvx --from release-devkit==0.1.8 publish-dev
           --config build/publish-config.json
           --run-id ${{ github.event.workflow_run.id || inputs.dev-run-id }}
           --only ${{ matrix.package }}

@@ -55,7 +55,7 @@ jobs:
         run: echo "$GITHUB_TOKEN" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Populate image mirror
-        run: uvx --from release-devkit==0.1.3 mirror-images --config build/publish-config.json
+        run: uvx --from release-devkit==0.1.8 mirror-images --config build/publish-config.json
 
   unity:
     permissions:
@@ -177,4 +177,4 @@ jobs:
       - name: Ensure release PR exists
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: uvx --from release-devkit==0.1.3 ensure-release-pr
+        run: uvx --from release-devkit==0.1.8 ensure-release-pr
