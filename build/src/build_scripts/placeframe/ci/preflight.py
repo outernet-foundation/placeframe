@@ -29,8 +29,6 @@ VERSION_COUPLINGS = [
         pyproject_key="project.requires-python",
         sites=(
             VersionSite("uv base python component", "compose*.bake.yml", r"python([0-9][0-9.]*)", "UV_BASE_DIGEST"),
-            VersionSite("python base tag", "compose.zed.bake.yml", r"python:([0-9][0-9.]*)", "PYTHON_BASE_DIGEST"),
-            VersionSite("uv python install", "docker/zed-capture/Dockerfile", r"uv python install ([0-9][0-9.]*)"),
         ),
     ),
 ]

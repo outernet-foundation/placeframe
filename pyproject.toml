@@ -10,7 +10,6 @@ dev = ["build-scripts", "scripts", "basedpyright>=1.39.10", "ruff>=0.14.11", "py
 
 [tool.uv.workspace]
 members = [
-    "docker/aoa-bridge",
     "docker/database-manager",
     "docker/s3-initializer",
     "docker/api",
@@ -20,7 +19,6 @@ members = [
     "docker/orchestrator",
     "docker/rathole-client",
     "docker/reconstructor",
-    "docker/zed-capture",
     "packages/python/core",
     "packages/python/common",
     "packages/python/neural-networks",
@@ -74,8 +72,6 @@ typeCheckingMode = "strict"
 include = [
     "build/**/src/**/*.py",
     "build/**/src/**/*.pyi",
-    "docker/zed-capture/**/src/**/*.py",
-    "docker/zed-capture/**/src/**/*.pyi",
     "docker/**/src/**/*.py",
     "docker/**/src/**/*.pyi",
     "packages/**/src/**/*.py",
