@@ -10,9 +10,11 @@ dependencies = [
 
 # Decoding a video needs OpenCV, which the reconstructor does not: it is handed
 # already-extracted frames. Keeping the decoder behind an extra lets that service
-# depend on this package for the projection maths alone.
+# depend on this package for the projection maths alone. Full opencv-python
+# rather than the headless build, to match what lightglue already pulls in --
+# two OpenCV distributions in one environment fight over the cv2 module.
 [project.optional-dependencies]
-video = ["opencv-python-headless>=4.10"]
+video = ["opencv-python>=4.10"]
 
 [build-system]
 requires = ["hatchling"]

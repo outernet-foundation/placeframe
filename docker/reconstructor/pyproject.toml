@@ -8,6 +8,7 @@ dependencies = [
     "core",
     "common",
     "panorama",
+    "pillow>=12.0.0",
     "placeframe-lease-server-client",
     "httpx>=0.28.1",
     "numpy>=2.0",

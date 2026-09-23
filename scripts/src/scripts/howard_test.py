@@ -22,6 +22,8 @@ import numpy as np
 import typer
 from core.capture_session_manifest import CaptureSessionManifest
 from core.localization_metrics import RANSAC_THRESHOLD_DEFAULT, RETRIEVAL_TOP_K_DEFAULT
+from panorama.video import frames as video_frames
+from panorama.video import inspect as inspect_video
 from core.reconstruction_options import ReconstructionOptions as CoreReconstructionOptions
 from numpy.typing import NDArray  # noqa: TID251 -- one-off visualizer, not worth shape-branding
 from PIL import Image, ImageDraw, ImageFont
@@ -107,6 +109,10 @@ POSELESS_FRAME_INTERVAL_MS = 200
 # multi-camera priors-off path without touching the reconstructor itself.
 POSELESS_POSE_PRIOR_SIGMA_M = 1000.0
 
+# A spherical video is dense in time (30 fps); every fifth frame at walking pace
+# leaves enough baseline between frames without uploading the whole video.
+SPHERICAL_FRAME_STRIDE = 5
+
 _NATURAL_SORT_SPLIT_RE = re.compile(r"(\d+)")
 
 
@@ -149,6 +155,90 @@ async def upload_capture_session(
         id=id,
         _request_timeout=REQUEST_TIMEOUT,
     )
+
+
+def build_spherical_capture_tar(
+    video_path: Path,
+    stride: int,
+    max_width: int,
+) -> tuple[bytes, int, str]:
+    """Package a spherical video as a capture: one equirectangular frame per instant.
+
+    The frames are uploaded as the camera recorded them; the views a
+    reconstructor can model are rendered from them at reconstruction time, so
+    the layout stays a per-reconstruction choice (ReconstructionOptions'
+    spherical_* fields) rather than something baked into the capture.
+    """
+    info = inspect_video(video_path)
+    if not info.is_spherical:
+        raise ValueError(
+            f"{video_path.name} declares no spherical projection (no sv3d box), so it is an ordinary video; "
+            "only spherical captures are supported here"
+        )
+    if not info.is_equirectangular:
+        raise ValueError(f"{video_path.name} is {info.projection}; only EQUIRECTANGULAR frames are supported")
+
+    frame_interval_ms = 1000.0 * stride / info.fps
+    width = min(max_width, info.width) if max_width else info.width
+    height = width // 2
+
+    manifest = {
+        "axis_convention": "OPENCV",
+        "rigs": [
+            {
+                "id": "rig0",
+                "cameras": [
+                    {
+                        "id": "camera0",
+                        "ref_sensor": True,
+                        "rotation": {"x": 0.0, "y": 0.0, "z": 0.0, "w": 1.0},
+                        "translation": {"x": 0.0, "y": 0.0, "z": 0.0},
+                        # No focal length: a sphere is not a perspective image.
+                        "camera_config": {
+                            "orientation": "TOP_LEFT",
+                            "width": width,
+                            "height": height,
+                            "projection": "EQUIRECTANGULAR",
+                        },
+                    }
+                ],
+            }
+        ],
+        "capture_interval_seconds": frame_interval_ms / 1000.0,
+    }
+
+    buffer = BytesIO()
+    timestamps: list[int] = []
+    with tarfile.open(fileobj=buffer, mode="w") as tar:
+
+        def add_bytes(name: str, data: bytes) -> None:
+            info_member = tarfile.TarInfo(name=name)
+            info_member.size = len(data)
+            tar.addfile(info_member, BytesIO(data))
+
+        for index, frame in video_frames(video_path, stride):
+            timestamp_ms = round(index * 1000 / info.fps)
+            timestamps.append(timestamp_ms)
+            image = Image.fromarray(frame[:, :, ::-1])  # decoded BGR; PIL wants RGB
+            if width != info.width:
+                image = image.resize((width, height), Image.Resampling.LANCZOS)
+            encoded = BytesIO()
+            image.save(encoded, format="JPEG", quality=95)
+            add_bytes(f"rig0/camera0/{timestamp_ms}.jpg", encoded.getvalue())
+
+        if not timestamps:
+            raise ValueError(f"No frames decoded from {video_path}")
+
+        # Same synthetic straight-line trajectory as an image folder, for the same
+        # reason: a video carries no poses, and keyframe selection needs translations.
+        step_m = (POSELESS_TARGET_KEYFRAMES * POSELESS_KEYFRAME_MIN_DISTANCE_M) / max(1, len(timestamps) - 1)
+        frame_lines = ["timestamp_ms,tx,ty,tz,qx,qy,qz,qw"]
+        frame_lines += [f"{timestamp},{index * step_m:.6f},0,0,0,0,0,1" for index, timestamp in enumerate(timestamps)]
+        add_bytes("rig0/frames.csv", ("\n".join(frame_lines) + "\n").encode())
+        add_bytes("manifest.json", dumps(manifest).encode())
+
+    summary = f"{len(timestamps)} frames at {width}x{height} (every {stride} of {info.frame_count}, {info.fps:g} fps)"
+    return buffer.getvalue(), len(timestamps), summary
 
 
 def build_poseless_capture_tar(
@@ -622,6 +712,61 @@ def reconstruct_poseless(
     _report_reconstruction(reconstruction, json_output)
 
 
+@app.command(name="reconstruct-spherical")
+def reconstruct_spherical(
+    video: Annotated[Path, typer.Argument(help="Spherical (360) mp4; its own metadata must declare the projection")],
+    name: Annotated[str, typer.Option(help="Capture session name")],
+    stride: Annotated[int, typer.Option(help="Keep every Nth video frame")] = SPHERICAL_FRAME_STRIDE,
+    max_width: Annotated[
+        int,
+        typer.Option(
+            help="Downscale frames to at most this width before upload; 0 keeps the camera's own resolution. "
+            "A view rendered at --view-size over --view-fov-deg reads about (view-size / fov) pixels per degree, "
+            "so a width below 360 times that throws away detail the reconstruction would have used"
+        ),
+    ] = 0,
+    layout: Annotated[
+        str, typer.Option(help="Which views to reconstruct through: tetrahedron (covers the sphere) or cube")
+    ] = "tetrahedron",
+    view_fov_deg: Annotated[
+        float, typer.Option(help="Field of view of each rendered view; must stay under 180")
+    ] = 150.0,
+    view_size: Annotated[int, typer.Option(help="Pixel size of each rendered view")] = 1600,
+    use_all_images: Annotated[
+        bool,
+        typer.Option(
+            "--use-all-images/--auto-select-images",
+            help="Reconstruct every extracted frame instead of letting keyframe selection thin them to roughly "
+            f"{POSELESS_TARGET_KEYFRAMES}",
+        ),
+    ] = False,
+    options_json: Annotated[
+        str | None, typer.Option(help="JSON overrides for ReconstructionOptions; applied over the flags above")
+    ] = None,
+    wait: Annotated[bool, typer.Option(help="Poll until the reconstruction reaches a terminal status")] = False,
+    timeout_s: Annotated[float, typer.Option(help="Seconds to wait for --wait before giving up")] = (
+        RECONSTRUCTION_TIMEOUT_S
+    ),
+    json_output: Annotated[bool, typer.Option("--json", help="Emit JSON instead of text")] = False,
+) -> None:
+    overrides: dict[str, Any] = loads(options_json) if options_json else {}
+    overrides.setdefault("spherical_layout", layout)
+    overrides.setdefault("spherical_view_fov_deg", view_fov_deg)
+    overrides.setdefault("spherical_view_size", view_size)
+    reconstruction = run(
+        _reconstruct_spherical(
+            video,
+            name,
+            stride,
+            max_width,
+            _parse_poseless_options(dumps(overrides), use_all_images),
+            wait,
+            timeout_s,
+        )
+    )
+    _report_reconstruction(reconstruction, json_output)
+
+
 @app.command()
 def visualize(
     reconstruction_id: Annotated[UUID, typer.Argument(help="Reconstruction whose point cloud to render")],
@@ -1029,6 +1174,26 @@ async def _reconstruct(
     async with authenticated_api_client() as api:
         try:
             return await create_reconstruction(api, capture_id, options, wait, timeout_s)
+        except ApiException as exception:
+            _fail(exception)
+
+
+async def _reconstruct_spherical(
+    video_path: Path,
+    name: str,
+    stride: int,
+    max_width: int,
+    options: ReconstructionOptions,
+    wait: bool,
+    timeout_s: float,
+) -> ReconstructionReadWithQueue:
+    tar_bytes, frame_count, summary = await to_thread(build_spherical_capture_tar, video_path, stride, max_width)
+    typer.echo(f"{video_path.name}: {summary}; capture is {_format_size(len(tar_bytes))}", err=True)
+    async with authenticated_api_client() as api:
+        try:
+            capture = await upload_capture_session(api, f"{name}.tar", tar_bytes, DeviceType.ARFOUNDATION, name)
+            typer.echo(f"Uploaded spherical capture {capture.id} ({frame_count} frames)", err=True)
+            return await create_reconstruction(api, capture.id, options, wait, timeout_s)
         except ApiException as exception:
             _fail(exception)
 

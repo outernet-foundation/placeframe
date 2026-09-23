@@ -7,6 +7,7 @@ dependencies = [
     "bashrun",
     "stack-lifecycle",
     "core",
+    "panorama[video]",
     "placeframe-api-client",
     "pydantic>=2",
     "httpx>=0.28.1",
