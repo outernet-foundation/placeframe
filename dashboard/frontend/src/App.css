@@ -402,3 +402,17 @@ button.link:hover {
   margin: 3px 2px 0 0;
   flex-shrink: 0;
 }
+
+button.pencil {
+  background: none;
+  border: none;
+  padding: 0 2px;
+  color: #6b7280;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+button.pencil:hover {
+  color: #e6e6e6;
+}

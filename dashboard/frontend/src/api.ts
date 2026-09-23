@@ -53,6 +53,11 @@ export function deleteReconstruction(reconstructionId: string, cascade = false):
   return deleteRequest(`/api/reconstructions/${reconstructionId}${cascade ? "?cascade=true" : ""}`);
 }
 
+// Renames the capture session; a linked image folder's local name follows it.
+export function renameCapture(captureId: string, name: string): Promise<CaptureSession> {
+  return request(`/api/captures/${captureId}`, { method: "PATCH", body: JSON.stringify({ name }) });
+}
+
 // The capture's tar and row; `cascade` deletes its reconstructions first (each cascading as above).
 export function deleteCapture(captureId: string, cascade = false): Promise<void> {
   return deleteRequest(`/api/captures/${captureId}${cascade ? "?cascade=true" : ""}`);

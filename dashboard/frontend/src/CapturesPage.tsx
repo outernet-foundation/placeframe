@@ -9,6 +9,7 @@ import {
   listPoselessSets,
   listReconstructions,
   registerPoselessSet,
+  renameCapture,
   renamePoselessSet,
 } from "./api";
 import {
@@ -43,7 +44,6 @@ type Dialog =
   | { kind: "export"; exportKind: ExportKind; reconstruction: Reconstruction }
   | { kind: "save"; saveKind: "table" | "images"; runId: string }
   | { kind: "deleteReconstruction"; reconstruction: Reconstruction }
-  | { kind: "deleteRun"; run: LocalizationSummary }
   | { kind: "deleteSelection" };
 
 // Selection keys are type-tagged so one set can hold all three kinds of row.
@@ -98,6 +98,44 @@ function Toggle({ open, onClick }: { open: boolean; onClick: () => void }) {
   );
 }
 
+type Renaming = { kind: "capture" | "set"; id: string; value: string } | null;
+
+// Click-to-edit name, opened by the pencil: Enter or blur saves, Escape abandons. Module-level so
+// editing doesn't remount the input (and drop focus) on each keystroke.
+function NameField({ kind, id, name, renaming, setRenaming, commit }: {
+  kind: "capture" | "set";
+  id: string;
+  name: string;
+  renaming: Renaming;
+  setRenaming: (value: Renaming) => void;
+  commit: () => void;
+}) {
+  if (renaming?.id === id) {
+    return (
+      <input
+        autoFocus
+        // Preselected so typing replaces the name, rather than inserting at the click position.
+        onFocus={(e) => e.target.select()}
+        value={renaming.value}
+        onChange={(e) => setRenaming({ kind, id, value: e.target.value })}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") commit();
+          if (e.key === "Escape") setRenaming(null);
+        }}
+      />
+    );
+  }
+  return (
+    <>
+      <span className="node-name">{name}</span>
+      <button className="pencil" onClick={() => setRenaming({ kind, id, value: name })} title="Rename" aria-label="Rename">
+        ✎
+      </button>
+    </>
+  );
+}
+
 const sleep = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
 export function CapturesPage() {
@@ -115,7 +153,8 @@ export function CapturesPage() {
   const [notices, setNotices] = useState<Notice[]>([]);
   const [expanded, setExpanded] = useState<Record<string, boolean>>(readExpanded);
   const [resultsOpen, setResultsOpen] = useState<Set<string>>(new Set());
-  const [renaming, setRenaming] = useState<{ id: string; value: string } | null>(null);
+  // Inline rename, for a capture (the API's own name) or an unlinked image folder (local only).
+  const [renaming, setRenaming] = useState<Renaming>(null);
   const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState<Set<SelectionKey>>(new Set());
   const nextNoticeId = useRef(0);
@@ -257,11 +296,11 @@ export function CapturesPage() {
 
   async function commitRename(): Promise<void> {
     if (!renaming) return;
-    const { id, value } = renaming;
+    const { kind, id, value } = renaming;
     setRenaming(null);
     if (!value.trim()) return;
     try {
-      await renamePoselessSet(id, value.trim());
+      await (kind === "capture" ? renameCapture(id, value.trim()) : renamePoselessSet(id, value.trim()));
       await refreshFast();
     } catch (err) {
       notify("error", errorText(err));
@@ -358,7 +397,14 @@ export function CapturesPage() {
           <Toggle open={open} onClick={() => setOpen(c.id, !open)} />
           <div className="node-main">
             <div className="node-title">
-              <span className="node-name">{c.name}</span>
+              <NameField
+                kind="capture"
+                id={c.id}
+                name={c.name}
+                renaming={renaming}
+                setRenaming={setRenaming}
+                commit={() => void commitRename()}
+              />
               <span className="badge">{imported ? "Imported" : set ? "Image folder" : c.device_type}</span>
               <span className="node-count">
                 {children.length} reconstruction{children.length === 1 ? "" : "s"}
@@ -398,22 +444,14 @@ export function CapturesPage() {
           <span className="toggle-spacer" />
           <div className="node-main">
             <div className="node-title">
-              {renaming?.id === s.id ? (
-                <input
-                  autoFocus
-                  value={renaming.value}
-                  onChange={(e) => setRenaming({ id: s.id, value: e.target.value })}
-                  onBlur={() => void commitRename()}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") void commitRename();
-                    if (e.key === "Escape") setRenaming(null);
-                  }}
-                />
-              ) : (
-                <span className="node-name editable-name" onClick={() => setRenaming({ id: s.id, value: s.name })} title="Click to rename">
-                  {s.name}
-                </span>
-              )}
+              <NameField
+                kind="set"
+                id={s.id}
+                name={s.name}
+                renaming={renaming}
+                setRenaming={setRenaming}
+                commit={() => void commitRename()}
+              />
               <span className="badge">Image folder</span>
               <span className="node-count">no linked capture yet</span>
             </div>
@@ -549,7 +587,6 @@ export function CapturesPage() {
                 <button onClick={() => setDialog({ kind: "save", saveKind: "images", runId: run.run_id })}>Save images</button>
               </>
             )}
-            {run.status !== "running" && <button onClick={() => setDialog({ kind: "deleteRun", run })}>Delete</button>}
           </div>
         </div>
         {done && showing && (
@@ -762,19 +799,6 @@ export function CapturesPage() {
             Stored data on the server (object storage and database rows) is removed as well. This cannot be undone.
             Query images and registered image folders are not touched.
           </>
-        </ConfirmDeleteDialog>
-      )}
-      {dialog?.kind === "deleteRun" && (
-        <ConfirmDeleteDialog
-          title="Delete localization run?"
-          onClose={() => setDialog(null)}
-          onConfirm={async () => {
-            await deleteLocalization(dialog.run.run_id);
-            await refreshFast();
-          }}
-        >
-          This deletes run <span className="mono">{dialog.run.run_id}</span>'s results (poses and thumbnails in{" "}
-          <span className="mono">data/localizations/</span>). Its query images are not touched.
         </ConfirmDeleteDialog>
       )}
     </div>

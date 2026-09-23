@@ -34,6 +34,7 @@ from placeframe_api_client import (
     ApiException,
     AxisConvention,
     CaptureSessionRead,
+    CaptureSessionUpdate,
     DefaultApi,
     DeviceType,
     LocalizationMapCreate,
@@ -476,6 +477,19 @@ def delete_reconstruction(
         typer.echo(f"  localization map: {'deleted' if removed['localization_map'] else 'none'}")
         typer.echo(f"  local runs deleted: {len(removed['localization_runs'])}")
         typer.echo(f"  local cache files deleted: {removed['cached_files']}")
+
+
+@app.command(name="rename-capture")
+def rename_capture(
+    capture_id: Annotated[UUID, typer.Argument(help="Capture session to rename")],
+    name: Annotated[str, typer.Argument(help="New name")],
+    json_output: Annotated[bool, typer.Option("--json", help="Emit JSON instead of text")] = False,
+) -> None:
+    session = run(_rename_capture(capture_id, name))
+    if json_output:
+        typer.echo(dumps(_capture_to_dict(session)))
+        return
+    typer.echo(f"Renamed capture session {capture_id} to {session.name}")
 
 
 @app.command(name="delete-capture")
@@ -1121,6 +1135,16 @@ async def _delete_reconstruction_with(api: DefaultApi, reconstruction_id: UUID, 
 async def _delete_reconstruction(reconstruction_id: UUID, cascade: bool = False) -> dict[str, Any]:
     async with authenticated_api_client() as api:
         return await _delete_reconstruction_with(api, reconstruction_id, cascade)
+
+
+async def _rename_capture(capture_id: UUID, name: str) -> CaptureSessionRead:
+    async with authenticated_api_client() as api:
+        try:
+            return await api.update_capture_session(
+                id=capture_id, capture_session_update=CaptureSessionUpdate(name=name)
+            )
+        except ApiException as exception:
+            _fail(exception)
 
 
 async def _delete_capture(capture_id: UUID, cascade: bool) -> dict[str, Any]:

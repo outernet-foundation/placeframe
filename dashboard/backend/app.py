@@ -173,6 +173,31 @@ async def delete_reconstruction(reconstruction_id: str, cascade: bool = False) -
     await _run_howard_test_json_async("delete-reconstruction", reconstruction_id, *(["--cascade"] if cascade else []))
 
 
+@dataclass
+class RenameCaptureRequest:
+    name: str
+
+
+# Renames the capture session itself (the API's own name), and keeps a linked image folder's local
+# name in step so the row doesn't show two different names for the same thing.
+@patch("/api/captures/{capture_id:str}")
+async def rename_capture(capture_id: str, data: RenameCaptureRequest) -> dict[str, Any]:
+    session = await _run_howard_test_json_async("rename-capture", capture_id, data.name)
+    await asyncio.to_thread(_rename_linked_poseless_set, capture_id, data.name)
+    return session
+
+
+def _rename_linked_poseless_set(capture_id: str, name: str) -> None:
+    index = _load_poseless_index()
+    changed = False
+    for entry in index.values():
+        if entry.get("capture_session_id") == capture_id:
+            entry["name"] = name
+            changed = True
+    if changed:
+        _save_poseless_index(index)
+
+
 # The capture's tar and row; `cascade=true` deletes its reconstructions (each cascading as above)
 # first, which the API otherwise refuses. Also unlinks the image folder that uploaded it, if any,
 # so the folder reappears as unlinked rather than pointing at a deleted capture.
@@ -711,6 +736,7 @@ app = Litestar(
         list_reconstructions,
         delete_reconstruction,
         delete_capture,
+        rename_capture,
         import_reconstruction,
         list_localizations,
         delete_localization,
