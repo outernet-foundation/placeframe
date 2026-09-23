@@ -1,6 +1,6 @@
 import shlex
 
-from bashrun import bash, bash_check, bash_output
+from bashrun.bash import bash, bash_check, bash_output
 
 from .constants import BOX_SSH_TARGET, SSH_MUX
 

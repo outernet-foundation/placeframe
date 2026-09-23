@@ -2,8 +2,8 @@ from logging import getLogger
 from typing import Annotated
 
 import typer
-from stack_toolkit.context_sha import compute_service_shas
-from bashrun import bash
+from docker_devkit.context_sha import compute_service_shas
+from bashrun.bash import bash
 from placeframe_common.logging_config import configure_logging
 
 from .box_install import install_box

@@ -133,15 +133,6 @@ services:
         - "ghcr.io/outernet-foundation/placeframe/alloy:latest"
         - "ghcr.io/outernet-foundation/placeframe/alloy:${ALLOY_SHA}"
 
-  grafana:
-    build:
-      context: .
-      dockerfile: docker/grafana/Dockerfile
-      args: *base-args
-      tags:
-        - "ghcr.io/outernet-foundation/placeframe/grafana:latest"
-        - "ghcr.io/outernet-foundation/placeframe/grafana:${GRAFANA_SHA}"
-
   postgres:
     build:
       context: .

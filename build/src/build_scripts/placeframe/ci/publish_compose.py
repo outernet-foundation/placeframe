@@ -5,16 +5,18 @@ import re
 import shlex
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Literal
+from typing import Any, Literal
 
 import typer
-from bashrun import bash
+import yaml
+from bashrun.bash import bash
+from pydantic import BaseModel, ConfigDict
 from pydantic_settings import BaseSettings
 
-from unity_buildkit.ci_step import ci_step
-from unity_buildkit.setup import configure_git
-from stack_toolkit.context_sha import compute_service_shas
-from stack_toolkit.image_refs import resolve_remote_digest
+from ci_devkit.ci_step import ci_step
+from ci_devkit.setup import configure_git
+from docker_devkit.context_sha import compute_service_shas
+from docker_devkit.image_refs import resolve_remote_digest
 
 Variant = Literal["cuda", "rocm"]
 
@@ -32,13 +34,24 @@ class Settings(BaseSettings):
     branch_name: str
 
 
-settings = Settings.model_validate({})
+class ComposeConfig(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    file: str | None = None
+
+
+class ComposeDocument(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    configs: dict[str, ComposeConfig] | None = None
+
 
 ci_app = typer.Typer(add_completion=False, pretty_exceptions_show_locals=False)
 
 
 @ci_app.command()
 def ci_main(variant: Variant = typer.Option(help="Publish variant: cuda or rocm")) -> None:
+    settings = Settings.model_validate({})
     with ci_step("Setup"):
         configure_git(settings.github_workspace)
 
@@ -76,6 +89,15 @@ def ci_main(variant: Variant = typer.Option(help="Publish variant: cuda or rocm"
                 baked_text = _VAR_PATTERN.sub(substitute, Path(source_name).read_text(encoding="utf-8"))
                 (baked_directory / source_name).write_text(baked_text, encoding="utf-8")
             compose_files = " ".join(f"-f {shlex.quote(str(baked_directory / name))}" for name in source_names)
+
+        with ci_step("Inline configs content"):
+            # The published artifact is YAML-only: file-sourced configs dangle in
+            # the include consumer's materialization cache, so they ride as inline
+            # content. Literal $ doubles to $$ so the consumer's compose parse
+            # leaves env expansion to the container (loki -config.expand-env)
+            # instead of interpolating values at include time.
+            for source_name in source_names:
+                _inline_configs(baked_directory / source_name)
 
         with ci_step("Pin placeframe service image digests"):
             digests: dict[str, str] = {}
@@ -121,3 +143,23 @@ def _load_env_file(path: Path) -> dict[str, str]:
         for line in path.read_text(encoding="utf-8").splitlines()
         if "=" in line and not line.lstrip().startswith("#")
     }
+
+
+def _inline_configs(baked_path: Path) -> None:
+    document = yaml.safe_load(baked_path.read_text(encoding="utf-8"))
+    parsed = ComposeDocument.model_validate(document)
+    if parsed.configs is None:
+        return
+    inlined: dict[str, dict[str, Any]] = {}
+    for name, config in parsed.configs.items():
+        if config.file is None:
+            continue
+        entry = config.model_dump(exclude_defaults=True)
+        entry.pop("file", None)
+        entry["content"] = Path(config.file).read_text(encoding="utf-8").replace("$", "$$")
+        inlined[name] = entry
+    document["configs"] = inlined
+    baked_path.write_text(
+        yaml.dump(document, default_flow_style=False, sort_keys=False, width=1_000_000),
+        encoding="utf-8",
+    )

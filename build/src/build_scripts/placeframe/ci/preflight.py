@@ -5,12 +5,12 @@ import os
 from pathlib import Path
 
 import typer
-from bashrun import bash, bash_output
+from bashrun.bash import bash, bash_output
 
-from unity_buildkit.ci_step import ci_step
-from stack_toolkit.context_sha import compute_service_shas
-from stack_toolkit.image_refs import VersionCoupling, VersionSite, unpinned_references, version_coupling_violations
-from ..lock_python import lock_python
+from ci_devkit.ci_step import ci_step
+from docker_devkit.context_sha import compute_service_shas
+from docker_devkit.image_refs import VersionCoupling, VersionSite, unpinned_references, version_coupling_violations
+from python_devkit.preflight import preflight as run_battery
 
 app = typer.Typer(add_completion=False, pretty_exceptions_show_locals=False)
 
@@ -79,36 +79,27 @@ def main() -> None:
         )
         bash("./docker/database-migrator/entrypoint.sh")
 
-    for label, command in [
-        ("Sync", "uv sync --all-packages --extra cpu"),
-        ("Lint", "uv run ruff check ."),
-        ("Format", "uv run ruff format --check ."),
-        ("Type check", "uv run basedpyright"),
-        ("Dependency check", "uv run deptry-check"),
-        ("Test", "uv run pytest"),
-    ]:
-        with ci_step(label):
-            bash(command)
+    run_battery(Path())
 
-    with ci_step("Check lock files"):
-        lock_python(check=True)
+    spec_paths = " ".join(
+        f"{project}/openapi.json"
+        for project in json.loads(Path("build/openapi-projects.json").read_text(encoding="utf-8"))["projects"]
+    )
+    _check_generated("datamodels", "uv run generate-datamodels", "packages/generated/python/datamodels/")
+    _check_generated(
+        "API clients",
+        "uv run generate-clients --config build/openapi-projects.json --no-cache",
+        f"{spec_paths} packages/generated/",
+        "uv run generate-clients --config build/openapi-projects.json",
+    )
 
-    with ci_step("Check datamodel codegen"):
-        bash("uv run generate-datamodels")
-        staleness_output = bash_output("git status --porcelain -- packages/generated/python/datamodels/")
+
+def _check_generated(label: str, generate_command: str, pathspec: str, fix_command: str | None = None) -> None:
+    with ci_step(f"Check {label}"):
+        bash(generate_command)
+        staleness_output = bash_output(f"git status --porcelain -- {pathspec}")
         if staleness_output.strip():
-            bash("git diff -- packages/generated/python/datamodels/")
-            raise SystemExit("Generated datamodels are stale. Run 'uv run generate-datamodels' locally.")
-
-    with ci_step("Check client codegen"):
-        spec_paths = " ".join(
-            f"{project}/openapi.json"
-            for project in json.loads(Path("build/openapi-projects.json").read_text(encoding="utf-8"))
-        )
-        bash("uv run generate-clients --config build/openapi-projects.json --no-cache")
-        staleness_output = bash_output(f"git status --porcelain -- {spec_paths} packages/generated/")
-        if staleness_output.strip():
-            bash(f"git diff -- {spec_paths} packages/generated/")
+            bash(f"git diff -- {pathspec}")
             raise SystemExit(
-                "Generated API clients are stale. Run 'uv run generate-clients --config build/openapi-projects.json' locally."
+                f"{label} output is stale. Run '{fix_command or generate_command}' locally and commit the result."
             )

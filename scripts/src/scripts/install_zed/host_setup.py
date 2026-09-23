@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Literal
 
 import typer
-from bashrun import bash, bash_check, bash_output
+from bashrun.bash import bash, bash_check, bash_output
 
 from .constants import (
     BOX_SUBNET,

@@ -9,7 +9,7 @@ from tempfile import TemporaryDirectory
 from textwrap import dedent
 from typing import Any
 
-from bashrun import bash
+from bashrun.bash import bash
 from pydantic import create_model
 from pydantic.alias_generators import to_snake
 from sqlalchemy import MetaData, create_engine, inspect as sa_inspect
@@ -30,7 +30,7 @@ def cli():
     _generate_datamodels_for_schema("public", DATAMODELS_PATH / "src" / "datamodels", engine)
     _generate_datamodels_for_schema("auth", DATAMODELS_PATH / "src" / "datamodels", engine)
     engine.dispose()
-    bash(f"uv pip install {DATAMODELS_PATH.resolve().as_posix()}")
+    bash(f"uv pip install --python {sys.executable} {DATAMODELS_PATH.resolve().as_posix()}")
 
 
 def _generate_datamodels_for_schema(database_schema: str, models_path: Path, engine: Any) -> None:

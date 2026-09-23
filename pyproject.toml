@@ -6,7 +6,7 @@ dependencies = []
 
 
 [dependency-groups]
-dev = ["build-scripts", "scripts", "basedpyright>=1.39.10", "deptry>=0.24.0", "ruff>=0.14.11", "pytest>=8.0.0", "pytest-asyncio>=0.24.0"]
+dev = ["build-scripts", "scripts", "basedpyright>=1.39.10", "ruff>=0.14.11", "pytest>=8.0.0", "pytest-asyncio>=0.24.0"]
 
 [tool.uv.workspace]
 members = [
@@ -39,6 +39,20 @@ required-version = "==0.12.15"
 config-settings-package.placeframe-api-client = { editable_mode = "compat" }
 config-settings-package.placeframe-lease-server-client = { editable_mode = "compat" }
 config-settings-package.placeframe-localizer-client = { editable_mode = "compat" }
+
+[tool.python-devkit.lock-python]
+# Dependency groups matching a pattern export into the mapped directory (once, deduplicated
+# across members) instead of the member directory. The neural-networks accelerator groups are
+# declared identically by the localizer and reconstructor but consumed only by the
+# neural-networks-base image, which is not a workspace member.
+group-export-dirs = { "neural-networks-*" = "docker/neural-networks-base" }
+
+[tool.python-devkit.preflight]
+# The battery's sync step needs every workspace member plus the cpu accelerator extra so
+# the localizer's spec dump and tests resolve without a CUDA stack.
+sync-args = ["--all-packages", "--extra", "cpu"]
+# Generated packages and vendored third-party code don't own their dependency lists.
+deptry-exclude = ["packages/generated/*", "packages/python/neural-networks/third-party/*"]
 
 [tool.uv.sources]
 placeframe-common = { workspace = true }

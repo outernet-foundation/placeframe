@@ -6,13 +6,13 @@ from enum import Enum
 from pathlib import Path
 
 import typer
-from bashrun import bash
+from bashrun.bash import bash
 from pydantic_settings import BaseSettings
 
-from unity_buildkit.cache import restore, save
-from unity_buildkit.ci_step import ci_step
-from unity_buildkit.setup import configure_git, free_disk_space
-from unity_buildkit.setup_oras import install_oras
+from ci_devkit.cache import restore, save
+from ci_devkit.ci_step import ci_step
+from ci_devkit.setup import configure_git, free_disk_space
+from ci_devkit.setup_oras import install_oras
 from .clone import clone
 from .paths import get_cesium_build_paths
 

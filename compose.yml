@@ -317,7 +317,7 @@ services:
   # volume at runtime instead, independent of image-layer and build-cache
   # behavior. Reuses the loki image (busybox chown) so no extra image is pinned.
   initialize-loki:
-    image: "ghcr.io/outernet-foundation/placeframe/loki:${LOKI_SHA:?err}"
+    image: "ghcr.io/outernet-foundation/mirror/docker.io/grafana/loki${LOKI_DIGEST:?err}"
     user: "0:0"
     restart: "no"
     volumes:
@@ -325,7 +325,7 @@ services:
     entrypoint: ["/bin/sh", "-c", "chown -R 10001:10001 /loki"]
 
   loki:
-    image: "ghcr.io/outernet-foundation/placeframe/loki:${LOKI_SHA:?err}"
+    image: "ghcr.io/outernet-foundation/mirror/docker.io/grafana/loki${LOKI_DIGEST:?err}"
     depends_on:
       initialize-s3:
         condition: service_completed_successfully
@@ -333,6 +333,9 @@ services:
         condition: service_completed_successfully
     volumes:
       - loki_data:/loki
+    configs:
+      - source: loki_config
+        target: /etc/loki/config.yaml
     command: -config.file=/etc/loki/config.yaml -config.expand-env=true
     healthcheck:
       test: [ "CMD", "wget", "--quiet", "--tries=1", "--output-document=-", "http://localhost:3100/ready" ]
@@ -345,7 +348,7 @@ services:
       S3_SECRET_KEY: "${S3_SECRET_KEY:?err}"
 
   alloy:
-    image: "ghcr.io/outernet-foundation/placeframe/alloy:${ALLOY_SHA:?err}"
+    image: "ghcr.io/outernet-foundation/mirror/docker.io/grafana/alloy${ALLOY_DIGEST:?err}"
     depends_on:
       loki:
         condition: service_healthy
@@ -354,9 +357,12 @@ services:
     environment:
       LOKI_WRITE_ENDPOINT: "http://loki:3100/loki/api/v1/push"
     command: run /etc/alloy/config.alloy
+    configs:
+      - source: alloy_config
+        target: /etc/alloy/config.alloy
 
   grafana:
-    image: "ghcr.io/outernet-foundation/placeframe/grafana:${GRAFANA_SHA:?err}"
+    image: "ghcr.io/outernet-foundation/mirror/docker.io/grafana/grafana${GRAFANA_DIGEST:?err}"
     depends_on:
       loki:
         condition: service_healthy
@@ -385,3 +391,14 @@ services:
       GF_AUTH_GENERIC_OAUTH_TOKEN_URL: "${PUBLIC_URL:?err}/auth/realms/placeframe-dev/protocol/openid-connect/token"
       GF_AUTH_GENERIC_OAUTH_API_URL: "${PUBLIC_URL:?err}/auth/realms/placeframe-dev/protocol/openid-connect/userinfo"
       GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_PATH: "'Admin'"
+    configs:
+      - source: grafana_datasources
+        target: /etc/grafana/provisioning/datasources/datasources.yaml
+
+configs:
+  loki_config:
+    file: docker/loki/config.yaml
+  alloy_config:
+    file: docker/alloy/config.alloy
+  grafana_datasources:
+    file: docker/grafana/provisioning/datasources/datasources.yaml
