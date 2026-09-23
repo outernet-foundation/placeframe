@@ -20,7 +20,7 @@ Placeframe's server-side stack: a set of cooperating microservices that ingest c
 | `ngrok` | (no Dockerfile — upstream image) | ngrok | Always present in compose; self-skips when `NGROK_DOMAIN` is empty. When set, runs an [ngrok](https://ngrok.com) HTTP tunnel forwarding public traffic to the gateway at `http://gateway:8443` (cleartext, HTTP/2 upstream via h2c). Authenticates with `NGROK_AUTHTOKEN` from `.env`. Consumers that need UDP plumbing (e.g. LiveKit's RTC media plane in Make-it-Sing) layer a different tunnel agent in their own compose. |
 | `keycloak` | `keycloak/` | Keycloak 26 | OIDC / OAuth2 identity provider. Gated by the `keycloak` compose profile — present only when `AUTH_MODE=keycloak`. |
 
-**Observability**: `loki/` (log storage, monolithic mode), `alloy/` (OTLP log relay), `grafana/` (query UI) — digest-pinned stock mirror images, not built wrappers. Configs ride compose top-level `configs:` from `docker/loki/config.yaml`, `docker/alloy/config.alloy`, and `docker/grafana/provisioning/datasources/datasources.yaml`, mounted at the in-container paths the `command:` overrides reference. Loki writes to a `loki` bucket in the shared SeaweedFS; its config expands `${S3_ACCESS_KEY}`/`${S3_SECRET_KEY}` at runtime (`-config.expand-env=true`). Services push OTLP/gRPC to alloy on 4317 — alloy mounts no docker.sock and discovers nothing. The published OCI bundle inlines the configs as `content:` (`publish_compose.py` rewrites `file:` → `content:`, `$`-doubled so env expansion stays in the container). The ZED box still consumes wrapper loki/alloy images until Stage B of the stock-consumption plan.
+**Observability**: `loki/` (log storage, monolithic mode), `alloy/` (OTLP log relay), `grafana/` (query UI) — digest-pinned stock mirror images, not built wrappers. Configs ride compose top-level `configs:` from `docker/loki/config.yaml`, `docker/alloy/config.alloy`, and `docker/grafana/provisioning/datasources/datasources.yaml`, mounted at the in-container paths the `command:` overrides reference. Loki writes to a `loki` bucket in the shared SeaweedFS; its config expands `${S3_ACCESS_KEY}`/`${S3_SECRET_KEY}` at runtime (`-config.expand-env=true`). Services push OTLP/gRPC to alloy on 4317 — alloy mounts no docker.sock and discovers nothing. The published OCI bundle inlines the configs as `content:` (`publish_compose.py` rewrites `file:` → `content:`, `$`-doubled so env expansion stays in the container). The ZED box consumes the same stock images + its own configs from the [placeframe-capture-tool](https://github.com/outernet-foundation/placeframe-capture-tool) repo (`config.alloy` there is a mirror of this file — the one config the two stacks shared; `LOKI_WRITE_ENDPOINT` env drives the only difference).
 
 **Backing services**: PostgreSQL 16, SeaweedFS (S3-compatible object storage; `seaweedfs` server + `seaweedfs-admin` web console + `seaweedfs-audit` relay), CloudBeaver (web DB UI).
 
@@ -39,7 +39,7 @@ phone --[tar]--> api --[row+blob]--> SeaweedFS
 phone --[query img]--> localizer --[lookup]'
 ```
 
-1. **Capture**: a Unity phone client (`apps/CaptureTool/`) records images + sensor data and POSTs a `.tar` to the API. The API stores the tar in `dev-captures/<capture_session_id>.tar` and inserts a row at `queued`.
+1. **Capture**: the capture-tool phone app (in the [placeframe-capture-tool](https://github.com/outernet-foundation/placeframe-capture-tool) repo) records images + sensor data and POSTs a `.tar` to the API. The API stores the tar in `dev-captures/<capture_session_id>.tar` and inserts a row at `queued`.
 2. **Reconstruction**: the `reconstructor` worker polls `lease-server`'s `POST /leases/request` over the compose network to claim queued work (no separate orchestrator service — it's a worker-pull architecture). On a successful claim, it downloads the tar, runs feature extraction → matching → OPQ/PQ training → geometric verification → SfM, uploads outputs to `dev-reconstructions/<reconstruction_id>/`, then `PUT`s `/leases/<id>/succeed` (or `/fail`) to `lease-server`. Progress updates between phases go through `/leases/<id>/progress`.
 3. **Localization**: a Unity client posts a query image to `localizer`, which matches it against the stored map and estimates a 6-DOF pose via RANSAC / PnP.
 4. **Georeferencing**: the Map Registration Tool (Unity standalone) can visually align point clouds against Cesium tilesets (OSM / Google Photorealistic Tiles) to anchor a map in real-world coordinates.
@@ -80,7 +80,7 @@ The fourth combination, `http://…` + `keycloak`, is rejected at compose startu
 
 ## Debugging
 
-Operational commands for investigating "what did the system actually do?" — DB, blob, and log queries. (The zed-box SSH / sandbox-key access path lives in `scripts/AGENTS.md`.)
+Operational commands for investigating "what did the system actually do?" — DB, blob, and log queries.
 
 ### Postgres
 
@@ -191,8 +191,8 @@ For repeated queries, use `uv run loki-query` (`scripts/AGENTS.md`) — it handl
 
 - **api** → Loki `service_name="api"`. Every HTTP request, including `/internal/leases/<id>/{progress,succeed,fail}` from the reconstructor.
 - **reconstructor-cuda** → Loki `service_name="reconstructor-cuda"` and `docker logs`. Per-image progress, S3 put markers, lease lifecycle (`Acquired lease`, `Reconstruction succeeded`, `Reconstruction failed: …`). To observe end-to-end lease activity from the API side, query the **api** logs for `/internal/leases/` traffic — lease-request 404s mean "no work available", lease-progress 200s mean an active job is reporting in.
-- **capture-tool** (phone) → Loki `service_name="capture-tool"`, pushed directly from the Unity app via the gateway. See `apps/CaptureTool/CLAUDE.md` for relay details.
-- **zed-capture** (ZED box) → Loki `service_name="zed-capture"`, but **only while the phone is AOA-connected and logged in**. The box has no direct backend link: its logs are drained from box-side `aoa-loki` by the phone's `LogDrainController` and pushed verbatim to the backend Loki. An empty `{service_name="zed-capture"}` result usually means the phone isn't draining (no AOA link, not logged in, or nothing newer than the drain cursor) — not that the box logged nothing. To read the box directly, `ssh zed-box` (see `scripts/AGENTS.md`), then query box-side `aoa-loki` (`wget -qO- 'http://127.0.0.1:3100/loki/api/v1/query_range?query=%7Bservice_name%3D~%22.%2B%22%7D'`) or `sudo docker logs $(sudo docker ps -q --filter name=zed-capture)`. Full mechanism in `docker/zed-capture/CLAUDE.md`.
+- **capture-tool** (phone) → Loki `service_name="capture-tool"`, pushed directly from the Unity app via the gateway. The app lives in the [placeframe-capture-tool](https://github.com/outernet-foundation/placeframe-capture-tool) repo; relay details are documented there.
+- **zed-capture** (ZED box) → Loki `service_name="zed-capture"`, but **only while the phone is AOA-connected and logged in**. The box has no direct backend link: its logs are drained from box-side `aoa-loki` by the phone's `LogDrainController` and pushed verbatim to the backend Loki. An empty `{service_name="zed-capture"}` result usually means the phone isn't draining (no AOA link, not logged in, or nothing newer than the drain cursor) — not that the box logged nothing. The whole box side of this drain (AOA link, box-Loki, SSH access) is capture-repo territory — see placeframe-capture-tool's `docker/zed-capture/AGENTS.md`.
 
 ## See also
 
