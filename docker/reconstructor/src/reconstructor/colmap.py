@@ -228,11 +228,19 @@ def run_colmap_reconstruction(
     # Close database
     database.close()
 
+    # Rig verification re-checks a frame's matches against a generalized relative pose solved
+    # across its cameras, which needs those cameras to be apart. The views of a spherical capture
+    # share the sphere's optical centre, so the generalized camera collapses to a central one and
+    # pycolmap 4.0.4 aborts the process on that input (an out-of-range index inside its rig
+    # verifier, which SIGABRTs rather than raising). Nothing is lost by skipping it there: those
+    # views' relative poses are exact by construction, not estimated.
+    rig_verification = all(rig.spherical_expansion is None for rig in rigs.values())
+
     publisher.set_phase(ReconstructionStatus.VERIFYING_GEOMETRY, total=len(pairs))
     with _VerificationProgressPoller(colmap_db_path, len(pairs), publisher):
         geometric_verification(
             database_path=str(colmap_db_path),
-            verifier_options=GeometricVerifierOptions(rig_verification=True),
+            verifier_options=GeometricVerifierOptions(rig_verification=rig_verification),
             two_view_geometry_options=options.two_view_geometry_options(),
         )
 
