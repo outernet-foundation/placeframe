@@ -191,12 +191,12 @@ export function PoselessReconstructDialog({ set, onClose, onStarted }: {
 }) {
   const [rememberedFocal, setRememberedFocal] = useRemembered(STORAGE_KEYS.focalLength);
   const [focalLength, setFocalLength] = useState(set.focal_length != null ? String(set.focal_length) : rememberedFocal);
-  const [useAllImages, setUseAllImages] = useState(false);
+  const [targetKeyframes, setTargetKeyframes] = useState<number | null>(null);
   const [optionsJson, setOptionsJson] = useState("");
   const focal = Number(focalLength);
   const reuses = set.capture_session_id != null && set.focal_length === focal;
   const { busy, error, submit } = useSubmit(
-    () => startPoselessReconstruct(set.id, focal, useAllImages, optionsJson.trim() || null),
+    () => startPoselessReconstruct(set.id, focal, targetKeyframes, optionsJson.trim() || null),
     ({ job_id }) => onStarted(job_id),
   );
   return (
@@ -215,9 +215,12 @@ export function PoselessReconstructDialog({ set, onClose, onStarted }: {
       </label>
       <label>
         Image usage
-        <select value={useAllImages ? "all" : "auto"} onChange={(e) => setUseAllImages(e.target.value === "all")}>
-          <option value="auto">Auto (let the reconstructor pick keyframes)</option>
-          <option value="all">All (force every image to be used)</option>
+        <select
+          value={targetKeyframes == null ? "all" : String(targetKeyframes)}
+          onChange={(e) => setTargetKeyframes(e.target.value === "all" ? null : Number(e.target.value))}
+        >
+          <option value="all">Every image in the folder</option>
+          <option value="30">Thin to about 30 keyframes</option>
         </select>
       </label>
       <label>

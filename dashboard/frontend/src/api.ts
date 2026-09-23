@@ -112,12 +112,12 @@ export function renamePoselessSet(id: string, name: string): Promise<PoselessIma
 export function startPoselessReconstruct(
   id: string,
   focalLength: number,
-  useAllImages: boolean,
+  targetKeyframes: number | null,
   optionsJson: string | null,
 ): Promise<{ job_id: string }> {
   return request(`/api/poseless-sets/${id}/reconstruct`, {
     method: "POST",
-    body: JSON.stringify({ focal_length: focalLength, use_all_images: useAllImages, options_json: optionsJson }),
+    body: JSON.stringify({ focal_length: focalLength, target_keyframes: targetKeyframes, options_json: optionsJson }),
   });
 }
 

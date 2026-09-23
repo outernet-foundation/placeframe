@@ -499,7 +499,8 @@ async def start_reconstruct(data: ReconstructRequest) -> dict[str, str]:
 @dataclass
 class PoselessReconstructRequest:
     focal_length: float
-    use_all_images: bool = False
+    # None reconstructs every image in the folder; a count thins towards it.
+    target_keyframes: int | None = None
     options_json: str | None = None
 
 
@@ -517,7 +518,7 @@ async def start_poseless_reconstruct(set_id: str, data: PoselessReconstructReque
     JOBS[job.id] = job
     _spawn(
         _run_poseless_reconstruct_job(
-            job, set_id, entry, data.focal_length, data.use_all_images, data.options_json, reuse
+            job, set_id, entry, data.focal_length, data.target_keyframes, data.options_json, reuse
         )
     )
     return {"job_id": job.id}
@@ -612,12 +613,13 @@ async def _run_poseless_reconstruct_job(
     set_id: str,
     entry: dict[str, Any],
     focal_length: float,
-    use_all_images: bool,
+    target_keyframes: int | None,
     options_json: str | None,
     reuse_capture_id: str | None,
 ) -> None:
     create_args = ["reconstruct-poseless", entry["path"], "--name", entry["name"], "--focal-length", str(focal_length)]
-    create_args.append("--use-all-images" if use_all_images else "--auto-select-images")
+    if target_keyframes is not None:
+        create_args += ["--target-keyframes", str(target_keyframes)]
     if options_json:
         create_args += ["--options-json", options_json]
     if reuse_capture_id:

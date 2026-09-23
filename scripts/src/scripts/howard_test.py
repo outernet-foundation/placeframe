@@ -92,13 +92,13 @@ TAR_METADATA_MEMBER = "metadata.json"
 # quaternion keeps rotation a no-op (rig.py only uses it to derive gravity_in_rig_local, which comes
 # out as OPENCV down [0, 1, 0] regardless — exactly what a stationary-gravity assumption wants).
 POSELESS_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
-POSELESS_TARGET_KEYFRAMES = 30
 
-# Mirrors ReconstructionOptions.keyframe_min_distance_m's default (core/reconstruction_options.py —
-# verified directly, since docker/reconstructor/AGENTS.md's stated default of 0.3m does not match
-# the code). Used only to size the synthetic trajectory's step so it yields roughly
-# POSELESS_TARGET_KEYFRAMES keyframes regardless of how many images were supplied.
-POSELESS_KEYFRAME_MIN_DISTANCE_M = 1.0
+# Metres between one synthetic frame and the next. Arbitrary in absolute terms — nothing here
+# measures the scene — but deliberately a constant per frame rather than a total path length
+# divided among however many frames arrived: supplying more frames should lengthen the trajectory,
+# not pack it more densely. The density of the reconstruction is then whatever the caller asked for
+# (a video's --stride, or the contents of an image folder) instead of a number chosen here.
+POSELESS_STEP_M = 1.0
 # Default milliseconds between synthetic frame timestamps; arbitrary since no real capture rate
 # exists, but must be nonzero and monotonically increasing per frame for frame_id uniqueness.
 POSELESS_FRAME_INTERVAL_MS = 200
@@ -231,9 +231,10 @@ def build_spherical_capture_tar(
 
         # Same synthetic straight-line trajectory as an image folder, for the same
         # reason: a video carries no poses, and keyframe selection needs translations.
-        step_m = (POSELESS_TARGET_KEYFRAMES * POSELESS_KEYFRAME_MIN_DISTANCE_M) / max(1, len(timestamps) - 1)
         frame_lines = ["timestamp_ms,tx,ty,tz,qx,qy,qz,qw"]
-        frame_lines += [f"{timestamp},{index * step_m:.6f},0,0,0,0,0,1" for index, timestamp in enumerate(timestamps)]
+        frame_lines += [
+            f"{timestamp},{index * POSELESS_STEP_M:.6f},0,0,0,0,0,1" for index, timestamp in enumerate(timestamps)
+        ]
         add_bytes("rig0/frames.csv", ("\n".join(frame_lines) + "\n").encode())
         add_bytes("manifest.json", dumps(manifest).encode())
 
@@ -241,17 +242,23 @@ def build_spherical_capture_tar(
     return buffer.getvalue(), len(timestamps), summary
 
 
-def build_poseless_capture_tar(
-    image_dir: Path,
-    focal_length: float,
-    frame_interval_ms: int = POSELESS_FRAME_INTERVAL_MS,
-) -> tuple[bytes, int]:
+def poseless_image_paths(image_dir: Path) -> list[Path]:
+    """The folder's images, in the order they are taken to have been captured."""
     images = sorted(
         (p for p in image_dir.iterdir() if p.is_file() and p.suffix.lower() in POSELESS_IMAGE_EXTENSIONS),
         key=lambda p: _natural_sort_key(p.name),
     )
     if not images:
         raise ValueError(f"No images (.jpg/.jpeg/.png) found in {image_dir}")
+    return images
+
+
+def build_poseless_capture_tar(
+    image_dir: Path,
+    focal_length: float,
+    frame_interval_ms: int = POSELESS_FRAME_INTERVAL_MS,
+) -> tuple[bytes, int]:
+    images = poseless_image_paths(image_dir)
 
     with Image.open(images[0]) as first_image:
         width, height = first_image.size
@@ -288,15 +295,13 @@ def build_poseless_capture_tar(
         "capture_interval_seconds": frame_interval_ms / 1000.0,
     }
 
-    # Straight-line synthetic trajectory sized so keyframe selection (which keeps a frame every
-    # POSELESS_KEYFRAME_MIN_DISTANCE_M of translation) yields roughly POSELESS_TARGET_KEYFRAMES
-    # keyframes regardless of how many images were supplied.
-    step_m = (POSELESS_TARGET_KEYFRAMES * POSELESS_KEYFRAME_MIN_DISTANCE_M) / max(1, len(images) - 1)
-
+    # Straight-line synthetic trajectory, one POSELESS_STEP_M step per image. How many of these
+    # frames survive keyframe selection is set by the reconstruction's keyframe_min_distance_m,
+    # which keyframe_min_distance_m derives from the caller's --target-keyframes.
     frame_lines = ["timestamp_ms,tx,ty,tz,qx,qy,qz,qw"]
     for index in range(len(images)):
         timestamp_ms = index * frame_interval_ms
-        frame_lines.append(f"{timestamp_ms},{index * step_m:.6f},0,0,0,0,0,1")
+        frame_lines.append(f"{timestamp_ms},{index * POSELESS_STEP_M:.6f},0,0,0,0,0,1")
     frames_csv = "\n".join(frame_lines) + "\n"
 
     buffer = BytesIO()
@@ -351,16 +356,30 @@ def _parse_options(options_json: str | None) -> ReconstructionOptions:
     return ReconstructionOptions.model_validate(loads(options_json)) if options_json else ReconstructionOptions()
 
 
-def _parse_poseless_options(options_json: str | None, use_all_images: bool) -> ReconstructionOptions:
-    overrides = loads(options_json) if options_json else {}
+def keyframe_min_distance_m(frame_count: int, target_keyframes: int | None) -> float:
+    """Threshold that keeps every supplied frame, or thins them towards `target_keyframes`.
+
+    select_keyframes_by_distance (docker/reconstructor/src/reconstructor/keyframes.py) keeps a frame
+    iff its distance from the last kept one is >= this. Every frame of the synthetic trajectory sits
+    POSELESS_STEP_M from its predecessor, so a threshold of k steps keeps exactly every k-th frame;
+    the half-step slack keeps the comparison clear of float equality.
+
+    Only whole values of k are reachable, so a target is approached rather than hit: 73 frames
+    towards 30 keeps every 2nd, giving 37. Thinning is the caller's explicit request, so landing on
+    the nearest achievable count beats silently quantising the count they asked for.
+    """
+    if target_keyframes is None or frame_count <= target_keyframes:
+        return POSELESS_STEP_M / 2
+    every = max(1, round((frame_count - 1) / (target_keyframes - 1)))
+    return (every - 0.5) * POSELESS_STEP_M
+
+
+def _poseless_options(
+    options_json: str | None, frame_count: int, target_keyframes: int | None
+) -> ReconstructionOptions:
+    overrides: dict[str, Any] = loads(options_json) if options_json else {}
     overrides.setdefault("pose_prior_position_sigma_m", POSELESS_POSE_PRIOR_SIGMA_M)
-    if use_all_images:
-        # select_keyframes_by_distance (docker/reconstructor/src/reconstructor/keyframes.py) keeps
-        # a frame iff its distance from the last kept keyframe is >= this threshold. The synthetic
-        # trajectory's per-frame step is always well above 1e-6 (even at very high image counts),
-        # so this guarantees every supplied image is kept as a keyframe rather than thinned down to
-        # ~POSELESS_TARGET_KEYFRAMES — unless the caller's own options_json already sets this.
-        overrides.setdefault("keyframe_min_distance_m", 1e-6)
+    overrides.setdefault("keyframe_min_distance_m", keyframe_min_distance_m(frame_count, target_keyframes))
     return ReconstructionOptions.model_validate(overrides)
 
 
@@ -665,14 +684,14 @@ def reconstruct_poseless(
             "image folder, so this must be supplied rather than guessed)"
         ),
     ],
-    use_all_images: Annotated[
-        bool,
+    target_keyframes: Annotated[
+        int | None,
         typer.Option(
-            "--use-all-images/--auto-select-images",
-            help="Force every supplied image to be kept as a keyframe, instead of letting the reconstructor's "
-            f"distance-based keyframe selection thin them down to roughly {POSELESS_TARGET_KEYFRAMES}",
+            help="Thin the folder down to about this many keyframes by keeping every k-th image. "
+            "Omit to reconstruct every image supplied, which is what choosing the folder's contents "
+            "already asked for"
         ),
-    ] = False,
+    ] = None,
     frame_interval_ms: Annotated[
         int, typer.Option(help="Synthetic milliseconds between frames; arbitrary, just needs to be nonzero")
     ] = POSELESS_FRAME_INTERVAL_MS,
@@ -702,7 +721,7 @@ def reconstruct_poseless(
             image_dir,
             name,
             focal_length,
-            _parse_poseless_options(options_json, use_all_images),
+            _poseless_options(options_json, len(poseless_image_paths(image_dir)), target_keyframes),
             frame_interval_ms,
             wait,
             timeout_s,
@@ -712,25 +731,6 @@ def reconstruct_poseless(
     _report_reconstruction(reconstruction, json_output)
 
 
-@app.command(name="reconstruct-spherical")
-def reconstruct_spherical(
-    video: Annotated[Path, typer.Argument(help="Spherical (360) mp4; its own metadata must declare the projection")],
-    name: Annotated[str, typer.Option(help="Capture session name")],
-    stride: Annotated[int, typer.Option(help="Keep every Nth video frame")] = SPHERICAL_FRAME_STRIDE,
-    max_width: Annotated[
-        int,
-        typer.Option(
-            help="Downscale frames to at most this width before upload; 0 keeps the camera's own resolution. "
-            "A view rendered at --view-size over --view-fov-deg reads about (view-size / fov) pixels per degree, "
-            "so a width below 360 times that throws away detail the reconstruction would have used"
-        ),
-    ] = 0,
-    layout: Annotated[
-        str, typer.Option(help="Which views to reconstruct through: tetrahedron (covers the sphere) or cube")
-    ] = "tetrahedron",
-    view_fov_deg: Annotated[
-        float, typer.Option(help="Field of view of each rendered view; must stay under 180")
-    ] = 150.0,
 @app.command(name="inspect-video")
 def inspect_video_command(
     video: Annotated[Path, typer.Argument(help="Video file to inspect")],
@@ -755,15 +755,33 @@ def inspect_video_command(
     typer.echo(f"  projection: {info.projection or 'none declared (an ordinary video)'}")
 
 
-    view_size: Annotated[int, typer.Option(help="Pixel size of each rendered view")] = 1600,
-    use_all_images: Annotated[
-        bool,
+@app.command(name="reconstruct-spherical")
+def reconstruct_spherical(
+    video: Annotated[Path, typer.Argument(help="Spherical (360) mp4; its own metadata must declare the projection")],
+    name: Annotated[str, typer.Option(help="Capture session name")],
+    stride: Annotated[int, typer.Option(help="Keep every Nth video frame")] = SPHERICAL_FRAME_STRIDE,
+    max_width: Annotated[
+        int,
         typer.Option(
-            "--use-all-images/--auto-select-images",
-            help="Reconstruct every extracted frame instead of letting keyframe selection thin them to roughly "
-            f"{POSELESS_TARGET_KEYFRAMES}",
+            help="Downscale frames to at most this width before upload; 0 keeps the camera's own resolution. "
+            "A view rendered at --view-size over --view-fov-deg reads about (view-size / fov) pixels per degree, "
+            "so a width below 360 times that throws away detail the reconstruction would have used"
         ),
-    ] = False,
+    ] = 0,
+    layout: Annotated[
+        str, typer.Option(help="Which views to reconstruct through: tetrahedron (covers the sphere) or cube")
+    ] = "tetrahedron",
+    view_fov_deg: Annotated[
+        float, typer.Option(help="Field of view of each rendered view; must stay under 180")
+    ] = 150.0,
+    view_size: Annotated[int, typer.Option(help="Pixel size of each rendered view")] = 1600,
+    target_keyframes: Annotated[
+        int | None,
+        typer.Option(
+            help="Thin the extracted frames down to about this many keyframes by keeping every k-th one. "
+            "Omit to reconstruct every frame --stride extracted, which is what --stride already chose"
+        ),
+    ] = None,
     options_json: Annotated[
         str | None, typer.Option(help="JSON overrides for ReconstructionOptions; applied over the flags above")
     ] = None,
@@ -783,7 +801,8 @@ def inspect_video_command(
             name,
             stride,
             max_width,
-            _parse_poseless_options(dumps(overrides), use_all_images),
+            dumps(overrides),
+            target_keyframes,
             wait,
             timeout_s,
         )
@@ -1207,11 +1226,16 @@ async def _reconstruct_spherical(
     name: str,
     stride: int,
     max_width: int,
-    options: ReconstructionOptions,
+    options_json: str | None,
+    target_keyframes: int | None,
     wait: bool,
     timeout_s: float,
 ) -> ReconstructionReadWithQueue:
     tar_bytes, frame_count, summary = await to_thread(build_spherical_capture_tar, video_path, stride, max_width)
+    # How many frames a video holds is only known once they are extracted, and the keyframe
+    # threshold is derived from that count, so the options are settled here rather than by the
+    # caller.
+    options = _poseless_options(options_json, frame_count, target_keyframes)
     typer.echo(f"{video_path.name}: {summary}; capture is {_format_size(len(tar_bytes))}", err=True)
     async with authenticated_api_client() as api:
         try:
