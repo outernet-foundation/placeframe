@@ -191,8 +191,10 @@ Class | Method | HTTP request | Description
  - [ReconstructionReadWithQueue](docs/ReconstructionReadWithQueue.md)
  - [ReconstructionStatus](docs/ReconstructionStatus.md)
  - [RigCameraConfig](docs/RigCameraConfig.md)
+ - [RigCameraConfigCameraConfig](docs/RigCameraConfigCameraConfig.md)
  - [RigConfig](docs/RigConfig.md)
  - [ServerInfo](docs/ServerInfo.md)
+ - [SphericalCameraConfig](docs/SphericalCameraConfig.md)
  - [Transform](docs/Transform.md)
 
 

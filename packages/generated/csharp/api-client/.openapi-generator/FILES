@@ -69,7 +69,9 @@ src/PlaceframeApiClient/Model/ReconstructionOptions.cs
 src/PlaceframeApiClient/Model/ReconstructionReadWithQueue.cs
 src/PlaceframeApiClient/Model/ReconstructionStatus.cs
 src/PlaceframeApiClient/Model/RigCameraConfig.cs
+src/PlaceframeApiClient/Model/RigCameraConfigCameraConfig.cs
 src/PlaceframeApiClient/Model/RigConfig.cs
 src/PlaceframeApiClient/Model/ServerInfo.cs
+src/PlaceframeApiClient/Model/SphericalCameraConfig.cs
 src/PlaceframeApiClient/Model/Transform.cs
 src/PlaceframeApiClient/PlaceframeApiClient.csproj

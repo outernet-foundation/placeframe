@@ -44,7 +44,7 @@ namespace PlaceframeApiClient.Model
         /// <param name="rotation">rotation (required).</param>
         /// <param name="translation">translation (required).</param>
         /// <param name="cameraConfig">cameraConfig (required).</param>
-        public RigCameraConfig(string id, bool refSensor, Float4 rotation, Float3 translation, PinholeCameraConfig cameraConfig)
+        public RigCameraConfig(string id, bool refSensor, Float4 rotation, Float3 translation, RigCameraConfigCameraConfig cameraConfig)
         {
             // to ensure "id" is required (not null)
             if (id == null)
@@ -173,7 +173,7 @@ namespace PlaceframeApiClient.Model
         /// Gets or Sets CameraConfig
         /// </summary>
         [DataMember(Name = "camera_config", IsRequired = true, EmitDefaultValue = true)]
-        public PinholeCameraConfig CameraConfig
+        public RigCameraConfigCameraConfig CameraConfig
         {
             get{ return _CameraConfig;}
             set
@@ -182,7 +182,7 @@ namespace PlaceframeApiClient.Model
                 _flagCameraConfig = true;
             }
         }
-        private PinholeCameraConfig _CameraConfig;
+        private RigCameraConfigCameraConfig _CameraConfig;
         private bool _flagCameraConfig;
 
         /// <summary>

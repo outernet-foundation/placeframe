@@ -32,6 +32,53 @@ namespace PlaceframeApiClient.Model
     public partial class ReconstructionOptions
     {
         /// <summary>
+        /// How a spherical (equirectangular) capture is cut into the views a reconstructor can model. COLMAP&#39;s fisheye models only represent rays under 90 degrees off axis, so the sphere cannot be one camera. &#39;tetrahedron&#39; is four views whose axes are 109.5 degrees apart, covering the sphere at spherical_view_fov_deg &gt;&#x3D; 141; &#39;cube&#39; is the six cube-face directions. Ignored for every other kind of capture.
+        /// </summary>
+        /// <value>How a spherical (equirectangular) capture is cut into the views a reconstructor can model. COLMAP&#39;s fisheye models only represent rays under 90 degrees off axis, so the sphere cannot be one camera. &#39;tetrahedron&#39; is four views whose axes are 109.5 degrees apart, covering the sphere at spherical_view_fov_deg &gt;&#x3D; 141; &#39;cube&#39; is the six cube-face directions. Ignored for every other kind of capture.</value>
+        [JsonConverter(typeof(StringEnumConverter))]
+        public enum SphericalLayoutEnum
+        {
+            /// <summary>
+            /// Enum Tetrahedron for value: tetrahedron
+            /// </summary>
+            [EnumMember(Value = "tetrahedron")]
+            Tetrahedron = 1,
+
+            /// <summary>
+            /// Enum Cube for value: cube
+            /// </summary>
+            [EnumMember(Value = "cube")]
+            Cube = 2
+        }
+
+
+        /// <summary>
+        /// How a spherical (equirectangular) capture is cut into the views a reconstructor can model. COLMAP&#39;s fisheye models only represent rays under 90 degrees off axis, so the sphere cannot be one camera. &#39;tetrahedron&#39; is four views whose axes are 109.5 degrees apart, covering the sphere at spherical_view_fov_deg &gt;&#x3D; 141; &#39;cube&#39; is the six cube-face directions. Ignored for every other kind of capture.
+        /// </summary>
+        /// <value>How a spherical (equirectangular) capture is cut into the views a reconstructor can model. COLMAP&#39;s fisheye models only represent rays under 90 degrees off axis, so the sphere cannot be one camera. &#39;tetrahedron&#39; is four views whose axes are 109.5 degrees apart, covering the sphere at spherical_view_fov_deg &gt;&#x3D; 141; &#39;cube&#39; is the six cube-face directions. Ignored for every other kind of capture.</value>
+
+        [DataMember(Name = "spherical_layout", EmitDefaultValue = false)]
+        public SphericalLayoutEnum? SphericalLayout
+        {
+            get{ return _SphericalLayout;}
+            set
+            {
+                _SphericalLayout = value;
+                _flagSphericalLayout = true;
+            }
+        }
+        private SphericalLayoutEnum? _SphericalLayout;
+        private bool _flagSphericalLayout;
+
+        /// <summary>
+        /// Returns false as SphericalLayout should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeSphericalLayout()
+        {
+            return _flagSphericalLayout;
+        }
+        /// <summary>
         /// Initializes a new instance of the <see cref="ReconstructionOptions" /> class.
         /// </summary>
         /// <param name="deterministicSeed">PRNG seed and single-threaded gate for reproducible reconstructions; None means non-deterministic..</param>
@@ -52,6 +99,9 @@ namespace PlaceframeApiClient.Model
         /// <param name="pairVioEmMinBaselineM">Essential-matrix-baseline floor below which the VIO-vs-essential-matrix translation-direction component is skipped. Near-co-located camera pairs (intra-rig stereo timing jitter, hover frames in slow motion) have ill-defined essential-matrix translation direction; the rotation component still applies. (default to 0.3D).</param>
         /// <param name="maxKeypointsPerImage">Maximum ALIKED keypoints retained per image. (default to 2500).</param>
         /// <param name="heldOutFrameTimestamps">Frame timestamps (ms) to exclude from this reconstruction so they can later be localized as held-out queries..</param>
+        /// <param name="sphericalLayout">How a spherical (equirectangular) capture is cut into the views a reconstructor can model. COLMAP&#39;s fisheye models only represent rays under 90 degrees off axis, so the sphere cannot be one camera. &#39;tetrahedron&#39; is four views whose axes are 109.5 degrees apart, covering the sphere at spherical_view_fov_deg &gt;&#x3D; 141; &#39;cube&#39; is the six cube-face directions. Ignored for every other kind of capture. (default to SphericalLayoutEnum.Tetrahedron).</param>
+        /// <param name="sphericalViewFovDeg">Field of view of each view rendered from a spherical capture, in degrees. Must stay under 180 (COLMAP&#39;s fisheye models cannot represent a ray 90 degrees off axis) and at or above 141 for the tetrahedron layout to cover the whole sphere; the default leaves 4.5 degrees of overlap at the worst-covered direction. (default to 150.0D).</param>
+        /// <param name="sphericalViewSize">Width and height in pixels of each view rendered from a spherical capture. The default samples a 150-degree view at about 10.7 pixels per degree, half the angular resolution of a 7680-wide equirectangular frame. (default to 1600).</param>
         public ReconstructionOptions()
         {
         }
@@ -507,6 +557,56 @@ namespace PlaceframeApiClient.Model
             return _flagHeldOutFrameTimestamps;
         }
         /// <summary>
+        /// Field of view of each view rendered from a spherical capture, in degrees. Must stay under 180 (COLMAP&#39;s fisheye models cannot represent a ray 90 degrees off axis) and at or above 141 for the tetrahedron layout to cover the whole sphere; the default leaves 4.5 degrees of overlap at the worst-covered direction.
+        /// </summary>
+        /// <value>Field of view of each view rendered from a spherical capture, in degrees. Must stay under 180 (COLMAP&#39;s fisheye models cannot represent a ray 90 degrees off axis) and at or above 141 for the tetrahedron layout to cover the whole sphere; the default leaves 4.5 degrees of overlap at the worst-covered direction.</value>
+        [DataMember(Name = "spherical_view_fov_deg", EmitDefaultValue = false)]
+        public double SphericalViewFovDeg
+        {
+            get{ return _SphericalViewFovDeg;}
+            set
+            {
+                _SphericalViewFovDeg = value;
+                _flagSphericalViewFovDeg = true;
+            }
+        }
+        private double _SphericalViewFovDeg = 150.0D;
+        private bool _flagSphericalViewFovDeg;
+
+        /// <summary>
+        /// Returns false as SphericalViewFovDeg should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeSphericalViewFovDeg()
+        {
+            return _flagSphericalViewFovDeg;
+        }
+        /// <summary>
+        /// Width and height in pixels of each view rendered from a spherical capture. The default samples a 150-degree view at about 10.7 pixels per degree, half the angular resolution of a 7680-wide equirectangular frame.
+        /// </summary>
+        /// <value>Width and height in pixels of each view rendered from a spherical capture. The default samples a 150-degree view at about 10.7 pixels per degree, half the angular resolution of a 7680-wide equirectangular frame.</value>
+        [DataMember(Name = "spherical_view_size", EmitDefaultValue = false)]
+        public int SphericalViewSize
+        {
+            get{ return _SphericalViewSize;}
+            set
+            {
+                _SphericalViewSize = value;
+                _flagSphericalViewSize = true;
+            }
+        }
+        private int _SphericalViewSize = 1600;
+        private bool _flagSphericalViewSize;
+
+        /// <summary>
+        /// Returns false as SphericalViewSize should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeSphericalViewSize()
+        {
+            return _flagSphericalViewSize;
+        }
+        /// <summary>
         /// Returns the string presentation of the object
         /// </summary>
         /// <returns>String presentation of the object</returns>
@@ -532,6 +632,9 @@ namespace PlaceframeApiClient.Model
             sb.Append("  PairVioEmMinBaselineM: ").Append(PairVioEmMinBaselineM).Append("\n");
             sb.Append("  MaxKeypointsPerImage: ").Append(MaxKeypointsPerImage).Append("\n");
             sb.Append("  HeldOutFrameTimestamps: ").Append(HeldOutFrameTimestamps).Append("\n");
+            sb.Append("  SphericalLayout: ").Append(SphericalLayout).Append("\n");
+            sb.Append("  SphericalViewFovDeg: ").Append(SphericalViewFovDeg).Append("\n");
+            sb.Append("  SphericalViewSize: ").Append(SphericalViewSize).Append("\n");
             sb.Append("}\n");
             return sb.ToString();
         }

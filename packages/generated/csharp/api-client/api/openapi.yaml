@@ -3956,9 +3956,12 @@ components:
           pair_vio_em_max_translation_direction_deg: 6.84685269835264
           retrieval_min_score: 2.3021358869347655
           pose_prior_position_sigma_m: 1.0246457001441578
+          spherical_view_fov_deg: 5.025004791520295
           deterministic_seed: 6
           retrieval_neighbors: 5
           pair_vio_em_min_baseline_m: 7.457744773683766
+          spherical_layout: tetrahedron
+          spherical_view_size: 9
           max_keypoints_per_image: 1
           mapper_filter_max_reprojection_error: 4.145608029883936
           keyframe_min_distance_m: 1.4658129805029452
@@ -4130,9 +4133,12 @@ components:
         pair_vio_em_max_translation_direction_deg: 6.84685269835264
         retrieval_min_score: 2.3021358869347655
         pose_prior_position_sigma_m: 1.0246457001441578
+        spherical_view_fov_deg: 5.025004791520295
         deterministic_seed: 6
         retrieval_neighbors: 5
         pair_vio_em_min_baseline_m: 7.457744773683766
+        spherical_layout: tetrahedron
+        spherical_view_size: 9
         max_keypoints_per_image: 1
         mapper_filter_max_reprojection_error: 4.145608029883936
         keyframe_min_distance_m: 1.4658129805029452
@@ -4267,6 +4273,34 @@ components:
             type: integer
           nullable: true
           type: array
+        spherical_layout:
+          default: tetrahedron
+          description: "How a spherical (equirectangular) capture is cut into the\
+            \ views a reconstructor can model. COLMAP's fisheye models only represent\
+            \ rays under 90 degrees off axis, so the sphere cannot be one camera.\
+            \ 'tetrahedron' is four views whose axes are 109.5 degrees apart, covering\
+            \ the sphere at spherical_view_fov_deg >= 141; 'cube' is the six cube-face\
+            \ directions. Ignored for every other kind of capture."
+          enum:
+          - tetrahedron
+          - cube
+          type: string
+        spherical_view_fov_deg:
+          default: 150.0
+          description: "Field of view of each view rendered from a spherical capture,\
+            \ in degrees. Must stay under 180 (COLMAP's fisheye models cannot represent\
+            \ a ray 90 degrees off axis) and at or above 141 for the tetrahedron layout\
+            \ to cover the whole sphere; the default leaves 4.5 degrees of overlap\
+            \ at the worst-covered direction."
+          format: double
+          type: number
+        spherical_view_size:
+          default: 1600
+          description: "Width and height in pixels of each view rendered from a spherical\
+            \ capture. The default samples a 150-degree view at about 10.7 pixels\
+            \ per degree, half the angular resolution of a 7680-wide equirectangular\
+            \ frame."
+          type: integer
       title: ReconstructionOptions
       type: object
     ReconstructionReadWithQueue:
@@ -4407,7 +4441,7 @@ components:
         translation:
           $ref: "#/components/schemas/Float3"
         camera_config:
-          $ref: "#/components/schemas/PinholeCameraConfig"
+          $ref: "#/components/schemas/RigCameraConfig_camera_config"
       required:
       - camera_config
       - id
@@ -4499,6 +4533,34 @@ components:
       - auth_mode
       title: ServerInfo
       type: object
+    SphericalCameraConfig:
+      properties:
+        width:
+          type: integer
+        height:
+          type: integer
+        orientation:
+          enum:
+          - TOP_LEFT
+          - TOP_RIGHT
+          - BOTTOM_RIGHT
+          - BOTTOM_LEFT
+          - LEFT_TOP
+          - RIGHT_TOP
+          - RIGHT_BOTTOM
+          - LEFT_BOTTOM
+          type: string
+        projection:
+          default: EQUIRECTANGULAR
+          enum:
+          - EQUIRECTANGULAR
+          type: string
+      required:
+      - height
+      - orientation
+      - width
+      title: SphericalCameraConfig
+      type: object
     Transform:
       example:
         rotation:
@@ -4544,4 +4606,8 @@ components:
       - detail
       - status_code
       type: object
+    RigCameraConfig_camera_config:
+      oneOf:
+      - $ref: "#/components/schemas/PinholeCameraConfig"
+      - $ref: "#/components/schemas/SphericalCameraConfig"
 

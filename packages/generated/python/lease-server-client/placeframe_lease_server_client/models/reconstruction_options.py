@@ -17,7 +17,7 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, Field, StrictFloat, StrictInt
+from pydantic import BaseModel, ConfigDict, Field, StrictFloat, StrictInt, StrictStr, field_validator
 from typing import Any, ClassVar, Dict, List, Optional, Union
 from typing import Optional, Set
 from typing_extensions import Self
@@ -45,8 +45,21 @@ class ReconstructionOptions(BaseModel):
     pair_vio_em_min_baseline_m: Optional[Union[StrictFloat, StrictInt]] = Field(default=0.3, description="Essential-matrix-baseline floor below which the VIO-vs-essential-matrix translation-direction component is skipped. Near-co-located camera pairs (intra-rig stereo timing jitter, hover frames in slow motion) have ill-defined essential-matrix translation direction; the rotation component still applies.")
     max_keypoints_per_image: Optional[StrictInt] = Field(default=2500, description="Maximum ALIKED keypoints retained per image.")
     held_out_frame_timestamps: Optional[List[StrictInt]] = Field(default=None, description="Frame timestamps (ms) to exclude from this reconstruction so they can later be localized as held-out queries.")
+    spherical_layout: Optional[StrictStr] = Field(default='tetrahedron', description="How a spherical (equirectangular) capture is cut into the views a reconstructor can model. COLMAP's fisheye models only represent rays under 90 degrees off axis, so the sphere cannot be one camera. 'tetrahedron' is four views whose axes are 109.5 degrees apart, covering the sphere at spherical_view_fov_deg >= 141; 'cube' is the six cube-face directions. Ignored for every other kind of capture.")
+    spherical_view_fov_deg: Optional[Union[StrictFloat, StrictInt]] = Field(default=150.0, description="Field of view of each view rendered from a spherical capture, in degrees. Must stay under 180 (COLMAP's fisheye models cannot represent a ray 90 degrees off axis) and at or above 141 for the tetrahedron layout to cover the whole sphere; the default leaves 4.5 degrees of overlap at the worst-covered direction.")
+    spherical_view_size: Optional[StrictInt] = Field(default=1600, description="Width and height in pixels of each view rendered from a spherical capture. The default samples a 150-degree view at about 10.7 pixels per degree, half the angular resolution of a 7680-wide equirectangular frame.")
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["deterministic_seed", "keyframe_min_distance_m", "sequential_window_m", "retrieval_neighbors", "retrieval_min_score", "ransac_max_error", "ransac_min_inlier_ratio", "two_view_min_num_inliers", "triangulation_minimum_angle", "mapper_filter_max_reprojection_error", "bundle_adjustment_global_frames_ratio", "bundle_adjustment_global_function_tolerance", "pose_prior_position_sigma_m", "pair_vio_em_max_rotation_disagreement_deg", "pair_vio_em_max_translation_direction_deg", "pair_vio_em_min_baseline_m", "max_keypoints_per_image", "held_out_frame_timestamps"]
+    __properties: ClassVar[List[str]] = ["deterministic_seed", "keyframe_min_distance_m", "sequential_window_m", "retrieval_neighbors", "retrieval_min_score", "ransac_max_error", "ransac_min_inlier_ratio", "two_view_min_num_inliers", "triangulation_minimum_angle", "mapper_filter_max_reprojection_error", "bundle_adjustment_global_frames_ratio", "bundle_adjustment_global_function_tolerance", "pose_prior_position_sigma_m", "pair_vio_em_max_rotation_disagreement_deg", "pair_vio_em_max_translation_direction_deg", "pair_vio_em_min_baseline_m", "max_keypoints_per_image", "held_out_frame_timestamps", "spherical_layout", "spherical_view_fov_deg", "spherical_view_size"]
+
+    @field_validator('spherical_layout')
+    def spherical_layout_validate_enum(cls, value):
+        """Validates the enum"""
+        if value is None:
+            return value
+
+        if value not in set(['tetrahedron', 'cube']):
+            raise ValueError("must be one of enum values ('tetrahedron', 'cube')")
+        return value
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -133,7 +146,10 @@ class ReconstructionOptions(BaseModel):
             "pair_vio_em_max_translation_direction_deg": obj.get("pair_vio_em_max_translation_direction_deg") if obj.get("pair_vio_em_max_translation_direction_deg") is not None else 60.0,
             "pair_vio_em_min_baseline_m": obj.get("pair_vio_em_min_baseline_m") if obj.get("pair_vio_em_min_baseline_m") is not None else 0.3,
             "max_keypoints_per_image": obj.get("max_keypoints_per_image") if obj.get("max_keypoints_per_image") is not None else 2500,
-            "held_out_frame_timestamps": obj.get("held_out_frame_timestamps")
+            "held_out_frame_timestamps": obj.get("held_out_frame_timestamps"),
+            "spherical_layout": obj.get("spherical_layout") if obj.get("spherical_layout") is not None else 'tetrahedron',
+            "spherical_view_fov_deg": obj.get("spherical_view_fov_deg") if obj.get("spherical_view_fov_deg") is not None else 150.0,
+            "spherical_view_size": obj.get("spherical_view_size") if obj.get("spherical_view_size") is not None else 1600
         })
         # store additional fields in additional_properties
         for _key in obj.keys():

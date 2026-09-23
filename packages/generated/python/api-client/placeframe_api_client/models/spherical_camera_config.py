@@ -17,26 +17,39 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, StrictBool, StrictStr
-from typing import Any, ClassVar, Dict, List
-from placeframe_api_client.models.float3 import Float3
-from placeframe_api_client.models.float4 import Float4
-from placeframe_api_client.models.rig_camera_config_camera_config import RigCameraConfigCameraConfig
+from pydantic import BaseModel, ConfigDict, StrictInt, StrictStr, field_validator
+from typing import Any, ClassVar, Dict, List, Optional
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
 
-class RigCameraConfig(BaseModel):
+class SphericalCameraConfig(BaseModel):
     """
-    RigCameraConfig
+    SphericalCameraConfig
     """ # noqa: E501
-    id: StrictStr
-    ref_sensor: StrictBool
-    rotation: Float4
-    translation: Float3
-    camera_config: RigCameraConfigCameraConfig
+    width: StrictInt
+    height: StrictInt
+    orientation: StrictStr
+    projection: Optional[StrictStr] = 'EQUIRECTANGULAR'
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["id", "ref_sensor", "rotation", "translation", "camera_config"]
+    __properties: ClassVar[List[str]] = ["width", "height", "orientation", "projection"]
+
+    @field_validator('orientation')
+    def orientation_validate_enum(cls, value):
+        """Validates the enum"""
+        if value not in set(['TOP_LEFT', 'TOP_RIGHT', 'BOTTOM_RIGHT', 'BOTTOM_LEFT', 'LEFT_TOP', 'RIGHT_TOP', 'RIGHT_BOTTOM', 'LEFT_BOTTOM']):
+            raise ValueError("must be one of enum values ('TOP_LEFT', 'TOP_RIGHT', 'BOTTOM_RIGHT', 'BOTTOM_LEFT', 'LEFT_TOP', 'RIGHT_TOP', 'RIGHT_BOTTOM', 'LEFT_BOTTOM')")
+        return value
+
+    @field_validator('projection')
+    def projection_validate_enum(cls, value):
+        """Validates the enum"""
+        if value is None:
+            return value
+
+        if value not in set(['EQUIRECTANGULAR']):
+            raise ValueError("must be one of enum values ('EQUIRECTANGULAR')")
+        return value
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -56,7 +69,7 @@ class RigCameraConfig(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of RigCameraConfig from a JSON string"""
+        """Create an instance of SphericalCameraConfig from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -79,15 +92,6 @@ class RigCameraConfig(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
-        # override the default output from pydantic by calling `to_dict()` of rotation
-        if self.rotation:
-            _dict['rotation'] = self.rotation.to_dict()
-        # override the default output from pydantic by calling `to_dict()` of translation
-        if self.translation:
-            _dict['translation'] = self.translation.to_dict()
-        # override the default output from pydantic by calling `to_dict()` of camera_config
-        if self.camera_config:
-            _dict['camera_config'] = self.camera_config.to_dict()
         # puts key-value pairs in additional_properties in the top level
         if self.additional_properties is not None:
             for _key, _value in self.additional_properties.items():
@@ -97,7 +101,7 @@ class RigCameraConfig(BaseModel):
 
     @classmethod
     def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of RigCameraConfig from a dict"""
+        """Create an instance of SphericalCameraConfig from a dict"""
         if obj is None:
             return None
 
@@ -105,11 +109,10 @@ class RigCameraConfig(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "id": obj.get("id"),
-            "ref_sensor": obj.get("ref_sensor"),
-            "rotation": Float4.from_dict(obj["rotation"]) if obj.get("rotation") is not None else None,
-            "translation": Float3.from_dict(obj["translation"]) if obj.get("translation") is not None else None,
-            "camera_config": RigCameraConfigCameraConfig.from_dict(obj["camera_config"]) if obj.get("camera_config") is not None else None
+            "width": obj.get("width"),
+            "height": obj.get("height"),
+            "orientation": obj.get("orientation"),
+            "projection": obj.get("projection") if obj.get("projection") is not None else 'EQUIRECTANGULAR'
         })
         # store additional fields in additional_properties
         for _key in obj.keys():
