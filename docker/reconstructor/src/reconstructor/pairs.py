@@ -71,14 +71,17 @@ def generate_image_pairs(
                     break
                 sequential_frame_pairs.append(((rig_id, frame_ids[i]), (rig_id, frame_ids[j])))
 
+    # Keyed by camera id rather than by the manifest config's own id: a spherical
+    # capture's cameras are views derived from one manifest camera, so they all
+    # carry its id and only the key names the folder their images are in.
     sequential_image_pairs = [
         (
-            f"{rig_id_a}/{camera_a[0].id}/{frame_id_a}.jpg",
-            f"{rig_id_b}/{camera_b[0].id}/{frame_id_b}.jpg",
+            f"{rig_id_a}/{camera_a}/{frame_id_a}.jpg",
+            f"{rig_id_b}/{camera_b}/{frame_id_b}.jpg",
         )
         for (rig_id_a, frame_id_a), (rig_id_b, frame_id_b) in sequential_frame_pairs
-        for camera_a in rigs[rig_id_a].cameras.values()
-        for camera_b in rigs[rig_id_b].cameras.values()
+        for camera_a in rigs[rig_id_a].cameras
+        for camera_b in rigs[rig_id_b].cameras
     ]
 
     retrieval_image_pairs: list[tuple[str, str]] = []
