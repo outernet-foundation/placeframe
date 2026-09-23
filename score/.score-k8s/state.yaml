@@ -4,7 +4,7 @@ workloads:
       apiVersion: score.dev/v1b1
       containers:
         api:
-          image: ghcr.io/outernet-foundation/placeframe/api:tree-edb89d0cb24da9b83783968c554a0d4238855cc9
+          image: ghcr.io/outernet-foundation/placeframe/api:tree-2a50f64c162e083d254f18d805f3914c66715d40
           livenessProbe:
             httpGet:
               path: /health
@@ -59,7 +59,7 @@ workloads:
       apiVersion: score.dev/v1b1
       containers:
         gateway:
-          image: ghcr.io/outernet-foundation/placeframe/gateway:tree-bba837797900df192800a277ad655946ed87dc5a
+          image: ghcr.io/outernet-foundation/placeframe/gateway:tree-bfae079e5189da7e269e713b863b31909c09d079
           variables:
             AUTH_MODE: ${resources.config.auth_mode}
             PUBLIC_URL: ${resources.config.public_url}
@@ -81,7 +81,7 @@ workloads:
       apiVersion: score.dev/v1b1
       containers:
         lease-server:
-          image: ghcr.io/outernet-foundation/placeframe/lease-server:tree-bcbfdf25f11d7db8d81556482be10af9d0c44d16
+          image: ghcr.io/outernet-foundation/placeframe/lease-server:tree-ad0c5cdfe631d4f12be5dcea1134031669d41de3
           livenessProbe:
             httpGet:
               path: /health
