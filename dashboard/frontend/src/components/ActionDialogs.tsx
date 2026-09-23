@@ -257,8 +257,9 @@ export function LocalizeDialog({ reconstructionLabel, reconstructionId, onClose,
 }) {
   const [imageDir, setImageDir] = useRemembered(STORAGE_KEYS.localizeImageDir);
   const [useChunking, setUseChunking] = useState(true);
+  const [fovDeg, setFovDeg] = useRemembered(STORAGE_KEYS.localizeFovDeg);
   const { busy, error, submit } = useSubmit(
-    () => startLocalize(reconstructionId, imageDir.trim(), null, null, useChunking),
+    () => startLocalize(reconstructionId, imageDir.trim(), null, null, useChunking, Number(fovDeg) || null),
     ({ run_id }) => onStarted(run_id),
   );
   return (
@@ -270,6 +271,14 @@ export function LocalizeDialog({ reconstructionLabel, reconstructionId, onClose,
         placeholder="/path/to/query/images"
         browseTitle="Choose image directory"
       />
+      <label>
+        Query image field of view (degrees, horizontal)
+        <input type="number" placeholder="e.g. 120" value={fovDeg} onChange={(e) => setFovDeg(e.target.value)} />
+      </label>
+      <div style={{ ...HINT, marginTop: -8 }}>
+        The lens the query images were taken with. Leave empty to borrow the map capture's own camera, which is
+        right only when the queries came from that same camera; a spherical map has no pinhole camera to borrow.
+      </div>
       <label style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
         <input type="checkbox" checked={useChunking} onChange={(e) => setUseChunking(e.target.checked)} />
         Use chunking

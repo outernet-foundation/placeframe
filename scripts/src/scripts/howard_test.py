@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import csv
 import re
+from math import radians, tan
 import sys
 import tarfile
 import zipfile
@@ -998,6 +999,20 @@ def localize(
             "MATCH_BATCH_SIZE). Disable to reproduce the pre-fix behavior for comparison.",
         ),
     ] = True,
+    fov_deg: Annotated[
+        float | None,
+        typer.Option(
+            help="Horizontal field of view of the query images, in degrees. State this (or "
+            "--focal-length) whenever the query images did not come from the map capture's own "
+            "camera; a spherical map has no pinhole camera to borrow one from at all"
+        ),
+    ] = None,
+    focal_length: Annotated[
+        float | None,
+        typer.Option(
+            help="Focal length of the query images in pixels, for both fx and fy; an alternative to --fov-deg"
+        ),
+    ] = None,
     json_output: Annotated[bool, typer.Option("--json", help="Emit JSON instead of a table")] = False,
     run_id: Annotated[
         str | None, typer.Option("--run-id", help="Use this run id instead of generating a fresh one")
@@ -1011,6 +1026,7 @@ def localize(
         typer.echo(f"No images found in {image_dir}", err=True)
         raise typer.Exit(1)
     images = [(path.resolve(), path.name, path.read_bytes()) for path in image_paths]
+    query_camera = _query_camera_override(image_paths[0], fov_deg, focal_length)
 
     resolved_run_id = run_id or str(uuid4())
     run_dir = LOCALIZATIONS_DIR / resolved_run_id
@@ -1023,7 +1039,9 @@ def localize(
         progress_path.write_text(dumps({"completed": completed, "total": total}))
 
     capture_id, entries = run(
-        _localize(reconstruction_id, images, retrieval_top_k, ransac_threshold, use_chunking, report_progress)
+        _localize(
+            reconstruction_id, images, retrieval_top_k, ransac_threshold, use_chunking, query_camera, report_progress
+        )
     )
     result: dict[str, Any] = {
         "run_id": resolved_run_id,
@@ -1521,6 +1539,7 @@ async def _localize(
     retrieval_top_k: int,
     ransac_threshold: float,
     use_chunking: bool,
+    query_camera: PinholeCameraConfig | None = None,
     report_progress: Callable[[int], None] | None = None,
 ) -> tuple[UUID, list[dict[str, Any]]]:
     async with authenticated_api_client() as api:
@@ -1530,7 +1549,7 @@ async def _localize(
             if capture_id is None:
                 raise RuntimeError(f"Reconstruction {reconstruction_id} has no capture session")
 
-            camera_config, axis_convention = await _query_camera(api, reconstruction_id, capture_id)
+            camera_config, axis_convention = await _query_camera(api, reconstruction_id, capture_id, query_camera)
 
             map_id = await _get_or_create_localization_map(api, reconstruction_id)
 
@@ -1557,8 +1576,40 @@ async def _localize(
     return capture_id, entries
 
 
+def _query_camera_override(
+    sample_image: Path, fov_deg: float | None, focal_length: float | None
+) -> PinholeCameraConfig | None:
+    """The camera the query images were taken with, when the caller states it.
+
+    Query images need not come from the camera that built the map, and against a
+    spherical map they cannot: its cameras are rendered fisheye views of a sphere,
+    and the sphere itself has no intrinsics at all. Stating the lens here beats
+    inferring one that happens to parse.
+    """
+    if fov_deg is not None and focal_length is not None:
+        raise typer.BadParameter("give --fov-deg or --focal-length, not both")
+    if fov_deg is None and focal_length is None:
+        return None
+    with Image.open(sample_image) as image:
+        width, height = image.size
+    if focal_length is None:
+        assert fov_deg is not None
+        if not 0 < fov_deg < 180:
+            raise typer.BadParameter(f"--fov-deg is {fov_deg}; a perspective camera's is between 0 and 180")
+        focal_length = (width / 2) / tan(radians(fov_deg) / 2)
+    return PinholeCameraConfig(
+        width=width,
+        height=height,
+        orientation="TOP_LEFT",
+        fx=focal_length,
+        fy=focal_length,
+        cx=width / 2,
+        cy=height / 2,
+    )
+
+
 async def _query_camera(
-    api: DefaultApi, reconstruction_id: UUID, capture_id: UUID
+    api: DefaultApi, reconstruction_id: UUID, capture_id: UUID, override: PinholeCameraConfig | None = None
 ) -> tuple[PinholeCameraConfig, AxisConvention]:
     # Query images are assumed to come from the capture's camera. An imported reconstruction
     # (POST /reconstructions/tar) hangs off a stand-in capture session with no tar, so the manifest
@@ -1573,10 +1624,21 @@ async def _query_camera(
             f"Capture {capture_id} has no manifest (imported reconstruction?); using the reconstruction's own camera",
             err=True,
         )
+        if override is not None:
+            return override, AxisConvention.OPENCV
         return _camera_config_from_tar(await _ensure_cached_tar(api, reconstruction_id)), AxisConvention.OPENCV
     manifest = CaptureSessionManifest.model_validate_json(manifest_bytes)
-    camera_config = PinholeCameraConfig(**manifest.rigs[0].cameras[0].camera_config.model_dump())
-    return camera_config, AxisConvention(manifest.axis_convention.value)
+    axis_convention = AxisConvention(manifest.axis_convention.value)
+    if override is not None:
+        return override, axis_convention
+    camera_config = manifest.rigs[0].cameras[0].camera_config
+    if not isinstance(camera_config, PinholeCameraConfig):
+        raise TypeError(
+            f"Capture {capture_id}'s camera is a {type(camera_config).__name__}, which carries no pinhole "
+            "intrinsics to lend the query images -- a spherical capture has none, and the views its map was "
+            "built from are fisheye. State the query images' own lens with --fov-deg or --focal-length."
+        )
+    return PinholeCameraConfig(**camera_config.model_dump()), axis_convention
 
 
 def _camera_config_from_tar(tar_path: Path) -> PinholeCameraConfig:

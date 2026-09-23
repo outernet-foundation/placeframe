@@ -470,6 +470,9 @@ class LocalizeRequest:
     retrieval_top_k: int | None = None
     ransac_threshold: float | None = None
     use_chunking: bool = True
+    # Horizontal field of view of the query images. Needed when they did not come from the map
+    # capture's own camera, which a spherical map never has a pinhole one to offer.
+    fov_deg: float | None = None
 
 
 @dataclass
@@ -659,6 +662,8 @@ async def _run_localize_job(job: Job, data: LocalizeRequest, run_id: str) -> Non
             args += ["--retrieval-top-k", str(data.retrieval_top_k)]
         if data.ransac_threshold is not None:
             args += ["--ransac-threshold", str(data.ransac_threshold)]
+        if data.fov_deg is not None:
+            args += ["--fov-deg", str(data.fov_deg)]
         args.append("--use-chunking" if data.use_chunking else "--no-chunking")
         job.result = await _run_howard_test_json_async(*args)
         job.status = "succeeded"

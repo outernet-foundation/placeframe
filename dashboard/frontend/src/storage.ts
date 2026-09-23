@@ -20,6 +20,7 @@ export function store(key: string, value: string): void {
 export const STORAGE_KEYS = {
   expanded: "placeframe-dashboard.tree.expanded",
   localizeImageDir: "placeframe-dashboard.localize.imageDir",
+  localizeFovDeg: "placeframe-dashboard.localize.fovDeg",
   importTar: "placeframe-dashboard.localize.importTar",
   focalLength: "placeframe-dashboard.reconstruct.poselessFocalLength",
   exportZipDir: "placeframe-dashboard.visualize.exportZipOutputDir",
