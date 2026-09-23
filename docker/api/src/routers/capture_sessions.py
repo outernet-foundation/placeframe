@@ -248,6 +248,20 @@ async def delete_capture_session(session: AsyncSession, id: UUID) -> None:
     if not row:
         raise NotFoundException(f"Capture session with id {id} not found")
 
+    # Reconstructions reference this row with ON DELETE RESTRICT. Rejecting that case up front
+    # keeps the tar deletion below from running for a delete the database would then refuse — the
+    # tar is not transactional and would be gone while the capture row stayed.
+    result = await session.execute(select(Reconstruction.id).where(Reconstruction.capture_session_id == id).limit(1))
+    if result.scalar_one_or_none() is not None:
+        raise HTTPException(
+            status_code=HTTP_409_CONFLICT,
+            detail=f"Capture session {id} still has reconstructions; delete those first",
+        )
+
+    # The tar goes before the row, as in delete_reconstruction: the row id is the only handle on
+    # the object, so a failure here leaves a recoverable state rather than an unreachable tar.
+    get_storage().delete_prefix(BUCKET, f"{id}.tar")
+
     await session.delete(row)
 
     await session.flush()

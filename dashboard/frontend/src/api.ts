@@ -18,8 +18,19 @@ export function listCaptures(): Promise<CaptureSession[]> {
   return request("/api/captures");
 }
 
-export function listReconstructions(): Promise<Reconstruction[]> {
-  return request("/api/reconstructions");
+// `stats: false` skips each capture's mono/stereo + frame-count lookup (slow) — the tree draws from
+// the fast listing and fills those columns in from a second, full one.
+export function listReconstructions(stats = true): Promise<Reconstruction[]> {
+  return request(`/api/reconstructions${stats ? "" : "?stats=false"}`);
+}
+
+// Uploads a server-local reconstruction tar; the API also creates its localization map. A tar can
+// only be imported once (it carries a fixed id); `newId` imports it again as a separate copy.
+export function importReconstruction(tarPath: string, newId = false): Promise<Reconstruction> {
+  return request("/api/reconstructions/import", {
+    method: "POST",
+    body: JSON.stringify({ tar_path: tarPath, new_id: newId }),
+  });
 }
 
 export function listLocalizations(): Promise<LocalizationSummary[]> {
@@ -28,12 +39,28 @@ export function listLocalizations(): Promise<LocalizationSummary[]> {
 
 // 204 No Content on success — no JSON body, so this bypasses `request()`'s response.json() call
 // (which would throw on an empty body).
-export async function deleteReconstruction(reconstructionId: string): Promise<void> {
-  const response = await fetch(`${API_BASE}/api/reconstructions/${reconstructionId}`, { method: "DELETE" });
+async function deleteRequest(path: string): Promise<void> {
+  const response = await fetch(`${API_BASE}${path}`, { method: "DELETE" });
   if (!response.ok) {
     const body = await response.text();
     throw new Error(`${response.status} ${response.statusText}: ${body}`);
   }
+}
+
+// `cascade` also deletes its localization map (the API refuses while one exists), this machine's
+// cached tar/PNG, and its local localization runs.
+export function deleteReconstruction(reconstructionId: string, cascade = false): Promise<void> {
+  return deleteRequest(`/api/reconstructions/${reconstructionId}${cascade ? "?cascade=true" : ""}`);
+}
+
+// The capture's tar and row; `cascade` deletes its reconstructions first (each cascading as above).
+export function deleteCapture(captureId: string, cascade = false): Promise<void> {
+  return deleteRequest(`/api/captures/${captureId}${cascade ? "?cascade=true" : ""}`);
+}
+
+// Removes a finished (or interrupted) run's local results; the backend refuses a running one.
+export function deleteLocalization(runId: string): Promise<void> {
+  return deleteRequest(`/api/localizations/${runId}`);
 }
 
 export function startReconstruct(captureId: string, optionsJson: string | null): Promise<{ job_id: string }> {
@@ -116,7 +143,10 @@ export function saveLocalizationTable(runId: string, outputPath: string): Promis
   });
 }
 
-export function saveLocalizationImages(runId: string, outputDir: string): Promise<{ output_dir: string; count: number }> {
+export function saveLocalizationImages(
+  runId: string,
+  outputDir: string,
+): Promise<{ output_dir: string; count: number; missing: number }> {
   return request(`/api/localizations/${runId}/save-images`, {
     method: "POST",
     body: JSON.stringify({ output_dir: outputDir }),
@@ -149,12 +179,17 @@ export interface BrowseDirectoryResult {
   path: string;
   parent: string | null;
   entries: BrowseDirectoryEntry[];
+  files: BrowseDirectoryEntry[]; // only populated when fileExtensions is given
 }
 
-// `path` omitted starts the browse at the server's home directory.
-export function browseDirectories(path?: string): Promise<BrowseDirectoryResult> {
-  const query = path ? `?path=${encodeURIComponent(path)}` : "";
-  return request(`/api/browse-directories${query}`);
+// `path` omitted starts the browse at the server's home directory. `fileExtensions` (e.g.
+// [".tar"]) also lists matching files, for picking a file rather than a folder.
+export function browseDirectories(path?: string, fileExtensions?: string[]): Promise<BrowseDirectoryResult> {
+  const params = new URLSearchParams();
+  if (path) params.set("path", path);
+  if (fileExtensions?.length) params.set("files", fileExtensions.join(","));
+  const query = params.toString();
+  return request(`/api/browse-directories${query ? `?${query}` : ""}`);
 }
 
 export interface PointCloud {

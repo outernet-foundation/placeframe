@@ -11,6 +11,7 @@ from collections.abc import Callable
 from datetime import datetime, timezone
 from io import BytesIO
 from json import dumps, loads
+from shutil import rmtree
 from pathlib import Path
 from struct import pack
 from typing import Annotated, Any, NoReturn, cast
@@ -21,6 +22,7 @@ import numpy as np
 import typer
 from core.capture_session_manifest import CaptureSessionManifest
 from core.localization_metrics import RANSAC_THRESHOLD_DEFAULT, RETRIEVAL_TOP_K_DEFAULT
+from core.reconstruction_options import ReconstructionOptions as CoreReconstructionOptions
 from numpy.typing import NDArray  # noqa: TID251 -- one-off visualizer, not worth shape-branding
 from PIL import Image, ImageDraw, ImageFont
 from scipy.spatial.transform import Rotation
@@ -74,6 +76,10 @@ LOCALIZATIONS_DIR = DATA_DIR / "localizations"
 LOCALIZATION_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
 LOCALIZATION_THUMBNAIL_SIZE = (200, 150)
 
+# docker/api/src/routers/reconstructions.py's METADATA_MEMBER: the tar entry naming the
+# reconstruction (and so its id, which the API refuses to import twice).
+TAR_METADATA_MEMBER = "metadata.json"
+
 # "Poseless" captures: a plain sequentially-ordered folder of images with no known camera pose
 # (e.g. frames extracted from a video), packaged into a monocular capture with a synthetic
 # straight-line trajectory. Rig.__init__ (docker/reconstructor/src/reconstructor/rig.py) parses
@@ -84,6 +90,7 @@ LOCALIZATION_THUMBNAIL_SIZE = (200, 150)
 # out as OPENCV down [0, 1, 0] regardless — exactly what a stationary-gravity assumption wants).
 POSELESS_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
 POSELESS_TARGET_KEYFRAMES = 30
+
 # Mirrors ReconstructionOptions.keyframe_min_distance_m's default (core/reconstruction_options.py —
 # verified directly, since docker/reconstructor/AGENTS.md's stated default of 0.3m does not match
 # the code). Used only to size the synthetic trajectory's step so it yields roughly
@@ -281,8 +288,19 @@ def _capture_to_dict(session: CaptureSessionRead) -> dict[str, Any]:
     }
 
 
+# Server defaults for every ReconstructionOptions field (core's model: the generated client's omits
+# fields whose default is None). Reconstructions of one capture differ only by their options, so
+# the dashboard shows each one's departures from these.
+_DEFAULT_OPTIONS: dict[str, Any] = CoreReconstructionOptions().model_dump(mode="json")
+
+
+def _options_diff(options: dict[str, Any]) -> dict[str, Any]:
+    return {k: v for k, v in options.items() if k not in _DEFAULT_OPTIONS or _DEFAULT_OPTIONS[k] != v}
+
+
 def _reconstruction_to_dict(reconstruction: ReconstructionReadWithQueue) -> dict[str, Any]:
     metrics = _metrics(reconstruction)
+    options: dict[str, Any] = reconstruction.manifest.get("options") or {}
     tar_path = _cached_tar_path(reconstruction.id)
     png_path = _cached_png_path(reconstruction.id)
     return {
@@ -297,6 +315,8 @@ def _reconstruction_to_dict(reconstruction: ReconstructionReadWithQueue) -> dict
         "queue_depth": reconstruction.queue_depth,
         "map_point_count": metrics.get("map_point_count"),
         "map_image_count": metrics.get("map_image_count"),
+        "options": options,
+        "options_diff": _options_diff(options),
         "cached_tar_path": str(tar_path) if tar_path.exists() else None,
         "cached_png_path": str(png_path) if png_path.exists() else None,
     }
@@ -347,16 +367,26 @@ def _registered_frame_count(reconstruction_id: UUID) -> int | None:
         return None
 
 
-async def _enrich_reconstruction_rows(rows: list[ReconstructionReadWithQueue]) -> list[dict[str, Any]]:
+async def _enrich_reconstruction_rows(
+    rows: list[ReconstructionReadWithQueue], frame_stats: bool = True
+) -> list[dict[str, Any]]:
     capture_ids = {r.capture_session_id for r in rows if r.capture_session_id is not None}
     stats: dict[UUID, tuple[bool | None, int | None]] = {}
+    capture_names: dict[UUID, str] = {}
     async with authenticated_api_client() as api:
-        for capture_id in capture_ids:
+        for capture_id in capture_ids if frame_stats else ():
             stats[capture_id] = await _fetch_capture_frame_stats(api, capture_id)
+        # Names label reconstructions in the dashboard's pickers — an imported reconstruction's
+        # stand-in capture session is named after its tar. One call; best-effort like the stats.
+        try:
+            capture_names = {s.id: s.name for s in await api.get_capture_sessions(_request_timeout=REQUEST_TIMEOUT)}
+        except ApiException:
+            pass
 
     entries: list[dict[str, Any]] = []
     for r in rows:
         entry = _reconstruction_to_dict(r)
+        entry["capture_name"] = capture_names.get(r.capture_session_id) if r.capture_session_id else None
         is_stereo, total_frame_count = (
             stats.get(r.capture_session_id, (None, None))
             if r.capture_session_id
@@ -390,13 +420,21 @@ def captures(json_output: Annotated[bool, typer.Option("--json", help="Emit JSON
 @app.command()
 def reconstructions(
     json_output: Annotated[bool, typer.Option("--json", help="Emit JSON instead of a table")] = False,
+    frame_stats: Annotated[
+        bool,
+        typer.Option(
+            "--frame-stats/--no-frame-stats",
+            help="With --json, also fetch each capture's mono/stereo and frame count (slow: the API streams "
+            "through each capture tar to find them)",
+        ),
+    ] = True,
 ) -> None:
     rows = sorted(run(_list_reconstructions()), key=lambda r: r.created_at, reverse=True)
     if json_output:
         # Stereo/mono + frame-usage stats are only fetched for --json (the dashboard's consumption
         # path) — they cost extra API round trips (capture manifest, frames.csv) per unique capture
         # that the plain-text table below has no use for.
-        typer.echo(dumps(run(_enrich_reconstruction_rows(rows))))
+        typer.echo(dumps(run(_enrich_reconstruction_rows(rows, frame_stats))))
         return
     _print_table(
         ["ID", "Capture ID", "Status", "Created", "Map points"],
@@ -416,16 +454,49 @@ def reconstructions(
 @app.command(name="delete-reconstruction")
 def delete_reconstruction(
     reconstruction_id: Annotated[UUID, typer.Argument(help="Reconstruction to permanently delete")],
+    cascade: Annotated[
+        bool,
+        typer.Option(
+            "--cascade",
+            help="Also delete what depends on it: its localization map (the API refuses the delete while one "
+            "exists), this machine's cached tar/PNG, and its local localization runs",
+        ),
+    ] = False,
     json_output: Annotated[bool, typer.Option("--json", help="Emit JSON instead of text")] = False,
 ) -> None:
     # The API refuses to delete a reconstruction with an associated LocalizationMap (a 404-shaped
     # error, oddly — see docker/api/src/routers/reconstructions.py's delete_reconstruction), which
     # in practice only ever exists once someone has run `localize` against this reconstruction.
-    run(_delete_reconstruction(reconstruction_id))
+    removed = run(_delete_reconstruction(reconstruction_id, cascade))
     if json_output:
-        typer.echo(dumps({"id": str(reconstruction_id), "deleted": True}))
+        typer.echo(dumps({"id": str(reconstruction_id), "deleted": True, **removed}))
         return
-    typer.echo(f"Deleted reconstruction {reconstruction_id}")
+    typer.echo(f"Deleted reconstruction {reconstruction_id} and its stored map data")
+    if cascade:
+        typer.echo(f"  localization map: {'deleted' if removed['localization_map'] else 'none'}")
+        typer.echo(f"  local runs deleted: {len(removed['localization_runs'])}")
+        typer.echo(f"  local cache files deleted: {removed['cached_files']}")
+
+
+@app.command(name="delete-capture")
+def delete_capture(
+    capture_id: Annotated[UUID, typer.Argument(help="Capture session to permanently delete, with its tar")],
+    cascade: Annotated[
+        bool,
+        typer.Option(
+            "--cascade",
+            help="Also delete the capture's reconstructions first (each with its localization map, stored map "
+            "data and local runs); without this the API refuses while any exist",
+        ),
+    ] = False,
+    json_output: Annotated[bool, typer.Option("--json", help="Emit JSON instead of text")] = False,
+) -> None:
+    removed = run(_delete_capture(capture_id, cascade))
+    if json_output:
+        typer.echo(dumps({"id": str(capture_id), "deleted": True, **removed}))
+        return
+    typer.echo(f"Deleted capture session {capture_id} and its tar")
+    typer.echo(f"  reconstructions deleted: {len(removed['reconstructions'])}")
 
 
 @app.command()
@@ -444,9 +515,17 @@ def import_reconstruction(
     tar_path: Annotated[
         Path, typer.Argument(help="Reconstruction tar (metadata.json + artifacts); its stem names the map")
     ],
+    new_id: Annotated[
+        bool,
+        typer.Option(
+            "--new-id",
+            help="Import as a separate copy: give the reconstruction a fresh id instead of the one in the tar "
+            "(which can only be imported once)",
+        ),
+    ] = False,
     json_output: Annotated[bool, typer.Option("--json", help="Emit JSON instead of text")] = False,
 ) -> None:
-    reconstruction = run(_import_reconstruction(tar_path.name, tar_path.read_bytes()))
+    reconstruction = run(_import_reconstruction(tar_path.name, tar_path.read_bytes(), new_id))
     if json_output:
         typer.echo(dumps(_reconstruction_to_dict(reconstruction)))
         return
@@ -501,6 +580,13 @@ def reconstruct_poseless(
             "influence on bundle adjustment"
         ),
     ] = None,
+    capture_id: Annotated[
+        UUID | None,
+        typer.Option(
+            help="Reconstruct this already-uploaded capture of the folder instead of packaging and uploading a "
+            "new one (its focal length is fixed at upload, so --focal-length is not re-applied)"
+        ),
+    ] = None,
     wait: Annotated[bool, typer.Option(help="Poll until the reconstruction reaches a terminal status")] = False,
     timeout_s: Annotated[float, typer.Option(help="Seconds to wait for --wait before giving up")] = (
         RECONSTRUCTION_TIMEOUT_S
@@ -516,6 +602,7 @@ def reconstruct_poseless(
             frame_interval_ms,
             wait,
             timeout_s,
+            capture_id,
         )
     )
     _report_reconstruction(reconstruction, json_output)
@@ -798,17 +885,23 @@ def localize_save_images(
     result = _load_localization_run(run_id)
     output_dir.mkdir(parents=True, exist_ok=True)
     saved = 0
+    # The pose is drawn onto the original image, so a run whose query folder has since been moved or
+    # deleted saves nothing; report that rather than a silent zero.
+    missing = 0
     for image in result["images"]:
         source_path = Path(image["path"])
         if not source_path.exists():
+            missing += 1
             continue
         annotated = _annotate_pose_image(source_path, image)
         annotated.save(output_dir / source_path.name)
         saved += 1
     if json_output:
-        typer.echo(dumps({"output_dir": str(output_dir), "count": saved}))
+        typer.echo(dumps({"output_dir": str(output_dir), "count": saved, "missing": missing}))
         return
     typer.echo(f"Saved {saved} annotated images for run {run_id} to {output_dir}")
+    if missing:
+        typer.echo(f"  {missing} source image(s) no longer exist and were skipped", err=True)
 
 
 def _localization_row(image: dict[str, Any]) -> list[str]:
@@ -857,8 +950,59 @@ async def _upload(
             _fail(exception)
 
 
-async def _import_reconstruction(tar_name: str, tar_bytes: bytes) -> ReconstructionReadWithQueue:
+def _tar_metadata_id(tar_bytes: bytes) -> UUID | None:
+    with tarfile.open(fileobj=BytesIO(tar_bytes), mode="r:*") as tar:
+        for member in tar:
+            if member.name == TAR_METADATA_MEMBER:
+                handle = tar.extractfile(member)
+                if handle is None:
+                    return None
+                return UUID(loads(handle.read())["reconstruction"]["id"])
+    return None
+
+
+def _retag_tar(tar_bytes: bytes, reconstruction_id: UUID) -> bytes:
+    """The same tar with metadata.json's reconstruction id replaced, for a separate copy."""
+    out = BytesIO()
+    with (
+        tarfile.open(fileobj=BytesIO(tar_bytes), mode="r:*") as source,
+        tarfile.open(fileobj=out, mode="w", format=tarfile.GNU_FORMAT) as target,
+    ):
+        for member in source:
+            handle = source.extractfile(member)
+            if member.name != TAR_METADATA_MEMBER:
+                target.addfile(member, handle)
+                continue
+            if handle is None:
+                raise ValueError(f"{TAR_METADATA_MEMBER} is not a regular file")
+            metadata = loads(handle.read())
+            metadata["reconstruction"]["id"] = str(reconstruction_id)
+            payload = dumps(metadata).encode()
+            member.size = len(payload)
+            target.addfile(member, BytesIO(payload))
+    return out.getvalue()
+
+
+async def _import_reconstruction(tar_name: str, tar_bytes: bytes, new_id: bool = False) -> ReconstructionReadWithQueue:
+    existing_id = _tar_metadata_id(tar_bytes)
+    if new_id:
+        tar_bytes = await to_thread(_retag_tar, tar_bytes, uuid4())
     async with authenticated_api_client() as api:
+        # Checked before the upload: a tar carries one fixed id, so re-importing it would otherwise
+        # push the whole (often hundreds of MB) archive only to be refused with a 409.
+        if existing_id is not None and not new_id:
+            try:
+                await api.get_reconstruction(id=existing_id)
+            except ApiException as exception:
+                if cast("int | None", exception.status) != 404:
+                    _fail(exception)
+            else:
+                typer.echo(
+                    f"This tar's reconstruction ({existing_id}) is already imported. Export it again for a new id, "
+                    "or pass --new-id to import it as a separate copy.",
+                    err=True,
+                )
+                raise typer.Exit(1)
         try:
             return await api.import_reconstruction_tar(data=(tar_name, tar_bytes), _request_timeout=REQUEST_TIMEOUT)
         except ApiException as exception:
@@ -883,7 +1027,14 @@ async def _reconstruct_poseless(
     frame_interval_ms: int,
     wait: bool,
     timeout_s: float,
+    capture_id: UUID | None = None,
 ) -> ReconstructionReadWithQueue:
+    if capture_id is not None:
+        async with authenticated_api_client() as api:
+            try:
+                return await create_reconstruction(api, capture_id, options, wait, timeout_s)
+            except ApiException as exception:
+                _fail(exception)
     tar_bytes, image_count = await to_thread(build_poseless_capture_tar, image_dir, focal_length, frame_interval_ms)
     async with authenticated_api_client() as api:
         try:
@@ -910,12 +1061,82 @@ async def _list_reconstructions() -> list[ReconstructionReadWithQueue]:
             _fail(exception)
 
 
-async def _delete_reconstruction(reconstruction_id: UUID) -> None:
+def _delete_local_reconstruction_files(reconstruction_id: UUID) -> int:
+    """This machine's cached export/render for a reconstruction; both are re-fetchable."""
+    deleted = 0
+    for path in (_cached_tar_path(reconstruction_id), _cached_png_path(reconstruction_id)):
+        if path.exists():
+            path.unlink()
+            deleted += 1
+    return deleted
+
+
+def _localization_runs_of(reconstruction_id: UUID) -> list[str]:
+    if not LOCALIZATIONS_DIR.exists():
+        return []
+    runs: list[str] = []
+    for run_dir in LOCALIZATIONS_DIR.iterdir():
+        for name in ("results.json", "request.json"):
+            try:
+                data = loads((run_dir / name).read_text())
+            except (OSError, ValueError):
+                continue
+            if data.get("reconstruction_id") == str(reconstruction_id):
+                runs.append(run_dir.name)
+            break
+    return runs
+
+
+def _delete_local_runs(reconstruction_id: UUID) -> list[str]:
+    runs = _localization_runs_of(reconstruction_id)
+    for run_id in runs:
+        rmtree(LOCALIZATIONS_DIR / run_id, ignore_errors=True)
+    return runs
+
+
+async def _delete_reconstruction_with(api: DefaultApi, reconstruction_id: UUID, cascade: bool) -> dict[str, Any]:
+    removed: dict[str, Any] = {"localization_map": None, "localization_runs": [], "cached_files": 0}
+    try:
+        if cascade:
+            # A localization map exists for anything that has been localized against (and for every
+            # imported reconstruction); the API refuses the delete while one does.
+            try:
+                map_id = await api.get_reconstruction_localization_map(id=reconstruction_id)
+            except ApiException as exception:
+                if cast("int | None", exception.status) != 404:
+                    raise
+            else:
+                await api.delete_localization_map(id=map_id)
+                removed["localization_map"] = str(map_id)
+        # Deletes the reconstruction's objects in the reconstructions bucket, then the row.
+        await api.delete_reconstruction(id=reconstruction_id)
+    except ApiException as exception:
+        _fail(exception)
+    if cascade:
+        removed["localization_runs"] = await to_thread(_delete_local_runs, reconstruction_id)
+        removed["cached_files"] = await to_thread(_delete_local_reconstruction_files, reconstruction_id)
+    return removed
+
+
+async def _delete_reconstruction(reconstruction_id: UUID, cascade: bool = False) -> dict[str, Any]:
     async with authenticated_api_client() as api:
+        return await _delete_reconstruction_with(api, reconstruction_id, cascade)
+
+
+async def _delete_capture(capture_id: UUID, cascade: bool) -> dict[str, Any]:
+    async with authenticated_api_client() as api:
+        reconstructions: list[dict[str, Any]] = []
         try:
-            await api.delete_reconstruction(id=reconstruction_id)
+            if cascade:
+                # Returns the capture's reconstruction ids.
+                for reconstruction_id in await api.get_capture_session_reconstructions(id=capture_id):
+                    removed = await _delete_reconstruction_with(api, reconstruction_id, cascade=True)
+                    reconstructions.append({"id": str(reconstruction_id), **removed})
+            # Deletes the capture's tar, then the row; refused while any reconstruction remains.
+            await api.delete_capture_session(id=capture_id)
         except ApiException as exception:
             _fail(exception)
+    return {"reconstructions": reconstructions}
 
 
 def _format_size(num_bytes: int) -> str:
@@ -1287,7 +1508,19 @@ async def _run_pipeline(
 
 
 def _fail(exception: ApiException) -> NoReturn:
-    typer.echo(f"Request failed: {exception}", err=True)
+    # str(ApiException) is a multi-line dump (status line, every response header, then the body);
+    # the useful part is the body's "detail", so surface that and keep the status for context.
+    detail: str | None = None
+    body = cast("bytes | str | None", getattr(exception, "body", None) or getattr(exception, "data", None))
+    if body is not None:
+        try:
+            parsed = loads(body)
+            value = cast("dict[str, object]", parsed).get("detail") if isinstance(parsed, dict) else None
+            detail = str(value) if value is not None else None
+        except ValueError:
+            detail = body.decode(errors="replace") if isinstance(body, bytes) else body
+    status = getattr(exception, "status", None)
+    typer.echo(f"Request failed ({status}): {detail or exception}".strip(), err=True)
     raise typer.Exit(1)
 
 

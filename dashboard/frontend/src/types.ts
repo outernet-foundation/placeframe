@@ -23,6 +23,9 @@ export interface Reconstruction {
   is_stereo: boolean | null;
   total_frame_count: number | null;
   registered_frame_count: number | null;
+  capture_name?: string | null; // capture session name; an imported reconstruction's is its tar name
+  options?: Record<string, unknown>; // the ReconstructionOptions it was built with
+  options_diff?: Record<string, unknown>; // just the options that differ from the server defaults
 }
 
 export type JobKind = "reconstruct" | "visualize" | "localize";
@@ -46,6 +49,10 @@ export interface PoselessImageSet {
   path: string;
   image_count: number;
   recorded_at: string;
+  // Set once the folder has been uploaded: later reconstructions reuse this capture unless the
+  // focal length changes (it is baked into the capture at upload).
+  capture_session_id?: string;
+  focal_length?: number;
 }
 
 export interface LocalizationImage {
@@ -70,10 +77,18 @@ export interface LocalizationResult {
   images: LocalizationImage[];
 }
 
+// "incomplete": no result and no live job — interrupted, e.g. by a dashboard restart mid-run.
+export type LocalizationRunStatus = "done" | "running" | "failed" | "incomplete";
+
 export interface LocalizationSummary {
   run_id: string;
   reconstruction_id: string | null;
   created_at: string | null;
+  image_dir: string | null;
+  use_chunking: boolean | null;
+  status: LocalizationRunStatus;
+  error: string | null;
+  progress: { completed: number; total: number } | null;
   image_count: number;
   valid_count: number;
 }

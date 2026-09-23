@@ -15,6 +15,7 @@ import base64
 import json
 import os
 import re
+import shutil
 import subprocess
 import time
 import uuid
@@ -117,20 +118,26 @@ async def _run_howard_test_bytes_async(*args: str) -> bytes:
     return await asyncio.to_thread(_run_howard_test_bytes, *args)
 
 
-def _browse_directories(path: str | None) -> dict[str, Any]:
+def _browse_directories(path: str | None, files: str | None = None) -> dict[str, Any]:
     target = Path(path).expanduser().resolve() if path else Path.home()
     if not target.is_dir():
         raise NotFoundException(f"Not a directory: {target}")
+    # `files` is a comma-separated suffix list (e.g. ".tar"); when given, matching files are listed
+    # alongside the subdirectories so the same browser can pick a file.
+    suffixes = {s.strip().lower() for s in files.split(",") if s.strip()} if files else set()
     try:
         children = sorted(
-            (p for p in target.iterdir() if p.is_dir() and not p.name.startswith(".")),
+            (p for p in target.iterdir() if not p.name.startswith(".")),
             key=lambda p: p.name.lower(),
         )
     except PermissionError:
         children = []
-    entries = [{"name": p.name, "path": str(p)} for p in children]
+    entries = [{"name": p.name, "path": str(p)} for p in children if p.is_dir()]
+    file_entries = [
+        {"name": p.name, "path": str(p)} for p in children if suffixes and p.is_file() and p.suffix.lower() in suffixes
+    ]
     parent = str(target.parent) if target.parent != target else None
-    return {"path": str(target), "parent": parent, "entries": entries}
+    return {"path": str(target), "parent": parent, "entries": entries, "files": file_entries}
 
 
 # Server-local directory browser for the Localize tab's image-directory picker. A plain
@@ -140,8 +147,8 @@ def _browse_directories(path: str | None) -> dict[str, Any]:
 # the same machine as the CLI (see module docstring), walking the real filesystem server-side and
 # returning absolute paths is the direct equivalent of a native picker here.
 @get("/api/browse-directories")
-async def browse_directories(path: str | None = None) -> dict[str, Any]:
-    return await asyncio.to_thread(_browse_directories, path)
+async def browse_directories(path: str | None = None, files: str | None = None) -> dict[str, Any]:
+    return await asyncio.to_thread(_browse_directories, path, files)
 
 
 @get("/api/captures")
@@ -149,17 +156,84 @@ async def list_captures() -> list[dict[str, Any]]:
     return await _run_howard_test_json_async("captures")
 
 
+# `stats=false` skips each capture's mono/stereo + frame-count lookup (the API streams through the
+# capture tar for those), so the dashboard can draw the tree at once and fill them in afterwards.
 @get("/api/reconstructions")
-async def list_reconstructions() -> list[dict[str, Any]]:
-    return await _run_howard_test_json_async("reconstructions")
+async def list_reconstructions(stats: bool = True) -> list[dict[str, Any]]:
+    return await _run_howard_test_json_async("reconstructions", *([] if stats else ["--no-frame-stats"]))
 
 
+# `cascade=true` also removes what would otherwise block or outlive the delete: the localization
+# map (the API refuses while one exists), the local cached tar/PNG, and the local localization runs.
 @delete("/api/reconstructions/{reconstruction_id:str}")
-async def delete_reconstruction(reconstruction_id: str) -> None:
+async def delete_reconstruction(reconstruction_id: str, cascade: bool = False) -> None:
     # 204 No Content on success; a failure (including the API's "has an associated localization
     # map" refusal — see docker/api/src/routers/reconstructions.py) raises RuntimeError from
     # _run_howard_test_json, which the RuntimeError exception handler turns into a 500 with detail.
-    await _run_howard_test_json_async("delete-reconstruction", reconstruction_id)
+    await _run_howard_test_json_async("delete-reconstruction", reconstruction_id, *(["--cascade"] if cascade else []))
+
+
+# The capture's tar and row; `cascade=true` deletes its reconstructions (each cascading as above)
+# first, which the API otherwise refuses. Also unlinks the image folder that uploaded it, if any,
+# so the folder reappears as unlinked rather than pointing at a deleted capture.
+@delete("/api/captures/{capture_id:str}")
+async def delete_capture(capture_id: str, cascade: bool = False) -> None:
+    await _run_howard_test_json_async("delete-capture", capture_id, *(["--cascade"] if cascade else []))
+    await asyncio.to_thread(_unlink_poseless_capture, capture_id)
+
+
+def _unlink_poseless_capture(capture_id: str) -> None:
+    index = _load_poseless_index()
+    changed = False
+    for entry in index.values():
+        if entry.get("capture_session_id") == capture_id:
+            entry.pop("capture_session_id", None)
+            entry.pop("focal_length", None)
+            changed = True
+    if changed:
+        _save_poseless_index(index)
+
+
+@dataclass
+class ImportReconstructionRequest:
+    tar_path: str
+    # A tar carries one fixed reconstruction id, so importing the same tar twice is refused;
+    # new_id imports it again as a separate copy.
+    new_id: bool = False
+
+
+# Uploads a reconstruction tar (metadata.json + artifacts, e.g. from `howard-test`'s export or an
+# external pipeline) via `howard-test import-reconstruction`. A direct call rather than a job: the
+# upload of a few-hundred-MB tar is seconds, not minutes. The API also creates the reconstruction's
+# localization map, so the reconstruction can't be deleted until that map is.
+def _resolve_tar(tar_path: str) -> str:
+    tar = Path(tar_path).expanduser()
+    if not tar.is_file():
+        raise ValueError(f"Not a file: {tar}")
+    if tar.suffix.lower() != ".tar":
+        raise ValueError(f"Not a .tar file: {tar}")
+    return str(tar.resolve())
+
+
+@post("/api/reconstructions/import")
+async def import_reconstruction(data: ImportReconstructionRequest) -> dict[str, Any]:
+    tar = await asyncio.to_thread(_resolve_tar, data.tar_path)
+    return await _run_howard_test_json_async("import-reconstruction", tar, *(["--new-id"] if data.new_id else []))
+
+
+# Every localization run directory, finished or not. `results.json` (written by the CLI at the end)
+# describes a finished run; until then `request.json` (written by start_localize, below) says what
+# was asked for and `progress.json` how far it has got. A run with neither a result nor a live job
+# was interrupted (e.g. the dashboard restarted mid-run) and is reported as incomplete.
+def _run_job(run_id: str) -> Job | None:
+    return next((job for job in JOBS.values() if job.kind == "localize" and job.run_id == run_id), None)
+
+
+def _read_json(path: Path) -> dict[str, Any] | None:
+    try:
+        return json.loads(path.read_text())
+    except (OSError, json.JSONDecodeError):
+        return None
 
 
 def _list_localizations() -> list[dict[str, Any]]:
@@ -167,23 +241,51 @@ def _list_localizations() -> list[dict[str, Any]]:
         return []
     runs: list[dict[str, Any]] = []
     for run_dir in LOCALIZATIONS_DIR.iterdir():
-        results_path = run_dir / "results.json"
-        if not results_path.exists():
+        if not run_dir.is_dir():
             continue
-        try:
-            data = json.loads(results_path.read_text())
-        except json.JSONDecodeError:
-            continue
-        images = data.get("images", [])
+        data = _read_json(run_dir / "results.json")
+        request = _read_json(run_dir / "request.json") or {}
+        progress = _read_json(run_dir / "progress.json")
+        job = _run_job(run_dir.name)
+        source = data or request
+        images = (data or {}).get("images", [])
+        if data is not None:
+            status, error = "done", None
+        elif job is not None and job.status == "running":
+            status, error = "running", None
+        elif job is not None and job.status == "failed":
+            status, error = "failed", job.error
+        else:
+            status, error = "incomplete", None
         runs.append({
-            "run_id": data.get("run_id", run_dir.name),
-            "reconstruction_id": data.get("reconstruction_id"),
-            "created_at": data.get("created_at"),
-            "image_count": len(images),
+            "run_id": source.get("run_id", run_dir.name),
+            "reconstruction_id": source.get("reconstruction_id"),
+            "created_at": source.get("created_at"),
+            "image_dir": source.get("image_dir"),
+            "use_chunking": source.get("use_chunking"),
+            "status": status,
+            "error": error,
+            "progress": progress,
+            "image_count": len(images) if data is not None else (progress or {}).get("total", 0),
             "valid_count": sum(1 for img in images if img.get("status") == "ok"),
         })
     runs.sort(key=lambda r: r["created_at"] or "", reverse=True)
     return runs
+
+
+def _delete_localization(run_id: str) -> None:
+    run_dir = (LOCALIZATIONS_DIR / run_id).resolve()
+    if run_dir.parent != LOCALIZATIONS_DIR.resolve() or not run_dir.is_dir():
+        raise NotFoundException(f"No localization run {run_id}")
+    job = _run_job(run_id)
+    if job is not None and job.status == "running":
+        raise ValueError(f"Localization run {run_id} is still running")
+    shutil.rmtree(run_dir)
+
+
+@delete("/api/localizations/{run_id:str}")
+async def delete_localization(run_id: str) -> None:
+    await asyncio.to_thread(_delete_localization, run_id)
 
 
 @get("/api/localizations")
@@ -332,11 +434,15 @@ async def start_poseless_reconstruct(set_id: str, data: PoselessReconstructReque
     entry = index.get(set_id)
     if entry is None:
         raise NotFoundException(f"No poseless image set {set_id}")
+    # A folder's capture is uploaded once and reused, so all its reconstructions nest under one
+    # capture. The focal length is baked into that capture's manifest at upload, so a different
+    # focal length needs a fresh capture (which then becomes the folder's linked one).
+    reuse = entry.get("capture_session_id") if entry.get("focal_length") == data.focal_length else None
     job = Job(id=str(uuid.uuid4()), kind="reconstruct")
     JOBS[job.id] = job
     _spawn(
         _run_poseless_reconstruct_job(
-            job, entry["path"], entry["name"], data.focal_length, data.use_all_images, data.options_json
+            job, set_id, entry, data.focal_length, data.use_all_images, data.options_json, reuse
         )
     )
     return {"job_id": job.id}
@@ -359,8 +465,25 @@ async def start_localize(data: LocalizeRequest) -> dict[str, str]:
     run_id = str(uuid.uuid4())
     job = Job(id=str(uuid.uuid4()), kind="localize", reconstruction_id=data.reconstruction_id, run_id=run_id)
     JOBS[job.id] = job
+    # Recorded before the CLI starts so the run is listed under its reconstruction straight away,
+    # with its progress, rather than appearing only once results.json lands.
+    await asyncio.to_thread(_write_localize_request, run_id, data)
     _spawn(_run_localize_job(job, data, run_id))
     return {"job_id": job.id, "run_id": run_id}
+
+
+def _write_localize_request(run_id: str, data: LocalizeRequest) -> None:
+    run_dir = LOCALIZATIONS_DIR / run_id
+    run_dir.mkdir(parents=True, exist_ok=True)
+    (run_dir / "request.json").write_text(
+        json.dumps({
+            "run_id": run_id,
+            "reconstruction_id": data.reconstruction_id,
+            "image_dir": data.image_dir,
+            "use_chunking": data.use_chunking,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        })
+    )
 
 
 def _raise_poll_timeout(reconstruction_id: str | None) -> NoReturn:
@@ -401,15 +524,33 @@ async def _run_reconstruct_job(job: Job, capture_id: str, options_json: str | No
         job.error = str(exc)
 
 
+def _link_poseless_capture(set_id: str, capture_session_id: str, focal_length: float) -> None:
+    index = _load_poseless_index()
+    if set_id in index:
+        index[set_id]["capture_session_id"] = capture_session_id
+        index[set_id]["focal_length"] = focal_length
+        _save_poseless_index(index)
+
+
 async def _run_poseless_reconstruct_job(
-    job: Job, image_dir: str, name: str, focal_length: float, use_all_images: bool, options_json: str | None
+    job: Job,
+    set_id: str,
+    entry: dict[str, Any],
+    focal_length: float,
+    use_all_images: bool,
+    options_json: str | None,
+    reuse_capture_id: str | None,
 ) -> None:
+    create_args = ["reconstruct-poseless", entry["path"], "--name", entry["name"], "--focal-length", str(focal_length)]
+    create_args.append("--use-all-images" if use_all_images else "--auto-select-images")
+    if options_json:
+        create_args += ["--options-json", options_json]
+    if reuse_capture_id:
+        create_args += ["--capture-id", reuse_capture_id]
     try:
-        create_args = ["reconstruct-poseless", image_dir, "--name", name, "--focal-length", str(focal_length)]
-        create_args.append("--use-all-images" if use_all_images else "--auto-select-images")
-        if options_json:
-            create_args += ["--options-json", options_json]
         created = await _run_howard_test_json_async(*create_args)
+        if created.get("capture_session_id"):
+            await asyncio.to_thread(_link_poseless_capture, set_id, created["capture_session_id"], focal_length)
         await _poll_reconstruction_until_terminal(job, created)
     except Exception as exc:
         job.status = "failed"
@@ -569,7 +710,10 @@ app = Litestar(
         list_captures,
         list_reconstructions,
         delete_reconstruction,
+        delete_capture,
+        import_reconstruction,
         list_localizations,
+        delete_localization,
         register_poseless_set,
         list_poseless_sets,
         rename_poseless_set,
