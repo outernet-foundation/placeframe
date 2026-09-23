@@ -51,7 +51,7 @@
           spec:
             containers:
             - name: postgres-db
-              image: ghcr.io/outernet-foundation/placeframe/postgres:tree-2805e66eb8f946b3ff6fb0dc220b080d9bb0d984
+              image: ghcr.io/outernet-foundation/placeframe/postgres:{{ env "POSTGRES_SHA" }}
               command: ["/usr/local/bin/entrypoint-wrapper.sh"]
               ports:
               - containerPort: 5432
@@ -73,7 +73,7 @@
             name: pv-data
           spec:
             accessModes: [ReadWriteOnce]
-            storageClassName: hcloud-volumes
+            storageClassName: {{ env "SCORE_STORAGE_CLASS" | default "hcloud-volumes" }}
             resources:
               requests:
                 storage: 1Gi
@@ -81,6 +81,13 @@
       kind: Job
       metadata:
         name: {{ .State.service }}-create
+        # A Job's spec.template is immutable, so Argo CD cannot patch this in place once the image
+        # tag moves; without the hook the sync fails with "field is immutable" and selfHeal retries
+        # forever. As a Sync hook Argo CD deletes the previous Job before recreating it. Re-running
+        # is safe: --op create is idempotent, and the retry loop below still waits out postgres.
+        annotations:
+          argocd.argoproj.io/hook: Sync
+          argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
       spec:
         backoffLimit: 30
         template:
@@ -88,7 +95,7 @@
             restartPolicy: OnFailure
             containers:
             - name: create
-              image: ghcr.io/outernet-foundation/placeframe/database-manager:tree-fb027ea674d00a8c9079aa26c13bac5550f263f9
+              image: ghcr.io/outernet-foundation/placeframe/database-manager:{{ env "DATABASE_MANAGER_SHA" }}
               command: ["uv","run","--no-sync","python","-m","src.main","--op","create","--name","{{ .State.dbName }}","--owner-password","$(DATABASE_OWNER_PASSWORD)","--api-user-password","$(DATABASE_API_USER_PASSWORD)","--auth-user-password","$(DATABASE_AUTH_USER_PASSWORD)","--orchestration-user-password","$(DATABASE_ORCHESTRATION_USER_PASSWORD)"]
               env:
               - name: POSTGRES_HOST
@@ -130,6 +137,12 @@
       kind: Job
       metadata:
         name: {{ .State.service }}-migrate
+        # Same immutability constraint as the create Job. This one also has to re-run on every sync
+        # by design — it is what applies schema changes, and pg-schema-diff is a no-op when the
+        # live schema already matches.
+        annotations:
+          argocd.argoproj.io/hook: Sync
+          argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
       spec:
         backoffLimit: 30
         template:
@@ -137,7 +150,7 @@
             restartPolicy: OnFailure
             containers:
             - name: migrate
-              image: ghcr.io/outernet-foundation/placeframe/database-migrator:tree-0e358a9da5301a6399d56b4f9248d95edcd8f0c7
+              image: ghcr.io/outernet-foundation/placeframe/database-migrator:{{ env "DATABASE_MIGRATOR_SHA" }}
               env:
               - name: DB_HOST
                 value: {{ .State.service }}

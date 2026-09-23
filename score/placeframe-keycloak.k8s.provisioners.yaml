@@ -38,9 +38,13 @@
             labels:
               app: {{ .State.service }}
           spec:
+            # The keycloak user (uid 1000) must be able to write the H2 DB onto the mounted data PVC;
+            # without fsGroup the volume is root-owned and start-dev fails with AccessDenied.
+            securityContext:
+              fsGroup: 1000
             initContainers:
             - name: auth-initializer
-              image: ghcr.io/outernet-foundation/placeframe/auth-initializer:tree-10559874f4ec27dc9eab8bbf63e6ab8986ce556f
+              image: ghcr.io/outernet-foundation/placeframe/auth-initializer:{{ env "AUTH_INITIALIZER_SHA" }}
               volumeMounts:
               - name: import
                 mountPath: /keycloak_import

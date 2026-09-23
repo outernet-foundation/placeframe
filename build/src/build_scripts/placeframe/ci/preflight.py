@@ -12,6 +12,10 @@ from docker_devkit.context_sha import compute_service_shas
 from docker_devkit.image_refs import VersionCoupling, VersionSite, unpinned_references, version_coupling_violations
 from python_devkit.preflight import preflight as run_battery
 
+# Keep in step with the prerequisites documented in score/README.md.
+SCORE_K8S_VERSION = "0.15.0"
+SCORE_COMPOSE_VERSION = "0.42.0"
+
 app = typer.Typer(add_completion=False, pretty_exceptions_show_locals=False)
 
 VERSION_COUPLINGS = [
@@ -92,6 +96,19 @@ def main() -> None:
         f"{spec_paths} packages/generated/",
         "uv run generate-clients --config build/openapi-projects.json",
     )
+
+    with ci_step("Fetch score tools"):
+        # Fetched as release binaries rather than `go install`: score-spec tags without a leading
+        # v (0.15.0, not v0.15.0), which is not a resolvable Go module version. They land in the
+        # GOPATH bin the database step already prepended to PATH. Both artifacts are committed,
+        # so `generate-score` checks both.
+        for tool, version in (("score-k8s", SCORE_K8S_VERSION), ("score-compose", SCORE_COMPOSE_VERSION)):
+            archive = f"{tool}_{version}_linux_amd64.tar.gz"
+            bash(f"curl -fsSLO https://github.com/score-spec/{tool}/releases/download/{version}/{archive}")
+            bash(f"tar -xzf {archive} -C {gopath_bin} {tool}")
+            Path(archive).unlink()
+
+    _check_generated("Score", "uv run generate-score", "score/")
 
 
 def _check_generated(label: str, generate_command: str, pathspec: str, fix_command: str | None = None) -> None:

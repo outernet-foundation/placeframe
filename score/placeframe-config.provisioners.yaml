@@ -1,14 +1,17 @@
 # Config provisioner (compose): local counterpart of placeframe-config.k8s.provisioners.yaml.
-# Supplies the same app-config outputs as literal localhost / auth-disabled values so the
-# docker stack works standalone. Register via: score-compose init --provisioners <this file>.
+# Every output is a literal ${VAR} placeholder rather than a resolved value, so the generated
+# compose.yaml stays hermetic and docker compose resolves it from --env-file at run time. The
+# derivations below mirror compose.yml exactly (AUTH_* are built from PUBLIC_URL there too), so
+# the generated stack and the hand-authored stack read the same .env and agree.
+# Register via: score-compose init --provisioners <this file>.
 - uri: template://placeframe/config
   type: placeframe-config
-  description: Local app config (localhost, auth disabled) for the compose stack.
+  description: App config resolved from .env at run time, mirroring compose.yml's derivations.
   outputs: |
-    public_url: http://localhost:8443
-    auth_mode: disabled
-    auth_audience: placeframe-api
-    auth_issuer_url: ""
-    auth_url: ""
-    auth_token_url: ""
-    deployment_environment: development
+    public_url: ${PUBLIC_URL:?err}
+    auth_mode: ${AUTH_MODE:-keycloak}
+    auth_audience: ${AUTH_AUDIENCE:?err}
+    auth_issuer_url: ${PUBLIC_URL:?err}/auth/realms/placeframe-dev
+    auth_url: ${PUBLIC_URL:?err}/auth/realms/placeframe-dev/protocol/openid-connect/auth
+    auth_token_url: ${PUBLIC_URL:?err}/auth/realms/placeframe-dev/protocol/openid-connect/token
+    deployment_environment: ${DEPLOYMENT_ENVIRONMENT:-development}
