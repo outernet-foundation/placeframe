@@ -158,6 +158,9 @@ services:
       args:
         <<: *base-args
         TORCH_DEVICE: "cuda"
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/neural-networks-base-cuda:latest"
+        - "ghcr.io/outernet-foundation/placeframe/neural-networks-base-cuda:${NEURAL_NETWORKS_BASE_SHA}"
 
   neural-networks-base-rocm:
     build:
@@ -166,6 +169,9 @@ services:
       args:
         <<: *base-args
         TORCH_DEVICE: "rocm"
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/neural-networks-base-rocm:latest"
+        - "ghcr.io/outernet-foundation/placeframe/neural-networks-base-rocm:${NEURAL_NETWORKS_BASE_SHA}"
 
   reconstructor-cuda:
     build:
