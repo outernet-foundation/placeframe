@@ -47,14 +47,7 @@
       "feeds": { "pypi": "placeframe-core" }
     }
   ],
-  "apps": [
-    {
-      "name": "MapRegistrationTool",
-      "path": "apps/MapRegistrationTool",
-      "tag_prefix": "map-registration-tool",
-      "display_name": "Map Registration Tool"
-    }
-  ],
+  "apps": [],
   "compose_files": ["compose.bake.yml"],
   "ci_workflow": "placeframe-ci.yml",
   "mirror_prefix": "ghcr.io/outernet-foundation/mirror"

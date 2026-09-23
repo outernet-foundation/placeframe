@@ -108,7 +108,6 @@ jobs:
           uvx --from release-devkit==0.1.3 publish-packages
           --config build/publish-config.json
           --exclude placeframe-common --exclude placeframe-core-python
-          --with-apps
 
       - name: Create GitHub Release
         env:

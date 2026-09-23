@@ -51,16 +51,6 @@ jobs:
       - name: Populate image mirror
         run: uvx --from release-devkit==0.1.3 mirror-images --config build/publish-config.json
 
-  unity:
-    permissions:
-      contents: read
-      packages: write
-    uses: outernet-foundation/unity-devkit/.github/workflows/unity-build.yml@85726f37caad2c9b0d894af4a9c24f1c7d4eaa2c
-    with:
-      runner-labels: '["self-hosted","unity"]'
-      build-env: CONFIG_TYPE=default
-    secrets: inherit
-
   build-docker:
     needs: [preflight, mirror]
     runs-on: ubuntu-latest
@@ -116,7 +106,7 @@ jobs:
         run: uv run --no-sync publish-compose --variant ${{ matrix.variant }}
 
   ensure-release-pr:
-    needs: [build-docker, unity, publish-compose]
+    needs: [build-docker, publish-compose]
     if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
     runs-on: ubuntu-latest
     steps:
