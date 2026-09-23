@@ -110,17 +110,7 @@ The backend also includes the following admin UIs, accessible from your public d
 
 ## Capture Tool
 
-Placeframe has a tool built in Unity for capturing and submitting map data, as well as validating reconstructed maps by localizing against them. An Android build is available on the [releases page](https://github.com/outernet-foundation/placeframe/releases/latest).
-
-With this application, you can log in to your Placeframe backend, capture data of your environment (we recommend walking the perimeter of the environment with camera facing inwards), submit that data to the backend for localization map reconstruction, and finally validate that map by localizing against it. A few moments after starting relocalization, you will see a point cloud in your environment, tracking your environment.
-
-**NOTE:** In this application, relocalization runs at a higher frequency than is ideal for real applications. Placeframe defers to the device's native world tracking for high-precision, low-latency localization, only intervening to correct drift against its canonical reference frame, by filtering out low-confidence and low-novelty relocalization results. However, this filtering is currently fairly primitive — more sophisticated tools for controlling this behavior will ship in a future release.
-
-## Map Registration Tool
-
-Placeframe also has a tool built in Unity for **registering** maps against Cesium Tilesets. Windows and Linux standalone builds are available on the [releases page](https://github.com/outernet-foundation/placeframe/releases/latest).
-
-Using this tool, previously constructed localization maps can be visualized using their point clouds and visually aligned with Open Street Map (OSM) building geometry, or Google Photorealistic Tiles. This can be used to georeference localization maps, allowing Placeframe applications to anchor AR content using GPS coordinates.
+The phone app for capturing and submitting map data, and for validating reconstructed maps by localizing against them, lives in the [placeframe-capture-tool](https://github.com/outernet-foundation/placeframe-capture-tool) repo; Android builds are available on its [releases page](https://github.com/outernet-foundation/placeframe-capture-tool/releases/latest).
 
 ## Unity Packages
 
