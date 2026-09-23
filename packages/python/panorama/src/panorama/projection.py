@@ -99,8 +99,27 @@ def pano_from_cam(view: View) -> NDArray[np.float64]:
     return rot_yaw @ rot_pitch @ np.diag([1.0, -1.0, 1.0])
 
 
+# Panorama axes are y-up, which with z forward makes them left-handed; camera and
+# capture frames are OpenCV's right-handed y-down. This flip relates the two, and
+# is why pano_from_cam alone is not a rotation (its determinant is -1).
+Y_FLIP = np.diag([1.0, -1.0, 1.0])
+
+
+def opencv_from_cam(view: View) -> NDArray[np.float64]:
+    """Rotation from a view's camera frame into the capture's (OpenCV) frame.
+
+    Unlike pano_from_cam this is a proper rotation, so it is what to use for
+    anything physical -- restating gravity or a device pose in a view's frame.
+    """
+    return Y_FLIP @ pano_from_cam(view)
+
+
 def cam_from_rig(view: View, reference: View) -> NDArray[np.float64]:
-    """Rotation from the rig frame (the reference view's camera frame) into `view`."""
+    """Rotation from the rig frame (the reference view's camera frame) into `view`.
+
+    The panorama-axes flip cancels between the two views, so this is a proper
+    rotation whichever of pano_from_cam or opencv_from_cam it is built from.
+    """
     return pano_from_cam(view).T @ pano_from_cam(reference)
 
 

@@ -9,7 +9,7 @@ from typing import Any
 from uuid import UUID
 
 from common.boto_clients import create_s3_client
-from core.camera_config import CameraConfig
+from core.camera_config import CameraConfig, SphericalCameraConfig
 from core.capture_session_manifest import CaptureSessionManifest
 from core.image_preprocess import canonicalize_image
 from core.h5 import write_features, write_global_descriptors
@@ -39,6 +39,7 @@ from .options_builder import OptionsBuilder
 from .pairs import generate_image_pairs, write_pairs, write_pairs_with_source
 from .progress_publisher import ReconstructionPublisher
 from .rig import Rig
+from .spherical import inside_image_circle, render_spherical_views
 from .settings import get_settings
 
 DEVICE = "cuda" if cuda.is_available() else "cpu"
@@ -121,6 +122,8 @@ def run_reconstruction(
             capture_session_manifest.axis_convention,
             (CAPTURE_SESSION_DIRECTORY / f"{rig.id}/frames.csv").read_text(),
             held_out_frame_timestamps=held_out,
+            # A spherical rig is expanded into views here, so it needs the layout options.
+            options=reconstruction_options,
         )
         for rig in capture_session_manifest.rigs
     }
@@ -158,12 +161,19 @@ def run_reconstruction(
     sizes: dict[str, tuple[int, int]] = {}
     # Rig() has already rejected anything a reconstructor cannot model, so these
     # are pinhole; the annotation follows the manifest's own type.
+    # Keyed by the rig's camera id, which for a spherical capture is a rendered
+    # view (camera0_A), not the sphere the capture actually holds.
     image_list: list[tuple[str, CameraConfig]] = [
-        (f"{rig_id}/{camera[0].id}/{frame_id}.jpg", camera[0].camera_config)
+        (f"{rig_id}/{camera_id}/{frame_id}.jpg", camera[0].camera_config)
         for rig_id, rig in rigs.items()
-        for camera in rig.cameras.values()
+        for camera_id, camera in rig.cameras.items()
         for frame_id in rig.frame_poses.keys()
     ]
+    # A spherical capture holds whole spheres, which no camera model represents;
+    # render the views its rig was expanded into before anything reads an image.
+    for rig in rigs.values():
+        render_spherical_views(rig, CAPTURE_SESSION_DIRECTORY)
+
     publisher.set_phase(ReconstructionStatus.EXTRACTING_FEATURES, total=len(image_list))
     for index, (image_name, camera_config) in enumerate(image_list):
         publisher.on_progress(index + 1)
@@ -177,6 +187,13 @@ def run_reconstruction(
 
         image_descriptor = global_descriptor_extractor(rgb_tensor.unsqueeze(0).to(device=DEVICE))
         image_keypoints, image_descriptors = local_feature_extractor(rgb_tensor.unsqueeze(0).to(device=DEVICE))
+
+        if isinstance(camera_config, SphericalCameraConfig):
+            # Outside a rendered view's image circle the frame is black, and that
+            # hard edge sits at the same pixels in every frame: features there
+            # would match frame to frame like a pattern stuck to the lens.
+            inside = inside_image_circle(image_keypoints, image.width)
+            image_keypoints, image_descriptors = image_keypoints[inside], image_descriptors[inside]
 
         global_descriptors[image_name] = image_descriptor.cpu().numpy().astype(float32, copy=False)
         keypoints[image_name] = image_keypoints.cpu().numpy().astype(float32, copy=False)

@@ -193,7 +193,10 @@ def run_colmap_reconstruction(
                 image_cameras[image_name] = camera[1]
                 database.write_keypoints(colmap_image_ids[image_name], keypoints[image_name])
 
-                if camera[0].ref_sensor:
+                # One prior per frame: the rig's reference camera. A spherical
+                # capture's cameras all share one RigCameraConfig, so asking that
+                # config whether it is the reference would write one per view.
+                if camera_id == rig.ref_colmap_camera_id:
                     database.write_pose_prior(
                         PosePrior(
                             position=transform.translation.reshape(3, 1),

@@ -45,14 +45,18 @@ def generate_image_pairs(
     retrieval_min_score: float,
 ) -> list[Pair]:
 
+    # Cameras of one frame see the scene from one instant, which is only useful
+    # when they are apart: the views of a spherical capture share an optical
+    # centre, so a pair of them has no baseline and can never triangulate.
     intra_frame_image_pairs = [
         (
-            f"{rig_id}/{camera_a[0].id}/{frame_id}.jpg",
-            f"{rig_id}/{camera_b[0].id}/{frame_id}.jpg",
+            f"{rig_id}/{camera_a}/{frame_id}.jpg",
+            f"{rig_id}/{camera_b}/{frame_id}.jpg",
         )
         for rig_id, rig in rigs.items()
+        if rig.spherical_expansion is None
         for frame_id in rig.frame_poses.keys()
-        for camera_a, camera_b in combinations(rig.cameras.values(), 2)
+        for camera_a, camera_b in combinations(rig.cameras.keys(), 2)
     ]
 
     sequential_frame_pairs: list[tuple[tuple[str, str], tuple[str, str]]] = []
