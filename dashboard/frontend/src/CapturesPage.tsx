@@ -8,7 +8,6 @@ import {
   listLocalizations,
   listPoselessSets,
   listReconstructions,
-  registerPoselessSet,
   renameCapture,
   renamePoselessSet,
 } from "./api";
@@ -23,7 +22,6 @@ import {
   SaveRunDialog,
   type ExportKind,
 } from "./components/ActionDialogs";
-import { DirectoryBrowserDialog } from "./components/DirectoryBrowserDialog";
 import { Menu } from "./components/Menu";
 import { RunResults } from "./components/RunResults";
 import { errorText, readStored, store, STORAGE_KEYS } from "./storage";
@@ -40,7 +38,6 @@ type Dialog =
   | { kind: "poseless"; set: PoselessImageSet }
   | { kind: "localize"; reconstruction: Reconstruction; label: string }
   | { kind: "import" }
-  | { kind: "addFolder" }
   | { kind: "export"; exportKind: ExportKind; reconstruction: Reconstruction }
   | { kind: "save"; saveKind: "table" | "images"; runId: string }
   | { kind: "deleteReconstruction"; reconstruction: Reconstruction }
@@ -621,8 +618,7 @@ export function CapturesPage() {
           ) : (
             <>
               <button onClick={() => setSelecting(true)}>Select</button>
-              <button onClick={() => setDialog({ kind: "addFolder" })}>Add image folder…</button>
-              <button onClick={() => setDialog({ kind: "import" })}>Import reconstruction…</button>
+              <button onClick={() => setDialog({ kind: "import" })}>Import…</button>
               <button onClick={() => void refreshAll()} disabled={refreshing}>
                 {refreshing ? "Refreshing…" : "Refresh"}
               </button>
@@ -704,23 +700,20 @@ export function CapturesPage() {
       {dialog?.kind === "import" && (
         <ImportDialog
           onClose={() => setDialog(null)}
-          onImported={(r, tarPath) => {
+          onImported={(result, path) => {
             setDialog(null);
-            if (r.capture_session_id) setOpen(r.capture_session_id, true);
-            notify("success", `Imported ${tarPath.split("/").pop()} as reconstruction ${r.id}.`);
+            const name = path.split("/").pop();
+            if (result.kind === "image_folder") {
+              notify("success", `Added image folder ${name}. Reconstruct it from its row.`);
+            } else if (result.kind === "reconstruction_tar" && result.reconstruction) {
+              if (result.reconstruction.capture_session_id) setOpen(result.reconstruction.capture_session_id, true);
+              notify("success", `Imported ${name} as reconstruction ${result.reconstruction.id}.`);
+            } else if (result.job_id) {
+              // A video: frames are extracted and uploaded before a reconstruction exists to show.
+              notify("success", `Extracting ${name} and starting a reconstruction; this takes a few minutes.`);
+              void followJob(result.job_id);
+            }
             void refreshFast().catch((err: unknown) => notify("error", errorText(err)));
-          }}
-        />
-      )}
-      {dialog?.kind === "addFolder" && (
-        <DirectoryBrowserDialog
-          title="Select a folder of sequentially-ordered images"
-          onCancel={() => setDialog(null)}
-          onSelect={(path) => {
-            setDialog(null);
-            registerPoselessSet(path)
-              .then(() => refreshFast())
-              .catch((err: unknown) => notify("error", errorText(err)));
           }}
         />
       )}

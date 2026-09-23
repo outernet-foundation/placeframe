@@ -37,6 +37,7 @@ VISUALIZATIONS_DIR = DATA_DIR / "visualizations"
 POSELESS_SETS_DIR = DATA_DIR / "poseless_sets"
 POSELESS_SETS_INDEX = POSELESS_SETS_DIR / "index.json"
 POSELESS_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
+VIDEO_EXTENSIONS = {".mp4", ".mov", ".m4v", ".insv"}
 
 # This backend runs from its own `uv`-managed venv (dashboard/backend/.venv); without stripping
 # VIRTUAL_ENV, the `uv run howard-test` subprocess below inherits it and prints a spurious "doesn't
@@ -259,6 +260,55 @@ def _read_json(path: Path) -> dict[str, Any] | None:
         return json.loads(path.read_text())
     except (OSError, json.JSONDecodeError):
         return None
+
+
+@dataclass
+class ImportRequest:
+    path: str
+    # Only meaningful for a reconstruction tar, which carries a fixed id.
+    new_id: bool = False
+
+
+def _classify_import(path_str: str) -> tuple[str, Path]:
+    """What the Import button was pointed at: a folder of images, a reconstruction
+    tar, or a spherical video. A video that declares no spherical projection is
+    an ordinary video, which nothing here can reconstruct yet."""
+    path = Path(path_str).expanduser()
+    if path.is_dir():
+        return "image_folder", path
+    if not path.is_file():
+        raise ValueError(f"Not a file or folder: {path}")
+    suffix = path.suffix.lower()
+    if suffix == ".tar":
+        return "reconstruction_tar", path.resolve()
+    if suffix in VIDEO_EXTENSIONS:
+        projection = _run_howard_test_json("inspect-video", str(path))["projection"]
+        if projection is None:
+            raise ValueError(
+                f"{path.name} is an ordinary (non-spherical) video. Only spherical video is supported so far: "
+                "a 360 camera's own file declares its projection, and this one declares none."
+            )
+        if projection != "EQUIRECTANGULAR":
+            raise ValueError(f"{path.name} is a {projection.lower()} video; only equirectangular is supported")
+        return "spherical_video", path.resolve()
+    raise ValueError(f"Cannot import {path.name}: expected a folder of images, a .tar reconstruction, or a video")
+
+
+# A folder and a tar are quick; a video is minutes of extraction, upload and
+# reconstruction, so it returns a job the tree follows like any reconstruction.
+@post("/api/import")
+async def import_path(data: ImportRequest) -> dict[str, Any]:
+    kind, path = await asyncio.to_thread(_classify_import, data.path)
+    if kind == "image_folder":
+        return {"kind": kind, "image_set": await asyncio.to_thread(_register_poseless_set, str(path))}
+    if kind == "reconstruction_tar":
+        arguments = ["import-reconstruction", str(path), *(["--new-id"] if data.new_id else [])]
+        return {"kind": kind, "reconstruction": await _run_howard_test_json_async(*arguments)}
+
+    job = Job(id=str(uuid.uuid4()), kind="reconstruct")
+    JOBS[job.id] = job
+    _spawn(_run_spherical_reconstruct_job(job, path))
+    return {"kind": kind, "job_id": job.id, "name": path.stem}
 
 
 def _list_localizations() -> list[dict[str, Any]]:
@@ -582,6 +632,15 @@ async def _run_poseless_reconstruct_job(
         job.error = str(exc)
 
 
+async def _run_spherical_reconstruct_job(job: Job, video: Path) -> None:
+    try:
+        created = await _run_howard_test_json_async("reconstruct-spherical", str(video), "--name", video.stem)
+        await _poll_reconstruction_until_terminal(job, created)
+    except Exception as exc:
+        job.status = "failed"
+        job.error = str(exc)
+
+
 async def _run_visualize_job(job: Job, reconstruction_id: str) -> None:
     try:
         job.result = await _run_howard_test_json_async("visualize", reconstruction_id)
@@ -738,6 +797,7 @@ app = Litestar(
         delete_capture,
         rename_capture,
         import_reconstruction,
+        import_path,
         list_localizations,
         delete_localization,
         register_poseless_set,

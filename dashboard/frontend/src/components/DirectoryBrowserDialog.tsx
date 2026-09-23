@@ -9,13 +9,23 @@ interface DirectoryBrowserDialogProps {
   // File mode: list files with these suffixes (e.g. [".tar"]) and select one of them instead of a
   // folder. Omitted, the dialog picks a folder, as before.
   fileExtensions?: string[];
+  // With fileExtensions, also allow choosing the folder itself — for Import, where
+  // a folder of images and a file are both things to import.
+  allowFolders?: boolean;
 }
 
 // A server-local directory browser: the dashboard shells out to `howard-test` on the same
 // machine, so a picked path has to be a real absolute filesystem path, which a browser's native
 // `<input type=file webkitdirectory>` can't provide (it never exposes absolute paths, only a File
 // list with paths relative to the picked root). This walks GET /api/browse-directories instead.
-export function DirectoryBrowserDialog({ title, initialPath, onSelect, onCancel, fileExtensions }: DirectoryBrowserDialogProps) {
+export function DirectoryBrowserDialog({
+  title,
+  initialPath,
+  onSelect,
+  onCancel,
+  fileExtensions,
+  allowFolders,
+}: DirectoryBrowserDialogProps) {
   const fileMode = (fileExtensions?.length ?? 0) > 0;
   const [path, setPath] = useState(initialPath ?? "");
   const [parent, setParent] = useState<string | null>(null);
@@ -91,7 +101,11 @@ export function DirectoryBrowserDialog({ title, initialPath, onSelect, onCancel,
         </div>
         <div className="dialog-actions">
           <button onClick={onCancel}>Cancel</button>
-          {fileMode ? (
+          {fileMode && allowFolders ? (
+            <button className="primary" onClick={() => onSelect(selectedFile ?? path)} disabled={!path && !selectedFile}>
+              {selectedFile ? "Select file" : "Select this folder"}
+            </button>
+          ) : fileMode ? (
             <button className="primary" onClick={() => selectedFile && onSelect(selectedFile)} disabled={!selectedFile}>
               Select file
             </button>

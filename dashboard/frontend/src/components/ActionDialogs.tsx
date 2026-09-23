@@ -2,13 +2,14 @@ import { useState, type ReactNode } from "react";
 import {
   exportPoses,
   exportReconstructionZip,
-  importReconstruction,
+  importPath,
   saveLocalizationImages,
   saveLocalizationTable,
   startLocalize,
   startPoselessReconstruct,
   startReconstruct,
 } from "../api";
+import type { ImportResult } from "../api";
 import { errorText, joinPath, parentDir, readStored, store, STORAGE_KEYS } from "../storage";
 import type { PoselessImageSet, Reconstruction } from "../types";
 import { DirectoryBrowserDialog } from "./DirectoryBrowserDialog";
@@ -47,13 +48,14 @@ function Actions({ busy, disabled, label, busyLabel, onCancel, onSubmit }: {
 }
 
 // A server-local path with a Browse… button (folders, or files when `fileExtensions` is given).
-function PathField({ label, value, onChange, placeholder, browseTitle, fileExtensions }: {
+function PathField({ label, value, onChange, placeholder, browseTitle, fileExtensions, allowFolders }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   placeholder: string;
   browseTitle: string;
   fileExtensions?: string[];
+  allowFolders?: boolean;
 }) {
   const [browsing, setBrowsing] = useState(false);
   const start = fileExtensions ? parentDir(value.trim()) : value.trim() || undefined;
@@ -73,6 +75,7 @@ function PathField({ label, value, onChange, placeholder, browseTitle, fileExten
           title={browseTitle}
           initialPath={start}
           fileExtensions={fileExtensions}
+          allowFolders={allowFolders}
           onSelect={(path) => {
             onChange(path);
             setBrowsing(false);
@@ -278,37 +281,61 @@ export function LocalizeDialog({ reconstructionLabel, reconstructionId, onClose,
   );
 }
 
-// ── Import a reconstruction tar ─────────────────────────────────────────────
+// ── Import: a folder of images, a reconstruction tar, or a spherical video ──
 
-export function ImportDialog({ onClose, onImported }: { onClose: () => void; onImported: (r: Reconstruction, tarPath: string) => void }) {
-  const [tarPath, setTarPath] = useRemembered(STORAGE_KEYS.importTar);
+export function ImportDialog({ onClose, onImported }: {
+  onClose: () => void;
+  onImported: (result: ImportResult, path: string) => void;
+}) {
+  const [path, setPath] = useRemembered(STORAGE_KEYS.importTar);
   const [newId, setNewId] = useState(false);
   const { busy, error, submit } = useSubmit(
-    () => importReconstruction(tarPath.trim(), newId),
-    (r) => onImported(r, tarPath.trim()),
+    () => importPath(path.trim(), newId),
+    (result) => onImported(result, path.trim()),
   );
+  const isTar = path.trim().toLowerCase().endsWith(".tar");
   return (
-    <Modal title="Import reconstruction" busy={busy} onClose={onClose}>
+    <Modal title="Import" busy={busy} onClose={onClose}>
       <PathField
-        label="Reconstruction tar"
-        value={tarPath}
-        onChange={setTarPath}
-        placeholder="/path/to/reconstruction.tar"
-        browseTitle="Choose reconstruction tar"
-        fileExtensions={[".tar"]}
+        label="Folder or file"
+        value={path}
+        onChange={setPath}
+        placeholder="/path/to/images, /path/to/reconstruction.tar, or /path/to/360-video.mp4"
+        browseTitle="Choose a folder or file to import"
+        fileExtensions={[".tar", ".mp4", ".mov", ".m4v", ".insv"]}
+        allowFolders
       />
-      <label style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-        <input type="checkbox" checked={newId} onChange={(e) => setNewId(e.target.checked)} />
-        Import as a separate copy
-      </label>
-      <div style={{ ...HINT, marginTop: -8 }}>
-        A tar of <span className="mono">metadata.json</span> plus the reconstruction's artifacts (as produced by an
-        export). It appears as its own capture, named after the tar. A tar carries one fixed id, so it imports once;
-        tick the box to import it again alongside the existing one. Importing also creates the reconstruction's
-        localization map; removing the reconstruction later needs that map deleted first.
+      <div style={HINT}>
+        <ul style={{ margin: 0, paddingLeft: 18 }}>
+          <li>
+            <b>A folder of images</b> — sequentially ordered stills with no poses. Registered here, then reconstructed
+            from its row with a focal length you supply.
+          </li>
+          <li>
+            <b>A reconstruction tar</b> — <span className="mono">metadata.json</span> plus a reconstruction's
+            artifacts, as produced by an export. It arrives ready to localize against, under its own capture.
+          </li>
+          <li>
+            <b>A spherical (360) video</b> — its frames become a capture and a reconstruction starts straight away.
+            The video has to declare that it is spherical; an ordinary video is not supported yet.
+          </li>
+        </ul>
       </div>
+      {isTar && (
+        <label style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <input type="checkbox" checked={newId} onChange={(e) => setNewId(e.target.checked)} />
+          Import as a separate copy
+        </label>
+      )}
+      {isTar && (
+        <div style={{ ...HINT, marginTop: -8 }}>
+          A tar carries one fixed id, so it imports once; tick the box to import it again alongside the existing one.
+          Importing also creates the reconstruction's localization map; removing the reconstruction later needs that
+          map deleted first.
+        </div>
+      )}
       {error && <div className="banner banner-error">{error}</div>}
-      <Actions busy={busy} disabled={!tarPath.trim()} label="Import" busyLabel="Importing…" onCancel={onClose} onSubmit={() => void submit()} />
+      <Actions busy={busy} disabled={!path.trim()} label="Import" busyLabel="Importing…" onCancel={onClose} onSubmit={() => void submit()} />
     </Modal>
   );
 }

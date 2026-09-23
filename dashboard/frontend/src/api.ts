@@ -33,6 +33,22 @@ export function importReconstruction(tarPath: string, newId = false): Promise<Re
   });
 }
 
+export type ImportKind = "image_folder" | "reconstruction_tar" | "spherical_video";
+
+export interface ImportResult {
+  kind: ImportKind;
+  image_set?: PoselessImageSet;
+  reconstruction?: Reconstruction;
+  job_id?: string; // a video: extraction, upload and reconstruction take minutes
+  name?: string;
+}
+
+// One entry point for everything importable: the backend decides from the path
+// whether it is a folder of images, a reconstruction tar, or a spherical video.
+export function importPath(path: string, newId = false): Promise<ImportResult> {
+  return request("/api/import", { method: "POST", body: JSON.stringify({ path, new_id: newId }) });
+}
+
 export function listLocalizations(): Promise<LocalizationSummary[]> {
   return request("/api/localizations");
 }

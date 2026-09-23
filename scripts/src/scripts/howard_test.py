@@ -731,6 +731,30 @@ def reconstruct_spherical(
     view_fov_deg: Annotated[
         float, typer.Option(help="Field of view of each rendered view; must stay under 180")
     ] = 150.0,
+@app.command(name="inspect-video")
+def inspect_video_command(
+    video: Annotated[Path, typer.Argument(help="Video file to inspect")],
+    json_output: Annotated[bool, typer.Option("--json", help="Emit JSON instead of text")] = False,
+) -> None:
+    """Size, frame rate, length, and the spherical projection the file declares (if any)."""
+    info = inspect_video(video)
+    payload = {
+        "path": str(video),
+        "width": info.width,
+        "height": info.height,
+        "fps": info.fps,
+        "frame_count": info.frame_count,
+        "duration_s": info.duration_s,
+        "projection": info.projection,
+        "is_spherical": info.is_spherical,
+    }
+    if json_output:
+        typer.echo(dumps(payload))
+        return
+    typer.echo(f"{video.name}: {info.width}x{info.height}, {info.fps:g} fps, {info.frame_count} frames")
+    typer.echo(f"  projection: {info.projection or 'none declared (an ordinary video)'}")
+
+
     view_size: Annotated[int, typer.Option(help="Pixel size of each rendered view")] = 1600,
     use_all_images: Annotated[
         bool,
