@@ -3,7 +3,7 @@ from __future__ import annotations
 from pydantic import BaseModel
 
 from .axis_convention import AxisConvention
-from .camera_config import PinholeCameraConfig
+from .camera_config import CameraConfig
 from .transform import Float3, Float4
 
 
@@ -12,7 +12,7 @@ class RigCameraConfig(BaseModel):
     ref_sensor: bool
     rotation: Float4
     translation: Float3
-    camera_config: PinholeCameraConfig
+    camera_config: CameraConfig
 
 
 class RigConfig(BaseModel):

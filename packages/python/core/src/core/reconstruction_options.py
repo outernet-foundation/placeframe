@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -77,4 +77,16 @@ class ReconstructionOptions(BaseModel):
     held_out_frame_timestamps: Optional[list[int]] = Field(
         default=None,
         description="Frame timestamps (ms) to exclude from this reconstruction so they can later be localized as held-out queries.",
+    )
+    spherical_layout: Literal["tetrahedron", "cube"] = Field(
+        default="tetrahedron",
+        description="How a spherical (equirectangular) capture is cut into the views a reconstructor can model. COLMAP's fisheye models only represent rays under 90 degrees off axis, so the sphere cannot be one camera. 'tetrahedron' is four views whose axes are 109.5 degrees apart, covering the sphere at spherical_view_fov_deg >= 141; 'cube' is the six cube-face directions. Ignored for every other kind of capture.",
+    )
+    spherical_view_fov_deg: float = Field(
+        default=150.0,
+        description="Field of view of each view rendered from a spherical capture, in degrees. Must stay under 180 (COLMAP's fisheye models cannot represent a ray 90 degrees off axis) and at or above 141 for the tetrahedron layout to cover the whole sphere; the default leaves 4.5 degrees of overlap at the worst-covered direction.",
+    )
+    spherical_view_size: int = Field(
+        default=1600,
+        description="Width and height in pixels of each view rendered from a spherical capture. The default samples a 150-degree view at about 10.7 pixels per degree, half the angular resolution of a 7680-wide equirectangular frame.",
     )

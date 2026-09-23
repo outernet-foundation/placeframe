@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 from core.axis_convention import AxisConvention, basis_change_opencv_from_unity
 from core.capture_session_manifest import RigCameraConfig, RigConfig
+from core.camera_config import PinholeCameraConfig
 from core.image_preprocess import canonicalize_intrinsics
 from core.transform import Float3, Float4
 from numpy import array, float64
@@ -51,6 +52,13 @@ class Rig:
         self.cameras: dict[str, tuple[RigCameraConfig, ColmapCamera]] = {}
         rig_camera_configs: list[ColmapRigConfigCamera] = []
         for camera in rig_config.cameras:
+            # A spherical camera has no focal length; the views a reconstructor can
+            # model are rendered from its frames, which is not wired up yet.
+            if not isinstance(camera.camera_config, PinholeCameraConfig):
+                raise TypeError(
+                    f"Camera {camera.id} is a {type(camera.camera_config).__name__}; "
+                    "only pinhole cameras can be reconstructed so far"
+                )
             width, height, *params = canonicalize_intrinsics(camera.camera_config)
             self.cameras[camera.id] = (camera, ColmapCamera(width=width, height=height, model="PINHOLE", params=params))
 

@@ -23,6 +23,7 @@ members = [
     "packages/python/core",
     "packages/python/common",
     "packages/python/neural-networks",
+    "packages/python/panorama",
     "packages/python/neural-networks/third-party/deep-image-retrieval",
     "packages/generated/python/datamodels",
     "packages/generated/python/api-client",
@@ -42,6 +43,7 @@ config-settings-package.placeframe-localizer-client = { editable_mode = "compat"
 common = { workspace = true }
 core = { workspace = true }
 neural-networks = { workspace = true }
+panorama = { workspace = true }
 datamodels = { workspace = true }
 placeframe-lease-server-client = { workspace = true }
 placeframe-localizer-client = { workspace = true }
