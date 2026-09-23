@@ -53,15 +53,9 @@
       "path": "apps/MapRegistrationTool",
       "tag_prefix": "map-registration-tool",
       "display_name": "Map Registration Tool"
-    },
-    {
-      "name": "CaptureTool",
-      "path": "apps/CaptureTool",
-      "tag_prefix": "capture-tool",
-      "display_name": "Capture Tool"
     }
   ],
-  "compose_files": ["compose.bake.yml", "compose.zed.bake.yml"],
+  "compose_files": ["compose.bake.yml"],
   "ci_workflow": "placeframe-ci.yml",
   "mirror_prefix": "ghcr.io/outernet-foundation/mirror"
 }

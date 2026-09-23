@@ -9,7 +9,6 @@
   "projects": {
     "docker/localizer": ["python"],
     "docker/api": ["python", "csharp"],
-    "docker/lease-server": ["python"],
-    "docker/zed-capture": ["csharp"]
+    "docker/lease-server": ["python"]
   }
 }
