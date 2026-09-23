@@ -177,7 +177,9 @@ namespace Placeframe.Core
                                     true,
                                     new Float4(0, 0, 0, 1),
                                     new Float3(0, 0, 0),
-                                    config
+                                    // camera_config is a union (pinhole or spherical) since
+                                    // spherical captures were added; this app only writes pinhole.
+                                    new RigCameraConfigCameraConfig(config)
                                 ),
                             }
                         ),
