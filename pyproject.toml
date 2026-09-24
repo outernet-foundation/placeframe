@@ -58,6 +58,28 @@ deptry-exclude = ["packages/generated/*", "packages/python/neural-networks/third
 files = ["compose.yml", "compose.postgres.yml", "compose.{gpu}.yml"]
 dev_file = "compose.dev.yml"
 
+[tool.docker-devkit.generate-score]
+# Policy for `uv run generate-score` (docker-devkit's score_generate verb): which
+# workloads render, the provisioners each half consumes, and where artifacts land.
+workloads = ["api.yaml", "lease-server.yaml", "gateway.yaml"]
+project_name = "placeframe"
+cloud_storage_class = "hcloud-volumes"
+local_storage_class = "local-path"
+compose_provisioners = [
+    "placeframe-postgres.provisioners.yaml",
+    "placeframe-config.provisioners.yaml",
+    "placeframe-keycloak.provisioners.yaml",
+    "placeframe-s3.provisioners.yaml",
+]
+compose_patch_templates = ["restart-policy.tpl"]
+k8s_provisioners = [
+    "placeframe-postgres.k8s.provisioners.yaml",
+    "placeframe-minio.k8s.provisioners.yaml",
+    "placeframe-config.k8s.provisioners.yaml",
+    "placeframe-keycloak.k8s.provisioners.yaml",
+]
+publishes = ["8000:api:8000", "8443:gateway:8443"]
+
 [tool.uv.sources]
 placeframe-common = { workspace = true }
 placeframe-core = { workspace = true }

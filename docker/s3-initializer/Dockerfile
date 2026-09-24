@@ -1,6 +1,6 @@
-ARG UV_BASE_DIGEST
+ARG UV_BASE_IMAGE
 
-FROM ghcr.io/outernet-foundation/mirror/ghcr.io/astral-sh/uv${UV_BASE_DIGEST} AS dev
+FROM ${UV_BASE_IMAGE} AS dev
 
 WORKDIR /app/docker/s3-initializer
 

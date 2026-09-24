@@ -1,18 +1,18 @@
 # 1. Declare the build arguments at the top
-ARG GOLANG_DIGEST
-ARG ALPINE_DIGEST
+ARG GOLANG_IMAGE
+ARG ALPINE_IMAGE
 
 # --- build stage ---
 # 2. Append the digest variable from .env.lock. The ref carries no tag:
 #    without the lock the build fails instead of floating to :latest.
-FROM ghcr.io/outernet-foundation/mirror/docker.io/library/golang${GOLANG_DIGEST} AS build
+FROM ${GOLANG_IMAGE} AS build
 ARG PGS_VERSION=v1.0.2
 RUN apk add --no-cache git \
     && go install github.com/stripe/pg-schema-diff/cmd/pg-schema-diff@${PGS_VERSION}
 
 # --- runtime stage ---
 # 3. Do the same for the runtime base
-FROM ghcr.io/outernet-foundation/mirror/docker.io/library/alpine${ALPINE_DIGEST}
+FROM ${ALPINE_IMAGE}
 RUN apk add --no-cache ca-certificates bash
 COPY --from=build /go/bin/pg-schema-diff /usr/local/bin/pg-schema-diff
 

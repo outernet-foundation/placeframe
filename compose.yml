@@ -39,7 +39,6 @@ services:
   # weed's S3 audit log ships over the fluent protocol (no file/stdout mode),
   # so this relay receives on 24224 and echoes to its own stdout for alloy.
   seaweedfs-audit:
-    x-image-ref: ghcr.io/outernet-foundation/mirror/docker.io/fluent/fluent-bit:5.1.2
     image: "${SEAWEEDFS_AUDIT_IMAGE:?err}"
     depends_on:
       seaweedfs:
@@ -93,7 +92,6 @@ services:
 
   cloudbeaver:
     # Pinned: releases after 25.1.4 write to a non-writable $HOME/.local/share/DBeaverData and crash on startup (exit 13).
-    x-image-ref: ghcr.io/outernet-foundation/mirror/docker.io/dbeaver/cloudbeaver:25.1.4
     image: "${CLOUDBEAVER_IMAGE:?err}"
     depends_on:
       create-database:
@@ -146,7 +144,6 @@ services:
       - keycloak_import:/keycloak_import
 
   keycloak:
-    x-image-ref: ghcr.io/outernet-foundation/mirror/quay.io/keycloak/keycloak:26.3.5
     image: "${KEYCLOAK_IMAGE:?err}"
     profiles:
       - keycloak
@@ -199,7 +196,6 @@ services:
   # `:-` (not `:?err`): docker compose interpolates regardless of profile, so
   # `:?err` on NGROK_* would break rathole-only operators.
   ngrok:
-    x-image-ref: ghcr.io/outernet-foundation/mirror/docker.io/ngrok/ngrok:alpine
     image: "${NGROK_IMAGE:?err}"
     profiles: [tunnel-ngrok]
     depends_on:
@@ -317,7 +313,7 @@ services:
   # volume at runtime instead, independent of image-layer and build-cache
   # behavior. Reuses the loki image (busybox chown) so no extra image is pinned.
   initialize-loki:
-    image: "ghcr.io/outernet-foundation/mirror/docker.io/grafana/loki${LOKI_DIGEST:?err}"
+    image: "${LOKI_IMAGE:?err}"
     user: "0:0"
     restart: "no"
     volumes:
@@ -325,7 +321,7 @@ services:
     entrypoint: ["/bin/sh", "-c", "chown -R 10001:10001 /loki"]
 
   loki:
-    image: "ghcr.io/outernet-foundation/mirror/docker.io/grafana/loki${LOKI_DIGEST:?err}"
+    image: "${LOKI_IMAGE:?err}"
     depends_on:
       initialize-s3:
         condition: service_completed_successfully
@@ -348,7 +344,7 @@ services:
       S3_SECRET_KEY: "${S3_SECRET_KEY:?err}"
 
   alloy:
-    image: "ghcr.io/outernet-foundation/mirror/docker.io/grafana/alloy${ALLOY_DIGEST:?err}"
+    image: "${ALLOY_IMAGE:?err}"
     depends_on:
       loki:
         condition: service_healthy
@@ -362,7 +358,7 @@ services:
         target: /etc/alloy/config.alloy
 
   grafana:
-    image: "ghcr.io/outernet-foundation/mirror/docker.io/grafana/grafana${GRAFANA_DIGEST:?err}"
+    image: "${GRAFANA_IMAGE:?err}"
     depends_on:
       loki:
         condition: service_healthy

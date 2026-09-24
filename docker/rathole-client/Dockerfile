@@ -1,6 +1,6 @@
-ARG UV_BASE_DIGEST
+ARG UV_BASE_IMAGE
 
-FROM ghcr.io/outernet-foundation/mirror/ghcr.io/astral-sh/uv${UV_BASE_DIGEST}
+FROM ${UV_BASE_IMAGE}
 
 WORKDIR /app/docker/rathole-client
 

@@ -228,7 +228,7 @@ requires-dist = [
     { name = "bashrun", specifier = ">=0.1.0" },
     { name = "ci-devkit", specifier = ">=0.1.0" },
     { name = "datamodel-code-generator", specifier = ">=0.33.0" },
-    { name = "docker-devkit", specifier = ">=0.1.0" },
+    { name = "docker-devkit", specifier = ">=0.1.15" },
     { name = "openapi-client-codegen", specifier = ">=0.1.0" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2.10" },
     { name = "pydantic", specifier = ">=2.11.7" },
@@ -566,7 +566,7 @@ source = { editable = "packages/python/neural-networks/third-party/deep-image-re
 
 [[package]]
 name = "docker-devkit"
-version = "0.1.14"
+version = "0.1.15"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "bashrun" },
@@ -576,9 +576,9 @@ dependencies = [
     { name = "pyyaml" },
     { name = "typer" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/0a/5d/ab014db7729493f0a06d8753502527f7b1acf3c6616861f3fb56291f8d0c/docker_devkit-0.1.14.tar.gz", hash = "sha256:0996e969732cfea3ad1374e81a088b95a285c094cda7af248a4e93f9ea52df2d", size = 50576, upload-time = "2026-09-24T03:52:58.509Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/fd/17/6642dc687aeb6527a97507dbee976ccd50084c06e3f298cfe6f65fe236c8/docker_devkit-0.1.15.tar.gz", hash = "sha256:485b211dafa9288deda60a523d0c502850fb101a5c769e219f8beca39d88d769", size = 52493, upload-time = "2026-09-24T05:16:58.267Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/77/5f/a4b186ea5607476967c06fb2dcf04f5df41fc8565b069ff5459faf022fbb/docker_devkit-0.1.14-py3-none-any.whl", hash = "sha256:89914935f4e0b78a7737250e7fcd0b6179f4c41e86036aba79cd3993c5a49384", size = 21793, upload-time = "2026-09-24T03:52:57.386Z" },
+    { url = "https://files.pythonhosted.org/packages/83/72/7486ce80bf6acfa2a99ac4f8388816b3f194e7802dd76468e4435ec426fc/docker_devkit-0.1.15-py3-none-any.whl", hash = "sha256:aebdb2f84902c2f5533c0d298396357b6c914dd73db954b747565e036366a95e", size = 22098, upload-time = "2026-09-24T05:16:57.425Z" },
 ]
 
 [[package]]
@@ -2948,7 +2948,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "bashrun", specifier = ">=0.1.0" },
-    { name = "docker-devkit", specifier = ">=0.1.0" },
+    { name = "docker-devkit", specifier = ">=0.1.15" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "numpy", specifier = ">=2.1" },
     { name = "placeframe-api-client", editable = "packages/generated/python/api-client" },

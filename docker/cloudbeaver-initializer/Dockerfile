@@ -1,7 +1,6 @@
-ARG POSTGRES_BOOKWORM_DIGEST
+ARG POSTGRES_BOOKWORM_IMAGE
 
-# Explicitly define the repository so the digest can be appended
-FROM ghcr.io/outernet-foundation/mirror/docker.io/library/postgres${POSTGRES_BOOKWORM_DIGEST}
+FROM ${POSTGRES_BOOKWORM_IMAGE}
 
 # Copy the entrypoint and make it executable
 COPY --chmod=0755 docker/cloudbeaver-initializer/entrypoint.sh /usr/local/bin/entrypoint.sh

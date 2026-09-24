@@ -9,6 +9,7 @@ from bashrun.bash import bash, bash_output
 
 from ci_devkit.ci_step import ci_step
 from docker_devkit.context_sha import compute_service_shas
+from docker_devkit.documents import parse_bake
 from docker_devkit.image_refs import VersionCoupling, VersionSite, unpinned_references, version_coupling_violations
 from python_devkit.preflight import preflight as run_battery
 
@@ -22,14 +23,12 @@ VERSION_COUPLINGS = [
     VersionCoupling(
         name="uv",
         pyproject_key="tool.uv.required-version",
-        sites=(VersionSite("uv base tag", "compose*.bake.yml", r"uv:([^@]+?)-", "UV_BASE_DIGEST"),),
+        sites=(VersionSite("uv base tag", "compose*.bake.yml", r"uv:([^@]+?)-", "UV_BASE_IMAGE"),),
     ),
     VersionCoupling(
         name="python",
         pyproject_key="project.requires-python",
-        sites=(
-            VersionSite("uv base python component", "compose*.bake.yml", r"python([0-9][0-9.]*)", "UV_BASE_DIGEST"),
-        ),
+        sites=(VersionSite("uv base python component", "compose*.bake.yml", r"python([0-9][0-9.]*)", "UV_BASE_IMAGE"),),
     ),
 ]
 
@@ -60,7 +59,7 @@ def main() -> None:
             DATABASE_SCHEMA_DIR="database",
             ALLOWED_HAZARDS="HAS_UNTRACKABLE_DEPENDENCIES",
         )
-        os.environ.update(compute_service_shas(Path.cwd(), Path("compose.bake.yml")))
+        os.environ.update(compute_service_shas(Path.cwd(), parse_bake(Path("compose.bake.yml"))))
         # Build the postgres wrapper locally so the image tag in compose.postgres.yml resolves
         # without needing a registry push first.
         bash("docker compose -f compose.bake.yml --env-file .env.lock build postgres")

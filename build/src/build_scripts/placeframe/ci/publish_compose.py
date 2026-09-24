@@ -16,6 +16,7 @@ from pydantic_settings import BaseSettings
 from ci_devkit.ci_step import ci_step
 from ci_devkit.setup import configure_git
 from docker_devkit.context_sha import compute_service_shas
+from docker_devkit.documents import parse_bake
 from docker_devkit.image_refs import resolve_remote_digest
 
 Variant = Literal["cuda", "rocm"]
@@ -78,7 +79,7 @@ def ci_main(variant: Variant = typer.Option(help="Publish variant: cuda or rocm"
             # can't trip on them. --resolve-image-digests applies its override
             # too late (after interpolation has already failed).
             substitutions = {
-                **compute_service_shas(Path.cwd(), Path("compose.bake.yml")),
+                **compute_service_shas(Path.cwd(), parse_bake(Path("compose.bake.yml"))),
                 **_load_env_file(Path(".env.lock")),
             }
 

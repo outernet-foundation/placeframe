@@ -1,6 +1,6 @@
-ARG CADDY_DIGEST
+ARG CADDY_IMAGE
 
-FROM ghcr.io/outernet-foundation/mirror/docker.io/library/caddy${CADDY_DIGEST}
+FROM ${CADDY_IMAGE}
 
 # Copy the entrypoint and make it executable
 COPY --chmod=0755 docker/gateway/entrypoint.sh /usr/local/bin/entrypoint.sh
