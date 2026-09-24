@@ -1,0 +1,214 @@
+# x-base-images is the single declaration home for every third-party image this
+# repo consumes — Dockerfile bases AND runtime images pulled by compose (the
+# `*_IMAGE` keys feed compose image holes via images.lock).
+x-base-images:
+  UV_BASE_IMAGE: "ghcr.io/outernet-foundation/mirror/ghcr.io/astral-sh/uv:0.12.15-python3.13-trixie-slim"
+  GOLANG_IMAGE: "ghcr.io/outernet-foundation/mirror/docker.io/library/golang:1.22-alpine"
+  ALPINE_IMAGE: "ghcr.io/outernet-foundation/mirror/docker.io/library/alpine:3.20"
+  CADDY_IMAGE: "ghcr.io/outernet-foundation/mirror/docker.io/library/caddy:2.8.4-alpine"
+  POSTGRES_BOOKWORM_IMAGE: "ghcr.io/outernet-foundation/mirror/docker.io/library/postgres:16-bookworm"
+  LOKI_IMAGE: "ghcr.io/outernet-foundation/mirror/docker.io/grafana/loki:3.5.0"
+  ALLOY_IMAGE: "ghcr.io/outernet-foundation/mirror/docker.io/grafana/alloy:v1.9.0"
+  GRAFANA_IMAGE: "ghcr.io/outernet-foundation/mirror/docker.io/grafana/grafana:11.6.0"
+  POSTGIS_IMAGE: "ghcr.io/outernet-foundation/mirror/docker.io/postgis/postgis:16-3.4-alpine"
+  POSTGRES_CNPG_IMAGE: "ghcr.io/outernet-foundation/mirror/ghcr.io/cloudnative-pg/postgis:14@sha256:8e05fbc908ffbdb34aaaf594ea8d108450266f686500fc6e6d78dd007f32c568"
+  SEAWEEDFS_IMAGE: "ghcr.io/outernet-foundation/mirror/docker.io/chrislusf/seaweedfs:4.47"
+  CLOUDBEAVER_IMAGE: "ghcr.io/outernet-foundation/mirror/docker.io/dbeaver/cloudbeaver:25.1.4"
+  KEYCLOAK_IMAGE: "ghcr.io/outernet-foundation/mirror/quay.io/keycloak/keycloak:26.3.5"
+  NGROK_IMAGE: "ghcr.io/outernet-foundation/mirror/docker.io/ngrok/ngrok:alpine"
+  SEAWEEDFS_AUDIT_IMAGE: "ghcr.io/outernet-foundation/mirror/docker.io/fluent/fluent-bit:5.1.2"
+  INITIALIZE_S3_IMAGE: "ghcr.io/outernet-foundation/mirror/docker.io/amazon/aws-cli:2.36.9"
+
+x-base-args: &base-args
+  UV_BASE_IMAGE: "${UV_BASE_IMAGE:-}"
+  GOLANG_IMAGE: "${GOLANG_IMAGE:-}"
+  ALPINE_IMAGE: "${ALPINE_IMAGE:-}"
+  CADDY_IMAGE: "${CADDY_IMAGE:-}"
+  POSTGRES_BOOKWORM_IMAGE: "${POSTGRES_BOOKWORM_IMAGE:-}"
+  LOKI_IMAGE: "${LOKI_IMAGE:-}"
+  ALLOY_IMAGE: "${ALLOY_IMAGE:-}"
+  GRAFANA_IMAGE: "${GRAFANA_IMAGE:-}"
+  POSTGIS_IMAGE: "${POSTGIS_IMAGE:-}"
+  SEAWEEDFS_IMAGE: "${SEAWEEDFS_IMAGE:-}"
+
+x-registry-cache: ghcr.io/outernet-foundation/placeframe/build-cache
+
+services:
+  initialize-cloudbeaver:
+    build:
+      context: .
+      dockerfile: workloads/cloudbeaver-initializer/Dockerfile
+      args: *base-args
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/cloudbeaver-initializer:latest"
+        - "ghcr.io/outernet-foundation/placeframe/cloudbeaver-initializer:${CLOUDBEAVER_INITIALIZER_SHA}"
+
+  s3-initializer:
+    build:
+      context: .
+      dockerfile: workloads/s3-initializer/Dockerfile
+      args: *base-args
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/s3-initializer:latest"
+        - "ghcr.io/outernet-foundation/placeframe/s3-initializer:${S3_INITIALIZER_SHA}"
+
+  create-database:
+    build:
+      context: .
+      dockerfile: workloads/database-manager/Dockerfile
+      args: *base-args
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/database-manager:latest"
+        - "ghcr.io/outernet-foundation/placeframe/database-manager:${DATABASE_MANAGER_SHA}"
+
+  auth-initializer:
+    build:
+      context: .
+      dockerfile: workloads/auth-initializer/Dockerfile
+      args: *base-args
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/auth-initializer:latest"
+        - "ghcr.io/outernet-foundation/placeframe/auth-initializer:${AUTH_INITIALIZER_SHA}"
+
+  gateway:
+    build:
+      context: .
+      dockerfile: workloads/gateway/Dockerfile
+      args: *base-args
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/gateway:latest"
+        - "ghcr.io/outernet-foundation/placeframe/gateway:${GATEWAY_SHA}"
+
+  rathole-client:
+    build:
+      context: .
+      dockerfile: workloads/rathole-client/Dockerfile
+      args: *base-args
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/rathole-client:latest"
+        - "ghcr.io/outernet-foundation/placeframe/rathole-client:${RATHOLE_CLIENT_SHA}"
+
+  database-migrator:
+    build:
+      context: .
+      dockerfile: workloads/database-migrator/Dockerfile
+      args: *base-args
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/database-migrator:latest"
+        - "ghcr.io/outernet-foundation/placeframe/database-migrator:${DATABASE_MIGRATOR_SHA}"
+
+  api:
+    build:
+      context: .
+      dockerfile: workloads/api/Dockerfile
+      target: dev
+      args: *base-args
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/api:latest"
+        - "ghcr.io/outernet-foundation/placeframe/api:${API_SHA}"
+
+  lease-server:
+    build:
+      context: .
+      dockerfile: workloads/lease-server/Dockerfile
+      target: dev
+      args: *base-args
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/lease-server:latest"
+        - "ghcr.io/outernet-foundation/placeframe/lease-server:${LEASE_SERVER_SHA}"
+
+  postgres:
+    build:
+      context: .
+      dockerfile: workloads/postgres/Dockerfile
+      args: *base-args
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/postgres:latest"
+        - "ghcr.io/outernet-foundation/placeframe/postgres:${POSTGRES_SHA}"
+
+  seaweedfs:
+    build:
+      context: .
+      dockerfile: workloads/seaweedfs/Dockerfile
+      args: *base-args
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/seaweedfs:latest"
+        - "ghcr.io/outernet-foundation/placeframe/seaweedfs:${SEAWEEDFS_SHA}"
+
+  neural-networks-base-cuda:
+    build:
+      context: .
+      dockerfile: workloads/neural-networks-base/Dockerfile
+      args:
+        <<: *base-args
+        TORCH_DEVICE: "cuda"
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/neural-networks-base-cuda:latest"
+        - "ghcr.io/outernet-foundation/placeframe/neural-networks-base-cuda:${NEURAL_NETWORKS_BASE_SHA}"
+
+  neural-networks-base-rocm:
+    build:
+      context: .
+      dockerfile: workloads/neural-networks-base/Dockerfile
+      args:
+        <<: *base-args
+        TORCH_DEVICE: "rocm"
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/neural-networks-base-rocm:latest"
+        - "ghcr.io/outernet-foundation/placeframe/neural-networks-base-rocm:${NEURAL_NETWORKS_BASE_SHA}"
+
+  reconstructor-cuda:
+    build:
+      context: .
+      dockerfile: workloads/reconstructor/Dockerfile
+      args:
+        <<: *base-args
+        TORCH_DEVICE: "cuda"
+        RECONSTRUCTOR_SHA: "${RECONSTRUCTOR_SHA:?err}"
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/reconstructor-cuda:latest"
+        - "ghcr.io/outernet-foundation/placeframe/reconstructor-cuda:${RECONSTRUCTOR_SHA}"
+      additional_contexts:
+        neural-networks-base: "target:neural-networks-base-cuda"
+
+  localizer-cuda:
+    build:
+      context: .
+      dockerfile: workloads/localizer/Dockerfile
+      args:
+        <<: *base-args
+        TORCH_DEVICE: "cuda"
+        LOCALIZER_SHA: "${LOCALIZER_SHA:?err}"
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/localizer-cuda:latest"
+        - "ghcr.io/outernet-foundation/placeframe/localizer-cuda:${LOCALIZER_SHA}"
+      additional_contexts:
+        neural-networks-base: "target:neural-networks-base-cuda"
+
+  reconstructor-rocm:
+    build:
+      context: .
+      dockerfile: workloads/reconstructor/Dockerfile
+      args:
+        <<: *base-args
+        TORCH_DEVICE: "rocm"
+        RECONSTRUCTOR_SHA: "${RECONSTRUCTOR_SHA:?err}"
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/reconstructor-rocm:latest"
+        - "ghcr.io/outernet-foundation/placeframe/reconstructor-rocm:${RECONSTRUCTOR_SHA}"
+      additional_contexts:
+        neural-networks-base: "target:neural-networks-base-rocm"
+
+  localizer-rocm:
+    build:
+      context: .
+      dockerfile: workloads/localizer/Dockerfile
+      args:
+        <<: *base-args
+        TORCH_DEVICE: "rocm"
+        LOCALIZER_SHA: "${LOCALIZER_SHA:?err}"
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/localizer-rocm:latest"
+        - "ghcr.io/outernet-foundation/placeframe/localizer-rocm:${LOCALIZER_SHA}"
+      additional_contexts:
+        neural-networks-base: "target:neural-networks-base-rocm"

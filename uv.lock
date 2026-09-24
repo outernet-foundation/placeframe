@@ -75,7 +75,7 @@ wheels = [
 [[package]]
 name = "auth-initializer"
 version = "0.1.0"
-source = { editable = "docker/auth-initializer" }
+source = { editable = "workloads/auth-initializer" }
 dependencies = [
     { name = "cryptography" },
 ]
@@ -481,7 +481,7 @@ wheels = [
 [[package]]
 name = "database-manager"
 version = "0.1.0"
-source = { editable = "docker/database-manager" }
+source = { editable = "workloads/database-manager" }
 dependencies = [
     { name = "placeframe-common" },
     { name = "psycopg", extra = ["binary"] },
@@ -566,7 +566,7 @@ source = { editable = "packages/python/neural-networks/third-party/deep-image-re
 
 [[package]]
 name = "docker-devkit"
-version = "0.1.15"
+version = "0.1.17"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "bashrun" },
@@ -576,9 +576,9 @@ dependencies = [
     { name = "pyyaml" },
     { name = "typer" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/fd/17/6642dc687aeb6527a97507dbee976ccd50084c06e3f298cfe6f65fe236c8/docker_devkit-0.1.15.tar.gz", hash = "sha256:485b211dafa9288deda60a523d0c502850fb101a5c769e219f8beca39d88d769", size = 52493, upload-time = "2026-09-24T05:16:58.267Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/f1/e7/c44cf711b8fa94df55f6db5d9258e1d7341c2c9b25ce57a473f905222dec/docker_devkit-0.1.17.tar.gz", hash = "sha256:a1b3833662f40caed155e340e412d889f2648e1ee165e7a91c31b407818d213a", size = 54513, upload-time = "2026-09-24T17:13:35.553Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/83/72/7486ce80bf6acfa2a99ac4f8388816b3f194e7802dd76468e4435ec426fc/docker_devkit-0.1.15-py3-none-any.whl", hash = "sha256:aebdb2f84902c2f5533c0d298396357b6c914dd73db954b747565e036366a95e", size = 22098, upload-time = "2026-09-24T05:16:57.425Z" },
+    { url = "https://files.pythonhosted.org/packages/5d/8e/792bc75efc60d8b0dc4bfd4c33c5346d33185dcf6fc93fb15e4481af5499/docker_devkit-0.1.17-py3-none-any.whl", hash = "sha256:435cf608f663111efdbdbf519f5df6909673dfc2fbec1033e32596713e447796", size = 23161, upload-time = "2026-09-24T17:13:34.625Z" },
 ]
 
 [[package]]
@@ -2003,7 +2003,7 @@ dev = [
 [[package]]
 name = "placeframe-api"
 version = "0.1.0"
-source = { virtual = "docker/api" }
+source = { virtual = "workloads/api" }
 dependencies = [
     { name = "botocore" },
     { name = "cryptography" },
@@ -2143,7 +2143,7 @@ dev = [{ name = "scipy-stubs", specifier = ">=1.16.3.0" }]
 [[package]]
 name = "placeframe-lease-server"
 version = "0.1.0"
-source = { virtual = "docker/lease-server" }
+source = { virtual = "workloads/lease-server" }
 dependencies = [
     { name = "datamodels" },
     { name = "debugpy" },
@@ -2193,7 +2193,7 @@ requires-dist = [
 [[package]]
 name = "placeframe-localizer"
 version = "0.1.0"
-source = { editable = "docker/localizer" }
+source = { editable = "workloads/localizer" }
 dependencies = [
     { name = "faiss-cpu" },
     { name = "litestar" },
@@ -2272,7 +2272,7 @@ requires-dist = [
 [[package]]
 name = "placeframe-rathole-client"
 version = "0.1.0"
-source = { editable = "docker/rathole-client" }
+source = { editable = "workloads/rathole-client" }
 dependencies = [
     { name = "jinja2" },
 ]
@@ -2283,7 +2283,7 @@ requires-dist = [{ name = "jinja2", specifier = ">=3.1.6" }]
 [[package]]
 name = "placeframe-reconstructor"
 version = "0.1.0"
-source = { editable = "docker/reconstructor" }
+source = { editable = "workloads/reconstructor" }
 dependencies = [
     { name = "cryptography" },
     { name = "httpx" },
@@ -2790,7 +2790,7 @@ wheels = [
 [[package]]
 name = "s3-initializer"
 version = "0.1.0"
-source = { editable = "docker/s3-initializer" }
+source = { editable = "workloads/s3-initializer" }
 dependencies = [
     { name = "boto3" },
     { name = "botocore" },

@@ -2,9 +2,8 @@
 # This file is the single source of truth for the CONTEXT_SHA image tag.
 # Adding a COPY for a path not listed here will fail the build loudly.
 *
-!docker/
+!workloads/
 !database/
 !packages/python/
 !packages/generated/python/
 !packages/generated/csharp/api-client/
-!compose.bake.yml

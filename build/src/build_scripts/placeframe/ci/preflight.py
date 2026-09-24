@@ -11,9 +11,10 @@ from ci_devkit.ci_step import ci_step
 from docker_devkit.context_sha import compute_service_shas
 from docker_devkit.documents import parse_bake
 from docker_devkit.image_refs import VersionCoupling, VersionSite, unpinned_references, version_coupling_violations
+from docker_devkit.lifecycle import require_manifest
 from python_devkit.preflight import preflight as run_battery
 
-# Keep in step with the prerequisites documented in score/README.md.
+# Keep in step with the prerequisites documented in stack/score/README.md.
 SCORE_K8S_VERSION = "0.15.0"
 SCORE_COMPOSE_VERSION = "0.42.0"
 
@@ -23,12 +24,14 @@ VERSION_COUPLINGS = [
     VersionCoupling(
         name="uv",
         pyproject_key="tool.uv.required-version",
-        sites=(VersionSite("uv base tag", "compose*.bake.yml", r"uv:([^@]+?)-", "UV_BASE_IMAGE"),),
+        sites=(VersionSite("uv base tag", "workloads/images.yml", r"uv:([^@]+?)-", "UV_BASE_IMAGE"),),
     ),
     VersionCoupling(
         name="python",
         pyproject_key="project.requires-python",
-        sites=(VersionSite("uv base python component", "compose*.bake.yml", r"python([0-9][0-9.]*)", "UV_BASE_IMAGE"),),
+        sites=(
+            VersionSite("uv base python component", "workloads/images.yml", r"python([0-9][0-9.]*)", "UV_BASE_IMAGE"),
+        ),
     ),
 ]
 
@@ -59,26 +62,30 @@ def main() -> None:
             DATABASE_SCHEMA_DIR="database",
             ALLOWED_HAZARDS="HAS_UNTRACKABLE_DEPENDENCIES",
         )
-        os.environ.update(compute_service_shas(Path.cwd(), parse_bake(Path("compose.bake.yml"))))
+        os.environ.update(compute_service_shas(Path.cwd(), parse_bake(require_manifest(Path.cwd()))))
         # Build the postgres wrapper locally so the image tag in compose.postgres.yml resolves
-        # without needing a registry push first.
-        bash("docker compose -f compose.bake.yml --env-file .env.lock build postgres")
+        # without needing a registry push first. --project-directory anchors the manifest's
+        # relative paths at the repo root; compose would otherwise resolve them against the
+        # manifest's own directory.
+        bash(
+            "docker compose --project-directory . -f workloads/images.yml --env-file workloads/images.lock build postgres"
+        )
         # Kill any leftover containers to avoid port collisions on shared runners
-        bash("docker compose --env-file .env.lock -f compose.postgres.yml down --volumes --remove-orphans")
-        bash("docker compose --env-file .env.lock -f compose.postgres.yml up -d --wait")
+        bash("docker compose --env-file workloads/images.lock -f compose.postgres.yml down --volumes --remove-orphans")
+        bash("docker compose --env-file workloads/images.lock -f compose.postgres.yml up -d --wait")
         gopath = bash_output("go env GOPATH").strip()
         gopath_bin = Path(gopath) / "bin"
         gopath_bin.mkdir(parents=True, exist_ok=True)
         os.environ["PATH"] = f"{gopath_bin}{os.pathsep}{os.environ['PATH']}"
         bash("go install github.com/stripe/pg-schema-diff/cmd/pg-schema-diff@latest")
         bash(
-            "uv run --directory docker/database-manager python -m src.main --op create --name placeframe"
+            "uv run --directory workloads/database-manager python -m src.main --op create --name placeframe"
             " --owner-password password"
             " --api-user-password password"
             " --auth-user-password password"
             " --orchestration-user-password password"
         )
-        bash("./docker/database-migrator/entrypoint.sh")
+        bash("./workloads/database-migrator/entrypoint.sh")
 
     run_battery(Path())
 
@@ -105,7 +112,7 @@ def main() -> None:
             bash(f"tar -xzf {archive} -C {gopath_bin} {tool}")
             Path(archive).unlink()
 
-    _check_generated("Score", "uv run generate-score", "score/")
+    _check_generated("Score", "uv run generate-score", "stack/")
 
 
 def _check_generated(label: str, generate_command: str, pathspec: str, fix_command: str | None = None) -> None:

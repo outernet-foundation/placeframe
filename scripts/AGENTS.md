@@ -16,7 +16,7 @@ Registered in `scripts/pyproject.toml`:
 | `list-debug-targets` | `list_debug_targets.py` | Enumerates Docker containers with a `service` label that publishes `5678/tcp`. Prints `{host_port}|{service} | {name} {job} {task}` lines for VS Code's attach picker. |
 | `loki-query` | `loki_query.py` | Run a LogQL query against the local Loki via `docker exec placeframe-loki-1 wget`, formatting each entry as `HH:MM:SS LEVEL [logGroup] message` (plus exception chain when present). Flags: `--limit`, `--direction`, `--since`, `--raw`. Use this instead of hand-rolling URL-encoded `wget` invocations — the URL encoding is fragile (`+`/`%7C`/quote-escapes) and easy to get subtly wrong. |
 | `tune-reconstruction` | `tune_reconstruction.py` | Plackett-Burman sweep over `ReconstructionOptions` per capture. One reconstruction per cell. Aggregates map-quality metrics into a JSON report. |
-| `fit-calibration` | `fit_calibration.py` | Algorithm 1: pick held-out frames, build/reuse reconstructions, localize each held-out frame, fit logistic+isotonic for tight/loose success probability, fit Σ_meas `(α, β)`, write `docker/localizer/calibration/global.json`. |
+| `fit-calibration` | `fit_calibration.py` | Algorithm 1: pick held-out frames, build/reuse reconstructions, localize each held-out frame, fit logistic+isotonic for tight/loose success probability, fit Σ_meas `(α, β)`, write `workloads/localizer/calibration/global.json`. |
 
 `api_auth.py` (shared) and `held_out_selection.py` (consumed by `fit-calibration`) are library modules, not entry points.
 
@@ -57,7 +57,7 @@ The pipeline orchestrates over backend IDs and writes/reads through the API. The
 
           ^                                          ^
           | write evaluations,                       | read corpus,
-          | trigger reconstructions                  | fit, write docker/localizer/
+          | trigger reconstructions                  | fit, write workloads/localizer/
                                                      |   calibration/global.json
 
       scripts/tune_reconstruction.py        scripts/fit_calibration.py
@@ -74,7 +74,7 @@ The pipeline orchestrates over backend IDs and writes/reads through the API. The
                                                  - read cache as corpus
                                                  - fit logistic + isotonic
                                                  - fit Sigma_meas (alpha, beta)
-                                                 - write docker/localizer/calibration/global.json
+                                                 - write workloads/localizer/calibration/global.json
 
 The two scripts share `api_auth.authenticated_api_client` and the `localization_evaluations`/`reconstructions` API surface, but no code path or intermediate file. `tune-reconstruction` does not write to the calibration cache; `fit-calibration` does not call the PB sweep machinery.
 
@@ -91,7 +91,7 @@ The two scripts share `api_auth.authenticated_api_client` and the `localization_
 The procedure `fit-calibration` runs per capture (`fit_calibration.py` and the reconstructor working in concert):
 
 1. **Hold out frames at map-build time.** `HeldOutFrameSelector` (default stride) picks ~100 timestamps from `frames.csv`. Those go into `ReconstructionOptions.held_out_frame_timestamps`; the reconstructor filters them out of `frames.csv` and skips the matching images. The COLMAP map is built from the remaining frames.
-2. **Reconstructor aligns the map to truth.** The reconstructor pins the first registered frame's COLMAP pose to its `frames.csv` truth pose via single-anchor `Sim3d`; this places the rebuilt map in the capture's truth frame. Separately and only as a diagnostic, the reconstructor solves rigid (no-scale) Procrustes over all registered frames and emits per-capture residuals (`truth_alignment_rms_residual_m`, `truth_alignment_max_residual_m`); these ride the manifest and the operator (or the fit script) uses them to filter unreliable captures. The Procrustes transform itself is not applied to the reconstruction. See `docker/reconstructor/AGENTS.md`.
+2. **Reconstructor aligns the map to truth.** The reconstructor pins the first registered frame's COLMAP pose to its `frames.csv` truth pose via single-anchor `Sim3d`; this places the rebuilt map in the capture's truth frame. Separately and only as a diagnostic, the reconstructor solves rigid (no-scale) Procrustes over all registered frames and emits per-capture residuals (`truth_alignment_rms_residual_m`, `truth_alignment_max_residual_m`); these ride the manifest and the operator (or the fit script) uses them to filter unreliable captures. The Procrustes transform itself is not applied to the reconstruction. See `workloads/reconstructor/AGENTS.md`.
 3. **Per held-out frame.** Run the localizer; the map is already in truth-frame so the localizer's `camera_from_map` doubles as `camera_from_world`. Invert to get the estimated camera pose. Compute `err_t = ||truth_position - estimated_position||` and `err_r = || log(R_truth * R_estimated^-1) ||` (degrees, via `scipy.spatial.transform.Rotation.magnitude`). Record `(metrics, map_features, recon_config, loc_config, device, err_t, err_r, se3_residual, pnp_covariance)` to `localization_evaluations`.
 4. **Pool across all captures and configs**, add binary labels: `success_tight = err_t < 5cm AND err_r < 1deg`, `success_loose = err_t < 30cm AND err_r < 5deg`.
 5. **Fit logistic regression** (`LogisticRegression(class_weight='balanced')`) on the 9-feature vector (`log(num_inliers+1)`, `inlier_ratio`, `reproj_err / image_diagonal_pixels`, `inlier_coverage`, `log(num_matches+1)`, `log(map_image_count+1)`, `log(map_point_count+1)`, `map_avg_track_length`, `map_viewpoint_diversity`).
@@ -99,7 +99,7 @@ The procedure `fit-calibration` runs per capture (`fit_calibration.py` and the r
 7. **Fit Σ_meas scaling.** For each held-out localization, compute SE(3) residual `e = log(P_truth_in_map * P_estimated^-1) ∈ R^6`. Solve scalar `α, β` that maximize `sum_i log N(e_i; 0, alpha * PnP_cov_i + beta * I)` via `scipy.optimize.minimize(L-BFGS-B)`. The scalars carry the empirical "actual pose-error spread relative to PnP_cov" signal that PnP_cov alone misses.
 8. **Optional 10% holdout** for Brier score and reliability diagram in fit metadata.
 
-Output: `CalibrationArtifact(tight, loose, sigma_meas_alpha, sigma_meas_beta, loose_min, tight_min, ...)` written to `docker/localizer/calibration/global.json` by default. Schema: `packages/python/core/AGENTS.md` "Calibration".
+Output: `CalibrationArtifact(tight, loose, sigma_meas_alpha, sigma_meas_beta, loose_min, tight_min, ...)` written to `workloads/localizer/calibration/global.json` by default. Schema: `packages/python/core/AGENTS.md` "Calibration".
 
 ### Driver-side localization
 
@@ -145,6 +145,6 @@ Deterministic, scales to capture length, gives even temporal spacing → roughly
 - [`docker-devkit`](https://github.com/outernet-foundation/docker-devkit) — the standalone package holding the Docker-stack lifecycle (`up`, `down`, `build`) and the SHA/auth helpers, git-referenced from the root `pyproject.toml`. `scripts/` imports from it (`docker_devkit.modes.parse_env_file` in `api_auth.py`); the inverse does not hold.
 - `build/` (the `build-scripts` workspace package) — sibling Python CLI package holding the codegen entry points (`generate-clients`, `generate-datamodels`, `lock-python`, `deptry-check`, `preflight`).
 - [`unity-devkit`'s `AGENTS.md`](https://github.com/outernet-foundation/unity-devkit/blob/main/AGENTS.md) — the standalone Unity build toolkit, which also hosts the `install` command. `scripts/` no longer imports from it; the dependency was dropped when `install.py` moved.
-- `docker/localizer/AGENTS.md` — defines the `/version` and `/localize` endpoints that `fit-calibration` consumes and the `pipeline_version` baked into the localizer image.
-- `docker/reconstructor/AGENTS.md` — defines the single-anchor truth-frame alignment and the Procrustes-residual diagnostic metrics that Algorithm 1 step 2 relies on.
+- `workloads/localizer/AGENTS.md` — defines the `/version` and `/localize` endpoints that `fit-calibration` consumes and the `pipeline_version` baked into the localizer image.
+- `workloads/reconstructor/AGENTS.md` — defines the single-anchor truth-frame alignment and the Procrustes-residual diagnostic metrics that Algorithm 1 step 2 relies on.
 - `packages/python/core/AGENTS.md` "Calibration" — schema of `CalibrationArtifact`, `Features`, `ToleranceModel`, `RawMapMetrics`, `RawLocalizationMetrics`.

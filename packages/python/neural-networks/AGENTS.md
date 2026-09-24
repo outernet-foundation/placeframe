@@ -35,7 +35,7 @@ The vendored library is exposed to the workspace as a separate package named `di
 
 ### Consumers
 
-`docker/localizer/src/localize.py:62` and `docker/reconstructor/src/reconstructor/run_reconstruction.py:28` both import the same three loaders identically and feed each into a typed wrapper from `packages/python/core/src/placeframe_core/model_wrappers.py`  -  `make_global_descriptor_extractor`, `make_local_feature_extractor`, `make_local_feature_matcher_for_tensors` (localizer) or `_for_arrays` (reconstructor). The neural-networks package returns loosely-typed `Any` models; `placeframe_core.model_wrappers` is where typed-tensor signatures get stamped on the call path.
+`workloads/localizer/src/localize.py:62` and `workloads/reconstructor/src/reconstructor/run_reconstruction.py:28` both import the same three loaders identically and feed each into a typed wrapper from `packages/python/core/src/placeframe_core/model_wrappers.py`  -  `make_global_descriptor_extractor`, `make_local_feature_extractor`, `make_local_feature_matcher_for_tensors` (localizer) or `_for_arrays` (reconstructor). The neural-networks package returns loosely-typed `Any` models; `placeframe_core.model_wrappers` is where typed-tensor signatures get stamped on the call path.
 
 The reconstructor additionally keeps a bare reference to the ALIKED model (`run_reconstruction.py:64-71`) so it can override `dkd.n_limit` per job. The typed wrapper is the call entry point; the bare reference exists only for configuration.
 
@@ -65,17 +65,17 @@ The torch dependency is gated behind three mutually-exclusive `optional-dependen
 
 **`lightglue` is in every extra on purpose.** It transitively pulls torch, and uv only redirects torch to the per-accelerator index if an extra is actively selected  -  "actively selected" requires *something* declared in the extra. Removing lightglue from one of the extras silently pulls torch from PyPI on that accelerator. Any new dependency that drags torch in transitively must follow the same pattern.
 
-**Plain `uv sync --all-packages` does not install torch.** The conflicts block makes uv refuse to install three mutually exclusive extras simultaneously, so by default it installs none. To get torch into the workspace venv (for type-checking, for running `docker/localizer/tests/` outside Docker, for the localizer's `dump_openapi` to work, for `dirtorch/test_dir.py` to import), pass `--extra cpu` / `--extra cuda` / `--extra rocm` to `uv sync`. The root `CLAUDE.md` records this for the COI environment.
+**Plain `uv sync --all-packages` does not install torch.** The conflicts block makes uv refuse to install three mutually exclusive extras simultaneously, so by default it installs none. To get torch into the workspace venv (for type-checking, for running `workloads/localizer/tests/` outside Docker, for the localizer's `dump_openapi` to work, for `dirtorch/test_dir.py` to import), pass `--extra cpu` / `--extra cuda` / `--extra rocm` to `uv sync`. The root `CLAUDE.md` records this for the COI environment.
 
 ### Docker base image and the preload trick
 
-The `neural-networks-base` image (`docker/neural-networks-base/Dockerfile`) is the heavy-lifting layer that the localizer and reconstructor build `FROM`. It does three things:
+The `neural-networks-base` image (`workloads/neural-networks-base/Dockerfile`) is the heavy-lifting layer that the localizer and reconstructor build `FROM`. It does three things:
 
 1. Installs a per-accelerator lockfile: `pylock.neural-networks-${TORCH_DEVICE}.toml` (one of `cpu` / `cuda` / `rocm`). The three lockfiles are committed; `uv run lock-python` regenerates them.
 2. Installs the `dirtorch` and `neural-networks` source packages with `--no-deps --no-sources`.
 3. Runs `python -c "import neural_networks.preload"`. `preload.py` calls each loader once on CPU; the side effect is that `torch.hub` downloads the DIR checkpoint into `TORCH_HOME=/opt/torch_cache` and the layer commits the weights into the image. Lightglue/ALIKED weights are similarly resolved by the lightglue package's own hub-cache calls. No service ever imports `preload` at runtime; it exists solely to bake the weights into a build layer.
 
-`compose.bake.yml` defines `neural-networks-base-cuda` and `neural-networks-base-rocm` targets (no `cpu` target  -  cpu is for local type-checking, not for the deployable image set). The localizer and reconstructor Dockerfiles begin with `FROM neural-networks-base AS dev`; `compose.bake.yml` passes `neural-networks-base: "target:neural-networks-base-{cuda,rocm}"` as `additional_contexts` so the `FROM` resolves to the matching accelerator base.
+`workloads/images.yml` defines `neural-networks-base-cuda` and `neural-networks-base-rocm` targets (no `cpu` target  -  cpu is for local type-checking, not for the deployable image set). The localizer and reconstructor Dockerfiles begin with `FROM neural-networks-base AS dev`; `workloads/images.yml` passes `neural-networks-base: "target:neural-networks-base-{cuda,rocm}"` as `additional_contexts` so the `FROM` resolves to the matching accelerator base.
 
 ### Per-service deptry wiring
 
@@ -139,7 +139,7 @@ Cold weight downloads at service-startup time would add tens of seconds of laten
 
 - `packages/python/core/src/placeframe_core/model_wrappers.py`  -  typed-tensor seam over the three model callables. Returns `Any`-typed models from `neural-networks` get their typed signatures stamped here; both services consume the wrapped versions.
 - `packages/python/core/src/placeframe_core/lightglue.py`  -  `Keypoints` / `Descriptors` / `KeypointsArrays` / `DescriptorsArrays` / `MatchIndices` `NewType` brands and the `lightglue_match` / `lightglue_match_tensors` batching code that the wrappers drive.
-- `docker/neural-networks-base/Dockerfile`  -  base image build steps, `TORCH_HOME` location, and the `preload` import that bakes weights into a layer.
-- `docker/localizer/src/localize.py:58-69` and `docker/reconstructor/src/reconstructor/run_reconstruction.py:67-74`  -  the two consumer call sites. Both load all three models once at module import.
+- `workloads/neural-networks-base/Dockerfile`  -  base image build steps, `TORCH_HOME` location, and the `preload` import that bakes weights into a layer.
+- `workloads/localizer/src/localize.py:58-69` and `workloads/reconstructor/src/reconstructor/run_reconstruction.py:67-74`  -  the two consumer call sites. Both load all three models once at module import.
 - The 30-line comment on `load_lightglue` in `src/neural_networks/models.py`  -  the source of truth for LightGlue tuning. Re-read before changing `width_confidence`, `depth_confidence`, or `mp`.
 - The block comments on the module-level `sys.modules["sklearn.decomposition.pca"]` alias and on the `torch.load` monkey-patch inside `load_DIR` in `src/neural_networks/models.py`  -  the source of truth for why the two DIR checkpoint hacks exist.

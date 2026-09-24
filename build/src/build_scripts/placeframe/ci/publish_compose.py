@@ -18,6 +18,7 @@ from ci_devkit.setup import configure_git
 from docker_devkit.context_sha import compute_service_shas
 from docker_devkit.documents import parse_bake
 from docker_devkit.image_refs import resolve_remote_digest
+from docker_devkit.lifecycle import require_manifest
 
 Variant = Literal["cuda", "rocm"]
 
@@ -79,8 +80,8 @@ def ci_main(variant: Variant = typer.Option(help="Publish variant: cuda or rocm"
             # can't trip on them. --resolve-image-digests applies its override
             # too late (after interpolation has already failed).
             substitutions = {
-                **compute_service_shas(Path.cwd(), parse_bake(Path("compose.bake.yml"))),
-                **_load_env_file(Path(".env.lock")),
+                **compute_service_shas(Path.cwd(), parse_bake(require_manifest(Path.cwd()))),
+                **_load_env_file(Path("workloads/images.lock")),
             }
 
             def substitute(match: re.Match[str]) -> str:

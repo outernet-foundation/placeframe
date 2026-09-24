@@ -140,7 +140,7 @@ The contract (`Assets/Package/Core/Runtime/ICameraProvider.cs`):
 
 **Per-stack asmdefs, not one.** Pulling ARFoundation into a MagicLeap-only build (or vice versa) creates compile-time conflicts and binary bloat. Per-stack camera providers in their own asmdefs compile only when their platform is the target. Core has zero AR/XR refs and can be tested in pure C#. The cost is four `package.json` files to keep version-aligned and four asmdefs to keep ref-correct.
 
-**Bayesian filter in tangent space with chi-squared gate.** A naive moving average over the measurement transform is wrong on SE(3) -- averaging rotation matrices isn't a rotation. Working in se(3) tangent (the Lie algebra) makes the Kalman update linear-to-first-order around the current mean, and lets the innovation gate use a standard Mahalanobis distance against the analytic measurement covariance the server returns (`MeasurementCovariance = alpha * PnP + beta * I`, see `docker/localizer/AGENTS.md`). The trade-off: tangent-space accuracy degrades for large innovations, which is why large posterior shifts snap rather than slew.
+**Bayesian filter in tangent space with chi-squared gate.** A naive moving average over the measurement transform is wrong on SE(3) -- averaging rotation matrices isn't a rotation. Working in se(3) tangent (the Lie algebra) makes the Kalman update linear-to-first-order around the current mean, and lets the innovation gate use a standard Mahalanobis distance against the analytic measurement covariance the server returns (`MeasurementCovariance = alpha * PnP + beta * I`, see `workloads/localizer/AGENTS.md`). The trade-off: tangent-space accuracy degrades for large innovations, which is why large posterior shifts snap rather than slew.
 
 **Camera-anchored measurement translation.** The measurement translation is anchored on the camera, not composed from the map origin, so rotation noise can't lever-arm the rendered camera off its true position. The block comment on `ComputeAlignmentFromResult` in `Assets/Package/Core/Runtime/RelocalizationFilter.cs` is the source of truth for the why (the map-origin lever-arm failure mode and the reverted 4-DOF alternative); this doc does not duplicate it.
 
@@ -148,7 +148,7 @@ The contract (`Assets/Package/Core/Runtime/ICameraProvider.cs`):
 
 **Diagnostic bypass switches over per-build feature flags.** `BypassInnovationGate` and `BypassKalman` are `public static bool` flags toggleable at runtime through the metrics dialog. Flipping them in the field lets a tester A/B individual pipeline stages against the same camera feed without an APK rebuild and a re-walk of the space. The cost is two always-checked branches in the hot path, which are predictable enough that the cost is negligible.
 
-**Server-computed measurement covariance.** Earlier versions of the filter applied a client-side confidence gate; commit `06bff440` dropped it in favor of consuming the calibrated `MeasurementCovariance` directly. The localizer's `fit_calibration` pipeline now solves for the alpha/beta formula at build time, and the client filter stays calibration-agnostic -- see `docker/localizer/AGENTS.md` Calibration runtime.
+**Server-computed measurement covariance.** Earlier versions of the filter applied a client-side confidence gate; commit `06bff440` dropped it in favor of consuming the calibrated `MeasurementCovariance` directly. The localizer's `fit_calibration` pipeline now solves for the alpha/beta formula at build time, and the client filter stays calibration-agnostic -- see `workloads/localizer/AGENTS.md` Calibration runtime.
 
 **Keycloak ROPC over OAuth code flow.** Resource Owner Password Credentials is deprecated by OAuth 2.1 but is what Placeframe ships, because XR clients typing a username and password into a Unity-rendered text box is the lowest-friction path. A browser-redirect code flow would require an external WebView or platform browser handoff, which is awkward on Magic Leap and inappropriate for headless Capture Tool runs. The cost is the plaintext password held by the token handler for the process lifetime.
 
@@ -156,5 +156,5 @@ The contract (`Assets/Package/Core/Runtime/ICameraProvider.cs`):
 
 ## See also
 
-- `docker/localizer/AGENTS.md` -- server side of the `/localize` contract; documents the `MeasurementCovariance = alpha * PnP + beta * I` formula this filter consumes and the calibration runtime that produces it.
-- `docker/AGENTS.md` -- multi-service stack the Unity client talks to, including the Keycloak realm and the Loki log-shipping path the static log callbacks plug into.
+- `workloads/localizer/AGENTS.md` -- server side of the `/localize` contract; documents the `MeasurementCovariance = alpha * PnP + beta * I` formula this filter consumes and the calibration runtime that produces it.
+- `workloads/AGENTS.md` -- multi-service stack the Unity client talks to, including the Keycloak realm and the Loki log-shipping path the static log callbacks plug into.
