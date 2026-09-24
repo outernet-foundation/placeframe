@@ -26,7 +26,7 @@ from typing import Any, Literal, NoReturn
 
 from litestar import Litestar, Request, delete, get, patch, post
 from litestar.config.cors import CORSConfig
-from litestar.exceptions import NotFoundException
+from litestar.exceptions import NotFoundException, ValidationException
 from litestar.response import File, Response
 
 PLACEFRAME_ROOT = Path(__file__).resolve().parents[2]
@@ -267,6 +267,44 @@ class ImportRequest:
     path: str
     # Only meaningful for a reconstruction tar, which carries a fixed id.
     new_id: bool = False
+    # Only meaningful for a video. None leaves each to the CLI's own default, which for
+    # max_width is the width the rendered views can actually use.
+    stride: int | None = None
+    max_width: int | None = None
+
+
+@dataclass
+class VideoEstimateRequest:
+    """What a capture built from this video at these settings would weigh."""
+
+    path: str
+    stride: int | None = None
+    max_width: int | None = None
+
+
+# Separate from /api/import so the dialog can price a setting before committing to it: the API
+# rejects an oversized body outright, and an extraction that only reveals its size on upload has
+# already spent the minutes by then.
+@post("/api/import/estimate")
+async def import_estimate(data: VideoEstimateRequest) -> dict[str, Any]:
+    path = await asyncio.to_thread(_video_path, data.path)
+    return await _run_howard_test_json_async("inspect-video", str(path), *_video_flags(data.stride, data.max_width))
+
+
+def _video_path(path_str: str) -> Path:
+    path = Path(path_str).expanduser()
+    if not path.is_file() or path.suffix.lower() not in VIDEO_EXTENSIONS:
+        raise ValidationException(f"Not a video file: {path}")
+    return path
+
+
+def _video_flags(stride: int | None, max_width: int | None) -> list[str]:
+    flags: list[str] = []
+    if stride is not None:
+        flags += ["--stride", str(stride)]
+    if max_width is not None:
+        flags += ["--max-width", str(max_width)]
+    return flags
 
 
 def _classify_import(path_str: str) -> tuple[str, Path]:
@@ -307,7 +345,7 @@ async def import_path(data: ImportRequest) -> dict[str, Any]:
 
     job = Job(id=str(uuid.uuid4()), kind="reconstruct")
     JOBS[job.id] = job
-    _spawn(_run_spherical_reconstruct_job(job, path))
+    _spawn(_run_spherical_reconstruct_job(job, path, data.stride, data.max_width))
     return {"kind": kind, "job_id": job.id, "name": path.stem}
 
 
@@ -637,9 +675,13 @@ async def _run_poseless_reconstruct_job(
         job.error = str(exc)
 
 
-async def _run_spherical_reconstruct_job(job: Job, video: Path) -> None:
+async def _run_spherical_reconstruct_job(
+    job: Job, video: Path, stride: int | None = None, max_width: int | None = None
+) -> None:
     try:
-        created = await _run_howard_test_json_async("reconstruct-spherical", str(video), "--name", video.stem)
+        created = await _run_howard_test_json_async(
+            "reconstruct-spherical", str(video), "--name", video.stem, *_video_flags(stride, max_width)
+        )
         await _poll_reconstruction_until_terminal(job, created)
     except Exception as exc:
         job.status = "failed"
@@ -805,6 +847,7 @@ app = Litestar(
         rename_capture,
         import_reconstruction,
         import_path,
+        import_estimate,
         list_localizations,
         delete_localization,
         register_poseless_set,

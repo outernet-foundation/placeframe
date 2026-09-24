@@ -43,10 +43,54 @@ export interface ImportResult {
   name?: string;
 }
 
+export interface VideoSettings {
+  stride: number | null;
+  maxWidth: number | null;
+}
+
+export interface CaptureEstimate {
+  stride: number;
+  max_width: number;
+  frames: number;
+  width: number;
+  height: number;
+  bytes_per_frame: number;
+  total_bytes: number;
+  over_limit: boolean;
+}
+
+export interface VideoInfo {
+  width: number;
+  height: number;
+  fps: number;
+  frame_count: number;
+  projection: string | null;
+  is_spherical: boolean;
+  limit_bytes: number;
+  capture?: CaptureEstimate;
+}
+
+// What a capture built at these settings would weigh. Asked before importing, because the API
+// rejects an oversized body outright and an extraction only reveals its size once it is spent.
+export function estimateVideoCapture(path: string, settings: VideoSettings): Promise<VideoInfo> {
+  return request("/api/import/estimate", {
+    method: "POST",
+    body: JSON.stringify({ path, stride: settings.stride, max_width: settings.maxWidth }),
+  });
+}
+
 // One entry point for everything importable: the backend decides from the path
 // whether it is a folder of images, a reconstruction tar, or a spherical video.
-export function importPath(path: string, newId = false): Promise<ImportResult> {
-  return request("/api/import", { method: "POST", body: JSON.stringify({ path, new_id: newId }) });
+export function importPath(path: string, newId = false, settings?: VideoSettings): Promise<ImportResult> {
+  return request("/api/import", {
+    method: "POST",
+    body: JSON.stringify({
+      path,
+      new_id: newId,
+      stride: settings?.stride ?? null,
+      max_width: settings?.maxWidth ?? null,
+    }),
+  });
 }
 
 export function listLocalizations(): Promise<LocalizationSummary[]> {

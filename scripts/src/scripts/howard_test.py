@@ -10,6 +10,7 @@ import zipfile
 from asyncio import run, sleep, to_thread
 from collections.abc import Callable
 from datetime import datetime, timezone
+from dataclasses import dataclass
 from io import BytesIO
 from json import dumps, loads
 from shutil import rmtree
@@ -21,9 +22,11 @@ from uuid import UUID, uuid4
 import matplotlib as mpl
 import numpy as np
 import typer
+from common.limits import REQUEST_MAX_BODY_SIZE
 from core.capture_session_manifest import CaptureSessionManifest
 from core.localization_metrics import RANSAC_THRESHOLD_DEFAULT, RETRIEVAL_TOP_K_DEFAULT
 from panorama.video import frames as video_frames
+from panorama.video import sample_frames
 from panorama.video import inspect as inspect_video
 from core.reconstruction_options import ReconstructionOptions as CoreReconstructionOptions
 from numpy.typing import NDArray  # noqa: TID251 -- one-off visualizer, not worth shape-branding
@@ -113,6 +116,13 @@ POSELESS_POSE_PRIOR_SIGMA_M = 1000.0
 # A spherical video is dense in time (30 fps); every fifth frame at walking pace
 # leaves enough baseline between frames without uploading the whole video.
 SPHERICAL_FRAME_STRIDE = 5
+# Quality the capture's frames are encoded at; shared with estimate_capture_size so a
+# predicted size and the real one cannot drift apart.
+JPEG_QUALITY = 95
+# The views a spherical capture is reconstructed through. Named because the useful panorama
+# width is derived from them, so inspect-video prices exactly what reconstruct-spherical builds.
+SPHERICAL_VIEW_SIZE = 1600
+SPHERICAL_VIEW_FOV_DEG = 150.0
 
 _NATURAL_SORT_SPLIT_RE = re.compile(r"(\d+)")
 
@@ -155,6 +165,80 @@ async def upload_capture_session(
         name=name,
         id=id,
         _request_timeout=REQUEST_TIMEOUT,
+    )
+
+
+# Frames sampled to size a capture. JPEG size depends on what is in the picture, so this measures
+# the real thing rather than assuming bytes per pixel. The samples are spread across the whole
+# video: the opening frames of a walk-through are not representative of it, and sizing from them
+# alone underestimates -- the wrong direction to err next to a hard limit.
+SIZE_SAMPLE_FRAMES = 8
+# A tar member costs a 512-byte header and pads its data to the next 512-byte block.
+TAR_BLOCK = 512
+
+
+@dataclass(frozen=True)
+class CaptureSizeEstimate:
+    """What a capture built with these settings would weigh, against what the API accepts."""
+
+    frames: int
+    width: int
+    height: int
+    bytes_per_frame: int
+
+    @property
+    def total_bytes(self) -> int:
+        per_member = self.bytes_per_frame + TAR_BLOCK + (-self.bytes_per_frame % TAR_BLOCK)
+        return self.frames * per_member
+
+    @property
+    def over_limit(self) -> bool:
+        return self.total_bytes > REQUEST_MAX_BODY_SIZE
+
+    def describe(self) -> str:
+        arithmetic = (
+            f"{self.frames} frames x {_format_size(self.bytes_per_frame)} at {self.width}x{self.height}"
+            f" = {_format_size(self.total_bytes)}"
+        )
+        limit = f"limit {_format_size(REQUEST_MAX_BODY_SIZE)}"
+        return f"{arithmetic} ({limit}{'; OVER' if self.over_limit else ''})"
+
+
+def useful_pano_width(view_size: int, view_fov_deg: float) -> int:
+    """Panorama width whose detail a view of this size and field of view can actually use.
+
+    A view samples view_size pixels across view_fov_deg degrees; an equirectangular
+    frame spans 360. Supplying more than this is detail render() throws away, paid
+    for in every byte uploaded and every frame decoded.
+    """
+    return round(360 * view_size / view_fov_deg)
+
+
+def estimate_capture_size(video_path: Path, stride: int, max_width: int) -> CaptureSizeEstimate:
+    """Measure a few frames at the requested settings and extrapolate the capture.
+
+    Cheap enough to run before every build, and before a caller commits to one:
+    the API rejects an oversized body outright, and a capture that only reveals
+    its size once uploaded wastes the whole extraction.
+    """
+    info = inspect_video(video_path)
+    width = min(max_width, info.width) if max_width else info.width
+    height = width // 2
+    sizes: list[int] = []
+    for frame in sample_frames(video_path, SIZE_SAMPLE_FRAMES):
+        image = Image.fromarray(frame[:, :, ::-1])
+        if width != info.width:
+            image = image.resize((width, height), Image.Resampling.LANCZOS)
+        encoded = BytesIO()
+        image.save(encoded, format="JPEG", quality=JPEG_QUALITY)
+        sizes.append(encoded.tell())
+    if not sizes:
+        raise ValueError(f"No frames decoded from {video_path}")
+    return CaptureSizeEstimate(
+        frames=-(-info.frame_count // stride),
+        width=width,
+        height=height,
+        bytes_per_frame=sum(sizes) // len(sizes),
     )
 
 
@@ -224,7 +308,7 @@ def build_spherical_capture_tar(
             if width != info.width:
                 image = image.resize((width, height), Image.Resampling.LANCZOS)
             encoded = BytesIO()
-            image.save(encoded, format="JPEG", quality=95)
+            image.save(encoded, format="JPEG", quality=JPEG_QUALITY)
             add_bytes(f"rig0/camera0/{timestamp_ms}.jpg", encoded.getvalue())
 
         if not timestamps:
@@ -735,11 +819,30 @@ def reconstruct_poseless(
 @app.command(name="inspect-video")
 def inspect_video_command(
     video: Annotated[Path, typer.Argument(help="Video file to inspect")],
+    stride: Annotated[int, typer.Option(help="Keep every Nth frame, for the capture-size estimate")] = (
+        SPHERICAL_FRAME_STRIDE
+    ),
+    max_width: Annotated[
+        int | None,
+        typer.Option(
+            help="Downscale width for the estimate. Omitted, it matches reconstruct-spherical's own default "
+            "(the width the views can use); 0 keeps the camera's own resolution"
+        ),
+    ] = None,
     json_output: Annotated[bool, typer.Option("--json", help="Emit JSON instead of text")] = False,
 ) -> None:
-    """Size, frame rate, length, and the spherical projection the file declares (if any)."""
+    """Size, frame rate, length, the declared projection, and what a capture would weigh.
+
+    The size is measured, not assumed: a few frames are encoded at the requested
+    settings and extrapolated, so a caller can see it clear (or exceed) the API's
+    body limit before committing to an extraction.
+    """
     info = inspect_video(video)
-    payload = {
+    resolved_max_width = (
+        max_width if max_width is not None else useful_pano_width(SPHERICAL_VIEW_SIZE, SPHERICAL_VIEW_FOV_DEG)
+    )
+    estimate = estimate_capture_size(video, stride, resolved_max_width) if info.is_spherical else None
+    payload: dict[str, Any] = {
         "path": str(video),
         "width": info.width,
         "height": info.height,
@@ -748,12 +851,26 @@ def inspect_video_command(
         "duration_s": info.duration_s,
         "projection": info.projection,
         "is_spherical": info.is_spherical,
+        "limit_bytes": REQUEST_MAX_BODY_SIZE,
     }
+    if estimate is not None:
+        payload["capture"] = {
+            "stride": stride,
+            "max_width": resolved_max_width,
+            "frames": estimate.frames,
+            "width": estimate.width,
+            "height": estimate.height,
+            "bytes_per_frame": estimate.bytes_per_frame,
+            "total_bytes": estimate.total_bytes,
+            "over_limit": estimate.over_limit,
+        }
     if json_output:
         typer.echo(dumps(payload))
         return
     typer.echo(f"{video.name}: {info.width}x{info.height}, {info.fps:g} fps, {info.frame_count} frames")
     typer.echo(f"  projection: {info.projection or 'none declared (an ordinary video)'}")
+    if estimate is not None:
+        typer.echo(f"  capture at --stride {stride} --max-width {resolved_max_width}: {estimate.describe()}")
 
 
 @app.command(name="reconstruct-spherical")
@@ -762,20 +879,20 @@ def reconstruct_spherical(
     name: Annotated[str, typer.Option(help="Capture session name")],
     stride: Annotated[int, typer.Option(help="Keep every Nth video frame")] = SPHERICAL_FRAME_STRIDE,
     max_width: Annotated[
-        int,
+        int | None,
         typer.Option(
-            help="Downscale frames to at most this width before upload; 0 keeps the camera's own resolution. "
-            "A view rendered at --view-size over --view-fov-deg reads about (view-size / fov) pixels per degree, "
-            "so a width below 360 times that throws away detail the reconstruction would have used"
+            help="Downscale frames to at most this width before upload. Omitted, it is the width the views can "
+            "actually use (360 x --view-size / --view-fov-deg); anything above that is detail the renderer "
+            "discards but the upload still carries. 0 keeps the camera's own resolution"
         ),
-    ] = 0,
+    ] = None,
     layout: Annotated[
         str, typer.Option(help="Which views to reconstruct through: tetrahedron (covers the sphere) or cube")
     ] = "tetrahedron",
     view_fov_deg: Annotated[
         float, typer.Option(help="Field of view of each rendered view; must stay under 180")
-    ] = 150.0,
-    view_size: Annotated[int, typer.Option(help="Pixel size of each rendered view")] = 1600,
+    ] = SPHERICAL_VIEW_FOV_DEG,
+    view_size: Annotated[int, typer.Option(help="Pixel size of each rendered view")] = SPHERICAL_VIEW_SIZE,
     target_keyframes: Annotated[
         int | None,
         typer.Option(
@@ -792,6 +909,18 @@ def reconstruct_spherical(
     ),
     json_output: Annotated[bool, typer.Option("--json", help="Emit JSON instead of text")] = False,
 ) -> None:
+    resolved_max_width = max_width if max_width is not None else useful_pano_width(view_size, view_fov_deg)
+    # Sized before extraction rather than after: the API rejects an oversized body on its
+    # Content-Length alone, so building the capture first would spend the whole extraction to
+    # learn a number that a few sampled frames already tell us.
+    estimate = estimate_capture_size(video, stride, resolved_max_width)
+    typer.echo(f"{video.name}: {estimate.describe()}", err=True)
+    if estimate.over_limit:
+        raise typer.BadParameter(
+            f"this capture would be {_format_size(estimate.total_bytes)}, over the API's "
+            f"{_format_size(REQUEST_MAX_BODY_SIZE)} body limit. Halving --max-width cuts it by roughly a third "
+            f"(not a quarter -- a JPEG costs more per pixel as it shrinks), or double --stride to halve the frames."
+        )
     overrides: dict[str, Any] = loads(options_json) if options_json else {}
     overrides.setdefault("spherical_layout", layout)
     overrides.setdefault("spherical_view_fov_deg", view_fov_deg)
@@ -801,7 +930,7 @@ def reconstruct_spherical(
             video,
             name,
             stride,
-            max_width,
+            resolved_max_width,
             dumps(overrides),
             target_keyframes,
             wait,

@@ -127,6 +127,31 @@ def inspect(path: Path) -> VideoInfo:
         capture.release()
 
 
+def sample_frames(path: Path, count: int) -> Iterator[NDArray[np.uint8]]:
+    """Decode `count` frames spread across the video. Needs the `video` extra.
+
+    For measuring a video rather than reconstructing from it -- how large its
+    frames encode, say. Seeks instead of decoding everything, so it lands on a
+    nearby keyframe rather than an exact index; that inexactness is the whole
+    point of using it here, where any representative frame will do and decoding
+    to the middle of a long video would not.
+    """
+    import cv2
+
+    capture = cv2.VideoCapture(str(path))
+    if not capture.isOpened():
+        raise ValueError(f"could not open {path}")
+    try:
+        total = int(capture.get(cv2.CAP_PROP_FRAME_COUNT))
+        for index in range(max(1, count)):
+            capture.set(cv2.CAP_PROP_POS_FRAMES, int(total * (index + 0.5) / max(1, count)))
+            ok, frame = capture.read()
+            if ok:
+                yield cast("NDArray[np.uint8]", frame)
+    finally:
+        capture.release()
+
+
 def frames(path: Path, stride: int = 1) -> Iterator[tuple[int, NDArray[np.uint8]]]:
     """Yield (frame index, BGR frame) for every `stride`-th frame. Needs the `video` extra."""
     import cv2

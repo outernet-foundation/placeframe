@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   exportPoses,
   exportReconstructionZip,
@@ -9,7 +9,8 @@ import {
   startPoselessReconstruct,
   startReconstruct,
 } from "../api";
-import type { ImportResult } from "../api";
+import type { ImportResult, VideoInfo, VideoSettings } from "../api";
+import { estimateVideoCapture } from "../api";
 import { errorText, joinPath, parentDir, readStored, store, STORAGE_KEYS } from "../storage";
 import type { PoselessImageSet, Reconstruction } from "../types";
 import { DirectoryBrowserDialog } from "./DirectoryBrowserDialog";
@@ -295,17 +296,85 @@ export function LocalizeDialog({ reconstructionLabel, reconstructionId, onClose,
 
 // ── Import: a folder of images, a reconstruction tar, or a spherical video ──
 
+const VIDEO_SUFFIXES = [".mp4", ".mov", ".m4v", ".insv"];
+
+function formatBytes(bytes: number): string {
+  if (bytes >= 1e9) return `${(bytes / 1e9).toFixed(2)} GB`;
+  if (bytes >= 1e6) return `${Math.round(bytes / 1e6)} MB`;
+  return `${Math.round(bytes / 1e3)} kB`;
+}
+
+type EstimateState =
+  | { status: "idle" }
+  | { status: "loading" }
+  | { status: "ok"; info: VideoInfo }
+  | { status: "error"; message: string };
+
+/** Price the capture these settings would build, re-asked as the settings change. */
+function useCaptureEstimate(path: string, settings: VideoSettings): EstimateState {
+  const [state, setState] = useState<EstimateState>({ status: "idle" });
+  const { stride, maxWidth } = settings;
+  useEffect(() => {
+    if (!path) {
+      setState({ status: "idle" });
+      return;
+    }
+    let live = true;
+    setState({ status: "loading" });
+    // Each estimate decodes frames, so settle before asking rather than firing per keystroke.
+    const timer = setTimeout(() => {
+      estimateVideoCapture(path, { stride, maxWidth })
+        .then((info) => live && setState({ status: "ok", info }))
+        .catch((err: unknown) => live && setState({ status: "error", message: errorText(err) }));
+    }, 400);
+    return () => {
+      live = false;
+      clearTimeout(timer);
+    };
+  }, [path, stride, maxWidth]);
+  return state;
+}
+
+function CaptureEstimateLine({ estimate }: { estimate: EstimateState }) {
+  if (estimate.status === "idle") return null;
+  if (estimate.status === "loading") return <div style={{ ...HINT, marginTop: -8 }}>Measuring…</div>;
+  if (estimate.status === "error") return <div className="banner banner-error">{estimate.message}</div>;
+  const { capture, limit_bytes } = estimate.info;
+  if (!capture) {
+    return <div className="banner banner-error">This video declares no spherical projection, so it cannot be imported.</div>;
+  }
+  // The arithmetic in full, so an over-limit setting is visible before it costs an extraction.
+  const line = `${capture.frames} frames x ${formatBytes(capture.bytes_per_frame)} at ${capture.width}x${capture.height} = ${formatBytes(capture.total_bytes)}`;
+  const limit = `limit ${formatBytes(limit_bytes)}`;
+  return capture.over_limit ? (
+    <div className="banner banner-error">
+      {line} — over the {limit}. Halving the width cuts the size by roughly a third; doubling the stride halves
+      the frames.
+    </div>
+  ) : (
+    <div style={{ ...HINT, marginTop: -8 }}>
+      {line} ({limit})
+    </div>
+  );
+}
+
 export function ImportDialog({ onClose, onImported }: {
   onClose: () => void;
   onImported: (result: ImportResult, path: string) => void;
 }) {
   const [path, setPath] = useRemembered(STORAGE_KEYS.importTar);
   const [newId, setNewId] = useState(false);
+  const [stride, setStride] = useState("");
+  const [maxWidth, setMaxWidth] = useState("");
+  const settings: VideoSettings = { stride: Number(stride) || null, maxWidth: maxWidth === "" ? null : Number(maxWidth) };
   const { busy, error, submit } = useSubmit(
-    () => importPath(path.trim(), newId),
+    () => importPath(path.trim(), newId, settings),
     (result) => onImported(result, path.trim()),
   );
-  const isTar = path.trim().toLowerCase().endsWith(".tar");
+  const trimmed = path.trim().toLowerCase();
+  const isTar = trimmed.endsWith(".tar");
+  const isVideo = VIDEO_SUFFIXES.some((suffix) => trimmed.endsWith(suffix));
+  const estimate = useCaptureEstimate(isVideo ? path.trim() : "", settings);
   return (
     <Modal title="Import" busy={busy} onClose={onClose}>
       <PathField
@@ -333,6 +402,21 @@ export function ImportDialog({ onClose, onImported }: {
           </li>
         </ul>
       </div>
+      {isVideo && (
+        <>
+          <div style={{ display: "flex", gap: 12 }}>
+            <label style={{ flex: 1 }}>
+              Keep every Nth frame
+              <input type="number" min={1} placeholder="5" value={stride} onChange={(e) => setStride(e.target.value)} />
+            </label>
+            <label style={{ flex: 1 }}>
+              Max frame width (0 = camera's own)
+              <input type="number" min={0} placeholder="3840" value={maxWidth} onChange={(e) => setMaxWidth(e.target.value)} />
+            </label>
+          </div>
+          <CaptureEstimateLine estimate={estimate} />
+        </>
+      )}
       {isTar && (
         <label style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           <input type="checkbox" checked={newId} onChange={(e) => setNewId(e.target.checked)} />

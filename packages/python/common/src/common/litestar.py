@@ -14,6 +14,8 @@ from litestar.types import ControllerRouterHandler, Method, Middleware, Empty, E
 from litestar.types.internal_types import PathParameterDefinition
 from litestar.typing import FieldDefinition
 
+from common.limits import REQUEST_MAX_BODY_SIZE
+
 logger = getLogger("uvicorn.error")
 
 
@@ -99,7 +101,7 @@ def create_litestar_app(
         [root, health_check, *route_handlers],
         openapi_config=openapi_config,
         middleware=middleware,
-        request_max_body_size=1024 * 1024 * 1024,
+        request_max_body_size=REQUEST_MAX_BODY_SIZE,
         exception_handlers={HTTPException: log_http_exception, Exception: log_unhandled_exception},
         logging_config=logging_config,
         plugins=[FloatFormatPlugin()],
