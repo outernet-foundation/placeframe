@@ -722,6 +722,9 @@ export function CapturesPage() {
             const name = path.split("/").pop();
             if (result.kind === "image_folder") {
               notify("success", `Added image folder ${name}. Reconstruct it from its row.`);
+            } else if (result.kind === "capture_tar" && result.capture) {
+              setOpen(result.capture.id, true);
+              notify("success", `Uploaded capture ${result.capture.name}. Reconstruct it from its row.`);
             } else if (result.kind === "reconstruction_tar" && result.reconstruction) {
               if (result.reconstruction.capture_session_id) setOpen(result.reconstruction.capture_session_id, true);
               notify("success", `Imported ${name} as reconstruction ${result.reconstruction.id}.`);

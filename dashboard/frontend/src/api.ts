@@ -33,11 +33,12 @@ export function importReconstruction(tarPath: string, newId = false): Promise<Re
   });
 }
 
-export type ImportKind = "image_folder" | "reconstruction_tar" | "spherical_video";
+export type ImportKind = "image_folder" | "capture_tar" | "reconstruction_tar" | "spherical_video";
 
 export interface ImportResult {
   kind: ImportKind;
   image_set?: PoselessImageSet;
+  capture?: CaptureSession;
   reconstruction?: Reconstruction;
   job_id?: string; // a video: extraction, upload and reconstruction take minutes
   name?: string;

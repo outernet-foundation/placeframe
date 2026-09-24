@@ -17,6 +17,7 @@ import os
 import re
 import shutil
 import subprocess
+import tarfile
 import threading
 from collections.abc import Callable
 from functools import partial
@@ -369,10 +370,31 @@ def _video_flags(
     return flags
 
 
+def _tar_kind(path: Path) -> str:
+    """Which kind of tar this is, from what it carries rather than what it is called.
+
+    A capture tar is what a device records -- a manifest and the frames themselves.
+    A reconstruction tar is what an export produces -- metadata plus a finished map's
+    artifacts. Both end in .tar, and the two are not interchangeable: feeding one to
+    the other's importer fails deep inside with a missing-member error that names a
+    file the user never heard of.
+    """
+    with tarfile.open(path) as tar:
+        for member in tar:
+            if member.name == "metadata.json":
+                return "reconstruction_tar"
+            if member.name == "manifest.json":
+                return "capture_tar"
+    raise ValueError(
+        f"{path.name} has neither metadata.json (a reconstruction export) nor manifest.json "
+        "(a capture), so it is not a tar this can import"
+    )
+
+
 def _classify_import(path_str: str) -> tuple[str, Path]:
-    """What the Import button was pointed at: a folder of images, a reconstruction
-    tar, or a spherical video. A video that declares no spherical projection is
-    an ordinary video, which nothing here can reconstruct yet."""
+    """What the Import button was pointed at: a folder of images, a capture tar, a
+    reconstruction tar, or a spherical video. A video that declares no spherical
+    projection is an ordinary video, which nothing here can reconstruct yet."""
     path = Path(path_str).expanduser()
     if path.is_dir():
         return "image_folder", path
@@ -380,7 +402,7 @@ def _classify_import(path_str: str) -> tuple[str, Path]:
         raise ValueError(f"Not a file or folder: {path}")
     suffix = path.suffix.lower()
     if suffix == ".tar":
-        return "reconstruction_tar", path.resolve()
+        return _tar_kind(path), path.resolve()
     if suffix in VIDEO_EXTENSIONS:
         # Only the projection matters here; the size estimate costs frame decodes and the
         # Import dialog asks for it separately, as the settings it prices are changed.
@@ -393,7 +415,7 @@ def _classify_import(path_str: str) -> tuple[str, Path]:
         if projection != "EQUIRECTANGULAR":
             raise ValueError(f"{path.name} is a {projection.lower()} video; only equirectangular is supported")
         return "spherical_video", path.resolve()
-    raise ValueError(f"Cannot import {path.name}: expected a folder of images, a .tar reconstruction, or a video")
+    raise ValueError(f"Cannot import {path.name}: expected a folder of images, a .tar, or a video")
 
 
 # A folder and a tar are quick; a video is minutes of extraction, upload and
@@ -406,6 +428,10 @@ async def import_path(data: ImportRequest) -> dict[str, Any]:
     if kind == "reconstruction_tar":
         arguments = ["import-reconstruction", str(path), *(["--new-id"] if data.new_id else [])]
         return {"kind": kind, "reconstruction": await _run_howard_test_json_async(*arguments)}
+    if kind == "capture_tar":
+        # A capture arrives as recorded, with no reconstruction yet; it lands in the tree for the
+        # operator to reconstruct, in the same state as one uploaded from a device.
+        return {"kind": kind, "capture": await _run_howard_test_json_async("upload", str(path))}
 
     job = Job(id=str(uuid.uuid4()), kind="reconstruct")
     JOBS[job.id] = job

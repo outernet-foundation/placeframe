@@ -400,6 +400,10 @@ export function ImportDialog({ onClose, onImported }: {
             from its row with a focal length you supply.
           </li>
           <li>
+            <b>A capture tar</b> — <span className="mono">manifest.json</span> plus the frames, as a device
+            records them. It lands in the tree ready to reconstruct, like one uploaded from a phone.
+          </li>
+          <li>
             <b>A reconstruction tar</b> — <span className="mono">metadata.json</span> plus a reconstruction's
             artifacts, as produced by an export. It arrives ready to localize against, under its own capture.
           </li>
@@ -451,7 +455,8 @@ export function ImportDialog({ onClose, onImported }: {
       )}
       {isTar && (
         <div style={{ ...HINT, marginTop: -8 }}>
-          A tar carries one fixed id, so it imports once; tick the box to import it again alongside the existing one.
+          A reconstruction tar carries one fixed id, so it imports once; tick the box to import it again alongside
+          the existing one.
           Importing also creates the reconstruction's localization map; removing the reconstruction later needs that
           map deleted first.
         </div>

@@ -734,8 +734,19 @@ def upload(
     device_type: Annotated[DeviceType, typer.Option(help="Device that produced the capture")] = DeviceType.ZED,
     name: Annotated[str | None, typer.Option(help="Capture session name; defaults to the tar's filename stem")] = None,
     id: Annotated[UUID | None, typer.Option(help="Capture session id; server assigns one if omitted")] = None,
+    json_output: Annotated[bool, typer.Option("--json", help="Emit JSON instead of text")] = False,
 ) -> None:
     session = run(_upload(tar_path.name, tar_path.read_bytes(), device_type, name or tar_path.stem, id))
+    if json_output:
+        typer.echo(
+            dumps({
+                "id": str(session.id),
+                "name": session.name,
+                "device_type": session.device_type.value,
+                "size_bytes": session.size_bytes,
+            })
+        )
+        return
     typer.echo(f"Uploaded capture session {session.id} ({session.name}, {session.size_bytes} bytes)")
 
 
