@@ -2,12 +2,6 @@ name: Placeframe
 
 on:
   workflow_dispatch:
-    inputs:
-      config_type:
-        description: CaptureTool build configuration (selects baked first-launch defaults)
-        type: choice
-        options: [default, air-gapped]
-        default: default
   push:
     branches: [dev]
   pull_request:
@@ -57,16 +51,6 @@ jobs:
       - name: Populate image mirror
         run: uvx --from release-devkit==0.1.8 mirror-images --config build/publish-config.json
 
-  unity:
-    permissions:
-      contents: read
-      packages: write
-    uses: outernet-foundation/unity-devkit/.github/workflows/unity-build.yml@85726f37caad2c9b0d894af4a9c24f1c7d4eaa2c
-    with:
-      runner-labels: '["self-hosted","unity"]'
-      build-env: CONFIG_TYPE=${{ inputs.config_type || 'default' }}
-    secrets: inherit
-
   build-docker:
     needs: [preflight, mirror]
     runs-on: ubuntu-latest
@@ -96,43 +80,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: uv run --no-sync build-docker --variant ${{ matrix.variant }}
 
-  build-zed:
-    needs: [preflight, mirror]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    name: build-zed
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v5
-        with:
-          ref: ${{ github.head_ref || github.ref_name }}
-
-      - uses: ./.github/actions/setup-uv
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: arm64
-
-      - name: Create builder and login
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          docker buildx create --use --driver docker-container
-          echo "$GITHUB_TOKEN" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-
-      - name: Build
-        run: uv run --no-sync build --mode ci --gpu none --bake-file compose.zed.bake.yml --targets zed-capture --targets aoa-bridge --targets aoa-gateway
-
-      - name: Upload .env.lock
-        uses: actions/upload-artifact@v6
-        with:
-          name: env-lock-zed
-          path: .env.lock
-          include-hidden-files: true
-
   publish-compose:
     needs: [build-docker]
     runs-on: ubuntu-latest
@@ -159,7 +106,7 @@ jobs:
         run: uv run --no-sync publish-compose --variant ${{ matrix.variant }}
 
   ensure-release-pr:
-    needs: [build-docker, unity, build-zed, publish-compose]
+    needs: [build-docker, publish-compose]
     if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
     runs-on: ubuntu-latest
     steps:

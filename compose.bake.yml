@@ -113,26 +113,6 @@ services:
         - "ghcr.io/outernet-foundation/placeframe/lease-server:latest"
         - "ghcr.io/outernet-foundation/placeframe/lease-server:${LEASE_SERVER_SHA}"
 
-  loki:
-    build:
-      context: .
-      dockerfile: docker/loki/Dockerfile
-      platforms: ["linux/amd64", "linux/arm64"]
-      args: *base-args
-      tags:
-        - "ghcr.io/outernet-foundation/placeframe/loki:latest"
-        - "ghcr.io/outernet-foundation/placeframe/loki:${LOKI_SHA}"
-
-  alloy:
-    build:
-      context: .
-      dockerfile: docker/alloy/Dockerfile
-      platforms: ["linux/amd64", "linux/arm64"]
-      args: *base-args
-      tags:
-        - "ghcr.io/outernet-foundation/placeframe/alloy:latest"
-        - "ghcr.io/outernet-foundation/placeframe/alloy:${ALLOY_SHA}"
-
   postgres:
     build:
       context: .

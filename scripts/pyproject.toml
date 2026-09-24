@@ -3,7 +3,6 @@ name = "scripts"
 version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [
-    "placeframe-common",
     "bashrun>=0.1.0",
     "docker-devkit>=0.1.0",
     "placeframe-core",
@@ -27,7 +26,6 @@ packages = ["src/scripts"]
 [project.scripts]
 forward-unity-android-debug-port = "scripts.forward_unity_android_debug_port:main"
 list-debug-targets = "scripts.list_debug_targets:main"
-install-zed = "scripts.install_zed.orchestrator:app"
 loki-query = "scripts.loki_query:app"
 tune-reconstruction = "scripts.tune_reconstruction:app"
 fit-calibration = "scripts.fit_calibration:app"

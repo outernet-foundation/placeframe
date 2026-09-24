@@ -2,7 +2,7 @@
 
 ## What this is
 
-`placeframe_core` is the workspace Python package that holds the vocabulary shared between Placeframe's backend services. It contains the Pydantic schemas that travel over HTTP and through Postgres JSONB columns, the coordinate-frame primitives that bridge OpenCV-space (reconstructor / COLMAP) and Unity-space (phone clients / localizer responses), the image and intrinsics canonicalization used by both the map-builder and the query path, the HDF5 / FAISS-OPQ on-disk artifact formats, and the global confidence-calibration model. The distribution name is `placeframe-core` (published to PyPI under that name; tag ledger `placeframe-core-python-v*`) and every import is `from placeframe_core.<module>`. `docker/api/`, `docker/lease-server/`, `docker/localizer/`, `docker/reconstructor/`, `docker/zed-capture/`, and `scripts/` declare it as a workspace dep. See `docker/AGENTS.md` for the service mesh that consumes these types.
+`placeframe_core` is the workspace Python package that holds the vocabulary shared between Placeframe's backend services. It contains the Pydantic schemas that travel over HTTP and through Postgres JSONB columns, the coordinate-frame primitives that bridge OpenCV-space (reconstructor / COLMAP) and Unity-space (phone clients / localizer responses), the image and intrinsics canonicalization used by both the map-builder and the query path, the HDF5 / FAISS-OPQ on-disk artifact formats, and the global confidence-calibration model. The distribution name is `placeframe-core` (published to PyPI under that name; tag ledger `placeframe-core-python-v*`) and every import is `from placeframe_core.<module>`. `docker/api/`, `docker/lease-server/`, `docker/localizer/`, `docker/reconstructor/`, and `scripts/` declare it as a workspace dep; the capture repo (placeframe-capture-tool) consumes it from PyPI — it is the cross-repo wire-type home (capture-tar contract). See `docker/AGENTS.md` for the service mesh that consumes these types.
 
 ## Shape
 
@@ -55,7 +55,7 @@ Ranked by import volume:
     localizer  (30 sites)  -- localize, build_metrics, map, main, schemas, torch_ops, tests
     reconstructor (22)     -- run_reconstruction, rig, main, metrics_builder, options_builder, tests
     api (13)               -- routers/{localization, reconstructions, leases, capture_sessions}
-    zed-capture (4)        -- zed/zed.py (manifest writer)
+    zed-capture (4)        -- zed/zed.py (manifest writer; capture repo, via PyPI)
     scripts                -- fit_calibration, tune_reconstruction
 
 The most-imported leaves are `axis_convention` and `calibration` (8 sites each), `reconstruction_metrics` (7), then `transform`, `capture_session_manifest`, and `camera_config` (6 each).
