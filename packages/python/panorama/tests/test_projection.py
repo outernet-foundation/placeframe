@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
+from numpy.typing import NDArray  # noqa: TID251 — tracked in PLE-233
 
 from panorama import projection
 
@@ -87,3 +88,47 @@ def test_rig_rotations_relate_the_view_axes() -> None:
         reference_axis_in_view = projection.cam_from_rig(view, reference) @ forward
         angle = np.degrees(np.arccos(np.clip(reference_axis_in_view @ forward, -1, 1)))
         assert angle == pytest.approx(109.4712, abs=1e-3)
+
+
+def sphere_directions(count: int = 200_000) -> NDArray[np.float64]:
+    """Near-uniform directions on the sphere, in panorama axes (y up)."""
+    i = np.arange(count) + 0.5
+    phi = np.arccos(1 - 2 * i / count)
+    theta = np.pi * (1 + 5**0.5) * i
+    return np.stack([np.sin(phi) * np.cos(theta), np.cos(phi), np.sin(phi) * np.sin(theta)], axis=1)
+
+
+def off_axis_degrees(views: tuple[projection.View, ...], directions: NDArray[np.float64]) -> NDArray[np.float64]:
+    """For each direction, the angle to the nearest view axis."""
+    axes = np.array([projection.pano_from_cam(v) @ np.array([0.0, 0.0, 1.0]) for v in views])
+    return np.degrees(np.arccos(np.clip(directions @ axes.T, -1, 1))).min(axis=1)
+
+
+def test_hexring_axes_are_lifted_out_of_one_plane() -> None:
+    """The alternating tilt is the whole reason this layout can reach a pole.
+    Six coplanar axes would each be 90 degrees from the zenith, which no fisheye
+    model can represent -- so the tilt, not the view count, is load-bearing."""
+    pitches = [v.pitch_deg for v in projection.HEXRING]
+    assert pitches == [15.0, -15.0, 15.0, -15.0, 15.0, -15.0]
+
+    directions = sphere_directions()
+    zenith_gap = off_axis_degrees(projection.HEXRING, np.array([[0.0, 1.0, 0.0]]))[0]
+    assert zenith_gap == pytest.approx(75.0, abs=0.1)  # 90 minus the tilt
+
+    coplanar = tuple(projection.View(v.name, v.yaw_deg, 0.0) for v in projection.HEXRING)
+    assert off_axis_degrees(coplanar, np.array([[0.0, 1.0, 0.0]]))[0] == pytest.approx(90.0, abs=1e-6)
+    assert off_axis_degrees(projection.HEXRING, directions).max() == pytest.approx(75.0, abs=0.2)
+
+
+def test_hexring_trades_coverage_for_views_that_look_level() -> None:
+    """Outdoors the sky carries nothing to match on, so what matters is the band
+    a level camera sees. The narrow fields this layout is for keep most of that
+    band while staying far closer to rectilinear than a 150-degree view."""
+    directions = sphere_directions()
+    worst = off_axis_degrees(projection.HEXRING, directions)
+    elevation = np.degrees(np.arcsin(directions[:, 1]))
+    useful = (elevation <= 45) & (elevation >= -70)
+
+    assert (worst <= 150.0 / 2).all()  # still covers the whole sphere when asked to
+    assert (worst[useful] <= 120.0 / 2).mean() > 0.98
+    assert (worst[useful] <= 100.0 / 2).mean() > 0.89

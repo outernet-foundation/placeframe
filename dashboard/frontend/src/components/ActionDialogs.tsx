@@ -311,7 +311,7 @@ type EstimateState =
   | { status: "error"; message: string };
 
 /** Price the capture these settings would build, re-asked as the settings change. */
-function useCaptureEstimate(path: string, settings: VideoSettings): EstimateState {
+function useCaptureEstimate(path: string, settings: Pick<VideoSettings, "stride" | "maxWidth">): EstimateState {
   const [state, setState] = useState<EstimateState>({ status: "idle" });
   const { stride, maxWidth } = settings;
   useEffect(() => {
@@ -366,7 +366,14 @@ export function ImportDialog({ onClose, onImported }: {
   const [newId, setNewId] = useState(false);
   const [stride, setStride] = useState("");
   const [maxWidth, setMaxWidth] = useState("");
-  const settings: VideoSettings = { stride: Number(stride) || null, maxWidth: maxWidth === "" ? null : Number(maxWidth) };
+  const [layout, setLayout] = useState("");
+  const [fov, setFov] = useState("");
+  const settings: VideoSettings = {
+    stride: Number(stride) || null,
+    maxWidth: maxWidth === "" ? null : Number(maxWidth),
+    layout: layout || null,
+    viewFovDeg: Number(fov) || null,
+  };
   const { busy, error, submit } = useSubmit(
     () => importPath(path.trim(), newId, settings),
     (result) => onImported(result, path.trim()),
@@ -413,6 +420,25 @@ export function ImportDialog({ onClose, onImported }: {
               Max frame width (0 = camera's own)
               <input type="number" min={0} placeholder="3840" value={maxWidth} onChange={(e) => setMaxWidth(e.target.value)} />
             </label>
+          </div>
+          <div style={{ display: "flex", gap: 12 }}>
+            <label style={{ flex: 1 }}>
+              Views rendered from each sphere
+              <select value={layout} onChange={(e) => setLayout(e.target.value)}>
+                <option value="">Tetrahedron — 4 views, covers the sphere (default)</option>
+                <option value="hexring">Hexring — 6 level-ish views, better for level queries</option>
+                <option value="cube">Cube — 6 faces</option>
+              </select>
+            </label>
+            <label style={{ width: 150 }}>
+              View field of view
+              <input type="number" min={1} max={179} placeholder="150" value={fov} onChange={(e) => setFov(e.target.value)} />
+            </label>
+          </div>
+          <div style={{ ...HINT, marginTop: -8 }}>
+            A view matches a query best when it was taken looking the same way. Hexring keeps all six views near
+            horizontal, so at a narrower field of view (110–120°) it suits queries shot level, and drops mostly sky.
+            It does not change the capture, so a different layout is a re-reconstruction, not a re-import.
           </div>
           <CaptureEstimateLine estimate={estimate} />
         </>

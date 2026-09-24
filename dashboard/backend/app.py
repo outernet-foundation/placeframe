@@ -324,6 +324,9 @@ class ImportRequest:
     # max_width is the width the rendered views can actually use.
     stride: int | None = None
     max_width: int | None = None
+    # Which views the sphere is reconstructed through, and how wide each one is.
+    layout: str | None = None
+    view_fov_deg: float | None = None
 
 
 @dataclass
@@ -351,12 +354,18 @@ def _video_path(path_str: str) -> Path:
     return path
 
 
-def _video_flags(stride: int | None, max_width: int | None) -> list[str]:
+def _video_flags(
+    stride: int | None, max_width: int | None, layout: str | None = None, view_fov_deg: float | None = None
+) -> list[str]:
     flags: list[str] = []
     if stride is not None:
         flags += ["--stride", str(stride)]
     if max_width is not None:
         flags += ["--max-width", str(max_width)]
+    if layout is not None:
+        flags += ["--layout", layout]
+    if view_fov_deg is not None:
+        flags += ["--view-fov-deg", str(view_fov_deg)]
     return flags
 
 
@@ -400,7 +409,7 @@ async def import_path(data: ImportRequest) -> dict[str, Any]:
 
     job = Job(id=str(uuid.uuid4()), kind="reconstruct")
     JOBS[job.id] = job
-    _spawn(_run_spherical_reconstruct_job(job, path, data.stride, data.max_width))
+    _spawn(_run_spherical_reconstruct_job(job, path, data.stride, data.max_width, data.layout, data.view_fov_deg))
     return {"kind": kind, "job_id": job.id, "name": path.stem}
 
 
@@ -731,7 +740,12 @@ async def _run_poseless_reconstruct_job(
 
 
 async def _run_spherical_reconstruct_job(
-    job: Job, video: Path, stride: int | None = None, max_width: int | None = None
+    job: Job,
+    video: Path,
+    stride: int | None = None,
+    max_width: int | None = None,
+    layout: str | None = None,
+    view_fov_deg: float | None = None,
 ) -> None:
     def record(progress: dict[str, Any]) -> None:
         job.progress = progress
@@ -744,7 +758,7 @@ async def _run_spherical_reconstruct_job(
                 str(video),
                 "--name",
                 video.stem,
-                *_video_flags(stride, max_width),
+                *_video_flags(stride, max_width, layout, view_fov_deg),
                 on_progress=record,
             )
         )

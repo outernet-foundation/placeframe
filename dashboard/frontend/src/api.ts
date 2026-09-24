@@ -46,6 +46,8 @@ export interface ImportResult {
 export interface VideoSettings {
   stride: number | null;
   maxWidth: number | null;
+  layout: string | null;
+  viewFovDeg: number | null;
 }
 
 export interface CaptureEstimate {
@@ -72,7 +74,12 @@ export interface VideoInfo {
 
 // What a capture built at these settings would weigh. Asked before importing, because the API
 // rejects an oversized body outright and an extraction only reveals its size once it is spent.
-export function estimateVideoCapture(path: string, settings: VideoSettings): Promise<VideoInfo> {
+// Only the settings that change the frames matter here; the layout is applied at reconstruction
+// time, long after the capture is built, so it cannot change its size.
+export function estimateVideoCapture(
+  path: string,
+  settings: Pick<VideoSettings, "stride" | "maxWidth">,
+): Promise<VideoInfo> {
   return request("/api/import/estimate", {
     method: "POST",
     body: JSON.stringify({ path, stride: settings.stride, max_width: settings.maxWidth }),
@@ -89,6 +96,8 @@ export function importPath(path: string, newId = false, settings?: VideoSettings
       new_id: newId,
       stride: settings?.stride ?? null,
       max_width: settings?.maxWidth ?? null,
+      layout: settings?.layout ?? null,
+      view_fov_deg: settings?.viewFovDeg ?? null,
     }),
   });
 }

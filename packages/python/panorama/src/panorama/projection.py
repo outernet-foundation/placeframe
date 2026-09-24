@@ -23,6 +23,19 @@ Layouts:
   CUBE         the six cube faces, for comparison; needs 141 degrees as well to
                cover the sphere as fisheye views (a 90-degree face only covers
                the sphere when rendered as a rectilinear face).
+  HEXRING      six views around one ring, 60 degrees apart in yaw, tilted
+               alternately 15 degrees up and down. Axes are 66.5 degrees apart,
+               so 150 degrees covers the whole sphere as the tetrahedron does --
+               but the point of it is the narrower end: every view stays near
+               horizontal, so a view matches a query taken looking level far
+               better than a 150-degree view does, and a narrower view is closer
+               to rectilinear where a query is rectilinear. Coverage falls off
+               gently rather than suddenly, which outdoors costs little: 120
+               degrees leaves 99% of everything between 45 up and 70 down, and
+               what it drops is mostly sky. The alternating tilt is what makes
+               that possible -- six coplanar views could not reach a pole at any
+               field of view a fisheye model can represent, since every axis
+               would be 90 degrees from it.
 
 All views of a frame share one optical centre, so the rig that relates them is
 pure rotation: translations are exactly zero, not merely small.
@@ -65,7 +78,19 @@ CUBE: tuple[View, ...] = (
     View("down", 0.0, -90.0),
 )
 
-LAYOUTS: dict[str, tuple[View, ...]] = {"tetrahedron": TETRAHEDRON, "cube": CUBE}
+# Six views on one ring, alternately tilted up and down. The tilt is small enough that every view
+# still looks roughly level -- which is the point, for a map whose queries are taken level -- but
+# large enough to lift the axes out of a single plane, so the poles are reachable at all.
+HEXRING_TILT_DEG = 15.0
+
+# Yaws are written 0..300 rather than signed: a view's name becomes an image folder and a COLMAP
+# image prefix, and a '+' in either is a character that some consumer eventually reads as a space.
+HEXRING: tuple[View, ...] = tuple(
+    View(f"h{yaw:03d}", float(yaw), HEXRING_TILT_DEG if index % 2 == 0 else -HEXRING_TILT_DEG)
+    for index, yaw in enumerate((0, 60, 120, 180, 240, 300))
+)
+
+LAYOUTS: dict[str, tuple[View, ...]] = {"tetrahedron": TETRAHEDRON, "cube": CUBE, "hexring": HEXRING}
 
 
 def layout(name: str) -> tuple[View, ...]:

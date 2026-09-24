@@ -78,9 +78,9 @@ class ReconstructionOptions(BaseModel):
         default=None,
         description="Frame timestamps (ms) to exclude from this reconstruction so they can later be localized as held-out queries.",
     )
-    spherical_layout: Literal["tetrahedron", "cube"] = Field(
+    spherical_layout: Literal["tetrahedron", "cube", "hexring"] = Field(
         default="tetrahedron",
-        description="How a spherical (equirectangular) capture is cut into the views a reconstructor can model. COLMAP's fisheye models only represent rays under 90 degrees off axis, so the sphere cannot be one camera. 'tetrahedron' is four views whose axes are 109.5 degrees apart, covering the sphere at spherical_view_fov_deg >= 141; 'cube' is the six cube-face directions. Ignored for every other kind of capture.",
+        description="How a spherical (equirectangular) capture is cut into the views a reconstructor can model. COLMAP's fisheye models only represent rays under 90 degrees off axis, so the sphere cannot be one camera. 'tetrahedron' is four views whose axes are 109.5 degrees apart, covering the sphere at spherical_view_fov_deg >= 141. 'hexring' is six views 60 degrees apart in yaw, tilted alternately 15 degrees up and down: it also covers the sphere at 150, but it is meant for narrower views, where keeping every view near horizontal matches a query shot level far better than a 150-degree view does, and what coverage it loses is mostly sky. 'cube' is the six cube-face directions. Ignored for every other kind of capture.",
     )
     spherical_view_fov_deg: float = Field(
         default=150.0,

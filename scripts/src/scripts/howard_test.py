@@ -25,6 +25,7 @@ import typer
 from common.limits import REQUEST_MAX_BODY_SIZE
 from core.capture_session_manifest import CaptureSessionManifest
 from core.localization_metrics import RANSAC_THRESHOLD_DEFAULT, RETRIEVAL_TOP_K_DEFAULT
+from panorama.projection import LAYOUTS
 from panorama.video import frames as video_frames
 from panorama.video import sample_frames
 from panorama.video import inspect as inspect_video
@@ -917,7 +918,12 @@ def reconstruct_spherical(
         ),
     ] = None,
     layout: Annotated[
-        str, typer.Option(help="Which views to reconstruct through: tetrahedron (covers the sphere) or cube")
+        str,
+        typer.Option(
+            help=f"Which views to reconstruct through ({', '.join(sorted(LAYOUTS))}). tetrahedron covers the "
+            "sphere with four wide views; hexring keeps six narrower views near horizontal, which suits a map "
+            "whose queries are shot level and drops mostly sky"
+        ),
     ] = "tetrahedron",
     view_fov_deg: Annotated[
         float, typer.Option(help="Field of view of each rendered view; must stay under 180")
