@@ -85,6 +85,8 @@ async def localize_image(
         raise
 
     # Import here to avoid importing torch during codegen
+    from torch import cuda  # type: ignore
+
     from .localize import LocalizationError, localize_image_against_reconstruction
 
     image = await data.image.read()
@@ -92,27 +94,38 @@ async def localize_image(
     localizations: list[Localization] = []
     errors: list[str] = []
 
-    for id in data.reconstruction_ids:
-        if id not in _maps:
-            _maps[id] = load_map(id, s3_client, settings.reconstructions_bucket, RECONSTRUCTIONS_DIR, data.metrics[id])
+    try:
+        for id in data.reconstruction_ids:
+            if id not in _maps:
+                _maps[id] = load_map(
+                    id, s3_client, settings.reconstructions_bucket, RECONSTRUCTIONS_DIR, data.metrics[id]
+                )
 
-        try:
-            assert calibration is not None  # CODEGEN-guarded; runtime always has it
-            result = localize_image_against_reconstruction(
-                _maps[id],
-                data.camera_config,
-                data.axis_convention,
-                image,
-                data.retrieval_top_k,
-                data.ransac_threshold,
-                pipeline_version,
-                calibration,
-                data.use_chunking,
-            )
+            try:
+                assert calibration is not None  # CODEGEN-guarded; runtime always has it
+                result = localize_image_against_reconstruction(
+                    _maps[id],
+                    data.camera_config,
+                    data.axis_convention,
+                    image,
+                    data.retrieval_top_k,
+                    data.ransac_threshold,
+                    pipeline_version,
+                    calibration,
+                    data.use_chunking,
+                )
 
-            localizations.append(Localization(id=id, transform=result[0], metrics=result[1]))
-        except LocalizationError as e:
-            errors.append(f"Reconstruction {id}: {str(e)}")
+                localizations.append(Localization(id=id, transform=result[0], metrics=result[1]))
+            except LocalizationError as e:
+                errors.append(f"Reconstruction {id}: {str(e)}")
+    finally:
+        # PyTorch's caching allocator never hands a freed block back to the driver, so without
+        # this the process keeps its high-water mark for as long as it lives -- several GiB of a
+        # shared GPU, held while idle, which is enough to make a reconstruction on the same card
+        # fail to allocate. Released per request rather than per query image: the caller already
+        # has its answer, and what is reclaimed is the matching workspace, not the models.
+        if cuda.is_available():
+            cuda.empty_cache()
 
     if not localizations:
         raise HTTPException(status_code=HTTP_422_UNPROCESSABLE_ENTITY, detail="; ".join(errors))
