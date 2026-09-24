@@ -1,15 +1,15 @@
-# docker/localizer/
+# workloads/localizer/
 
 ## What this is
 
-A Litestar ASGI service that answers `POST /localization`: given a query image plus one or more target reconstruction IDs, it returns each camera's 6-DOF pose in that reconstruction's coordinate frame, with a calibrated confidence pair and a 6x6 measurement covariance for the downstream Bayesian filter. Also exposes `GET /version` returning the build-time git SHA as the pipeline version. The phone client never reaches this service directly — it's behind `docker/api/`, which proxies via the generated `placeframe_localizer_client`. Stack-level context (where the localizer sits in the capture -> reconstruct -> localize flow, log query patterns, S3 bucket layout) lives in `docker/AGENTS.md`; this file covers the subsystem.
+A Litestar ASGI service that answers `POST /localization`: given a query image plus one or more target reconstruction IDs, it returns each camera's 6-DOF pose in that reconstruction's coordinate frame, with a calibrated confidence pair and a 6x6 measurement covariance for the downstream Bayesian filter. Also exposes `GET /version` returning the build-time git SHA as the pipeline version. The phone client never reaches this service directly — it's behind `workloads/api/`, which proxies via the generated `placeframe_localizer_client`. Stack-level context (where the localizer sits in the capture -> reconstruct -> localize flow, log query patterns, S3 bucket layout) lives in `workloads/AGENTS.md`; this file covers the subsystem.
 
 ## Shape
 
 ### Module map
 
 ```
-docker/localizer/
+workloads/localizer/
   Dockerfile               FROM neural-networks-base; bakes LOCALIZER_SHA (build-context hash) late
   entrypoint.sh            uvicorn src.main:app --host 0.0.0.0 --port 8000
   pyproject.toml           pycolmap, faiss-cpu, scipy, litestar; torch undeclared
@@ -143,8 +143,8 @@ Determinism: `set_random_seed(0)` and `manual_seed(0)` are called per request. `
 
 A single global calibration JSON is baked into the localizer image at build time:
 
-- Source of truth: `docker/localizer/calibration/global.json` (git). Lives under the localizer's build context so changes to it affect only `LOCALIZER_SHA`, not other services.
-- Container path: `/etc/placeframe/calibration/global.json` (copied in by `docker/localizer/Dockerfile`).
+- Source of truth: `workloads/localizer/calibration/global.json` (git). Lives under the localizer's build context so changes to it affect only `LOCALIZER_SHA`, not other services.
+- Container path: `/etc/placeframe/calibration/global.json` (copied in by `workloads/localizer/Dockerfile`).
 - Validator: `placeframe_core.calibration.load_global_calibration` enforces `schema_version == 2` and `pipeline_version == localizer's LOCALIZER_SHA`. Either mismatch hard-fails the container. The literal sentinel `"placeholder"` (`placeframe_core.calibration.PLACEHOLDER_PIPELINE_VERSION`) bypasses the version check with a loud stderr warning — for placeholder calibrations whose values are pipeline-independent.
 
 The artifact carries: per-tolerance (`tight` / `loose`) `logistic_weights: Features`, `logistic_intercept`, plus optional isotonic remapping `(x_breakpoints, y_breakpoints)`. Confidence per query is `sigmoid(intercept + weights @ features.values())`, then optionally `numpy.interp(raw, x_breakpoints, y_breakpoints)`. `Features.compute` packs ten scalars (`log1p(num_inliers)`, `inlier_ratio`, `reproj_error_median / query_image_diagonal_px`, `inlier_coverage`, `log1p(num_matches)`, four log/passthrough map features, `map_viewpoint_diversity`).
@@ -193,8 +193,8 @@ The Dockerfile bakes `LOCALIZER_SHA` in the *last* `ENV` layer, so only that lay
 
 ## See also
 
-- `docker/AGENTS.md` — stack-level data flow, log query patterns, S3 bucket layout, reconstructor lease lifecycle. The localizer is one consumer of `dev-reconstructions/`; this file does not restate the bucket schema.
+- `workloads/AGENTS.md` — stack-level data flow, log query patterns, S3 bucket layout, reconstructor lease lifecycle. The localizer is one consumer of `dev-reconstructions/`; this file does not restate the bucket schema.
 - `packages/python/core/` — `calibration.py` (Features / CalibrationArtifact / apply_global_calibration), `h5.py`, `opq.py`, `image_preprocess.py`, `model_wrappers.py`, `localization_metrics.py` carry the shared domain types and the canonical hyperparameter defaults the localizer reads.
-- `scripts/src/scripts/fit_calibration.py` — produces `docker/localizer/calibration/global.json` from a labeled corpus. The localizer is strictly a consumer; refits land as commits to that file plus a paired image rebuild at the same `LOCALIZER_SHA`.
+- `scripts/src/scripts/fit_calibration.py` — produces `workloads/localizer/calibration/global.json` from a labeled corpus. The localizer is strictly a consumer; refits land as commits to that file plus a paired image rebuild at the same `LOCALIZER_SHA`.
 - [`stack-lifecycle`](https://github.com/outernet-foundation/stack-lifecycle)'s `context_sha.py` — defines `compute_service_shas`, which derives `LOCALIZER_SHA` (and one such SHA per service) from the localizer image's build context per the `.dockerignore` allowlist convention described in the repo `CLAUDE.md`.
-- `docker/api/src/routers/localization.py` — the only caller. Performs the `map_id -> reconstruction_id` indirection and composes the world-space pose from the map row's anchor `Transform`.
+- `workloads/api/src/routers/localization.py` — the only caller. Performs the `map_id -> reconstruction_id` indirection and composes the world-space pose from the map row's anchor `Transform`.

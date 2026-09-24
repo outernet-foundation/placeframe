@@ -1,12 +1,20 @@
 # Score: one source, both Docker and Kubernetes
 
-Placeframe's server stack runs today as Docker Compose (`uv run up`). This directory
-evaluates [Score](https://docs.score.dev) as a way to describe each service **once** and
-generate both a runnable Docker `compose.yaml` **and** Kubernetes manifests from that one
-description — so the project can move toward Kubernetes without hand-maintaining two
-definitions that drift apart. It is a proof-of-concept covering a slice of the stack:
-**api**, **lease-server**, and the **gateway** (Caddy), backed by **postgres** (real
-`placeframe_*` roles and schema) and **MinIO** object storage.
+Placeframe's server stack runs today as Docker Compose (`uv run up`). The authored
+sources here describe each service **once** and generate both a runnable Docker compose
+file **and** Kubernetes manifests from that one description — the compose stack and the
+k8s manifests are two renderings of one input, so they cannot drift from each other.
+Coverage is a slice of the stack: **api**, **lease-server**, and the **gateway** (Caddy),
+backed by **postgres** (real `placeframe_*` roles and schema) and **MinIO** object
+storage.
+
+## Layout
+
+`stack/score/` is the authored tier (workload files, custom provisioners, the
+`restart-policy.tpl` compose patch). `stack/generated/` is the compiled tier:
+`compose/compose.yaml` and `k8s/manifests.yaml` are the committed artifacts, and
+`k8s/.score-k8s/state.yaml` is the committed generation state. Hand compose files at the
+repo root stay authored until full-stack Score coverage ports them.
 
 ## Generate
 
@@ -15,8 +23,8 @@ deploys nothing.
 
 ```bash
 uv run generate-score                  # both artifacts
-uv run generate-score --target compose # score/compose.yaml only
-uv run generate-score --target k8s     # score/deploy/manifests.yaml only
+uv run generate-score --target compose # stack/generated/compose/compose.yaml only
+uv run generate-score --target k8s     # stack/generated/k8s/manifests.yaml only
 ```
 
 Both outputs are committed. Image tags resolve from `compute_service_shas` — the same
@@ -29,15 +37,21 @@ Regeneration is deterministic: with no upstream change, `git status` comes back 
 
 ## Deploy: Docker
 
+The generated compose has no declared lifecycle in `[tool.docker-devkit.lifecycle]` (the
+table drives the hand-authored stack), so bring it up through the raw `docker compose`
+pressure valve, anchored at the repo root:
+
 ```bash
-uv run up   --compose-file score/compose.yaml --gpu none
-uv run down --compose-file score/compose.yaml --gpu none -v
+docker compose --project-directory . \
+  --env-file .env --env-file workloads/images.lock \
+  -f stack/generated/compose/compose.yaml up -d
+docker compose --project-directory . \
+  --env-file .env --env-file workloads/images.lock \
+  -f stack/generated/compose/compose.yaml down --remove-orphans
 ```
 
-`stack-lifecycle` needs no changes — `--compose-file` puts it on its consumer-stack path.
-`--gpu none` is required, not optional: both commands default to `--gpu auto`, which calls
-`detect_gpu()` and raises when neither `nvidia-smi` nor `rocminfo` is present. The Score
-stack has no GPU services.
+`--project-directory .` is required: compose otherwise anchors relative paths at the
+directory of the first `-f` file, and the generated file lives in a nested tree.
 
 The generated compose reads the same `.env` as the hand-authored stack, so the two agree on
 every credential — there is no separate set of Score passwords to keep in step.
@@ -47,7 +61,7 @@ Reach it at `http://localhost:8443/schema/swagger`.
 ## Deploy: Kubernetes
 
 ```bash
-kubectl apply -f score/deploy/manifests.yaml
+kubectl apply -f stack/generated/k8s/manifests.yaml
 ```
 
 The cluster is a precondition, not part of the deploy. On the real cluster, Argo CD applies
@@ -85,12 +99,13 @@ kubectl create secret generic placeframe-secrets \
   --from-literal=KEYCLOAK_HOSTNAME=http://localhost:8443/auth
 
 uv run generate-score --local --target k8s
-kubectl apply -f score/manifests.yaml
+kubectl apply -f stack/generated/k8s/manifests.local.yaml
 ```
 
-`--local` writes to `score/manifests.yaml`, which is gitignored, and leaves the committed
-`score/deploy/manifests.yaml` untouched. That separation is deliberate: `local-path` reaching
-the real cluster leaves the Postgres and MinIO volumes unbindable on the next rebuild.
+`--local` writes to `stack/generated/k8s/manifests.local.yaml`, which is gitignored, and
+leaves the committed `stack/generated/k8s/manifests.yaml` untouched. That separation is
+deliberate: `local-path` reaching the real cluster leaves the Postgres and MinIO volumes
+unbindable on the next rebuild.
 
 k3d pulls through Docker Hub, whose unauthenticated rate limit is low enough to fail a cold
 cluster. If pulls fail, preload the image into the node:
@@ -108,13 +123,13 @@ be available locally (`uv run build`) or pullable from `ghcr.io`.
 
 ## CI enforces that the artifacts match their source
 
-`preflight` runs `generate-score` and fails when `score/` comes back dirty, in the same shape
+`preflight` runs `generate-score` and fails when `stack/` comes back dirty, in the same shape
 as its datamodel- and client-codegen checks. It checks and fails; it never commits, because
 CI in this repo must not create commits on any branch. When it fires, run `uv run
 generate-score` locally and commit the result.
 
-Two things make that gate viable. `score/.score-k8s/state.yaml` is committed, because
-`score-k8s` mints a random uid per workload on first sight and emits it as the
+Two things make that gate viable. `stack/generated/k8s/.score-k8s/state.yaml` is committed,
+because `score-k8s` mints a random uid per workload on first sight and emits it as the
 `app.kubernetes.io/instance` label — without the state file a fresh checkout regenerates
 different manifests. And `generate-score` sorts the emitted documents, because `score-k8s`
 emits workloads in Go map order, which is randomised.
@@ -131,11 +146,11 @@ compose patch are the source; everything else is generated or tool-managed.
 | `placeframe-postgres.k8s.provisioners.yaml` | authored — custom postgres provisioner (k8s, StatefulSet) | yes |
 | `placeframe-postgres-cnpg.k8s.provisioners.yaml` | authored — alternative postgres provisioner (k8s, CloudNativePG) | yes |
 | `placeframe-s3.provisioners.yaml` | authored — fixed-name MinIO provisioner, overrides the built-in `s3` | yes |
-| `../docker/postgres-cnpg/Dockerfile` | authored — trusted-PostGIS operand image for CNPG | yes |
+| `../workloads/postgres-cnpg/Dockerfile` | authored — trusted-PostGIS operand image for CNPG | yes |
 | `restart-policy.tpl` | authored — compose-only patch template | yes |
-| `compose.yaml`, `deploy/manifests.yaml` | generated | yes — the reviewed artifacts |
-| `.score-k8s/state.yaml` | `init` + `generate` | yes — pins the per-workload uids so generation reproduces |
-| `.score-compose/`, rest of `.score-k8s/` | `init` | no — rewritten on every run |
+| `../generated/compose/compose.yaml`, `../generated/k8s/manifests.yaml` | generated | yes — the reviewed artifacts |
+| `../generated/k8s/.score-k8s/state.yaml` | `init` + `generate` | yes — pins the per-workload uids so generation reproduces |
+| `.score-compose/`, rest of `../generated/k8s/.score-k8s/` | `init` | no — rewritten on every run |
 
 Generation resolves no secret. The compose provisioners emit `${VAR:?err}` placeholders that
 docker resolves from `--env-file` at run time, exactly as the hand-authored `compose.yml`
@@ -174,7 +189,7 @@ way; which one applies is set by whichever provisioner file is registered.
   create Job applies all roles/grants/RLS and the same `database-migrator` Job applies the
   schema. The operator install and the operand-image build are manual steps.
 
-  The operand image (`../docker/postgres-cnpg/Dockerfile`, tag `14-trusted`) exists because
+  The operand image (`../workloads/postgres-cnpg/Dockerfile`, tag `14-trusted`) exists because
   CNPG runs its own instance manager, so PostGIS is marked *trusted* at build time (instead
   of via the StatefulSet image's runtime entrypoint) — letting the non-superuser
   `placeframe_owner` create the extension in the temporary databases `pg-schema-diff` uses.

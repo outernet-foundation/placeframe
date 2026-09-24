@@ -6,7 +6,7 @@ The schema files in this directory are the source of truth — `uv run generate-
 
 ## `localization_evaluations` cache table
 
-`24_localization_evaluations.sql` defines the cache that `fit_calibration.py` writes during corpus assembly and reads during the fit. Localizing a held-out frame against a reconstruction is deterministic given the keyed inputs *plus* `pipeline_version` (the localizer's git SHA, baked into its image — see `docker/localizer/AGENTS.md` "Determinism"), so persisting evaluation outcomes lets re-fits skip the localization pass.
+`24_localization_evaluations.sql` defines the cache that `fit_calibration.py` writes during corpus assembly and reads during the fit. Localizing a held-out frame against a reconstruction is deterministic given the keyed inputs *plus* `pipeline_version` (the localizer's git SHA, baked into its image — see `workloads/localizer/AGENTS.md` "Determinism"), so persisting evaluation outcomes lets re-fits skip the localization pass.
 
 ### Key
 
