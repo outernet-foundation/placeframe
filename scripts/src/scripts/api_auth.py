@@ -29,14 +29,30 @@ async def authenticated_api_client() -> AsyncGenerator[DefaultApi]:
         yield DefaultApi(api_client)
 
 
-def _read_public_url() -> str:
-    public_url = environ.get("PUBLIC_URL")
-    if not public_url:
-        public_url = parse_env_file(_find_env_file()).get("PUBLIC_URL")
+# Where a client should reach the API, when that differs from how the world reaches it.
+# PUBLIC_URL is the stack's public identity -- it configures the gateway's Caddyfile, the OpenAPI
+# server list and the issuer URLs, and it is the address phones and the ZED box connect to. When
+# the stack is reachable through a relay, a caller running on the same machine as the stack would
+# otherwise send every byte out to that relay and back to a container beside it: measured at 295 ms
+# against 1.5 ms for /server-info, and 51 s against 1.6 s for one localization. This names the
+# short way round without changing what the stack tells the world it is.
+API_URL_VAR = "PLACEFRAME_API_URL"
 
-    if not public_url:
-        raise RuntimeError("PUBLIC_URL not found in environment or .env")
-    return public_url
+
+def _read_public_url() -> str:
+    """The API's base URL: PLACEFRAME_API_URL if set, else PUBLIC_URL; environment over .env."""
+    env_file: dict[str, str] | None = None
+    for key in (API_URL_VAR, "PUBLIC_URL"):
+        from_environment = environ.get(key)
+        if from_environment:
+            return from_environment
+        if env_file is None:
+            env_file = parse_env_file(_find_env_file())
+        from_file = env_file.get(key)
+        if from_file:
+            return from_file
+
+    raise RuntimeError(f"Neither {API_URL_VAR} nor PUBLIC_URL found in environment or .env")
 
 
 def _find_env_file() -> Path:
