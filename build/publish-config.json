@@ -48,7 +48,7 @@
     }
   ],
   "apps": [],
-  "compose_files": ["compose.bake.yml"],
+  "compose_files": ["workloads/images.yml"],
   "ci_workflow": "placeframe-ci.yml",
   "mirror_prefix": "ghcr.io/outernet-foundation/mirror"
 }

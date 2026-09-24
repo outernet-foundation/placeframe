@@ -209,7 +209,7 @@ def persist_mapping(classified: list[ClassifiedReconstruction], mapping_path: Pa
 
 def awscli_s3(arguments: str, volume_dir: Path) -> None:
     env = parse_env_file(REPO_ROOT / ".env")
-    lock = parse_env_file(REPO_ROOT / ".env.lock")
+    lock = parse_env_file(REPO_ROOT / "workloads" / "images.lock")
     bash(
         "docker run --rm --network placeframe_default "
         f"-e AWS_ACCESS_KEY_ID={env['S3_ACCESS_KEY']} -e AWS_SECRET_ACCESS_KEY={env['S3_SECRET_KEY']} "

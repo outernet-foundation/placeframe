@@ -18,12 +18,11 @@
 .vs
 .act
 .env
-.env.shas
 .secrets
-score/manifests.yaml
-score/.score-compose/
-score/.score-k8s/*
-!score/.score-k8s/state.yaml
+stack/generated/k8s/manifests.local.yaml
+stack/score/.score-compose/
+stack/generated/k8s/.score-k8s/*
+!stack/generated/k8s/.score-k8s/state.yaml
 metadata.json
 storage/
 tidy-commits.json
