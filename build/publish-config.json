@@ -2,11 +2,13 @@
   "packages": [
     {
       "name": "placeframe-api-client",
+      "major_minor": "0.1",
       "path": "packages/generated/csharp/api-client/src/PlaceframeApiClient",
       "feeds": { "nuget": "PlaceframeApiClient", "npm": "org.outernet.placeframe.apiclient" }
     },
     {
       "name": "placeframe-core",
+      "major_minor": "1.0",
       "path": "packages/unity/Placeframe/Assets/Package/Core",
       "feeds": { "npm": "org.outernet.placeframe" },
       "depends_on": ["placeframe-api-client"],
@@ -14,6 +16,7 @@
     },
     {
       "name": "placeframe-arfoundation",
+      "major_minor": "1.0",
       "path": "packages/unity/Placeframe/Assets/Package/ARFoundation",
       "feeds": { "npm": "org.outernet.placeframe.arfoundation" },
       "depends_on": ["placeframe-core"],
@@ -21,6 +24,7 @@
     },
     {
       "name": "placeframe-magicleap",
+      "major_minor": "1.0",
       "path": "packages/unity/Placeframe/Assets/Package/MagicLeap",
       "feeds": { "npm": "org.outernet.placeframe.magicleap" },
       "depends_on": ["placeframe-core"],
@@ -28,21 +32,25 @@
     },
     {
       "name": "placeframe-auth",
+      "major_minor": "0.1",
       "path": "packages/unity/Placeframe/Assets/Package/Auth",
       "feeds": { "npm": "org.outernet.placeframe.auth" }
     },
     {
       "name": "placeframe-logging",
+      "major_minor": "0.1",
       "path": "packages/unity/Logging/Assets/Package",
       "feeds": { "npm": "org.outernet.logging" }
     },
     {
       "name": "placeframe-common",
+      "major_minor": "0.1",
       "path": "packages/python/common",
       "feeds": { "pypi": "placeframe-common" }
     },
     {
       "name": "placeframe-core-python",
+      "major_minor": "0.1",
       "path": "packages/python/core",
       "feeds": { "pypi": "placeframe-core" }
     }
