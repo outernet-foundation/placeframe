@@ -39,6 +39,15 @@ export interface Job<TResult = unknown> {
   run_id: string | null;
   result: TResult | null;
   error: string | null;
+  progress: JobProgress | null;
+}
+
+/** Where a long step of a job has got to, while it is still running. */
+export interface JobProgress {
+  phase: string;
+  current?: number;
+  total?: number;
+  detail?: string;
 }
 
 export const TERMINAL_STATUSES = new Set(["succeeded", "failed", "cancelled"]);

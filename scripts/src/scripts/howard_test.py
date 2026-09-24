@@ -121,6 +121,10 @@ SPHERICAL_FRAME_STRIDE = 5
 JPEG_QUALITY = 95
 # The views a spherical capture is reconstructed through. Named because the useful panorama
 # width is derived from them, so inspect-video prices exactly what reconstruct-spherical builds.
+# Progress is reported on stderr, one JSON object per line behind this marker, so a caller that
+# drives the CLI as a subprocess can follow a long extraction without parsing prose. stdout stays
+# reserved for the command's own --json result.
+PROGRESS_MARKER = "@progress "
 SPHERICAL_VIEW_SIZE = 1600
 SPHERICAL_VIEW_FOV_DEG = 150.0
 
@@ -204,6 +208,18 @@ class CaptureSizeEstimate:
         return f"{arithmetic} ({limit}{'; OVER' if self.over_limit else ''})"
 
 
+def emit_progress(phase: str, current: int | None = None, total: int | None = None, detail: str | None = None) -> None:
+    """Report where a long command has got to, for whoever is driving it."""
+    payload: dict[str, Any] = {"phase": phase}
+    if current is not None:
+        payload["current"] = current
+    if total is not None:
+        payload["total"] = total
+    if detail is not None:
+        payload["detail"] = detail
+    typer.echo(f"{PROGRESS_MARKER}{dumps(payload)}", err=True)
+
+
 def useful_pano_width(view_size: int, view_fov_deg: float) -> int:
     """Panorama width whose detail a view of this size and field of view can actually use.
 
@@ -246,6 +262,7 @@ def build_spherical_capture_tar(
     video_path: Path,
     stride: int,
     max_width: int,
+    on_frame: Callable[[int, int], None] | None = None,
 ) -> tuple[bytes, int, str]:
     """Package a spherical video as a capture: one equirectangular frame per instant.
 
@@ -301,7 +318,10 @@ def build_spherical_capture_tar(
             info_member.size = len(data)
             tar.addfile(info_member, BytesIO(data))
 
+        expected = -(-info.frame_count // stride)
         for index, frame in video_frames(video_path, stride):
+            if on_frame is not None:
+                on_frame(len(timestamps), expected)
             timestamp_ms = round(index * 1000 / info.fps)
             timestamps.append(timestamp_ms)
             image = Image.fromarray(frame[:, :, ::-1])  # decoded BGR; PIL wants RGB
@@ -829,6 +849,14 @@ def inspect_video_command(
             "(the width the views can use); 0 keeps the camera's own resolution"
         ),
     ] = None,
+    estimate_size: Annotated[
+        bool,
+        typer.Option(
+            "--estimate/--no-estimate",
+            help="Measure what a capture would weigh. Costs a few frame decodes, so a caller that only "
+            "needs the projection can skip it",
+        ),
+    ] = True,
     json_output: Annotated[bool, typer.Option("--json", help="Emit JSON instead of text")] = False,
 ) -> None:
     """Size, frame rate, length, the declared projection, and what a capture would weigh.
@@ -841,7 +869,9 @@ def inspect_video_command(
     resolved_max_width = (
         max_width if max_width is not None else useful_pano_width(SPHERICAL_VIEW_SIZE, SPHERICAL_VIEW_FOV_DEG)
     )
-    estimate = estimate_capture_size(video, stride, resolved_max_width) if info.is_spherical else None
+    estimate = (
+        estimate_capture_size(video, stride, resolved_max_width) if info.is_spherical and estimate_size else None
+    )
     payload: dict[str, Any] = {
         "path": str(video),
         "width": info.width,
@@ -1378,16 +1408,26 @@ async def _reconstruct_spherical(
     wait: bool,
     timeout_s: float,
 ) -> ReconstructionReadWithQueue:
-    tar_bytes, frame_count, summary = await to_thread(build_spherical_capture_tar, video_path, stride, max_width)
+    # Extraction is minutes of decoding with nothing to show for it until the end, so it reports
+    # per frame; the upload that follows is one body, so it can only announce itself.
+    tar_bytes, frame_count, summary = await to_thread(
+        build_spherical_capture_tar,
+        video_path,
+        stride,
+        max_width,
+        lambda current, total: emit_progress("extracting", current, total),
+    )
     # How many frames a video holds is only known once they are extracted, and the keyframe
     # threshold is derived from that count, so the options are settled here rather than by the
     # caller.
     options = _poseless_options(options_json, frame_count, target_keyframes)
     typer.echo(f"{video_path.name}: {summary}; capture is {_format_size(len(tar_bytes))}", err=True)
+    emit_progress("uploading", detail=_format_size(len(tar_bytes)))
     async with authenticated_api_client() as api:
         try:
             capture = await upload_capture_session(api, f"{name}.tar", tar_bytes, DeviceType.ARFOUNDATION, name)
             typer.echo(f"Uploaded spherical capture {capture.id} ({frame_count} frames)", err=True)
+            emit_progress("queueing", detail=str(capture.id))
             return await create_reconstruction(api, capture.id, options, wait, timeout_s)
         except ApiException as exception:
             _fail(exception)

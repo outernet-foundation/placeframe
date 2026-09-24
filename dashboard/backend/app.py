@@ -17,6 +17,9 @@ import os
 import re
 import shutil
 import subprocess
+import threading
+from collections.abc import Callable
+from functools import partial
 import time
 import uuid
 from dataclasses import dataclass
@@ -63,6 +66,8 @@ class Job:
     run_id: str | None = None
     result: dict[str, Any] | None = None
     error: str | None = None
+    # Where a long step has got to, e.g. {"phase": "extracting", "current": 120, "total": 416}.
+    progress: dict[str, Any] | None = None
 
 
 JOBS: dict[str, Job] = {}
@@ -99,6 +104,54 @@ def _run_howard_test_json(*args: str) -> Any:
 
 async def _run_howard_test_json_async(*args: str) -> Any:
     return await asyncio.to_thread(_run_howard_test_json, *args)
+
+
+# howard-test reports progress on stderr, one JSON object per line behind this marker.
+PROGRESS_MARKER = "@progress "
+
+
+def _run_howard_test_json_streaming(*args: str, on_progress: Callable[[dict[str, Any]], None]) -> Any:
+    """As _run_howard_test_json, but surfacing progress lines while the command runs.
+
+    Extraction and upload take minutes with nothing to report at the end of them,
+    so the caller is told where they have got to rather than left to guess.
+    """
+    process = subprocess.Popen(  # noqa: S603
+        ["uv", "run", "howard-test", *args, "--json"],
+        cwd=PLACEFRAME_ROOT,
+        env=_HOWARD_TEST_ENV,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    messages: list[str] = []
+
+    def drain_stderr() -> None:
+        assert process.stderr is not None
+        for line in process.stderr:
+            if line.startswith(PROGRESS_MARKER):
+                try:
+                    on_progress(json.loads(line[len(PROGRESS_MARKER) :]))
+                except json.JSONDecodeError:
+                    pass
+            else:
+                messages.append(line)
+
+    # stderr is drained on its own thread: the command writes far more of it than a pipe holds,
+    # and reading stdout first would block until it filled and deadlocked.
+    reader = threading.Thread(target=drain_stderr, daemon=True)
+    reader.start()
+    stdout = process.stdout.read() if process.stdout else ""
+    returncode = process.wait()
+    reader.join(timeout=5)
+
+    # Same contract as _run_howard_test_json: a parseable payload wins over the return code.
+    if stdout.strip():
+        try:
+            return json.loads(stdout)
+        except json.JSONDecodeError:
+            pass
+    raise RuntimeError("".join(messages).strip() or f"howard-test {' '.join(args)} exited {returncode}")
 
 
 def _run_howard_test_bytes(*args: str) -> bytes:
@@ -320,7 +373,9 @@ def _classify_import(path_str: str) -> tuple[str, Path]:
     if suffix == ".tar":
         return "reconstruction_tar", path.resolve()
     if suffix in VIDEO_EXTENSIONS:
-        projection = _run_howard_test_json("inspect-video", str(path))["projection"]
+        # Only the projection matters here; the size estimate costs frame decodes and the
+        # Import dialog asks for it separately, as the settings it prices are changed.
+        projection = _run_howard_test_json("inspect-video", str(path), "--no-estimate")["projection"]
         if projection is None:
             raise ValueError(
                 f"{path.name} is an ordinary (non-spherical) video. Only spherical video is supported so far: "
@@ -678,10 +733,22 @@ async def _run_poseless_reconstruct_job(
 async def _run_spherical_reconstruct_job(
     job: Job, video: Path, stride: int | None = None, max_width: int | None = None
 ) -> None:
+    def record(progress: dict[str, Any]) -> None:
+        job.progress = progress
+
     try:
-        created = await _run_howard_test_json_async(
-            "reconstruct-spherical", str(video), "--name", video.stem, *_video_flags(stride, max_width)
+        created = await asyncio.to_thread(
+            partial(
+                _run_howard_test_json_streaming,
+                "reconstruct-spherical",
+                str(video),
+                "--name",
+                video.stem,
+                *_video_flags(stride, max_width),
+                on_progress=record,
+            )
         )
+        job.progress = None
         await _poll_reconstruction_until_terminal(job, created)
     except Exception as exc:
         job.status = "failed"
@@ -727,6 +794,7 @@ async def get_job(job_id: str) -> dict[str, Any]:
         "run_id": job.run_id,
         "result": job.result,
         "error": job.error,
+        "progress": job.progress,
     }
 
 

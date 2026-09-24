@@ -25,7 +25,7 @@ import {
 import { Menu } from "./components/Menu";
 import { RunResults } from "./components/RunResults";
 import { errorText, readStored, store, STORAGE_KEYS } from "./storage";
-import type { CaptureSession, LocalizationSummary, PoselessImageSet, Reconstruction } from "./types";
+import type { CaptureSession, JobProgress, LocalizationSummary, PoselessImageSet, Reconstruction } from "./types";
 import { TERMINAL_STATUSES } from "./types";
 
 // One page, one tree: capture → its reconstructions (one per set of options) → each
@@ -72,6 +72,19 @@ function formatSize(bytes: number): string {
 
 function formatDate(iso: string | null): string {
   return iso ? new Date(iso).toLocaleString() : "—";
+}
+
+/** A job's current step, as a line to show while it runs. */
+function describeProgress(progress: JobProgress | null): string | null {
+  if (!progress) return null;
+  const label: Record<string, string> = {
+    extracting: "Extracting frames",
+    uploading: "Uploading capture",
+    queueing: "Queueing reconstruction",
+  };
+  const name = label[progress.phase] ?? progress.phase;
+  if (progress.total) return `${name}: ${progress.current ?? 0} of ${progress.total}`;
+  return progress.detail ? `${name} (${progress.detail})` : name;
 }
 
 function openViewer(reconstructionId: string, runId?: string): void {
@@ -145,6 +158,7 @@ export function CapturesPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [pendingJobs, setPendingJobs] = useState(0);
+  const [jobProgress, setJobProgress] = useState<string | null>(null);
 
   const [dialog, setDialog] = useState<Dialog | null>(null);
   const [notices, setNotices] = useState<Notice[]>([]);
@@ -221,8 +235,9 @@ export function CapturesPage() {
   async function followJob(jobId: string): Promise<void> {
     setPendingJobs((n) => n + 1);
     try {
-      for (let i = 0; i < 300; i++) {
+      for (let i = 0; i < 1800; i++) {
         const job = await getJob(jobId);
+        setJobProgress(describeProgress(job.progress));
         if (job.status === "failed") {
           notify("error", `Reconstruction could not start: ${job.error ?? "unknown error"}`);
           break;
@@ -234,6 +249,7 @@ export function CapturesPage() {
     } catch (err) {
       notify("error", errorText(err));
     } finally {
+      setJobProgress(null);
       setPendingJobs((n) => n - 1);
     }
   }
@@ -628,6 +644,7 @@ export function CapturesPage() {
       </div>
 
       {loadError && <div className="banner banner-error">{loadError}</div>}
+      {jobProgress && <div className="banner banner-info">{jobProgress}</div>}
       {notices.map((n) => (
         <div key={n.id} className={`banner banner-${n.tone} banner-dismissible`}>
           <span>{n.text}</span>
