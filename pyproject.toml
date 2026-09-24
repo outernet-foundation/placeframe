@@ -52,6 +52,12 @@ sync-args = ["--all-packages", "--extra", "cpu"]
 # Generated packages and vendored third-party code don't own their dependency lists.
 deptry-exclude = ["packages/generated/*", "packages/python/neural-networks/third-party/*"]
 
+[tool.docker-devkit.lifecycle]
+# Compose assembly for `uv run up`/`uv run down` (docker-devkit): layers in order,
+# `{gpu}` resolved by detection (or --gpu), dropped when it resolves to none.
+files = ["compose.yml", "compose.postgres.yml", "compose.{gpu}.yml"]
+dev_file = "compose.dev.yml"
+
 [tool.uv.sources]
 placeframe-common = { workspace = true }
 placeframe-core = { workspace = true }
