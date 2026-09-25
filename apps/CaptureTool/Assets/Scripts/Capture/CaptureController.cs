@@ -375,7 +375,13 @@ namespace Placeframe.Client
                     copy: (id, _, state) =>
                     {
                         var remote = remotes.GetValueOrDefault(id);
-                        var primary = remote?.Reconstructions.FirstOrDefault();
+                        // Prefer whichever reconstruction carries a localization map, because that
+                        // is the one this capture can actually be localized against; the newest is
+                        // only a fallback for a capture with nothing published. Taking the first
+                        // unconditionally hid a published map whenever a later reconstruction of the
+                        // same capture sorted ahead of it, which is the common case after a rerun.
+                        var primary = remote?.Reconstructions.FirstOrDefault(r => r.LocalizationMapId != null)
+                            ?? remote?.Reconstructions.FirstOrDefault();
                         var hasLocal = locals.TryGetValue(id, out var local);
                         state.name.value = remote?.CaptureSession.Name
                             ?? local.Name
