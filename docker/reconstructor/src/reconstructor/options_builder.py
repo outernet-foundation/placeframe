@@ -44,6 +44,9 @@ class OptionsBuilder:
     def retrieval_min_score(self):
         return self.options.retrieval_min_score
 
+    def cross_rig_pair_distance_m(self):
+        return self.options.cross_rig_pair_distance_m
+
     def pose_prior_position_sigma_m(self):
         return self.options.pose_prior_position_sigma_m
 

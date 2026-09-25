@@ -20,6 +20,7 @@ PAIRS_WITH_SOURCE_FILE = "pairs_with_source.csv"
 class PairSource(str, Enum):
     INTRA_FRAME_STEREO = "intra_frame_stereo"
     SEQUENTIAL = "sequential"
+    CROSS_RIG_SPATIAL = "cross_rig_spatial"
     RETRIEVAL = "retrieval"
 
 
@@ -33,6 +34,7 @@ class Pair:
 SOURCE_PRECEDENCE: tuple[PairSource, ...] = (
     PairSource.INTRA_FRAME_STEREO,
     PairSource.SEQUENTIAL,
+    PairSource.CROSS_RIG_SPATIAL,
     PairSource.RETRIEVAL,
 )
 
@@ -43,6 +45,7 @@ def generate_image_pairs(
     sequential_window_m: float,
     retrieval_neighbors: int,
     retrieval_min_score: float,
+    cross_rig_pair_distance_m: float = 0.0,
 ) -> list[Pair]:
 
     # Cameras of one frame see the scene from one instant, which is only useful
@@ -84,6 +87,36 @@ def generate_image_pairs(
         for camera_b in rigs[rig_id_b].cameras
     ]
 
+    # Frames of different rigs that the priors put close together. Retrieval is otherwise the only
+    # source that crosses rigs, and it chooses by descriptor similarity: on the captures this was
+    # built for, two walks that genuinely meet scored 0.467 at best and lost the top-k cut to
+    # hundreds of within-capture neighbours, so a corner they both stood in produced 21 shared
+    # points instead of thousands. Proximity is evidence retrieval does not have -- but only once
+    # something has placed the rigs in one frame, which is why this is off unless asked for.
+    cross_rig_frame_pairs: list[tuple[tuple[str, str], tuple[str, str]]] = []
+    if cross_rig_pair_distance_m > 0:
+        placed = [
+            (rig_id, frame_id, pose.translation)
+            for rig_id, rig in rigs.items()
+            for frame_id, pose in rig.frame_poses.items()
+        ]
+        for index, (rig_a, frame_a, position_a) in enumerate(placed):
+            for rig_b, frame_b, position_b in placed[index + 1 :]:
+                if rig_a == rig_b:
+                    continue
+                if float(norm(position_a - position_b)) <= cross_rig_pair_distance_m:
+                    cross_rig_frame_pairs.append(((rig_a, frame_a), (rig_b, frame_b)))
+
+    cross_rig_image_pairs = [
+        (
+            f"{rig_id_a}/{camera_a}/{frame_id_a}.jpg",
+            f"{rig_id_b}/{camera_b}/{frame_id_b}.jpg",
+        )
+        for (rig_id_a, frame_id_a), (rig_id_b, frame_id_b) in cross_rig_frame_pairs
+        for camera_a in rigs[rig_id_a].cameras
+        for camera_b in rigs[rig_id_b].cameras
+    ]
+
     retrieval_image_pairs: list[tuple[str, str]] = []
     if retrieval_neighbors > 0 and global_descriptors:
         image_names = list(global_descriptors.keys())
@@ -105,6 +138,7 @@ def generate_image_pairs(
     for source, candidate_pairs in [
         (PairSource.INTRA_FRAME_STEREO, intra_frame_image_pairs),
         (PairSource.SEQUENTIAL, sequential_image_pairs),
+        (PairSource.CROSS_RIG_SPATIAL, cross_rig_image_pairs),
         (PairSource.RETRIEVAL, retrieval_image_pairs),
     ]:
         for a, b in candidate_pairs:
