@@ -58,6 +58,9 @@ deptry-exclude = ["packages/generated/*", "packages/python/neural-networks/third
 files = ["compose.yml", "compose.postgres.yml", "compose.{gpu}.yml"]
 dev_file = "compose.dev.yml"
 
+[tool.docker-devkit.mirror]
+prefix = "ghcr.io/outernet-foundation/mirror"
+
 [tool.docker-devkit.generate-score]
 # Policy for `uv run generate-score` (docker-devkit's score_generate verb): which
 # workloads render, the provisioners each half consumes, and where artifacts land.

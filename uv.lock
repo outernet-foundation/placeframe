@@ -566,7 +566,7 @@ source = { editable = "packages/python/neural-networks/third-party/deep-image-re
 
 [[package]]
 name = "docker-devkit"
-version = "0.1.17"
+version = "0.1.18"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "bashrun" },
@@ -576,9 +576,9 @@ dependencies = [
     { name = "pyyaml" },
     { name = "typer" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f1/e7/c44cf711b8fa94df55f6db5d9258e1d7341c2c9b25ce57a473f905222dec/docker_devkit-0.1.17.tar.gz", hash = "sha256:a1b3833662f40caed155e340e412d889f2648e1ee165e7a91c31b407818d213a", size = 54513, upload-time = "2026-09-24T17:13:35.553Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/bf/36/d573d4ffbc434a2ca593e47b9e314229946c31c0ac2991194fead7ae8348/docker_devkit-0.1.18.tar.gz", hash = "sha256:e1266de9d326f37b3593ee065d76a679d2d898d20c15d88d3aca942c9f6a577f", size = 60157, upload-time = "2026-09-25T15:22:32.546Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/5d/8e/792bc75efc60d8b0dc4bfd4c33c5346d33185dcf6fc93fb15e4481af5499/docker_devkit-0.1.17-py3-none-any.whl", hash = "sha256:435cf608f663111efdbdbf519f5df6909673dfc2fbec1033e32596713e447796", size = 23161, upload-time = "2026-09-24T17:13:34.625Z" },
+    { url = "https://files.pythonhosted.org/packages/a2/38/d27aff5c4a77714537807be9a663877134e028075655c365f6bb49eb0396/docker_devkit-0.1.18-py3-none-any.whl", hash = "sha256:20ac87e6e50da10b9dd5350b141277144fde1e15ac39f6ccd028155bec3f4e9a", size = 25486, upload-time = "2026-09-25T15:22:31.567Z" },
 ]
 
 [[package]]
