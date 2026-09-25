@@ -1034,9 +1034,10 @@ def points(
     # where a compact fixed layout is cheaper to transfer and parse than JSON-encoding ~10^5-10^6
     # numbers. Layout: point_count:u32, positions:f32[point_count*3], colors:u8[point_count*3],
     # pose_count:u32, pose_positions:f32[pose_count*3], pose_orientations(xyzw):f32[pose_count*4],
-    # frame_ids:f64[pose_count]. Poses are in capture order (rig, then frame id); the ids ride along
-    # so a consumer can see where one capture's run ends and the next begins.
-    positions, colors, pose_positions, pose_orientations, frame_ids = run(
+    # frame_ids:f64[pose_count], rig_indices:f64[pose_count]. Poses are in capture order (rig, then
+    # frame id); the rig index says which capture each belongs to, so a consumer can break the run
+    # between captures and tell them apart.
+    positions, colors, pose_positions, pose_orientations, frame_ids, rig_indices = run(
         _fetch_reconstruction_geometry(reconstruction_id)
     )
     stdout = sys.stdout.buffer
@@ -1050,6 +1051,7 @@ def points(
     # than i8 because the consumer is JavaScript, where a Float64Array holds a millisecond frame id
     # exactly and a BigInt64Array would need converting at every use.
     stdout.write(np.ascontiguousarray(frame_ids, dtype="<f8").tobytes())
+    stdout.write(np.ascontiguousarray(rig_indices, dtype="<f8").tobytes())
     stdout.flush()
 
 
@@ -1060,7 +1062,7 @@ def export_poses(
     json_output: Annotated[bool, typer.Option("--json", help="Emit JSON instead of text")] = False,
 ) -> None:
     # Reuses the same tar-caching fetch as `points`/`visualize` — no new download path.
-    _positions, _colors, pose_positions, pose_orientations, _frame_ids = run(
+    _positions, _colors, pose_positions, pose_orientations, _frame_ids, _rig_indices = run(
         _fetch_reconstruction_geometry(reconstruction_id)
     )
     if len(pose_positions) == 0:
@@ -1619,16 +1621,23 @@ async def _show(reconstruction_id: UUID, cache: bool = False) -> ReconstructionR
             _fail(exception)
 
 
-# positions, colors, pose positions, pose orientations, and the capture frame id of each pose --
-# which is what tells a consumer that the poses are in capture order, and where one capture ends.
+# positions, colors, pose positions, pose orientations, each pose's capture frame id, and which
+# capture it belongs to. The ids say the poses are in capture order; the rig index says where one
+# capture's run ends, which the ids cannot -- captures recorded in one session number straight
+# through, so nothing in the ids marks the seam.
 ReconstructionGeometry = tuple[
-    NDArray[np.float32], NDArray[np.uint8], NDArray[np.float32], NDArray[np.float32], NDArray[np.int64]
+    NDArray[np.float32],
+    NDArray[np.uint8],
+    NDArray[np.float32],
+    NDArray[np.float32],
+    NDArray[np.int64],
+    NDArray[np.int64],
 ]
 
 
 async def _fetch_point_cloud(reconstruction_id: UUID) -> tuple[NDArray[np.float32], NDArray[np.uint8]]:
-    positions, colors, _pose_positions, _pose_orientations, _frame_ids = await _fetch_reconstruction_geometry(
-        reconstruction_id
+    (positions, colors, _pose_positions, _pose_orientations, _frame_ids, _rig_indices) = (
+        await _fetch_reconstruction_geometry(reconstruction_id)
     )
     return positions, colors
 
@@ -1646,7 +1655,7 @@ async def _fetch_reconstruction_geometry(reconstruction_id: UUID) -> Reconstruct
 
 def _poses_from_sfm_text(
     tar: tarfile.TarFile,
-) -> tuple[NDArray[np.float32], NDArray[np.float32], NDArray[np.int64]] | None:
+) -> tuple[NDArray[np.float32], NDArray[np.float32], NDArray[np.int64], NDArray[np.int64]] | None:
     """Frame poses in capture order, read from the COLMAP text model rather than the npz.
 
     frames.txt lines are `FRAME_ID RIG_ID QW QX QY QZ TX TY TZ N [SENSOR_TYPE SENSOR_ID DATA_ID]...`
@@ -1698,10 +1707,12 @@ def _poses_from_sfm_text(
         return None
 
     records.sort(key=lambda record: (record[0], record[1]))
+    rig_indices_by_id = {rig_id: index for index, rig_id in enumerate(sorted({record[0] for record in records}))}
     return (
         np.stack([record[2] for record in records]),
         np.stack([record[3] for record in records]),
         np.array([record[1] for record in records], dtype=np.int64),
+        np.array([rig_indices_by_id[record[0]] for record in records], dtype=np.int64),
     )
 
 
@@ -1723,6 +1734,7 @@ def _load_reconstruction_geometry(tar_bytes: bytes) -> ReconstructionGeometry:
             pose_positions, pose_orientations = pose_data["positions"], pose_data["orientations"]
             if "frame_ids" in pose_data.files:
                 frame_ids = pose_data["frame_ids"]
+                rig_indices = pose_data.get("rig_indices", np.zeros(len(frame_ids), dtype=np.int64))
             else:
                 # Written before poses were ordered: the npz records neither the order nor the ids,
                 # so it cannot be sorted. It does not have to be -- sfm_model/frames.txt carries the
@@ -1731,15 +1743,17 @@ def _load_reconstruction_geometry(tar_bytes: bytes) -> ReconstructionGeometry:
                 # reconstruction already on disk reads correctly without being run again.
                 recovered = _poses_from_sfm_text(tar)
                 if recovered is not None:
-                    pose_positions, pose_orientations, frame_ids = recovered
+                    pose_positions, pose_orientations, frame_ids, rig_indices = recovered
                 else:
                     frame_ids = np.empty(0, dtype=np.int64)
+                    rig_indices = np.empty(0, dtype=np.int64)
         else:
             pose_positions = np.empty((0, 3), dtype=np.float32)
             pose_orientations = np.empty((0, 4), dtype=np.float32)
             frame_ids = np.empty(0, dtype=np.int64)
+            rig_indices = np.empty(0, dtype=np.int64)
 
-    return positions, colors, pose_positions, pose_orientations, frame_ids
+    return positions, colors, pose_positions, pose_orientations, frame_ids, rig_indices
 
 
 # Mirrors the `images[]` entry shape `_localize_one_image` produces (see LocalizationImage in the

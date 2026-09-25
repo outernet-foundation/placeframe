@@ -277,17 +277,19 @@ export interface PointCloud {
   poseOrientations: Float32Array; // xyzw quaternions, world_from_rig
   poseCount: number;
   // Capture frame id of each pose, or null for reconstructions written before poses were ordered.
-  // Poses are in capture order; a frame id going backwards marks where one capture ends.
   frameIds: Float64Array | null;
+  // Which capture each pose belongs to. Poses are in capture order, but nothing in the ids marks
+  // where one capture ends — several recorded in one session number straight through.
+  rigIndices: Float64Array | null;
 }
 
 // Parses the fixed binary layout `points` writes (see howard_test.py's `points` command docstring
 // and dashboard/backend's /points passthrough):
 //   point_count:u32, positions:f32[point_count*3], colors:u8[point_count*3],
 //   pose_count:u32, pose_positions:f32[pose_count*3], pose_orientations(xyzw):f32[pose_count*4],
-//   frame_ids:f64[pose_count]
-// The frame ids are a later addition and sit last, so a payload from an older reconstruction ends
-// after the orientations and is read without them.
+//   frame_ids:f64[pose_count], rig_indices:f64[pose_count]
+// Both are later additions and sit last, so a payload from an older reconstruction ends after the
+// orientations and is read without them.
 export async function fetchPoints(reconstructionId: string): Promise<PointCloud> {
   const response = await fetch(`${API_BASE}/api/reconstructions/${reconstructionId}/points`);
   if (!response.ok) {
@@ -307,7 +309,9 @@ export async function fetchPoints(reconstructionId: string): Promise<PointCloud>
   const posePositionsEnd = posePositionsStart + poseCount * 3 * 4;
   const poseOrientationsEnd = posePositionsEnd + poseCount * 4 * 4;
   const frameIdsEnd = poseOrientationsEnd + poseCount * 8;
+  const rigIndicesEnd = frameIdsEnd + poseCount * 8;
   const hasFrameIds = buffer.byteLength >= frameIdsEnd && poseCount > 0;
+  const hasRigIndices = buffer.byteLength >= rigIndicesEnd && poseCount > 0;
 
   return {
     count,
@@ -317,6 +321,7 @@ export async function fetchPoints(reconstructionId: string): Promise<PointCloud>
     posePositions: new Float32Array(buffer.slice(posePositionsStart, posePositionsEnd)),
     poseOrientations: new Float32Array(buffer.slice(posePositionsEnd, poseOrientationsEnd)),
     frameIds: hasFrameIds ? new Float64Array(buffer.slice(poseOrientationsEnd, frameIdsEnd)) : null,
+    rigIndices: hasRigIndices ? new Float64Array(buffer.slice(frameIdsEnd, rigIndicesEnd)) : null,
   };
 }
 

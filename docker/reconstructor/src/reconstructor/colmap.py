@@ -349,19 +349,23 @@ def run_colmap_reconstruction(
     # are still in hand, is the only place it can be done -- the npz cannot express it afterwards.
     #
     # Frames are grouped by rig and ordered by frame id within each, so every rig's trajectory is
-    # one contiguous run. A reconstruction of several captures still has a seam between rigs: a
-    # consumer drawing a single polyline joins the end of one capture to the start of the next.
+    # one contiguous run, and a rig index rides alongside saying which run each pose belongs to.
+    # That index is not inferable from the ids: captures recorded in one box session run
+    # monotonically through all of them, so "the id went backwards" finds no seam, and a consumer
+    # left to guess joins the end of one capture to the start of the next -- a leg nobody walked.
     ordered = sorted(
         {
             (rig_id, frame_id): (rig_id, frame_id, rig_from_world) for rig_id, frame_id, _, rig_from_world in registered
         }.values(),
         key=lambda entry: (entry[0], entry[1]),
     )
+    rig_indices_by_id = {rig_id: index for index, rig_id in enumerate(sorted({entry[0] for entry in ordered}))}
     frame_positions = empty((len(ordered), 3), dtype=float32)
     frame_orientations = empty((len(ordered), 4), dtype=float32)
     frame_ids = empty(len(ordered), dtype=int64)
+    rig_indices = empty(len(ordered), dtype=int64)
 
-    for frame_index, (_rig_id, frame_id, rig_from_world) in enumerate(ordered):
+    for frame_index, (rig_id, frame_id, rig_from_world) in enumerate(ordered):
         # Convert from rig_from_world to world_from_rig
         world_from_rig_rotation_matrix = rig_from_world.rotation.matrix().T
         world_from_rig_translation = -world_from_rig_rotation_matrix @ rig_from_world.translation
@@ -369,14 +373,15 @@ def run_colmap_reconstruction(
         frame_positions[frame_index] = world_from_rig_translation
         frame_orientations[frame_index] = Rotation.from_matrix(world_from_rig_rotation_matrix).as_quat()
         frame_ids[frame_index] = frame_id
+        rig_indices[frame_index] = rig_indices_by_id[rig_id]
 
-    # frame_ids rides along so a consumer can tell what the order means, and segment on it.
     frame_poses_npz_file_path = output_path / "frame_poses.npz"
     savez_compressed(
         str(frame_poses_npz_file_path),
         positions=frame_positions,
         orientations=frame_orientations,
         frame_ids=frame_ids,
+        rig_indices=rig_indices,
     )
 
     return best_reconstruction

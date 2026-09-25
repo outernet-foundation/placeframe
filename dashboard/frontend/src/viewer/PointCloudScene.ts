@@ -132,6 +132,15 @@ function buildGizmo(radius: number): THREE.Group {
 }
 
 const CAMERA_POSE_COLOR = 0xff9500;
+// One colour per capture when a reconstruction holds several, so a merged map reads as the walks
+// it was built from rather than one tangle. The first is the single-capture colour, so a map with
+// one capture looks exactly as it did before.
+const CAPTURE_COLORS = [0xff9500, 0x4fc3f7, 0xaed581, 0xba68c8, 0xffd54f, 0xf06292];
+
+function captureColor(rigIndices: Float64Array | null, poseIndex: number): number {
+  if (!rigIndices) return CAMERA_POSE_COLOR;
+  return CAPTURE_COLORS[rigIndices[poseIndex] % CAPTURE_COLORS.length];
+}
 // Distinct from the reconstruction's own orange poses and from the RGB axis colors, so a handful
 // of overlaid localized query poses read immediately as "a different dataset."
 const LOCALIZED_POSE_COLOR = 0x9c27b0;
@@ -149,6 +158,7 @@ function buildCameraFrustums(
   size: number,
   color: number = CAMERA_POSE_COLOR,
   highlightEvery: number = LABEL_EVERY_N,
+  rigIndices: Float64Array | null = null,
 ): THREE.LineSegments {
   const halfWidth = size * 0.5;
   const halfHeight = size * 0.35;
@@ -161,8 +171,22 @@ function buildCameraFrustums(
 
   const vertices = new Float32Array(poseCount * 8 /* edges per frustum */ * 2 /* points per edge */ * 3);
   const colors = new Float32Array(vertices.length);
+  // One colour per capture, so the frustums of a merged map say which walk each pose came from.
+  // Cached per rig index because a pose's colour is looked up on every one of its eight edges.
   const fullColor = new THREE.Color(color);
   const dimmedColor = dimColor(fullColor);
+  const paletteCache = new Map<number, { full: THREE.Color; dimmed: THREE.Color }>();
+  const colorsFor = (poseIndex: number) => {
+    if (!rigIndices) return { full: fullColor, dimmed: dimmedColor };
+    const key = rigIndices[poseIndex];
+    let entry = paletteCache.get(key);
+    if (!entry) {
+      const full = new THREE.Color(captureColor(rigIndices, poseIndex));
+      entry = { full, dimmed: dimColor(full) };
+      paletteCache.set(key, entry);
+    }
+    return entry;
+  };
   const q = new THREE.Quaternion();
   const p = new THREE.Vector3();
   const apex = new THREE.Vector3();
@@ -194,7 +218,8 @@ function buildCameraFrustums(
         .applyQuaternion(q)
         .add(p);
     }
-    const poseColor = i % highlightEvery === 0 ? fullColor : dimmedColor;
+    const palette = colorsFor(i);
+    const poseColor = i % highlightEvery === 0 ? palette.full : palette.dimmed;
     for (let c = 0; c < 4; c++) pushEdge(apex, corners[c], poseColor);
     for (let c = 0; c < 4; c++) pushEdge(corners[c], corners[(c + 1) % 4], poseColor);
   }
@@ -268,15 +293,17 @@ function buildCameraArrows(
 // loop was drawn as 2.3 km of 89 m chords leaping across the scene, which reads as a reconstruction
 // full of teleports rather than a trajectory drawn in the wrong order.
 //
-// Drawn as LineSegments rather than a Line so a gap can be left between rigs: successive captures
-// in one reconstruction are separate walks, and joining the end of one to the start of the next
-// would invent a leg that nobody walked. Without frame ids (older reconstructions) every pose is
-// assumed to belong to one run, which is what a single-capture reconstruction is.
+// Drawn as LineSegments rather than a Line so a gap can be left between captures: successive
+// captures in one reconstruction are separate walks, and joining the end of one to the start of
+// the next would invent a leg that nobody walked. The break comes from the rig index, not from the
+// frame ids -- captures recorded in one session number straight through, so no id ever goes
+// backwards and an id-based test finds no seam at all. Without either (older reconstructions)
+// every pose is taken as one run, which is what a single-capture reconstruction is.
 function buildTrajectory(
   posePositions: Float32Array,
   poseCount: number,
   center: THREE.Vector3,
-  frameIds: Float64Array | null,
+  rigIndices: Float64Array | null,
 ): THREE.LineSegments {
   const at = (i: number) =>
     new THREE.Vector3(
@@ -284,18 +311,23 @@ function buildTrajectory(
       posePositions[i * 3 + 1] - center.y,
       posePositions[i * 3 + 2] - center.z,
     );
-  // A frame id going backwards means the previous pose ended one capture and this one starts the
-  // next; that seam is a jump in space, not a step along a path.
+  // A change of rig index means the previous pose ended one capture and this one starts the next;
+  // that seam is a jump in space, not a step along a path.
   const segments: number[] = [];
+  const colors: number[] = [];
+  const rgb = new THREE.Color();
   for (let i = 1; i < poseCount; i++) {
-    if (frameIds && frameIds[i] < frameIds[i - 1]) continue;
+    if (rigIndices && rigIndices[i] !== rigIndices[i - 1]) continue;
     const a = at(i - 1);
     const b = at(i);
     segments.push(a.x, a.y, a.z, b.x, b.y, b.z);
+    rgb.setHex(captureColor(rigIndices, i));
+    colors.push(rgb.r, rgb.g, rgb.b, rgb.r, rgb.g, rgb.b);
   }
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute("position", new THREE.BufferAttribute(new Float32Array(segments), 3));
-  const material = new THREE.LineBasicMaterial({ color: CAMERA_POSE_COLOR, transparent: true, opacity: 0.45 });
+  geometry.setAttribute("color", new THREE.BufferAttribute(new Float32Array(colors), 3));
+  const material = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.45 });
   return new THREE.LineSegments(geometry, material);
 }
 
@@ -444,7 +476,9 @@ export class PointCloudScene {
     posePositions: Float32Array = new Float32Array(0),
     poseOrientations: Float32Array = new Float32Array(0),
     poseCount = 0,
-    frameIds: Float64Array | null = null,
+    // Which capture each pose came from; null when the reconstruction predates the field, in which
+    // case every pose is treated as one capture.
+    rigIndices: Float64Array | null = null,
   ): void {
     const xs = new Float32Array(count);
     const ys = new Float32Array(count);
@@ -520,9 +554,18 @@ export class PointCloudScene {
     if (poseCount > 0) {
       const center = new THREE.Vector3(centerX, centerY, centerZ);
       const markerSize = Math.max(cloudRadius * 0.05, 0.005);
-      this.cameraFrustums = buildCameraFrustums(posePositions, poseOrientations, poseCount, center, markerSize);
+      this.cameraFrustums = buildCameraFrustums(
+        posePositions,
+        poseOrientations,
+        poseCount,
+        center,
+        markerSize,
+        CAMERA_POSE_COLOR,
+        LABEL_EVERY_N,
+        rigIndices,
+      );
       this.cameraArrows = buildCameraArrows(posePositions, poseOrientations, poseCount, center, markerSize);
-      this.cameraTrajectory = buildTrajectory(posePositions, poseCount, center, frameIds);
+      this.cameraTrajectory = buildTrajectory(posePositions, poseCount, center, rigIndices);
       this.poseLabels = buildPoseLabels(posePositions, poseCount, center, markerSize);
       this.scene.add(this.cameraFrustums, this.cameraArrows, this.cameraTrajectory, this.poseLabels);
     }

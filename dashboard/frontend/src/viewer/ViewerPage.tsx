@@ -37,8 +37,8 @@ export function ViewerPage() {
     sceneRef.current = scene;
 
     fetchPoints(reconstructionId)
-      .then(({ positions, colors, count, posePositions, poseOrientations, poseCount, frameIds }) => {
-        scene.setPoints(positions, colors, count, posePositions, poseOrientations, poseCount, frameIds);
+      .then(({ positions, colors, count, posePositions, poseOrientations, poseCount, rigIndices }) => {
+        scene.setPoints(positions, colors, count, posePositions, poseOrientations, poseCount, rigIndices);
         setHasCameraPoses(scene.hasCameraPoses());
         setStatus("ready");
         if (!localizationId) return null;
