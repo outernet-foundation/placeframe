@@ -325,6 +325,26 @@ export async function fetchPoints(reconstructionId: string): Promise<PointCloud>
   };
 }
 
+export interface AlignedMap {
+  reconstruction_id: string;
+  yaw_deg: number;
+  translation: [number, number, number];
+  scale: number;
+}
+
+// A coarse alignment is a starting placement, not a result: it is saved for inspection and for
+// whatever consumes it next, rather than being applied to the maps here.
+export function saveAlignment(
+  maps: AlignedMap[],
+  referenceId: string,
+  name: string | null,
+): Promise<{ id: string; created_at: string }> {
+  return request("/api/alignments", {
+    method: "POST",
+    body: JSON.stringify({ maps, reference_id: referenceId, name }),
+  });
+}
+
 export interface ScreenshotResult {
   path: string;
 }

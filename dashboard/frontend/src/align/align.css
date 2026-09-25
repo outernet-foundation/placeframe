@@ -1,0 +1,83 @@
+.align-page {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.align-side {
+  width: 620px;
+  flex: none;
+  padding: 16px;
+  overflow-y: auto;
+  border-right: 1px solid #2a2f37;
+}
+
+.align-canvas {
+  flex: 1;
+  min-width: 0;
+  cursor: grab;
+  touch-action: none;
+}
+
+.align-canvas:active {
+  cursor: grabbing;
+}
+
+.align-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+  font-size: 12px;
+}
+
+.align-table th {
+  text-align: left;
+  font-weight: 500;
+  opacity: 0.65;
+  padding: 4px 3px;
+}
+
+.align-table td {
+  padding: 3px;
+  border-top: 1px solid #23282f;
+  vertical-align: top;
+}
+
+.align-table tr.selected {
+  background: #1b222b;
+}
+
+.align-table input[type="number"] {
+  width: 62px;
+  padding: 2px 4px;
+}
+
+.align-table input[type="number"]:disabled {
+  opacity: 0.35;
+}
+
+.swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.align-near {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.align-hint {
+  font-size: 12px;
+  opacity: 0.65;
+  line-height: 1.5;
+  margin: 8px 0;
+}
+
+.align-error {
+  font-size: 11px;
+  color: #ef9a9a;
+}

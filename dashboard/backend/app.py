@@ -39,6 +39,7 @@ RECONSTRUCTIONS_DIR = DATA_DIR / "reconstructions"
 LOCALIZATIONS_DIR = DATA_DIR / "localizations"
 VISUALIZATIONS_DIR = DATA_DIR / "visualizations"
 POSELESS_SETS_DIR = DATA_DIR / "poseless_sets"
+ALIGNMENTS_DIR = DATA_DIR / "alignments"
 POSELESS_SETS_INDEX = POSELESS_SETS_DIR / "index.json"
 POSELESS_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
 VIDEO_EXTENSIONS = {".mp4", ".mov", ".m4v", ".insv"}
@@ -328,6 +329,79 @@ class ImportRequest:
     # Which views the sphere is reconstructed through, and how wide each one is.
     layout: str | None = None
     view_fov_deg: float | None = None
+
+
+@dataclass
+class AlignedMap:
+    """Where one map sits in the aligned frame.
+
+    Gravity is already solved -- every map is reconstructed gravity-aligned -- so the only free
+    rotation is yaw about the up axis. Offering the other two would let a placement tilt a map out
+    of the alignment it arrived with, which is the one part already known to be right.
+
+    A point p in the map's own frame lands at `yaw(scale * p) + translation`.
+    """
+
+    reconstruction_id: str
+    yaw_deg: float = 0.0
+    translation: tuple[float, float, float] = (0.0, 0.0, 0.0)
+    # 1.0 for anything whose scale is already metric -- a stereo baseline fixes it, and a free
+    # scale there can only introduce error. Meaningful only for a map with no metric anchor.
+    scale: float = 1.0
+
+
+@dataclass
+class AlignmentRequest:
+    maps: list[AlignedMap]
+    # The map left where it is, which the others are placed against. Without one the whole
+    # assembly can drift and "aligned" names nothing in particular.
+    reference_id: str
+    name: str | None = None
+
+
+# A coarse alignment is a starting placement, not a result: it is written out for inspection and
+# for whatever consumes it next (rewriting each capture's frames.csv into a common frame, say),
+# rather than being applied to anything here.
+@post("/api/alignments")
+async def save_alignment(data: AlignmentRequest) -> dict[str, Any]:
+    if not any(m.reconstruction_id == data.reference_id for m in data.maps):
+        raise ValidationException(f"reference_id {data.reference_id} is not one of the maps being aligned")
+    alignment_id = str(uuid.uuid4())
+    payload = {
+        "id": alignment_id,
+        "name": data.name,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "reference_id": data.reference_id,
+        "convention": "a point p in a map's own frame lands at yaw(scale * p) + translation",
+        "maps": [
+            {
+                "reconstruction_id": m.reconstruction_id,
+                "yaw_deg": m.yaw_deg,
+                "translation": list(m.translation),
+                "scale": m.scale,
+            }
+            for m in data.maps
+        ],
+    }
+    await asyncio.to_thread(_write_alignment, alignment_id, payload)
+    return payload
+
+
+def _write_alignment(alignment_id: str, payload: dict[str, Any]) -> None:
+    ALIGNMENTS_DIR.mkdir(parents=True, exist_ok=True)
+    (ALIGNMENTS_DIR / f"{alignment_id}.json").write_text(json.dumps(payload, indent=2))
+
+
+@get("/api/alignments")
+async def list_alignments() -> list[dict[str, Any]]:
+    return await asyncio.to_thread(_read_alignments)
+
+
+def _read_alignments() -> list[dict[str, Any]]:
+    if not ALIGNMENTS_DIR.exists():
+        return []
+    rows = [_read_json(path) for path in ALIGNMENTS_DIR.glob("*.json")]
+    return sorted((r for r in rows if r), key=lambda r: r.get("created_at") or "", reverse=True)
 
 
 @dataclass
@@ -956,6 +1030,8 @@ app = Litestar(
         import_reconstruction,
         import_path,
         import_estimate,
+        save_alignment,
+        list_alignments,
         list_localizations,
         delete_localization,
         register_poseless_set,
