@@ -87,6 +87,13 @@ function describeProgress(progress: JobProgress | null): string | null {
   return progress.detail ? `${name} (${progress.detail})` : name;
 }
 
+// Merging starts with placing the maps relative to each other: separate reconstructions arrive in
+// unrelated frames, so nothing can pair their frames by proximity until someone says roughly where
+// they sit. The aligner is that step, and it carries on to the merge itself.
+function openAligner(reconstructionIds: string[]): void {
+  window.open(`/align?maps=${reconstructionIds.join(",")}`, "_blank");
+}
+
 function openViewer(reconstructionId: string, runId?: string): void {
   const query = runId ? `reconstruction=${reconstructionId}&localization=${runId}` : `reconstruction=${reconstructionId}`;
   window.open(`/viewer?${query}`, "_blank", "width=1280,height=900");
@@ -352,10 +359,18 @@ export function CapturesPage() {
       .filter((k) => k.startsWith("run:"))
       .map((k) => k.slice(4))
       .filter((id) => !coveredRuns.has(id));
+    // Every reconstruction the selection implies, whether picked directly or through its capture.
+    // Only the succeeded ones can be merged: placing a map means drawing its points, and a
+    // reconstruction that never finished has none.
+    const statusById = new Map(
+      [...tree.byCapture.values()].flat().map((r) => [r.id, r.status] as const),
+    );
+    const mergeableIds = allReconstructions.filter((id) => statusById.get(id) === "succeeded");
     return {
       captureIds,
       reconstructionIds,
       runIds,
+      mergeableIds,
       cascadedReconstructions: coveredReconstructions.size,
       cascadedRuns: coveredRuns.size,
       total: captureIds.length + reconstructionIds.length + runIds.length,
@@ -623,8 +638,16 @@ export function CapturesPage() {
           {selecting ? (
             <>
               <span className="node-count">{plan.total} selected</span>
-              <button disabled title="Merging selected items isn't implemented yet">
-                Merge
+              <button
+                disabled={plan.mergeableIds.length < 2}
+                title={
+                  plan.mergeableIds.length < 2
+                    ? "Select two or more succeeded reconstructions to merge"
+                    : "Place these maps relative to each other, then reconstruct from all of them at once"
+                }
+                onClick={() => openAligner(plan.mergeableIds)}
+              >
+                Merge{plan.mergeableIds.length >= 2 ? ` ${plan.mergeableIds.length}…` : ""}
               </button>
               <button disabled={plan.total === 0} onClick={() => setDialog({ kind: "deleteSelection" })}>
                 Delete…
