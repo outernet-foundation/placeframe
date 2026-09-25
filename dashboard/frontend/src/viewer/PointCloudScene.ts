@@ -260,20 +260,43 @@ function buildCameraArrows(
   return new THREE.LineSegments(geometry, material);
 }
 
-// A polyline through pose positions in array order — the order frame_poses.npz was written in,
-// which follows the reconstructor's frame registration order (temporally coherent in practice for
-// incremental SfM over a continuous walk, though not guaranteed to be strictly sorted).
-function buildTrajectory(posePositions: Float32Array, poseCount: number, center: THREE.Vector3): THREE.Line {
-  const vertices = new Float32Array(poseCount * 3);
-  for (let i = 0; i < poseCount; i++) {
-    vertices[i * 3] = posePositions[i * 3] - center.x;
-    vertices[i * 3 + 1] = posePositions[i * 3 + 1] - center.y;
-    vertices[i * 3 + 2] = posePositions[i * 3 + 2] - center.z;
+// A polyline through pose positions in array order, which the reconstructor writes sorted by rig
+// and then by frame id — the order the frames were captured.
+//
+// It used to be COLMAP's own frame order, on the assumption that incremental SfM over a continuous
+// walk registers roughly in time. It does not, and the result was not subtly wrong: a clean 234 m
+// loop was drawn as 2.3 km of 89 m chords leaping across the scene, which reads as a reconstruction
+// full of teleports rather than a trajectory drawn in the wrong order.
+//
+// Drawn as LineSegments rather than a Line so a gap can be left between rigs: successive captures
+// in one reconstruction are separate walks, and joining the end of one to the start of the next
+// would invent a leg that nobody walked. Without frame ids (older reconstructions) every pose is
+// assumed to belong to one run, which is what a single-capture reconstruction is.
+function buildTrajectory(
+  posePositions: Float32Array,
+  poseCount: number,
+  center: THREE.Vector3,
+  frameIds: Float64Array | null,
+): THREE.LineSegments {
+  const at = (i: number) =>
+    new THREE.Vector3(
+      posePositions[i * 3] - center.x,
+      posePositions[i * 3 + 1] - center.y,
+      posePositions[i * 3 + 2] - center.z,
+    );
+  // A frame id going backwards means the previous pose ended one capture and this one starts the
+  // next; that seam is a jump in space, not a step along a path.
+  const segments: number[] = [];
+  for (let i = 1; i < poseCount; i++) {
+    if (frameIds && frameIds[i] < frameIds[i - 1]) continue;
+    const a = at(i - 1);
+    const b = at(i);
+    segments.push(a.x, a.y, a.z, b.x, b.y, b.z);
   }
   const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute("position", new THREE.BufferAttribute(vertices, 3));
+  geometry.setAttribute("position", new THREE.BufferAttribute(new Float32Array(segments), 3));
   const material = new THREE.LineBasicMaterial({ color: CAMERA_POSE_COLOR, transparent: true, opacity: 0.45 });
-  return new THREE.Line(geometry, material);
+  return new THREE.LineSegments(geometry, material);
 }
 
 // Wide canvas (not square) so multi-digit frame numbers aren't cramped; resolution only — the
@@ -366,7 +389,7 @@ export class PointCloudScene {
   private pointsObject: THREE.Points | null = null;
   private cameraFrustums: THREE.LineSegments | null = null;
   private cameraArrows: THREE.LineSegments | null = null;
-  private cameraTrajectory: THREE.Line | null = null;
+  private cameraTrajectory: THREE.LineSegments | null = null;
   private poseLabels: THREE.Group | null = null;
   private localizedFrustums: THREE.LineSegments | null = null;
   private localizedAxes: THREE.LineSegments | null = null;
@@ -421,6 +444,7 @@ export class PointCloudScene {
     posePositions: Float32Array = new Float32Array(0),
     poseOrientations: Float32Array = new Float32Array(0),
     poseCount = 0,
+    frameIds: Float64Array | null = null,
   ): void {
     const xs = new Float32Array(count);
     const ys = new Float32Array(count);
@@ -498,7 +522,7 @@ export class PointCloudScene {
       const markerSize = Math.max(cloudRadius * 0.05, 0.005);
       this.cameraFrustums = buildCameraFrustums(posePositions, poseOrientations, poseCount, center, markerSize);
       this.cameraArrows = buildCameraArrows(posePositions, poseOrientations, poseCount, center, markerSize);
-      this.cameraTrajectory = buildTrajectory(posePositions, poseCount, center);
+      this.cameraTrajectory = buildTrajectory(posePositions, poseCount, center, frameIds);
       this.poseLabels = buildPoseLabels(posePositions, poseCount, center, markerSize);
       this.scene.add(this.cameraFrustums, this.cameraArrows, this.cameraTrajectory, this.poseLabels);
     }

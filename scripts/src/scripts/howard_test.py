@@ -1033,8 +1033,12 @@ def points(
     # Raw binary on stdout, not --json: this feeds the dashboard's interactive (three.js) viewer,
     # where a compact fixed layout is cheaper to transfer and parse than JSON-encoding ~10^5-10^6
     # numbers. Layout: point_count:u32, positions:f32[point_count*3], colors:u8[point_count*3],
-    # pose_count:u32, pose_positions:f32[pose_count*3], pose_orientations(xyzw):f32[pose_count*4].
-    positions, colors, pose_positions, pose_orientations = run(_fetch_reconstruction_geometry(reconstruction_id))
+    # pose_count:u32, pose_positions:f32[pose_count*3], pose_orientations(xyzw):f32[pose_count*4],
+    # frame_ids:f64[pose_count]. Poses are in capture order (rig, then frame id); the ids ride along
+    # so a consumer can see where one capture's run ends and the next begins.
+    positions, colors, pose_positions, pose_orientations, frame_ids = run(
+        _fetch_reconstruction_geometry(reconstruction_id)
+    )
     stdout = sys.stdout.buffer
     stdout.write(pack("<I", len(positions)))
     stdout.write(np.ascontiguousarray(positions, dtype="<f4").tobytes())
@@ -1042,6 +1046,10 @@ def points(
     stdout.write(pack("<I", len(pose_positions)))
     stdout.write(np.ascontiguousarray(pose_positions, dtype="<f4").tobytes())
     stdout.write(np.ascontiguousarray(pose_orientations, dtype="<f4").tobytes())
+    # Appended last so a reader written against the older layout simply stops before it. f8 rather
+    # than i8 because the consumer is JavaScript, where a Float64Array holds a millisecond frame id
+    # exactly and a BigInt64Array would need converting at every use.
+    stdout.write(np.ascontiguousarray(frame_ids, dtype="<f8").tobytes())
     stdout.flush()
 
 
@@ -1052,7 +1060,9 @@ def export_poses(
     json_output: Annotated[bool, typer.Option("--json", help="Emit JSON instead of text")] = False,
 ) -> None:
     # Reuses the same tar-caching fetch as `points`/`visualize` — no new download path.
-    _positions, _colors, pose_positions, pose_orientations = run(_fetch_reconstruction_geometry(reconstruction_id))
+    _positions, _colors, pose_positions, pose_orientations, _frame_ids = run(
+        _fetch_reconstruction_geometry(reconstruction_id)
+    )
     if len(pose_positions) == 0:
         typer.echo(f"No camera poses found for reconstruction {reconstruction_id}", err=True)
         raise typer.Exit(1)
@@ -1609,11 +1619,17 @@ async def _show(reconstruction_id: UUID, cache: bool = False) -> ReconstructionR
             _fail(exception)
 
 
-ReconstructionGeometry = tuple[NDArray[np.float32], NDArray[np.uint8], NDArray[np.float32], NDArray[np.float32]]
+# positions, colors, pose positions, pose orientations, and the capture frame id of each pose --
+# which is what tells a consumer that the poses are in capture order, and where one capture ends.
+ReconstructionGeometry = tuple[
+    NDArray[np.float32], NDArray[np.uint8], NDArray[np.float32], NDArray[np.float32], NDArray[np.int64]
+]
 
 
 async def _fetch_point_cloud(reconstruction_id: UUID) -> tuple[NDArray[np.float32], NDArray[np.uint8]]:
-    positions, colors, _pose_positions, _pose_orientations = await _fetch_reconstruction_geometry(reconstruction_id)
+    positions, colors, _pose_positions, _pose_orientations, _frame_ids = await _fetch_reconstruction_geometry(
+        reconstruction_id
+    )
     return positions, colors
 
 
@@ -1626,6 +1642,67 @@ async def _fetch_reconstruction_geometry(reconstruction_id: UUID) -> Reconstruct
             except ApiException as exception:
                 _fail(exception)
     return _load_reconstruction_geometry(cached.read_bytes())
+
+
+def _poses_from_sfm_text(
+    tar: tarfile.TarFile,
+) -> tuple[NDArray[np.float32], NDArray[np.float32], NDArray[np.int64]] | None:
+    """Frame poses in capture order, read from the COLMAP text model rather than the npz.
+
+    frames.txt lines are `FRAME_ID RIG_ID QW QX QY QZ TX TY TZ N [SENSOR_TYPE SENSOR_ID DATA_ID]...`
+    holding rig_from_world; images.txt gives each data id a name whose stem is the capture
+    timestamp. Returns None when either file is missing, which is the caller's cue to give up
+    rather than guess.
+    """
+    try:
+        frames_member = tar.extractfile("sfm_model/frames.txt")
+        images_member = tar.extractfile("sfm_model/images.txt")
+    except KeyError:
+        return None
+    if frames_member is None or images_member is None:
+        return None
+
+    # images.txt alternates a pose line and a points2D line; only the pose lines carry a name.
+    image_timestamps: dict[int, int] = {}
+    for line in images_member.read().decode().splitlines():
+        if line.startswith("#") or not line.strip():
+            continue
+        fields = line.split()
+        if len(fields) < 10:
+            continue
+        match = re.search(r"/(\d+)\.[A-Za-z0-9]+$", fields[9])
+        if match:
+            image_timestamps[int(fields[0])] = int(match.group(1))
+
+    records: list[tuple[str, int, NDArray[np.float32], NDArray[np.float32]]] = []
+    for line in frames_member.read().decode().splitlines():
+        if line.startswith("#") or not line.strip():
+            continue
+        fields = line.split()
+        rig_id = fields[1]
+        rotation = Rotation.from_quat([float(fields[3]), float(fields[4]), float(fields[5]), float(fields[2])])
+        translation = np.array([float(fields[6]), float(fields[7]), float(fields[8])])
+        data_count = int(fields[9])
+        data_ids = [int(fields[10 + index * 3 + 2]) for index in range(data_count)]
+        timestamps = {image_timestamps[i] for i in data_ids if i in image_timestamps}
+        if len(timestamps) != 1:
+            continue
+        world_from_rig = rotation.as_matrix().T
+        records.append((
+            rig_id,
+            timestamps.pop(),
+            (-world_from_rig @ translation).astype(np.float32),
+            Rotation.from_matrix(world_from_rig).as_quat().astype(np.float32),
+        ))
+    if not records:
+        return None
+
+    records.sort(key=lambda record: (record[0], record[1]))
+    return (
+        np.stack([record[2] for record in records]),
+        np.stack([record[3] for record in records]),
+        np.array([record[1] for record in records], dtype=np.int64),
+    )
 
 
 def _load_reconstruction_geometry(tar_bytes: bytes) -> ReconstructionGeometry:
@@ -1644,11 +1721,25 @@ def _load_reconstruction_geometry(tar_bytes: bytes) -> ReconstructionGeometry:
         if pose_member is not None:
             pose_data = np.load(BytesIO(pose_member.read()))
             pose_positions, pose_orientations = pose_data["positions"], pose_data["orientations"]
+            if "frame_ids" in pose_data.files:
+                frame_ids = pose_data["frame_ids"]
+            else:
+                # Written before poses were ordered: the npz records neither the order nor the ids,
+                # so it cannot be sorted. It does not have to be -- sfm_model/frames.txt carries the
+                # same poses with their rig and data ids, and images.txt maps those to capture
+                # timestamps. Rebuilding from those two gives the ordering the npz lacks, so every
+                # reconstruction already on disk reads correctly without being run again.
+                recovered = _poses_from_sfm_text(tar)
+                if recovered is not None:
+                    pose_positions, pose_orientations, frame_ids = recovered
+                else:
+                    frame_ids = np.empty(0, dtype=np.int64)
         else:
             pose_positions = np.empty((0, 3), dtype=np.float32)
             pose_orientations = np.empty((0, 4), dtype=np.float32)
+            frame_ids = np.empty(0, dtype=np.int64)
 
-    return positions, colors, pose_positions, pose_orientations
+    return positions, colors, pose_positions, pose_orientations, frame_ids
 
 
 # Mirrors the `images[]` entry shape `_localize_one_image` produces (see LocalizationImage in the

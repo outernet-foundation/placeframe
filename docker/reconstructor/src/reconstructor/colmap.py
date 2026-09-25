@@ -22,6 +22,7 @@ from numpy import (
     eye,
     float32,
     float64,
+    int64,
     intp,
     median,
     savez_compressed,
@@ -279,13 +280,13 @@ def run_colmap_reconstruction(
 
     metrics.build_reconstruction_metrics(best_reconstruction)
 
-    registered = sorted(_registered_frames(rigs, colmap_image_ids, best_reconstruction), key=lambda entry: entry[0])
+    registered = sorted(_registered_frames(rigs, colmap_image_ids, best_reconstruction), key=lambda entry: entry[1])
     if not registered:
         raise RuntimeError("Could not find anchor frame in best reconstruction")
 
     gravity_samples_in_recon_world = [
         rig_from_world.rotation.matrix().T @ transform.gravity_in_rig_local
-        for _frame_id, transform, rig_from_world in registered
+        for _rig_id, _frame_id, transform, rig_from_world in registered
     ]
     gravity_stack = stack(gravity_samples_in_recon_world)
     gravity_in_recon_world_estimate = median(gravity_stack, axis=0)
@@ -295,7 +296,7 @@ def run_colmap_reconstruction(
     metrics.metrics.gravity_aligned_in_map_frame = True
     metrics.metrics.gravity_sample_count = len(gravity_samples_in_recon_world)
 
-    _first_frame_id, _first_transform, first_rig_from_world = registered[0]
+    _first_rig_id, _first_frame_id, _first_transform, first_rig_from_world = registered[0]
     first_camera_position = -first_rig_from_world.rotation.matrix().T @ first_rig_from_world.translation
     translation_align = -rotation_align @ first_camera_position
     best_reconstruction.transform(Sim3d(concatenate([rotation_align, translation_align.reshape(3, 1)], axis=1)))
@@ -304,11 +305,11 @@ def run_colmap_reconstruction(
     # residual is the prior-drift diagnostic surfaced for calibration-corpus filtering.
     if not options.is_multi_camera_capture:
         truth_centers_list: list[NDArray[float64]] = [
-            transform.translation.astype(float64) for _frame_id, transform, _ in registered
+            transform.translation.astype(float64) for _rig_id, _frame_id, transform, _ in registered
         ]
         map_centers_list: list[NDArray[float64]] = [
             -rig_from_world.rotation.matrix().T @ rig_from_world.translation
-            for _frame_id, _transform, rig_from_world in registered
+            for _rig_id, _frame_id, _transform, rig_from_world in registered
         ]
         if len(truth_centers_list) >= 3:
             truth_centers = asarray(truth_centers_list, dtype=float64)
@@ -338,22 +339,45 @@ def run_colmap_reconstruction(
     point_cloud_npz_file_path = output_path / "points3D.npz"
     savez_compressed(str(point_cloud_npz_file_path), positions=point_cloud_positions, colors=point_cloud_colors)
 
-    # Write frame poses to disk in NPZ format
-    frame_count = len(best_reconstruction.frames)
-    frame_positions = empty((frame_count, 3), dtype=float32)
-    frame_orientations = empty((frame_count, 4), dtype=float32)
+    # Write frame poses to disk in NPZ format, in the order the frames were captured.
+    #
+    # Reconstruction.frames is COLMAP's own map, whose order says nothing about time, and the file
+    # records no timestamp -- so a consumer that draws a trajectory through these poses in stored
+    # order draws chords between moments minutes apart. That is not a small cosmetic error: it
+    # turned a clean 234 m walk into an apparent 2.3 km of 89 m teleports, which reads as a broken
+    # reconstruction rather than a mis-drawn one. Ordering here, where the capture's own frame ids
+    # are still in hand, is the only place it can be done -- the npz cannot express it afterwards.
+    #
+    # Frames are grouped by rig and ordered by frame id within each, so every rig's trajectory is
+    # one contiguous run. A reconstruction of several captures still has a seam between rigs: a
+    # consumer drawing a single polyline joins the end of one capture to the start of the next.
+    ordered = sorted(
+        {
+            (rig_id, frame_id): (rig_id, frame_id, rig_from_world) for rig_id, frame_id, _, rig_from_world in registered
+        }.values(),
+        key=lambda entry: (entry[0], entry[1]),
+    )
+    frame_positions = empty((len(ordered), 3), dtype=float32)
+    frame_orientations = empty((len(ordered), 4), dtype=float32)
+    frame_ids = empty(len(ordered), dtype=int64)
 
-    for frame_index, frame in enumerate(cast(ValuesView[Frame], best_reconstruction.frames.values())):  # type: ignore
+    for frame_index, (_rig_id, frame_id, rig_from_world) in enumerate(ordered):
         # Convert from rig_from_world to world_from_rig
-        rig_from_world = cast(Rigid3d, frame.rig_from_world)
         world_from_rig_rotation_matrix = rig_from_world.rotation.matrix().T
         world_from_rig_translation = -world_from_rig_rotation_matrix @ rig_from_world.translation
 
         frame_positions[frame_index] = world_from_rig_translation
         frame_orientations[frame_index] = Rotation.from_matrix(world_from_rig_rotation_matrix).as_quat()
+        frame_ids[frame_index] = frame_id
 
+    # frame_ids rides along so a consumer can tell what the order means, and segment on it.
     frame_poses_npz_file_path = output_path / "frame_poses.npz"
-    savez_compressed(str(frame_poses_npz_file_path), positions=frame_positions, orientations=frame_orientations)
+    savez_compressed(
+        str(frame_poses_npz_file_path),
+        positions=frame_positions,
+        orientations=frame_orientations,
+        frame_ids=frame_ids,
+    )
 
     return best_reconstruction
 
@@ -362,7 +386,7 @@ def _registered_frames(
     rigs: dict[str, Rig],
     colmap_image_ids: dict[str, int],
     reconstruction: Reconstruction,
-) -> Iterator[tuple[int, FramePose, Rigid3d]]:
+) -> Iterator[tuple[str, int, FramePose, Rigid3d]]:
     # Multi-camera rigs (e.g. ZED stereo) share one Frame per rig+frame, so any registered
     # image of any camera in that frame yields the Frame's rig_from_world.
     for rig_id, rig in rigs.items():
@@ -371,7 +395,7 @@ def _registered_frames(
                 image_id = colmap_image_ids[f"{rig_id}/{camera_id}/{frame_id}.jpg"]
                 if image_id in reconstruction.images:
                     rig_from_world = cast(Rigid3d, cast(Frame, reconstruction.images[image_id].frame).rig_from_world)  # type: ignore
-                    yield int(frame_id), transform, rig_from_world
+                    yield rig_id, int(frame_id), transform, rig_from_world
                     break
 
 
