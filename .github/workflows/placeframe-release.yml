@@ -8,6 +8,18 @@ on:
       ci-run-id:
         description: "Override: use this CI run ID instead of looking up by SHA"
         required: false
+      dev-publish:
+        description: "Run the dev channel against this ref (manual publish; workflow_run automation needs the workflow file on the default branch)"
+        type: boolean
+        required: false
+        default: false
+      dev-run-id:
+        description: "CI run id to key dev versions to (required with dev-publish)"
+        required: false
+  workflow_run:
+    workflows: [Placeframe]
+    types: [completed]
+    branches: [dev]
 
 concurrency:
   group: release
@@ -20,20 +32,46 @@ permissions:
   actions: read
 
 jobs:
-  release:
+  publish-stable-pypi:
+    # PyPI trusted publishers are identified by (owner, repo, workflow filename, environment) and
+    # that tuple is unique per project — so every PyPI package publishes from its own job under its
+    # own pypi-<project> environment. Runs before the main publish-stable job so create-release sees all tags.
+    if: github.event_name != 'workflow_run' && inputs.dev-publish != true
+    strategy:
+      matrix:
+        include:
+          - package: placeframe-common
+            environment: pypi-placeframe-common
+          - package: placeframe-core-python
+            environment: pypi-placeframe-core
     runs-on: ubuntu-latest
+    environment: ${{ matrix.environment }}
+    permissions:
+      contents: write
+      id-token: write
     steps:
-      - name: Generate app token
-        id: app-token
-        uses: actions/create-github-app-token@v2
-        with:
-          app-id: ${{ secrets.PLACEFRAME_CI_APP_ID }}
-          private-key: ${{ secrets.PLACEFRAME_CI_PRIVATE_KEY }}
-
       - uses: actions/checkout@v5
         with:
           ref: main
-          token: ${{ steps.app-token.outputs.token }}
+
+      # Workaround: fetch-tags is broken with shallow clones
+      - run: git fetch --tags origin
+
+      - uses: ./.github/actions/setup-uv
+
+      - name: Publish Python package
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: uvx --from release-devkit==0.1.11 publish-stable --config build/publish-config.json --only ${{ matrix.package }}
+
+  publish-stable:
+    if: github.event_name != 'workflow_run' && inputs.dev-publish != true
+    needs: [publish-stable-pypi]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
 
       # Workaround: fetch-tags is broken with shallow clones
       - run: git fetch --tags origin
@@ -44,15 +82,97 @@ jobs:
         id: fetch-ci-artifacts
         env:
           GH_TOKEN: ${{ github.token }}
-        run: uv run --no-sync fetch-ci-artifacts ${{ inputs.ci-run-id && format('--ci-run-id {0}', inputs.ci-run-id) || '' }}
+        run: uvx --from release-devkit==0.1.11 fetch-ci-artifacts --config build/publish-config.json ${{ inputs.ci-run-id && format('--ci-run-id {0}', inputs.ci-run-id) || '' }}
 
-      - name: Publish packages
+      - name: Publish stable
         env:
           NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: uv run --no-sync publish-packages
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          uvx --from release-devkit==0.1.11 publish-stable
+          --config build/publish-config.json
+          --exclude placeframe-common --exclude placeframe-core-python
 
       - name: Create GitHub Release
         env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: uv run --no-sync create-release
+          GH_TOKEN: ${{ github.token }}
+        run: uvx --from release-devkit==0.1.11 create-release --config build/publish-config.json
+
+  publish-dev:
+    # The dev channel: every green dev push publishes immutable -dev.<ci-run-id> prereleases.
+    # Runs via workflow_run (after the Placeframe CI workflow succeeds on dev) so greenness is proven
+    # before anything reaches a registry — or manually via workflow_dispatch against dev (the
+    # workflow_run trigger only registers once this file reaches the default branch, so dispatch is
+    # the dev channel's trigger until the release merge lands it on main).
+    # Must stay in this workflow file: npm allows one trusted publisher per package, bound to a
+    # single workflow filename shared with the stable release jobs.
+    # Publishes everything except the PyPI pair, which rides publish-dev-pypi (per-environment tuples).
+    if: >-
+      (github.event_name == 'workflow_run'
+        && github.event.workflow_run.event == 'push'
+        && github.event.workflow_run.conclusion == 'success'
+        && github.event.workflow_run.head_branch == 'dev')
+      || (github.event_name == 'workflow_dispatch' && inputs.dev-publish == true)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
+
+      # Workaround: fetch-tags is broken with shallow clones
+      - run: git fetch --tags origin
+
+      - uses: ./.github/actions/setup-uv
+
+      - name: Publish dev prereleases
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+          # npm decides in silence whether to attempt the OIDC exchange; without verbose a trusted-publisher
+          # mismatch surfaces as a bare ENEEDAUTH indistinguishable from a missing token
+          NPM_CONFIG_LOGLEVEL: verbose
+        run: >-
+          uvx --from release-devkit==0.1.11 publish-dev
+          --config build/publish-config.json
+          --run-id ${{ github.event.workflow_run.id || inputs.dev-run-id }}
+          --exclude placeframe-common --exclude placeframe-core-python
+
+  publish-dev-pypi:
+    # Dev channel for the PyPI pair — one job per package under its pypi-<project> environment,
+    # same trigger and same workflow file as publish-dev (see publish-stable-pypi for the tuple rule).
+    if: >-
+      (github.event_name == 'workflow_run'
+        && github.event.workflow_run.event == 'push'
+        && github.event.workflow_run.conclusion == 'success'
+        && github.event.workflow_run.head_branch == 'dev')
+      || (github.event_name == 'workflow_dispatch' && inputs.dev-publish == true)
+    strategy:
+      matrix:
+        include:
+          - package: placeframe-common
+            environment: pypi-placeframe-common
+          - package: placeframe-core-python
+            environment: pypi-placeframe-core
+    runs-on: ubuntu-latest
+    environment: ${{ matrix.environment }}
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
+
+      # Workaround: fetch-tags is broken with shallow clones
+      - run: git fetch --tags origin
+
+      - uses: ./.github/actions/setup-uv
+
+      - name: Publish dev prerelease
+        run: >-
+          uvx --from release-devkit==0.1.11 publish-dev
+          --config build/publish-config.json
+          --run-id ${{ github.event.workflow_run.id || inputs.dev-run-id }}
+          --only ${{ matrix.package }}

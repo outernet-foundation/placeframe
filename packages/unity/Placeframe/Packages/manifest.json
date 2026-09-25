@@ -1,8 +1,7 @@
 {
   "dependencies": {
-    "com.cysharp.r3": "https://github.com/Cysharp/R3.git?path=src/R3.Unity/Assets/R3.Unity#1.2.9",
-    "com.cysharp.unitask": "https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask",
-    "com.github-glitchenzo.nugetforunity": "https://github.com/GlitchEnzo/NuGetForUnity.git?path=/src/NuGetForUnity",
+    "com.cysharp.r3": "1.3.1",
+    "com.cysharp.unitask": "2.5.11",
     "com.magicleap.unitysdk": "2.6.0",
     "com.unity.ai.navigation": "2.0.9",
     "com.unity.cloud.gltfast": "6.15.1",
@@ -18,7 +17,11 @@
     "com.unity.toolchain.linux-x86_64": "2.0.11",
     "com.unity.ugui": "2.0.0",
     "com.unity.visualscripting": "1.9.7",
-    "org.nuget.placeframeapiclient": "file:../../../../packages/generated/csharp/api-client/src/PlaceframeApiClient",
+    "org.nuget.mathnet.numerics": "5.0.0",
+    "org.nuget.observablecollections.r3": "3.3.4",
+    "org.outernet.placeframe.apiclient": "file:../../../../packages/generated/csharp/api-client/src/PlaceframeApiClient",
+    "org.nuget.polly": "8.8.0",
+    "org.nuget.sharpziplib": "1.4.2",
     "com.unity.modules.accessibility": "1.0.0",
     "com.unity.modules.ai": "1.0.0",
     "com.unity.modules.androidjni": "1.0.0",
@@ -58,6 +61,14 @@
       "url": "https://registry.npmjs.org",
       "scopes": [
         "com.magicleap"
+      ]
+    },
+    {
+      "name": "package.openupm.com",
+      "url": "https://package.openupm.com",
+      "scopes": [
+        "com.cysharp",
+        "org.nuget"
       ]
     }
   ]

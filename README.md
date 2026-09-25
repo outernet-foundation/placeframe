@@ -38,13 +38,54 @@ Inspired by (and heavily borrowing from) the extremely useful [Hierarchical-Loca
 - [Docker Engine](https://docs.docker.com/engine/install/)
 - [Docker Compose](https://docs.docker.com/compose/install/)
 - [NVIDIA CUDA](https://developer.nvidia.com/cuda-downloads) (experimental [ROCm](https://rocm.docs.amd.com/) support also available)
-- A free [ngrok](https://ngrok.com/) account with:
-  - An auth token
-  - A static domain (your "dev domain")
+- One of the two deployment shapes below
+
+## Deployment shapes
+
+Placeframe has two equally-supported ways to make the backend reachable from XR clients. Pick whichever fits your network — both are tested first-class paths.
+
+| | Tunneled via ngrok | Air-gapped on LAN |
+|---|---|---|
+| **Reach** | Public internet | Local network only |
+| **Internet at the host** | Required | Not required |
+| **Transport to clients** | HTTPS (ngrok terminates TLS) | Cleartext HTTP |
+| **Auth** | Keycloak OAuth (default) or disabled | `AUTH_MODE=disabled` (cleartext + OAuth is rejected at boot) |
+| **What clients enter** | `PUBLIC_URL=https://<sub>.ngrok-free.app` | `PUBLIC_URL=http://<host-LAN-IP>:<port>` |
+
+Consumers that layer additional services on top of placeframe (e.g. the Make-it-Sing multiplayer client, which adds a LiveKit server) may require additional ports and a different tunnel agent — see those consumers' own setup docs.
+
+### Tunneled via ngrok
+
+[ngrok](https://ngrok.com) is a tunneling service that forwards HTTP. Placeframe ships with the ngrok agent as a container alongside the stack; one HTTP tunnel covers the gateway, which is all placeframe-on-its-own needs.
+
+1. **Sign up** at [ngrok.com](https://ngrok.com) and grab your authtoken from the dashboard.
+2. **Reserve a domain** (ngrok's free tier gives one static subdomain on `*.ngrok-free.app`; paid tiers can use a custom domain).
+3. **Copy `.env.sample` to `.env`** and fill in:
+
+   | Variable | Value |
+   |---|---|
+   | `PUBLIC_URL` | `https://<your-ngrok-domain>` — the URL Unity clients will hit |
+   | `NGROK_DOMAIN` | `<your-ngrok-domain>` (just the host portion, no scheme) |
+   | `NGROK_AUTHTOKEN` | The token from step 1 |
+
+   The ngrok agent activates when `NGROK_DOMAIN` is set; leaving it empty disables the tunnel.
+
+4. **Bring it up:** `uv run up`. Visit `https://<your-ngrok-domain>` to confirm the gateway is reachable.
+
+### Air-gapped on LAN
+
+For a self-contained deployment with no internet — every XR client on the same LAN as the server — set:
+
+| Variable | Value |
+|---|---|
+| `PUBLIC_URL` | `http://<host-LAN-IP>:<GATEWAY_PORT>`, e.g. `http://192.168.1.100:58080` |
+| `AUTH_MODE` | `disabled` |
+
+Leave `NGROK_DOMAIN` empty — the ngrok container will start and exit cleanly. The gateway serves cleartext HTTP on the LAN; distributing an internal CA to every Unity client is the cert-handling overhead this mode exists to avoid. `AUTH_MODE=keycloak` is rejected against a cleartext `PUBLIC_URL` because OAuth credentials must not flow without TLS.
 
 ## Backend
 
-To bring up the backend, first copy `.env.sample` to `.env` and configure `PUBLIC_DOMAIN` and `NGROK_AUTHTOKEN` in that file, for your specific ngrok account. Then run:
+Once `.env` is filled in for your chosen exposure mode, bring up the backend with:
 
 ```
 uv run up
@@ -58,9 +99,9 @@ To bring down the backend, run:
 uv run down
 ```
 
-While the server is running, you can visit your ngrok static domain in a web browser to browse the OpenAPI schema and test requests.
+While the server is running, you can visit `${PUBLIC_URL}` in a web browser to browse the OpenAPI schema and test requests.
 
-The backend provides a reference [Keycloak](https://www.keycloak.org/) implementation for authentication and authorization, so you will need to authorize yourself in order to test requests. By default, you can use the username "user", and the password "password". This is configured in the [Keycloak realm configuration file](docker/keycloak/realm-export/placeframe.json).
+The backend provides a reference [Keycloak](https://www.keycloak.org/) implementation for authentication and authorization, so you will need to authorize yourself in order to test requests. By default, you can use the username "user", and the password "password". This is configured in the [Keycloak realm configuration file](workloads/auth-initializer/realm-export/placeframe.json).
 
 The backend also includes the following admin UIs, accessible from your public domain:
 
@@ -69,24 +110,34 @@ The backend also includes the following admin UIs, accessible from your public d
 
 ## Capture Tool
 
-Placeframe has a tool built in Unity for capturing and submitting map data, as well as validating reconstructed maps by localizing against them. An Android build is available on the [releases page](https://github.com/outernet-foundation/placeframe/releases/latest).
-
-With this application, you can log in to your Placeframe backend, capture data of your environment (we recommend walking the perimeter of the environment with camera facing inwards), submit that data to the backend for localization map reconstruction, and finally validate that map by localizing against it. A few moments after starting relocalization, you will see a point cloud in your environment, tracking your environment.
-
-**NOTE:** In this application, relocalization runs at a higher frequency than is ideal for real applications. Placeframe defers to the device's native world tracking for high-precision, low-latency localization, only intervening to correct drift against its canonical reference frame, by filtering out low-confidence and low-novelty relocalization results. However, this filtering is currently fairly primitive — more sophisticated tools for controlling this behavior will ship in a future release.
-
-## Map Registration Tool
-
-Placeframe also has a tool built in Unity for **registering** maps against Cesium Tilesets. Windows and Linux standalone builds are available on the [releases page](https://github.com/outernet-foundation/placeframe/releases/latest).
-
-Using this tool, previously constructed localization maps can be visualized using their point clouds and visually aligned with Open Street Map (OSM) building geometry, or Google Photorealistic Tiles. This can be used to georeference localization maps, allowing Placeframe applications to anchor AR content using GPS coordinates.
+The phone app for capturing and submitting map data, and for validating reconstructed maps by localizing against them, lives in the [placeframe-capture-tool](https://github.com/outernet-foundation/placeframe-capture-tool) repo; Android builds are available on its [releases page](https://github.com/outernet-foundation/placeframe-capture-tool/releases/latest).
 
 ## Unity Packages
 
-Placeframe has Unity packages for ARFoundation and Magic Leap 2 that handle communication between a Unity app and a Placeframe backend deployment. They are published to npm and can be installed via the Unity Package Manager using a [scoped registry](https://docs.unity3d.com/Manual/upm-scoped.html):
+Placeframe ships Unity packages for communicating with a Placeframe backend deployment: the core relocalization facade, per-stack camera providers (ARFoundation, Magic Leap 2), the generated API client, auth handlers, and structured logging. They are published to npm under the `org.outernet.*` scope and installed via the Unity Package Manager using a [scoped registry](https://docs.unity3d.com/Manual/upm-scoped.html):
 
 | Package | npm |
 |---|---|
 | `org.outernet.placeframe` | [Core](https://www.npmjs.com/package/org.outernet.placeframe) |
 | `org.outernet.placeframe.arfoundation` | [ARFoundation](https://www.npmjs.com/package/org.outernet.placeframe.arfoundation) |
 | `org.outernet.placeframe.magicleap` | [Magic Leap](https://www.npmjs.com/package/org.outernet.placeframe.magicleap) |
+| `org.outernet.placeframe.apiclient` | [API Client](https://www.npmjs.com/package/org.outernet.placeframe.apiclient) |
+| `org.outernet.placeframe.auth` | [Auth](https://www.npmjs.com/package/org.outernet.placeframe.auth) |
+| `org.outernet.logging` | [Logging](https://www.npmjs.com/package/org.outernet.logging) |
+
+Consumers need two scoped registries in `Packages/manifest.json` — npmjs for the `org.outernet` scope, and [UnityNuGet](https://github.com/xoofx/UnityNuGet) for the third-party `org.nuget.*` dependencies (Polly, JsonSubTypes, MathNet.Numerics, ...):
+
+```json
+  "scopedRegistries": [
+    {
+      "name": "npmjs",
+      "url": "https://registry.npmjs.org",
+      "scopes": [ "org.outernet" ]
+    },
+    {
+      "name": "UnityNuGet",
+      "url": "https://unitynuget-registry.openupm.com",
+      "scopes": [ "org.nuget" ]
+    }
+  ]
+```

@@ -11,11 +11,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
-env:
-  CACHE_REGISTRY: ghcr.io/${{ github.repository }}/cache
-
 jobs:
   preflight:
+    needs: [mirror]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -31,55 +29,30 @@ jobs:
       - name: Preflight checks and codegen staleness
         run: uv run --no-sync preflight
 
-  activate-license:
+  mirror:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-    outputs:
-      cache-tag: ${{ steps.tag.outputs.value }}
-    container:
-      image: unityci/editor:6000.0.66f1-linux-il2cpp-3
-      volumes:
-        - /usr/local/lib/android:/to_clean/android
-        - /usr/share/dotnet:/to_clean/dotnet
-        - /usr/local/.ghcup:/to_clean/ghcup
-        - /usr/share/swift:/to_clean/swift
+    name: mirror-images
     steps:
-      - uses: actions/checkout@v5
+      - name: Checkout Code
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
 
       - uses: ./.github/actions/setup-uv
 
-      - name: Compute license cache tag
-        id: tag
-        run: echo "value=$(uv run --no-sync unity-license-tag)" >> "$GITHUB_OUTPUT"
-
-      - name: Activate Unity license
-        run: uv run --no-sync activate-unity-license --oras-push
+      - name: Login to ghcr
         env:
-          GITHUB_TOKEN: ${{ github.token }}
-          LICENSE_CACHE_TAG: ${{ steps.tag.outputs.value }}
-          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
-          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
-          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: echo "$GITHUB_TOKEN" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-  matrix:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    outputs:
-      build-matrix: ${{ steps.generate.outputs.matrix }}
-    steps:
-      - uses: actions/checkout@v5
-
-      - uses: ./.github/actions/setup-uv
-
-      - name: Generate build matrix
-        id: generate
-        run: echo "matrix=$(uv run --no-sync unity-matrix)" >> "$GITHUB_OUTPUT"
+      - name: Populate image mirror
+        run: uvx --from docker-devkit==0.1.18 mirror
 
   build-docker:
-    needs: [preflight]
+    needs: [preflight, mirror]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -97,90 +70,27 @@ jobs:
 
       - uses: ./.github/actions/setup-uv
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
       - name: Build
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: uv run --no-sync build-docker --variant ${{ matrix.variant }}
 
-  build-unity:
-    needs: [preflight, activate-license, matrix]
-    if: >-
-      !cancelled()
-      && needs.preflight.result == 'success'
-      && needs.activate-license.result == 'success'
-    name: ${{ matrix.project-name }} (${{ matrix.platform }})
+  publish-compose:
+    needs: [build-docker]
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-    container:
-      image: unityci/editor:6000.0.66f1-${{ matrix.module }}-3
-      volumes:
-        - /usr/local/lib/android:/to_clean/android
-        - /usr/share/dotnet:/to_clean/dotnet
-        - /usr/local/.ghcup:/to_clean/ghcup
-        - /usr/share/swift:/to_clean/swift
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.matrix.outputs.build-matrix) }}
-    steps:
-      - uses: actions/checkout@v5
-
-      - uses: ./.github/actions/setup-uv
-
-      - name: Cache UPM packages
-        uses: actions/cache@v5
-        with:
-          path: ~/.cache/Unity/upm
-          key: unity-upm-${{ hashFiles(format('{0}/Packages/manifest.json', matrix.project)) }}
-          restore-keys: |
-            unity-upm-
-
-      - name: Inject UnityEnv (MakeItSing only)
-        if: matrix.project-name == 'MakeItSing'
-        env:
-          SUPABASE_PROJECT_ID: ${{ secrets.MAKEITSING_SUPABASE_PROJECT_ID }}
-          SUPABASE_API_KEY: ${{ secrets.MAKEITSING_SUPABASE_API_KEY }}
-          PHOTON_PROJECT_ID: ${{ secrets.MAKEITSING_PHOTON_PROJECT_ID }}
-        run: uv run --no-sync inject-unity-env
-
-      - name: Build
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          LICENSE_CACHE_TAG: ${{ needs.activate-license.outputs.cache-tag }}
-        run: |
-          uv run --no-sync build-unity \
-            --project ${{ matrix.project-name }} \
-            --project-path ${{ matrix.project }} \
-            --platform ${{ matrix.platform }} \
-            --cache-key ${{ matrix.cache-key }} \
-            --run-number ${{ github.run_number }} \
-            --branch ${{ github.head_ref || github.ref_name }} \
-            --registry "$CACHE_REGISTRY"
-
-      - name: Upload Build Artifacts
-        if: success()
-        uses: actions/upload-artifact@v6
-        with:
-          name: ${{ matrix.project-name }}-${{ matrix.platform }}
-          path: /tmp/unity-builds/
-          if-no-files-found: ignore
-
-      - name: Upload Build Report
-        if: always()
-        uses: actions/upload-artifact@v6
-        with:
-          name: ${{ matrix.project-name }}-${{ matrix.platform }}-build-report
-          path: ${{ matrix.project }}/Build/**/BuildReport.json
-          if-no-files-found: ignore
-
-  build-zed:
-    needs: [preflight]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    name: build-zed
+      matrix:
+        variant: [cuda, rocm]
+    name: publish-compose (${{ matrix.variant }})
     steps:
       - name: Checkout Code
         uses: actions/checkout@v5
@@ -189,45 +99,25 @@ jobs:
 
       - uses: ./.github/actions/setup-uv
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: arm64
-
-      - name: Create builder and login
+      - name: Publish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          docker buildx create --use --driver docker-container
-          echo "$GITHUB_TOKEN" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-
-      - name: Build
-        run: uv run --no-sync build --mode ci --gpu none --bake-file compose.zed.bake.yml --targets zed-capture
-
-      - name: Upload .env.lock
-        uses: actions/upload-artifact@v6
-        with:
-          name: env-lock-zed
-          path: .env.lock
-          include-hidden-files: true
+          BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+        run: uv run --no-sync publish-compose --variant ${{ matrix.variant }}
 
   ensure-release-pr:
-    needs: [build-docker, build-unity, build-zed]
+    needs: [build-docker, publish-compose]
     if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
-      - name: Generate app token
-        id: app-token
-        uses: actions/create-github-app-token@v2
-        with:
-          app-id: ${{ secrets.PLACEFRAME_CI_APP_ID }}
-          private-key: ${{ secrets.PLACEFRAME_CI_PRIVATE_KEY }}
-
       - uses: actions/checkout@v5
 
       - uses: ./.github/actions/setup-uv
 
       - name: Ensure release PR exists
         env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: uv run --no-sync ensure-release-pr
+          GH_TOKEN: ${{ github.token }}
+        run: uvx --from release-devkit==0.1.11 ensure-release-pr

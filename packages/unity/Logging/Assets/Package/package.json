@@ -13,5 +13,9 @@
   "author": {
     "name": "Elliot Pjecha",
     "email": "epjecha@gmail.com"
+  },
+  "dependencies": {
+    "com.cysharp.unitask": "2.5.10",
+    "com.cysharp.r3": "1.2.9"
   }
 }

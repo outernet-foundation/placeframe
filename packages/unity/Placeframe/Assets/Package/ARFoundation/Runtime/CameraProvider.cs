@@ -1,5 +1,6 @@
 using System;
 using System.Buffers;
+using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using PlaceframeApiClient.Model;
@@ -16,6 +17,87 @@ namespace Placeframe.Core.ARFoundation
 {
     public class CameraProvider : ICameraProvider
     {
+        private class AnchorChain
+        {
+            // Inside ARCore's good-tracking radius; smaller multiplies handovers and cumulative drift, larger degrades the cached transform.
+            private const float HandoverDistanceMeters = 4f;
+
+            private readonly ARAnchorManager _anchorManager;
+            private readonly List<ARAnchor> _allAnchors = new();
+
+            private ARAnchor _active;
+            private Vector3 _originFromActivePosition;
+            private Quaternion _originFromActiveRotation;
+
+            public AnchorChain(ARAnchorManager anchorManager, ARAnchor origin)
+            {
+                _anchorManager = anchorManager;
+                _active = origin;
+                _originFromActivePosition = Vector3.zero;
+                _originFromActiveRotation = Quaternion.identity;
+                _allAnchors.Add(origin);
+            }
+
+            public async UniTask<(Vector3 position, Quaternion rotation)> SampleCameraPose(Camera camera)
+            {
+                if (NeedsHandover(camera.transform.position))
+                    await Handover(camera);
+
+                // Limited still emits; the reconstructor's truth-alignment gate catches captures that drifted too far to use.
+                if (_active.trackingState == TrackingState.None)
+                    throw new Exception("Active anchor tracking lost");
+
+                Vector3 activeFromCameraPosition = _active.transform.InverseTransformPoint(camera.transform.position);
+                Quaternion activeFromCameraRotation = Quaternion.Inverse(_active.transform.rotation) * camera.transform.rotation;
+
+                Vector3 originFromCameraPosition = _originFromActiveRotation * activeFromCameraPosition + _originFromActivePosition;
+                Quaternion originFromCameraRotation = _originFromActiveRotation * activeFromCameraRotation;
+
+                return (originFromCameraPosition, originFromCameraRotation);
+            }
+
+            public void Dispose() => UniTask.Post(DestroyAllAnchors);
+
+            private void DestroyAllAnchors()
+            {
+                foreach (var anchor in _allAnchors)
+                {
+                    if (anchor != null)
+                        UnityEngine.Object.Destroy(anchor.gameObject);
+                }
+            }
+
+            private bool NeedsHandover(Vector3 cameraWorldPosition)
+            {
+                if (_active.trackingState != TrackingState.Tracking)
+                    return true;
+
+                return Vector3.Distance(cameraWorldPosition, _active.transform.position) > HandoverDistanceMeters;
+            }
+
+            private async UniTask Handover(Camera camera)
+            {
+                var result = await _anchorManager.TryAddAnchorAsync(new Pose(camera.transform.position, camera.transform.rotation));
+
+                if (result.value == null)
+                    return;
+
+                var newAnchor = result.value;
+                _allAnchors.Add(newAnchor);
+
+                // Skip if either anchor is degraded; a sloppy cached transform poisons every future frame.
+                if (_active.trackingState != TrackingState.Tracking || newAnchor.trackingState != TrackingState.Tracking)
+                    return;
+
+                Vector3 activeFromNewPosition = _active.transform.InverseTransformPoint(newAnchor.transform.position);
+                Quaternion activeFromNewRotation = Quaternion.Inverse(_active.transform.rotation) * newAnchor.transform.rotation;
+
+                _originFromActivePosition = _originFromActiveRotation * activeFromNewPosition + _originFromActivePosition;
+                _originFromActiveRotation = _originFromActiveRotation * activeFromNewRotation;
+                _active = newAnchor;
+            }
+        }
+
         private readonly ARCameraManager _cameraManager;
         private readonly ARAnchorManager _anchorManager;
 
@@ -34,11 +116,11 @@ namespace Placeframe.Core.ARFoundation
         public Observable<CameraFrame> Frames(float intervalSeconds, bool useCameraPoseAnchoring = false)
         {
             return (
-                // If anchoring is requested, asynchronously prepare an anchor
+                // If anchoring is requested, asynchronously prepare an anchor chain
                 useCameraPoseAnchoring
-                    ? Observable.FromAsync(async cancellationToken => await PrepareAnchor(cancellationToken))
-                    : Observable.Return<ARAnchor>(null)
-            ).SelectMany(anchor =>
+                    ? Observable.FromAsync(async cancellationToken => await PrepareAnchorChain(cancellationToken))
+                    : Observable.Return<AnchorChain>(null)
+            ).SelectMany(chain =>
                 Observable
                     // Observe ARCameraManager frameReceived events
                     .FromEvent<ARCameraFrameEventArgs>(
@@ -49,8 +131,8 @@ namespace Placeframe.Core.ARFoundation
                     .ThrottleLast(TimeSpan.FromSeconds(intervalSeconds))
                     // Emit a CameraFrame event for each new ARCameraManager frameReceived event
                     .SelectAwait(
-                        async (_, cancellationToken) => await CreateCameraFrame(anchor, cancellationToken),
-                        // Skip frames if they pile up
+                        async (_, cancellationToken) => await CreateCameraFrame(chain, cancellationToken),
+                        // Drop also serializes handover so SampleCameraPose is not re-entered during TryAddAnchorAsync.
                         AwaitOperation.Drop
                     )
                     // Filter out null CameraFrame results (happens when TryAcquireLatestCpuImage fails)
@@ -58,9 +140,9 @@ namespace Placeframe.Core.ARFoundation
                     // When a subscription on this observable is disposed
                     .Do(onDispose: () =>
                     {
-                        // If anchoring was requested, dispose the anchor
+                        // If anchoring was requested, dispose all anchors in the chain
                         if (useCameraPoseAnchoring)
-                            DisposeAnchor(anchor);
+                            chain.Dispose();
                     })
             );
         }
@@ -138,7 +220,7 @@ namespace Placeframe.Core.ARFoundation
             );
         }
 
-        private async UniTask<ARAnchor> PrepareAnchor(CancellationToken cancellationToken)
+        private async UniTask<AnchorChain> PrepareAnchorChain(CancellationToken cancellationToken)
         {
             await UniTask.WaitUntil(
                 () => ARSession.state == ARSessionState.SessionTracking,
@@ -152,13 +234,13 @@ namespace Placeframe.Core.ARFoundation
                 )
             );
 
-            return result.value;
+            if (result.value == null)
+                throw new Exception("Failed to add origin anchor");
+
+            return new AnchorChain(_anchorManager, result.value);
         }
 
-        private void DisposeAnchor(ARAnchor anchor) =>
-            UniTask.Post(() => UnityEngine.Object.Destroy(anchor.gameObject));
-
-        private async UniTask<CameraFrame?> CreateCameraFrame(ARAnchor anchor, CancellationToken cancellationToken)
+        private async UniTask<CameraFrame?> CreateCameraFrame(AnchorChain chain, CancellationToken cancellationToken)
         {
             XRCpuImage.AsyncConversion conversion;
             TextureFormat textureFormat;
@@ -191,7 +273,7 @@ namespace Placeframe.Core.ARFoundation
             using var conversionHandle = conversion;
 
             // Get camera pose at the moment of capture
-            (Vector3 cameraPosition, Quaternion cameraRotation) = GetCameraPose(anchor);
+            (Vector3 cameraPosition, Quaternion cameraRotation) = await GetCameraPose(chain);
 
             // Await conversion completion
             while (!conversionHandle.status.IsDone())
@@ -250,25 +332,22 @@ namespace Placeframe.Core.ARFoundation
             }
         }
 
-        private (Vector3 position, Quaternion rotation) GetCameraPose(ARAnchor anchor)
+        private async UniTask<(Vector3 position, Quaternion rotation)> GetCameraPose(AnchorChain chain)
         {
             if (Camera.main == null)
                 throw new Exception("Camera not available");
 
-            if (anchor == null)
+            if (chain == null)
             {
                 return (Camera.main.transform.position, Camera.main.transform.rotation);
             }
 
-            if (ARSession.state != ARSessionState.SessionTracking || anchor.trackingState == TrackingState.None)
+            if (ARSession.state != ARSessionState.SessionTracking)
             {
-                throw new Exception("Anchor tracking lost");
+                throw new Exception("AR session not tracking");
             }
 
-            return (
-                anchor.transform.InverseTransformPoint(Camera.main.transform.position),
-                Quaternion.Inverse(anchor.transform.rotation) * Camera.main.transform.rotation
-            );
+            return await chain.SampleCameraPose(Camera.main);
         }
     }
 }

@@ -1,5 +1,14 @@
 {
-  "docker/localizer": ["python"],
-  "docker/api": ["python", "csharp"],
-  "docker/zed-capture": ["csharp"]
+  "root_name": "placeframe",
+  "generated_root": "packages/generated",
+  "spec_command": "uv run --project . python -m src.dump_openapi",
+  "spec_env": {"CODEGEN": "1"},
+  "npm_scope": "org.outernet.placeframe",
+  "license_spdx": "Apache-2.0",
+  "repository_url": "https://github.com/outernet-foundation/placeframe.git",
+  "projects": {
+    "workloads/localizer": ["python"],
+    "workloads/api": ["python", "csharp"],
+    "workloads/lease-server": ["python"]
+  }
 }

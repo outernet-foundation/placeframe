@@ -6,23 +6,26 @@ dependencies = []
 
 
 [dependency-groups]
-dev = ["build-scripts", "scripts", "basedpyright>=1.28.0", "deptry>=0.24.0", "ruff>=0.14.11", "pytest>=8.0.0", "pytest-asyncio>=0.24.0"]
+dev = ["build-scripts", "scripts", "basedpyright>=1.39.10", "ruff>=0.14.11", "pytest>=8.0.0", "pytest-asyncio>=0.24.0"]
 
 [tool.uv.workspace]
 members = [
-    "docker/database-manager",
-    "docker/api",
-    "docker/auth-initializer",
-    "docker/localizer",
-    "docker/orchestrator",
-    "docker/reconstructor",
-    "docker/zed-capture",
+    "workloads/database-manager",
+    "workloads/s3-initializer",
+    "workloads/api",
+    "workloads/auth-initializer",
+    "workloads/lease-server",
+    "workloads/localizer",
+    "workloads/orchestrator",
+    "workloads/rathole-client",
+    "workloads/reconstructor",
     "packages/python/core",
     "packages/python/common",
     "packages/python/neural-networks",
     "packages/python/neural-networks/third-party/deep-image-retrieval",
     "packages/generated/python/datamodels",
     "packages/generated/python/api-client",
+    "packages/generated/python/lease-server-client",
     "packages/generated/python/localizer-client",
     "build",
     "scripts",
@@ -30,31 +33,78 @@ members = [
 
 
 [tool.uv]
+required-version = "==0.12.15"
 config-settings-package.placeframe-api-client = { editable_mode = "compat" }
+config-settings-package.placeframe-lease-server-client = { editable_mode = "compat" }
 config-settings-package.placeframe-localizer-client = { editable_mode = "compat" }
 
+[tool.python-devkit.lock-python]
+# Dependency groups matching a pattern export into the mapped directory (once, deduplicated
+# across members) instead of the member directory. The neural-networks accelerator groups are
+# declared identically by the localizer and reconstructor but consumed only by the
+# neural-networks-base image, which is not a workspace member.
+group-export-dirs = { "neural-networks-*" = "workloads/neural-networks-base" }
+
+[tool.python-devkit.preflight]
+# The battery's sync step needs every workspace member plus the cpu accelerator extra so
+# the localizer's spec dump and tests resolve without a CUDA stack.
+sync-args = ["--all-packages", "--extra", "cpu"]
+# Generated packages and vendored third-party code don't own their dependency lists.
+deptry-exclude = ["packages/generated/*", "packages/python/neural-networks/third-party/*"]
+
+[tool.docker-devkit.lifecycle]
+# Compose assembly for `uv run up`/`uv run down` (docker-devkit): layers in order,
+# `{gpu}` resolved by detection (or --gpu), dropped when it resolves to none.
+files = ["compose.yml", "compose.postgres.yml", "compose.{gpu}.yml"]
+dev_file = "compose.dev.yml"
+
+[tool.docker-devkit.mirror]
+prefix = "ghcr.io/outernet-foundation/mirror"
+
+[tool.docker-devkit.generate-score]
+# Policy for `uv run generate-score` (docker-devkit's score_generate verb): which
+# workloads render, the provisioners each half consumes, and where artifacts land.
+workloads = ["api.yaml", "lease-server.yaml", "gateway.yaml"]
+project_name = "placeframe"
+cloud_storage_class = "hcloud-volumes"
+local_storage_class = "local-path"
+compose_provisioners = [
+    "placeframe-postgres.provisioners.yaml",
+    "placeframe-config.provisioners.yaml",
+    "placeframe-keycloak.provisioners.yaml",
+    "placeframe-s3.provisioners.yaml",
+]
+compose_patch_templates = ["restart-policy.tpl"]
+k8s_provisioners = [
+    "placeframe-postgres.k8s.provisioners.yaml",
+    "placeframe-minio.k8s.provisioners.yaml",
+    "placeframe-config.k8s.provisioners.yaml",
+    "placeframe-keycloak.k8s.provisioners.yaml",
+]
+publishes = ["8000:api:8000", "8443:gateway:8443"]
+
 [tool.uv.sources]
-common = { workspace = true }
-core = { workspace = true }
+placeframe-common = { workspace = true }
+placeframe-core = { workspace = true }
 neural-networks = { workspace = true }
 datamodels = { workspace = true }
+placeframe-lease-server-client = { workspace = true }
 placeframe-localizer-client = { workspace = true }
 placeframe_api_client = { workspace = true }
 dirtorch = { workspace = true }
 build-scripts = { workspace = true }
 scripts = { workspace = true }
 lightglue = { git = "https://github.com/cvg/LightGlue.git" }
-pybind11-stubgen = { git = "https://github.com/sarlinpe/pybind11-stubgen", rev = "sarlinpe/fix-2024-08" }
 
 [tool.basedpyright]
+venvPath = "."
+venv = ".venv"
 typeCheckingMode = "strict"
 include = [
     "build/**/src/**/*.py",
     "build/**/src/**/*.pyi",
-    "docker/zed-capture/**/src/**/*.py",
-    "docker/zed-capture/**/src/**/*.pyi",
-    "docker/**/src/**/*.py",
-    "docker/**/src/**/*.pyi",
+    "workloads/**/src/**/*.py",
+    "workloads/**/src/**/*.pyi",
     "packages/**/src/**/*.py",
     "packages/**/src/**/*.pyi",
     "scripts/**/src/**/*.py",
@@ -62,4 +112,4 @@ include = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["build/tests", "packages/python/common/tests", "scripts/tests"]
+testpaths = ["build/tests", "packages/python/common/tests", "scripts/tests", "workloads/s3-initializer/tests"]

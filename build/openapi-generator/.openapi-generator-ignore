@@ -1,3 +1,0 @@
-# prevent OpenAPI Generator from writing gitignores
-.gitignore
-**/.gitignore
