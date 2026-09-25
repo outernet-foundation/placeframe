@@ -881,9 +881,7 @@ def inspect_video_command(
     resolved_max_width = (
         max_width if max_width is not None else useful_pano_width(SPHERICAL_VIEW_SIZE, SPHERICAL_VIEW_FOV_DEG)
     )
-    estimate = (
-        estimate_capture_size(video, stride, resolved_max_width) if info.is_spherical and estimate_size else None
-    )
+    estimate = estimate_capture_size(video, stride, resolved_max_width) if info.is_spherical and estimate_size else None
     payload: dict[str, Any] = {
         "path": str(video),
         "width": info.width,
@@ -913,6 +911,134 @@ def inspect_video_command(
     typer.echo(f"  projection: {info.projection or 'none declared (an ordinary video)'}")
     if estimate is not None:
         typer.echo(f"  capture at --stride {stride} --max-width {resolved_max_width}: {estimate.describe()}")
+
+
+# Distance within which an aligned merge pairs frames of different captures. Wide enough to cover
+# a coarse placement's error -- the fit that produced one of these left a 6.8 m median residual
+# over the frames it matched -- and narrow enough that a capture on the far side of the site is
+# not paired with this one.
+ALIGNED_MERGE_PAIR_DISTANCE_M = 15.0
+
+
+def _apply_yaw(yaw_deg: float, scale: float, translation: tuple[float, float, float], frames_csv: str) -> str:
+    """Restate a capture's frames.csv in the aligned frame.
+
+    Positions are rotated about the up axis and shifted; rotations are turned by the same yaw, so
+    world_from_rig still means the same thing in the new frame. Gravity needs no attention: it is
+    derived from the rotation's second row, and a yaw about the up axis leaves world-down where it
+    was -- which is exactly why the alignment is allowed only that one rotation.
+    """
+    yaw = Rotation.from_euler("y", yaw_deg, degrees=True)
+    rotation = yaw.as_matrix()
+    lines = frames_csv.splitlines()
+    out = [lines[0]]
+    for line in lines[1:]:
+        if not line.strip():
+            continue
+        fields = line.split(",")
+        position = rotation @ (scale * np.array([float(fields[1]), float(fields[2]), float(fields[3])]))
+        moved = position + np.array(translation)
+        values = [fields[0], *(f"{v:.6f}" for v in moved)]
+        if len(fields) >= 8:
+            turned = (yaw * Rotation.from_quat([float(f) for f in fields[4:8]])).as_quat()
+            values += [f"{v:.9f}" for v in turned]
+        else:
+            values += fields[4:]
+        out.append(",".join(values))
+    return "\n".join(out) + "\n"
+
+
+@app.command(name="merge-aligned")
+def merge_aligned(
+    alignment_path: Annotated[Path, typer.Argument(help="Alignment JSON written by the dashboard's align page")],
+    name: Annotated[str | None, typer.Option(help="Name for the merged capture; defaults to the alignment's")] = None,
+    pair_distance_m: Annotated[
+        float, typer.Option(help="Pair frames of different captures within this many metres of each other")
+    ] = ALIGNED_MERGE_PAIR_DISTANCE_M,
+    reconstruct: Annotated[bool, typer.Option(help="Create a reconstruction from the merged capture")] = True,
+    json_output: Annotated[bool, typer.Option("--json", help="Emit JSON instead of text")] = False,
+) -> None:
+    """Merge the captures behind an alignment into one, with their priors in a common frame.
+
+    Each capture becomes its own rig, so its own trajectory and calibration stay its own, and its
+    frames.csv is restated in the aligned frame. That common frame is the whole point: it lets the
+    reconstructor pair frames of different captures by how close they are, which is the one piece
+    of evidence retrieval does not have and the reason two walks through the same corner can end up
+    sharing almost nothing.
+    """
+    alignment = loads(alignment_path.read_text())
+    result = run(
+        _merge_aligned(alignment, name or alignment.get("name") or "aligned merge", pair_distance_m, reconstruct)
+    )
+    if json_output:
+        typer.echo(dumps(result))
+        return
+    typer.echo(f"Merged capture {result['capture_session_id']} from {len(alignment['maps'])} captures")
+    if result.get("reconstruction_id"):
+        typer.echo(f"Reconstruction {result['reconstruction_id']} queued")
+
+
+async def _merge_aligned(
+    alignment: dict[str, Any], name: str, pair_distance_m: float, reconstruct: bool
+) -> dict[str, Any]:
+    async with authenticated_api_client() as api:
+        try:
+            merged_manifest: dict[str, Any] | None = None
+            members: list[tuple[str, bytes]] = []
+            for index, entry in enumerate(alignment["maps"]):
+                reconstruction = await api.get_reconstruction(id=UUID(entry["reconstruction_id"]))
+                capture_id = reconstruction.capture_session_id
+                if capture_id is None:
+                    raise RuntimeError(f"Reconstruction {entry['reconstruction_id']} has no capture to merge")
+                tar_bytes = await api.download_capture_session_tar(id=capture_id, _request_timeout=REQUEST_TIMEOUT)
+                rig = f"rig{index}"
+                with tarfile.open(fileobj=BytesIO(tar_bytes)) as tar:
+                    manifest = loads(tar.extractfile("manifest.json").read())  # pyright: ignore[reportOptionalMemberAccess]
+                    if merged_manifest is None:
+                        merged_manifest = {
+                            "axis_convention": manifest["axis_convention"],
+                            "capture_interval_seconds": manifest["capture_interval_seconds"],
+                            "rigs": [],
+                        }
+                    elif manifest["axis_convention"] != merged_manifest["axis_convention"]:
+                        raise RuntimeError("Captures disagree about their axis convention; they cannot be merged")
+                    source_rig = manifest["rigs"][0]
+                    source_id = source_rig["id"]
+                    source_rig["id"] = rig
+                    merged_manifest["rigs"].append(source_rig)
+                    for member in tar.getmembers():
+                        if member.name == "manifest.json" or not member.isfile():
+                            continue
+                        data = tar.extractfile(member).read()  # pyright: ignore[reportOptionalMemberAccess]
+                        if member.name.endswith("frames.csv"):
+                            data = _apply_yaw(
+                                float(entry["yaw_deg"]),
+                                float(entry.get("scale", 1.0)),
+                                tuple(float(v) for v in entry["translation"]),  # pyright: ignore[reportArgumentType]
+                                data.decode(),
+                            ).encode()
+                        members.append((member.name.replace(f"{source_id}/", f"{rig}/", 1), data))
+                typer.echo(f"  {capture_id} -> {rig} ({len(members)} members so far)", err=True)
+
+            assert merged_manifest is not None
+            buffer = BytesIO()
+            with tarfile.open(fileobj=buffer, mode="w") as tar:
+                for member_name, data in [("manifest.json", dumps(merged_manifest).encode()), *members]:
+                    info = tarfile.TarInfo(name=member_name)
+                    info.size = len(data)
+                    tar.addfile(info, BytesIO(data))
+            tar_bytes = buffer.getvalue()
+            typer.echo(f"Merged capture is {_format_size(len(tar_bytes))}", err=True)
+
+            capture = await upload_capture_session(api, f"{name}.tar", tar_bytes, DeviceType.ZED, name)
+            out: dict[str, Any] = {"capture_session_id": str(capture.id), "size_bytes": capture.size_bytes}
+            if reconstruct:
+                options = ReconstructionOptions(cross_rig_pair_distance_m=pair_distance_m)
+                reconstruction = await create_reconstruction(api, capture.id, options, False, RECONSTRUCTION_TIMEOUT_S)
+                out["reconstruction_id"] = str(reconstruction.id)
+            return out
+        except ApiException as exception:
+            _fail(exception)
 
 
 @app.command(name="reconstruct-spherical")
@@ -1636,9 +1762,14 @@ ReconstructionGeometry = tuple[
 
 
 async def _fetch_point_cloud(reconstruction_id: UUID) -> tuple[NDArray[np.float32], NDArray[np.uint8]]:
-    (positions, colors, _pose_positions, _pose_orientations, _frame_ids, _rig_indices) = (
-        await _fetch_reconstruction_geometry(reconstruction_id)
-    )
+    (
+        positions,
+        colors,
+        _pose_positions,
+        _pose_orientations,
+        _frame_ids,
+        _rig_indices,
+    ) = await _fetch_reconstruction_geometry(reconstruction_id)
     return positions, colors
 
 
