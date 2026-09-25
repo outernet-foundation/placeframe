@@ -338,10 +338,11 @@ export function saveAlignment(
   maps: AlignedMap[],
   referenceId: string,
   name: string | null,
-): Promise<{ id: string; created_at: string }> {
+  reconstruct = false,
+): Promise<{ id: string; created_at: string; job_id?: string }> {
   return request("/api/alignments", {
     method: "POST",
-    body: JSON.stringify({ maps, reference_id: referenceId, name }),
+    body: JSON.stringify({ maps, reference_id: referenceId, name, reconstruct }),
   });
 }
 

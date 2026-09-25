@@ -81,3 +81,9 @@
   font-size: 11px;
   color: #ef9a9a;
 }
+
+.align-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}

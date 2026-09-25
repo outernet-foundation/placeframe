@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { fetchPoints, listReconstructions, saveAlignment, type AlignedMap, type PointCloud } from "../api";
+import { fetchPoints, getJob, listReconstructions, saveAlignment, type AlignedMap, type PointCloud } from "../api";
 import { errorText } from "../storage";
 import type { Reconstruction } from "../types";
 import "./align.css";
@@ -66,23 +66,33 @@ export function AlignPage() {
   const [referenceId, setReferenceId] = useState<string>("");
   const [status, setStatus] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
+  // One merge at a time: pressing again uploads another copy of the same merged capture and
+  // queues a second reconstruction behind the first, with nothing to say it happened.
+  const [busy, setBusy] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const thinned = useRef<Map<string, Float32Array>>(new Map());
   const view = useRef({ scale: 4, ox: 0, oz: 0 });
   const drag = useRef<{ id: string | null; mode: "move" | "rotate" | "pan"; x: number; y: number } | null>(null);
 
   useEffect(() => {
-    listReconstructions()
+    // stats=false: the full listing streams through every capture tar to report stereo-ness and
+    // frame counts, which takes minutes on a stack holding large captures and times out while a
+    // reconstruction is running. None of it is needed here -- scale locking falls back to the
+    // prior sigma, which the options carry either way.
+    listReconstructions(false)
       .then((all) => setAvailable(all.filter((r) => r.status === "succeeded")))
       .catch((err: unknown) => setStatus(errorText(err)));
   }, []);
 
   const addMap = useCallback(
     (r: Reconstruction) => {
-      if (maps.some((m) => m.id === r.id)) return;
-      const color = MAP_COLORS[maps.length % MAP_COLORS.length];
-      const label = r.capture_name ?? r.id.slice(0, 8);
-      setMaps((prev) => [
+      let added = false;
+      setMaps((prev) => {
+        if (prev.some((m) => m.id === r.id)) return prev;
+        added = true;
+        const color = MAP_COLORS[prev.length % MAP_COLORS.length];
+        const label = r.capture_name ?? r.id.slice(0, 8);
+        return [
         ...prev,
         {
           id: r.id, label, color, cloud: null, error: null,
@@ -93,8 +103,10 @@ export function AlignPage() {
           // synthetic and the prior deliberately neutralised -- so only that case is scale-free.
           scaleLocked: r.is_stereo === true || priorSigma(r) < 100,
         },
-      ]);
-      if (!referenceId) setReferenceId(r.id);
+        ];
+      });
+      if (!added) return;
+      setReferenceId((prev) => prev || r.id);
       fetchPoints(r.id)
         .then((cloud) => {
           thinned.current.set(r.id, thin(cloud.positions, cloud.count));
@@ -104,34 +116,55 @@ export function AlignPage() {
           setMaps((prev) => prev.map((m) => (m.id === r.id ? { ...m, error: errorText(err) } : m))),
         );
     },
-    [maps, referenceId],
+    [],
   );
+
+  // Opened from the captures tree with a selection: the maps to place are named in the URL, so the
+  // page arrives ready rather than asking for them again.
+  const preloaded = useRef(false);
+  useEffect(() => {
+    if (preloaded.current || available.length === 0) return;
+    const wanted = new URLSearchParams(window.location.search).get("maps")?.split(",").filter(Boolean) ?? [];
+    const found = wanted.map((id) => available.find((r) => r.id === id)).filter((r): r is Reconstruction => !!r);
+    if (found.length === 0) return;
+    preloaded.current = true;
+    found.forEach(addMap);
+  }, [available, addMap]);
 
   const update = (id: string, patch: Partial<MapState>) =>
     setMaps((prev) => prev.map((m) => (m.id === id ? { ...m, ...patch } : m)));
 
-  // How many of the other maps' poses land near this one's, at the current placement. The point of
-  // aligning coarsely is that something downstream can pair frames by proximity, so the number
-  // that matters is how many pairs that would actually find — not whether the overlay looks right.
+  // How many of a map's poses land near *any other* map's, at the current placement. The point of
+  // aligning coarsely is that something downstream can pair frames by proximity, so the number that
+  // matters is how many pairs that would actually find — not whether the overlay looks right.
+  //
+  // Against any other map, not just the reference: maps of one site often form a chain rather than
+  // a star, and a map that overlaps its neighbour perfectly while never touching the reference is
+  // correctly placed. Counting only against the reference reports 0 for it, which reads as badly
+  // placed and is the opposite of the truth.
   const neighbourCounts = useMemo(() => {
+    const placed = maps
+      .filter((m) => m.cloud)
+      .map((m) => {
+        const poses: [number, number][] = [];
+        for (let i = 0; i < m.cloud!.poseCount; i++) {
+          poses.push(place(m, m.cloud!.posePositions[i * 3], m.cloud!.posePositions[i * 3 + 2]));
+        }
+        return { id: m.id, poses };
+      });
     const out = new Map<string, number>();
-    const ref = maps.find((m) => m.id === referenceId);
-    if (!ref?.cloud) return out;
-    const refPoses: [number, number][] = [];
-    for (let i = 0; i < ref.cloud.poseCount; i++) {
-      refPoses.push(place(ref, ref.cloud.posePositions[i * 3], ref.cloud.posePositions[i * 3 + 2]));
-    }
-    for (const m of maps) {
-      if (m.id === referenceId || !m.cloud) continue;
+    for (const a of placed) {
       let near = 0;
-      for (let i = 0; i < m.cloud.poseCount; i++) {
-        const [x, z] = place(m, m.cloud.posePositions[i * 3], m.cloud.posePositions[i * 3 + 2]);
-        if (refPoses.some((p) => (p[0] - x) ** 2 + (p[1] - z) ** 2 < 100)) near++;
+      for (const p of a.poses) {
+        const hit = placed.some(
+          (b) => b.id !== a.id && b.poses.some((q) => (q[0] - p[0]) ** 2 + (q[1] - p[1]) ** 2 < 100),
+        );
+        if (hit) near++;
       }
-      out.set(m.id, near);
+      out.set(a.id, near);
     }
     return out;
-  }, [maps, referenceId]);
+  }, [maps]);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -230,16 +263,45 @@ export function AlignPage() {
 
   const [selectedId, setSelectedId] = useState<string>("");
 
-  const submit = () => {
+  // Following the job matters more than it looks: the request returns as soon as the merge is
+  // spawned, so without this the page says "merging" and never says anything again -- a merge that
+  // died on a bad placement would look exactly like one that worked.
+  const follow = useCallback(async (jobId: string) => {
+    for (let i = 0; i < 2400; i++) {
+      const job = await getJob<{ reconstruction_id?: string }>(jobId);
+      if (job.status === "failed") {
+        setStatus(`Merge failed: ${job.error ?? "unknown error"}`);
+        setSaved(null);
+        return;
+      }
+      if (job.reconstruction_id) {
+        setSaved(`Merged and reconstructing as ${job.reconstruction_id.slice(0, 8)} — follow it in the captures tree.`);
+        return;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+    }
+  }, []);
+
+  const submit = (reconstruct: boolean) => {
     const payload: AlignedMap[] = maps.map((m) => ({
       reconstruction_id: m.id,
       yaw_deg: m.yawDeg,
       translation: [m.tx, m.ty, m.tz],
       scale: m.scale,
     }));
-    saveAlignment(payload, referenceId, null)
-      .then((r) => setSaved(r.id))
-      .catch((err: unknown) => setStatus(errorText(err)));
+    setStatus(null);
+    setBusy(true);
+    saveAlignment(payload, referenceId, null, reconstruct)
+      .then(async (r) => {
+        if (!reconstruct || !r.job_id) {
+          setSaved(`Placement saved as ${r.id}.`);
+          return;
+        }
+        setSaved("Merging the captures — this takes several minutes.");
+        await follow(r.job_id);
+      })
+      .catch((err: unknown) => setStatus(errorText(err)))
+      .finally(() => setBusy(false));
   };
 
   return (
@@ -305,7 +367,7 @@ export function AlignPage() {
                     onChange={(e) => update(m.id, { scale: Number(e.target.value) })}
                   />
                 </td>
-                <td className="align-near">{m.id === referenceId ? "—" : (neighbourCounts.get(m.id) ?? 0)}</td>
+                <td className="align-near">{neighbourCounts.get(m.id) ?? 0}</td>
               </tr>
             ))}
           </tbody>
@@ -315,13 +377,25 @@ export function AlignPage() {
           Click a row to pick the map you are placing, then drag on the canvas to move it, alt-drag
           to turn it. Shift-drag pans the view and the wheel zooms. Height (Y) is perpendicular to
           this view, so it is typed rather than dragged. <b>Near</b> counts how many of that map's
-          poses land within 10 m of one of the reference's — the quantity that decides whether
-          anything downstream can pair the two by proximity.
+          poses land within 10 m of <i>any other</i> map's — the quantity that decides whether
+          anything downstream can pair them by proximity. Maps of one site often form a chain, so a
+          map that never touches the reference can still be perfectly placed against its neighbour.
         </div>
 
-        <button className="primary" disabled={maps.length < 2 || !referenceId} onClick={submit}>
-          Submit alignment
-        </button>
+        <div className="align-actions">
+          <button disabled={busy || maps.length < 2 || !referenceId} onClick={() => submit(false)}>
+            Save placement
+          </button>
+          <button className="primary" disabled={busy || maps.length < 2 || !referenceId} onClick={() => submit(true)}>
+            {busy ? "Merging…" : "Merge and reconstruct"}
+          </button>
+        </div>
+        <div className="align-hint">
+          Merging restates every capture's poses in this frame and reconstructs from all of them at
+          once, pairing frames of different captures that the placement puts within 15 m. That
+          proximity is the whole point of placing them: it is evidence retrieval does not have, and
+          without it two walks through the same corner can share almost nothing.
+        </div>
       </div>
       <canvas
         ref={canvasRef}

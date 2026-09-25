@@ -357,6 +357,9 @@ class AlignmentRequest:
     # assembly can drift and "aligned" names nothing in particular.
     reference_id: str
     name: str | None = None
+    # Merge the aligned captures and reconstruct from them, rather than only writing the placement
+    # out. The placement is still written either way, so what the merge was given stays inspectable.
+    reconstruct: bool = False
 
 
 # A coarse alignment is a starting placement, not a result: it is written out for inspection and
@@ -384,7 +387,27 @@ async def save_alignment(data: AlignmentRequest) -> dict[str, Any]:
         ],
     }
     await asyncio.to_thread(_write_alignment, alignment_id, payload)
-    return payload
+    if not data.reconstruct:
+        return payload
+    job = Job(id=str(uuid.uuid4()), kind="reconstruct")
+    JOBS[job.id] = job
+    _spawn(_run_aligned_merge_job(job, alignment_id))
+    return {**payload, "job_id": job.id}
+
+
+async def _run_aligned_merge_job(job: Job, alignment_id: str) -> None:
+    try:
+        created = await _run_howard_test_json_async(
+            "merge-aligned", str(ALIGNMENTS_DIR / f"{alignment_id}.json"), "--name", f"aligned {alignment_id[:8]}"
+        )
+        job.result = created
+        if created.get("reconstruction_id"):
+            await _poll_reconstruction_until_terminal(job, {"id": created["reconstruction_id"]})
+        else:
+            job.status = "succeeded"
+    except Exception as exc:
+        job.status = "failed"
+        job.error = str(exc)
 
 
 def _write_alignment(alignment_id: str, payload: dict[str, Any]) -> None:
