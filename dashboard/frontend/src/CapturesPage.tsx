@@ -8,8 +8,10 @@ import {
   listLocalizations,
   listPoselessSets,
   listReconstructions,
+  publishMap,
   renameCapture,
   renamePoselessSet,
+  unpublishMap,
 } from "./api";
 import {
   ConfirmDeleteDialog,
@@ -164,6 +166,7 @@ export function CapturesPage() {
   const [loaded, setLoaded] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [publishing, setPublishing] = useState<string | null>(null);
   const [pendingJobs, setPendingJobs] = useState(0);
   const [jobProgress, setJobProgress] = useState<string | null>(null);
 
@@ -203,6 +206,25 @@ export function CapturesPage() {
       // Columns stay "—"; the tree itself is unaffected.
     }
   }, []);
+
+  // Publishing and withdrawing are one row at a time, keyed on reconstruction id: publishing twice
+  // would hit the table's UNIQUE(reconstruction_id) as a 500, and the button has no other way to
+  // say it is mid-flight.
+  async function togglePublished(r: Reconstruction): Promise<void> {
+    setPublishing(r.id);
+    setLoadError(null);
+    try {
+      if (r.localization_map_id) await unpublishMap(r.localization_map_id);
+      else await publishMap(r.id, r.capture_name ?? undefined);
+      // Re-read rather than patch in place: `localization_map_id` comes from the listing, and the
+      // map id a publish returns is the only handle for withdrawing it again.
+      await refreshFast();
+    } catch (err) {
+      setLoadError(errorText(err));
+    } finally {
+      setPublishing(null);
+    }
+  }
 
   const refreshAll = useCallback(async (): Promise<void> => {
     setRefreshing(true);
@@ -548,6 +570,13 @@ export function CapturesPage() {
               )}
             </div>
             <div className="node-meta">
+              {r.localization_map_id && (
+                <>
+                  <span className="badge" title="Published as a localization map; a device can select this one">
+                    on device
+                  </span>{" "}
+                </>
+              )}
               {facts.length > 0 && <>{facts.join(" · ")} · </>}
               <span className="mono" title={JSON.stringify(r.options ?? {}, null, 1)}>
                 {optionsSummary(r)}
@@ -560,6 +589,17 @@ export function CapturesPage() {
           <div className="node-actions">
             {succeeded && (
               <>
+                <button
+                  disabled={publishing === r.id}
+                  title={
+                    r.localization_map_id
+                      ? "Withdraw from devices; this reconstruction and its stored map data are untouched"
+                      : "Make this map selectable on a device. Builds nothing — the artifacts a device localizes against already exist"
+                  }
+                  onClick={() => void togglePublished(r)}
+                >
+                  {publishing === r.id ? "…" : r.localization_map_id ? "Unpublish" : "Publish"}
+                </button>
                 <button onClick={() => openViewer(r.id)}>Visualize</button>
                 <button onClick={() => setDialog({ kind: "localize", reconstruction: r, label: reconstructionLabel(r) })}>Localize…</button>
                 <Menu

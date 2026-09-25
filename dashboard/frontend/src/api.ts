@@ -1,4 +1,12 @@
-import type { CaptureSession, Job, LocalizationResult, LocalizationSummary, PoselessImageSet, Reconstruction } from "./types";
+import type {
+  CaptureSession,
+  Job,
+  LocalizationMap,
+  LocalizationResult,
+  LocalizationSummary,
+  PoselessImageSet,
+  Reconstruction,
+} from "./types";
 
 const API_BASE = "http://localhost:8010";
 
@@ -22,6 +30,20 @@ export function listCaptures(): Promise<CaptureSession[]> {
 // the fast listing and fills those columns in from a second, full one.
 export function listReconstructions(stats = true): Promise<Reconstruction[]> {
   return request(`/api/reconstructions${stats ? "" : "?stats=false"}`);
+}
+
+// The maps a device can localize against. Kept as its own listing rather than derived from the
+// reconstructions, so the dashboard shows the same rows the device's picker draws from.
+export function listMaps(): Promise<LocalizationMap[]> {
+  return request("/api/maps");
+}
+
+// Publishes at identity placement: this map's frame becomes the world frame a device localizes into.
+export function publishMap(reconstructionId: string, name?: string): Promise<LocalizationMap> {
+  return request("/api/maps", {
+    method: "POST",
+    body: JSON.stringify({ reconstruction_id: reconstructionId, name: name ?? null }),
+  });
 }
 
 // Uploads a server-local reconstruction tar; the API also creates its localization map. A tar can
@@ -121,6 +143,11 @@ async function deleteRequest(path: string): Promise<void> {
 // cached tar/PNG, and its local localization runs.
 export function deleteReconstruction(reconstructionId: string, cascade = false): Promise<void> {
   return deleteRequest(`/api/reconstructions/${reconstructionId}${cascade ? "?cascade=true" : ""}`);
+}
+
+// Withdraws the map from devices; the reconstruction and its stored artifacts are untouched.
+export function unpublishMap(mapId: string): Promise<void> {
+  return deleteRequest(`/api/maps/${mapId}`);
 }
 
 // Renames the capture session; a linked image folder's local name follows it.

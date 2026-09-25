@@ -26,6 +26,22 @@ export interface Reconstruction {
   capture_name?: string | null; // capture session name; an imported reconstruction's is its tar name
   options?: Record<string, unknown>; // the ReconstructionOptions it was built with
   options_diff?: Record<string, unknown>; // just the options that differ from the server defaults
+  localization_map_id?: string | null; // set once published to devices; null means unpublished
+}
+
+// A reconstruction published for devices to localize against. Publishing builds nothing: it records
+// that this map is one to offer and where its frame sits in the world frame a device localizes into.
+export interface LocalizationMap {
+  id: string;
+  name: string | null;
+  reconstruction_id: string;
+  capture_session_id: string | null;
+  capture_name: string | null;
+  device_label: string | null; // the string a device's picker shows, which is the capture's name
+  position: { x: number; y: number; z: number };
+  rotation: { x: number; y: number; z: number; w: number };
+  is_identity_placement: boolean;
+  created_at: string | null;
 }
 
 export type JobKind = "reconstruct" | "visualize" | "localize";

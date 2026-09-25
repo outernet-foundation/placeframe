@@ -229,6 +229,33 @@ async def delete_reconstruction(reconstruction_id: str, cascade: bool = False) -
     await _run_howard_test_json_async("delete-reconstruction", reconstruction_id, *(["--cascade"] if cascade else []))
 
 
+# The maps published to devices. This is the list a capture tool's map picker draws from, so the
+# dashboard showing the same rows is how a mismatch between the two becomes visible instead of
+# mysterious -- which it was, because a succeeded reconstruction is not a published map.
+@get("/api/maps")
+async def list_maps() -> list[dict[str, Any]]:
+    return await _run_howard_test_json_async("maps")
+
+
+@dataclass
+class PublishMapRequest:
+    reconstruction_id: str
+    name: str | None = None
+
+
+@post("/api/maps")
+async def publish_map(data: PublishMapRequest) -> dict[str, Any]:
+    args = ["publish-map", data.reconstruction_id]
+    if data.name:
+        args += ["--name", data.name]
+    return await _run_howard_test_json_async(*args)
+
+
+@delete("/api/maps/{map_id:str}")
+async def unpublish_map(map_id: str) -> None:
+    await _run_howard_test_json_async("unpublish-map", map_id)
+
+
 @dataclass
 class RenameCaptureRequest:
     name: str
@@ -1048,6 +1075,9 @@ app = Litestar(
         list_captures,
         list_reconstructions,
         delete_reconstruction,
+        list_maps,
+        publish_map,
+        unpublish_map,
         delete_capture,
         rename_capture,
         import_reconstruction,

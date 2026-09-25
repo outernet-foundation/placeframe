@@ -416,3 +416,25 @@ button.pencil {
 button.pencil:hover {
   color: #e6e6e6;
 }
+
+/* Tab buttons read as navigation rather than actions: the active one is filled, the others are
+   quiet, so the header doesn't compete with the action buttons inside a panel. */
+.tab {
+  background: none;
+  border: 1px solid transparent;
+  color: #a8adb8;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.tab:hover {
+  color: #fff;
+}
+
+.tab-active {
+  background: #262932;
+  border-color: #343845;
+  color: #fff;
+}
