@@ -105,6 +105,7 @@ namespace PlaceframeApiClient.Model
         /// <param name="pairVioEmMinBaselineM">Essential-matrix-baseline floor below which the VIO-vs-essential-matrix translation-direction component is skipped. Near-co-located camera pairs (intra-rig stereo timing jitter, hover frames in slow motion) have ill-defined essential-matrix translation direction; the rotation component still applies. (default to 0.3D).</param>
         /// <param name="maxKeypointsPerImage">Maximum ALIKED keypoints retained per image. (default to 2500).</param>
         /// <param name="heldOutFrameTimestamps">Frame timestamps (ms) to exclude from this reconstruction so they can later be localized as held-out queries..</param>
+        /// <param name="crossRigPairDistanceM">Pair frames of *different* rigs whose position priors put them within this many metres, in addition to the sequential and retrieval sources. 0 disables it. Only meaningful when the rigs&#39; priors are already in one frame - - separate captures arrive in unrelated frames, so this does nothing until something has placed them relative to each other. It exists because retrieval is the only source that crosses rigs, and it is chosen by descriptor similarity: two captures that genuinely overlap can still lose to hundreds of higher-scoring within-capture neighbours and never be paired. Proximity is a signal retrieval does not have. (default to 0.0D).</param>
         /// <param name="sphericalLayout">How a spherical (equirectangular) capture is cut into the views a reconstructor can model. COLMAP&#39;s fisheye models only represent rays under 90 degrees off axis, so the sphere cannot be one camera. &#39;tetrahedron&#39; is four views whose axes are 109.5 degrees apart, covering the sphere at spherical_view_fov_deg &gt;&#x3D; 141. &#39;hexring&#39; is six views 60 degrees apart in yaw, tilted alternately 15 degrees up and down: it also covers the sphere at 150, but it is meant for narrower views, where keeping every view near horizontal matches a query shot level far better than a 150-degree view does, and what coverage it loses is mostly sky. &#39;cube&#39; is the six cube-face directions. Ignored for every other kind of capture. (default to SphericalLayoutEnum.Tetrahedron).</param>
         /// <param name="sphericalViewFovDeg">Field of view of each view rendered from a spherical capture, in degrees. Must stay under 180 (COLMAP&#39;s fisheye models cannot represent a ray 90 degrees off axis) and at or above 141 for the tetrahedron layout to cover the whole sphere; the default leaves 4.5 degrees of overlap at the worst-covered direction. (default to 150.0D).</param>
         /// <param name="sphericalViewSize">Width and height in pixels of each view rendered from a spherical capture. The default samples a 150-degree view at about 10.7 pixels per degree, half the angular resolution of a 7680-wide equirectangular frame. (default to 1600).</param>
@@ -563,6 +564,31 @@ namespace PlaceframeApiClient.Model
             return _flagHeldOutFrameTimestamps;
         }
         /// <summary>
+        /// Pair frames of *different* rigs whose position priors put them within this many metres, in addition to the sequential and retrieval sources. 0 disables it. Only meaningful when the rigs&#39; priors are already in one frame - - separate captures arrive in unrelated frames, so this does nothing until something has placed them relative to each other. It exists because retrieval is the only source that crosses rigs, and it is chosen by descriptor similarity: two captures that genuinely overlap can still lose to hundreds of higher-scoring within-capture neighbours and never be paired. Proximity is a signal retrieval does not have.
+        /// </summary>
+        /// <value>Pair frames of *different* rigs whose position priors put them within this many metres, in addition to the sequential and retrieval sources. 0 disables it. Only meaningful when the rigs&#39; priors are already in one frame - - separate captures arrive in unrelated frames, so this does nothing until something has placed them relative to each other. It exists because retrieval is the only source that crosses rigs, and it is chosen by descriptor similarity: two captures that genuinely overlap can still lose to hundreds of higher-scoring within-capture neighbours and never be paired. Proximity is a signal retrieval does not have.</value>
+        [DataMember(Name = "cross_rig_pair_distance_m", EmitDefaultValue = false)]
+        public double CrossRigPairDistanceM
+        {
+            get{ return _CrossRigPairDistanceM;}
+            set
+            {
+                _CrossRigPairDistanceM = value;
+                _flagCrossRigPairDistanceM = true;
+            }
+        }
+        private double _CrossRigPairDistanceM = 0.0D;
+        private bool _flagCrossRigPairDistanceM;
+
+        /// <summary>
+        /// Returns false as CrossRigPairDistanceM should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeCrossRigPairDistanceM()
+        {
+            return _flagCrossRigPairDistanceM;
+        }
+        /// <summary>
         /// Field of view of each view rendered from a spherical capture, in degrees. Must stay under 180 (COLMAP&#39;s fisheye models cannot represent a ray 90 degrees off axis) and at or above 141 for the tetrahedron layout to cover the whole sphere; the default leaves 4.5 degrees of overlap at the worst-covered direction.
         /// </summary>
         /// <value>Field of view of each view rendered from a spherical capture, in degrees. Must stay under 180 (COLMAP&#39;s fisheye models cannot represent a ray 90 degrees off axis) and at or above 141 for the tetrahedron layout to cover the whole sphere; the default leaves 4.5 degrees of overlap at the worst-covered direction.</value>
@@ -638,6 +664,7 @@ namespace PlaceframeApiClient.Model
             sb.Append("  PairVioEmMinBaselineM: ").Append(PairVioEmMinBaselineM).Append("\n");
             sb.Append("  MaxKeypointsPerImage: ").Append(MaxKeypointsPerImage).Append("\n");
             sb.Append("  HeldOutFrameTimestamps: ").Append(HeldOutFrameTimestamps).Append("\n");
+            sb.Append("  CrossRigPairDistanceM: ").Append(CrossRigPairDistanceM).Append("\n");
             sb.Append("  SphericalLayout: ").Append(SphericalLayout).Append("\n");
             sb.Append("  SphericalViewFovDeg: ").Append(SphericalViewFovDeg).Append("\n");
             sb.Append("  SphericalViewSize: ").Append(SphericalViewSize).Append("\n");
