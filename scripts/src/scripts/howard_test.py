@@ -589,7 +589,15 @@ async def _enrich_reconstruction_rows(
     capture_ids = {r.capture_session_id for r in rows if r.capture_session_id is not None}
     stats: dict[UUID, tuple[bool | None, int | None]] = {}
     capture_names: dict[UUID, str] = {}
+    published: dict[UUID, UUID] = {}
     async with authenticated_api_client() as api:
+        # Which reconstructions are published to devices. One unfiltered call rather than one per
+        # row, and best-effort: a listing that fails leaves every row looking unpublished, which
+        # shows the publish action rather than hiding it.
+        try:
+            published = {m.reconstruction_id: m.id for m in await api.get_localization_maps()}
+        except ApiException:
+            pass
         for capture_id in capture_ids if frame_stats else ():
             stats[capture_id] = await _fetch_capture_frame_stats(api, capture_id)
         # Names label reconstructions in the dashboard's pickers — an imported reconstruction's
@@ -614,6 +622,7 @@ async def _enrich_reconstruction_rows(
         entry["is_stereo"] = is_stereo
         entry["total_frame_count"] = total_frame_count
         entry["registered_frame_count"] = _registered_frame_count(r.id)
+        entry["localization_map_id"] = str(published[r.id]) if r.id in published else None
         entries.append(entry)
     return entries
 
@@ -665,6 +674,59 @@ def reconstructions(
             for r in rows
         ],
     )
+
+
+@app.command()
+def maps(json_output: Annotated[bool, typer.Option("--json", help="Emit JSON instead of a table")] = False) -> None:
+    """List the maps published to devices -- what a capture tool's map picker can offer."""
+    rows = run(_list_maps())
+    if json_output:
+        typer.echo(dumps(rows))
+        return
+    _print_table(
+        ["ID", "Name", "Reconstruction", "Capture", "Placed"],
+        [
+            [
+                r["id"],
+                r["name"] or "—",
+                r["reconstruction_id"][:8],
+                r["capture_name"] or "—",
+                "identity" if r["is_identity_placement"] else "moved",
+            ]
+            for r in rows
+        ],
+    )
+
+
+@app.command(name="publish-map")
+def publish_map(
+    reconstruction_id: Annotated[UUID, typer.Argument(help="Succeeded reconstruction to publish to devices")],
+    name: Annotated[str | None, typer.Option(help="Name for the map; defaults to the capture's name")] = None,
+    json_output: Annotated[bool, typer.Option("--json", help="Emit JSON instead of text")] = False,
+) -> None:
+    """Publish a reconstruction as a localization map, making it selectable on a device.
+
+    Publishing builds nothing: the artifacts a device localizes against were written when the
+    reconstruction succeeded. It records that this map is one to offer, and where its frame sits.
+    """
+    row = run(_publish_map(reconstruction_id, name))
+    if json_output:
+        typer.echo(dumps(row))
+        return
+    typer.echo(f"Published reconstruction {reconstruction_id} as map {row['id']} ({row['name'] or 'unnamed'})")
+
+
+@app.command(name="unpublish-map")
+def unpublish_map(
+    map_id: Annotated[UUID, typer.Argument(help="Localization map to withdraw from devices")],
+    json_output: Annotated[bool, typer.Option("--json", help="Emit JSON instead of text")] = False,
+) -> None:
+    """Withdraw a map from devices. The reconstruction and its stored artifacts are untouched."""
+    run(_unpublish_map(map_id))
+    if json_output:
+        typer.echo(dumps({"id": str(map_id), "unpublished": True}))
+        return
+    typer.echo(f"Unpublished map {map_id}; its reconstruction is untouched")
 
 
 @app.command(name="delete-reconstruction")
@@ -1661,6 +1723,84 @@ def _delete_local_runs(reconstruction_id: UUID) -> list[str]:
     for run_id in runs:
         rmtree(LOCALIZATIONS_DIR / run_id, ignore_errors=True)
     return runs
+
+
+def _map_to_dict(row: Any, capture_names: dict[UUID, str], capture_of: dict[UUID, UUID]) -> dict[str, Any]:
+    capture_id = capture_of.get(row.reconstruction_id)
+    placement = (row.position_x, row.position_y, row.position_z, row.rotation_x, row.rotation_y, row.rotation_z)
+    return {
+        "id": str(row.id),
+        "name": row.name,
+        "reconstruction_id": str(row.reconstruction_id),
+        "capture_session_id": str(capture_id) if capture_id else None,
+        "capture_name": capture_names.get(capture_id) if capture_id else None,
+        # What a device's picker labels this map with: the capture's name, not the map's own. Worth
+        # reporting as its own field so a dashboard can show the same string the device shows.
+        "device_label": (capture_names.get(capture_id) if capture_id else None) or row.name,
+        "position": {"x": row.position_x, "y": row.position_y, "z": row.position_z},
+        "rotation": {"x": row.rotation_x, "y": row.rotation_y, "z": row.rotation_z, "w": row.rotation_w},
+        "is_identity_placement": all(v == 0.0 for v in placement) and row.rotation_w == 1.0,
+        "created_at": row.created_at.isoformat() if getattr(row, "created_at", None) else None,
+    }
+
+
+async def _list_maps() -> list[dict[str, Any]]:
+    async with authenticated_api_client() as api:
+        try:
+            rows = await api.get_localization_maps()
+            reconstructions_by_id = {r.id: r for r in await api.get_reconstructions()}
+            capture_names = {s.id: s.name for s in await api.get_capture_sessions(_request_timeout=REQUEST_TIMEOUT)}
+        except ApiException as exception:
+            _fail(exception)
+    capture_of = {
+        r.id: r.capture_session_id for r in reconstructions_by_id.values() if r.capture_session_id is not None
+    }
+    return sorted(
+        (_map_to_dict(row, capture_names, capture_of) for row in rows),
+        key=lambda r: r["created_at"] or "",
+        reverse=True,
+    )
+
+
+async def _publish_map(reconstruction_id: UUID, name: str | None) -> dict[str, Any]:
+    async with authenticated_api_client() as api:
+        try:
+            reconstruction = await api.get_reconstruction(id=reconstruction_id)
+            capture_names = {s.id: s.name for s in await api.get_capture_sessions(_request_timeout=REQUEST_TIMEOUT)}
+            capture_id = reconstruction.capture_session_id
+            # The API rejects a second map for the same reconstruction on the table's UNIQUE
+            # constraint; a name is the capture's unless one is given, matching the capture tool.
+            #
+            # The placement is identity: where this map's frame sits in the world frame a device
+            # localizes into. Identity says "this map's frame is the world frame" -- right for one
+            # map at a time, and the thing to change when several should share a frame, which is
+            # exactly what the align page computes.
+            created = await api.create_localization_map(
+                LocalizationMapCreate(
+                    reconstruction_id=reconstruction_id,
+                    name=name or (capture_names.get(capture_id) if capture_id else None),
+                    color=0,
+                    position_x=0.0,
+                    position_y=0.0,
+                    position_z=0.0,
+                    rotation_x=0.0,
+                    rotation_y=0.0,
+                    rotation_z=0.0,
+                    rotation_w=1.0,
+                )
+            )
+        except ApiException as exception:
+            _fail(exception)
+    capture_of = {reconstruction_id: capture_id} if capture_id else {}
+    return _map_to_dict(created, capture_names, capture_of)
+
+
+async def _unpublish_map(map_id: UUID) -> None:
+    async with authenticated_api_client() as api:
+        try:
+            await api.delete_localization_map(id=map_id)
+        except ApiException as exception:
+            _fail(exception)
 
 
 async def _delete_reconstruction_with(api: DefaultApi, reconstruction_id: UUID, cascade: bool) -> dict[str, Any]:
