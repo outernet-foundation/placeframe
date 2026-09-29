@@ -23,9 +23,13 @@ import matplotlib as mpl
 import numpy as np
 import typer
 from common.limits import REQUEST_MAX_BODY_SIZE
+from core.camera_config import SphericalCameraConfig
 from core.capture_session_manifest import CaptureSessionManifest
 from core.localization_metrics import RANSAC_THRESHOLD_DEFAULT, RETRIEVAL_TOP_K_DEFAULT
-from panorama.projection import LAYOUTS
+from panorama.projection import LAYOUTS, View as PanoramaView
+from panorama.projection import layout as panorama_layout
+from panorama.projection import render as panorama_render
+from panorama.projection import view_map as panorama_view_map
 from panorama.video import frames as video_frames
 from panorama.video import sample_frames
 from panorama.video import inspect as inspect_video
@@ -80,6 +84,10 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 DATA_DIR = REPO_ROOT / "data"
 RECONSTRUCTIONS_DIR = DATA_DIR / "reconstructions"
 LOCALIZATIONS_DIR = DATA_DIR / "localizations"
+# Capture tars, cached the same way and for the same reason: export-views re-renders a spherical
+# capture's views from the spheres it holds, and re-downloading those for every export would be a
+# multi-GB fetch per click.
+CAPTURES_DIR = DATA_DIR / "captures"
 
 LOCALIZATION_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
 LOCALIZATION_THUMBNAIL_SIZE = (200, 150)
@@ -145,6 +153,19 @@ def _cached_tar_path(reconstruction_id: UUID) -> Path:
 
 def _cached_png_path(reconstruction_id: UUID) -> Path:
     return RECONSTRUCTIONS_DIR / f"{reconstruction_id}.png"
+
+
+def _cached_capture_tar_path(capture_session_id: UUID) -> Path:
+    return CAPTURES_DIR / f"{capture_session_id}.tar"
+
+
+async def _ensure_cached_capture_tar(api: DefaultApi, capture_session_id: UUID) -> Path:
+    path = _cached_capture_tar_path(capture_session_id)
+    if not path.exists():
+        tar_bytes = await api.download_capture_session_tar(id=capture_session_id, _request_timeout=REQUEST_TIMEOUT)
+        CAPTURES_DIR.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(tar_bytes)
+    return path
 
 
 async def _ensure_cached_tar(api: DefaultApi, reconstruction_id: UUID) -> Path:
@@ -640,6 +661,46 @@ def captures(json_output: Annotated[bool, typer.Option("--json", help="Emit JSON
             for s in sessions
         ],
     )
+
+
+async def _capture_info(capture_session_id: UUID) -> dict[str, Any]:
+    async with authenticated_api_client() as api:
+        try:
+            manifest_bytes = await api.get_capture_session_manifest_file(id=capture_session_id)
+        except ApiException as exception:
+            _fail(exception)
+    manifest = CaptureSessionManifest.model_validate_json(manifest_bytes)
+    cameras = [camera for rig in manifest.rigs for camera in rig.cameras]
+    spherical = [c for c in cameras if isinstance(c.camera_config, SphericalCameraConfig)]
+    config = spherical[0].camera_config if spherical else None
+    return {
+        "id": str(capture_session_id),
+        # Whether a capture is spherical is recorded nowhere but its manifest -- there is no column
+        # for it and a 360 capture uploads as ARFoundation like any other -- so the camera config's
+        # own type is the answer.
+        "is_spherical": bool(spherical),
+        "projection": getattr(config, "projection", None),
+        # The frames as stored, which is what --max-width settled on at import: it cannot be
+        # changed now without extracting the source video again.
+        "frame_width": getattr(config, "width", None),
+        "frame_height": getattr(config, "height", None),
+        "capture_interval_seconds": manifest.capture_interval_seconds,
+        "camera_count": len(cameras),
+    }
+
+
+@app.command(name="capture-info")
+def capture_info(
+    capture_session_id: Annotated[UUID, typer.Argument(help="Capture session to inspect")],
+    json_output: Annotated[bool, typer.Option("--json", help="Emit JSON instead of text")] = False,
+) -> None:
+    """What kind of capture this is, from its manifest: spherical or not, and its frame geometry."""
+    result = run(_capture_info(capture_session_id))
+    if json_output:
+        typer.echo(dumps(result))
+        return
+    kind = f"spherical ({result['projection']})" if result["is_spherical"] else "not spherical"
+    typer.echo(f"{capture_session_id}: {kind}, frames {result['frame_width']}x{result['frame_height']}")
 
 
 @app.command()
@@ -1307,6 +1368,257 @@ async def _export_zip(reconstruction_id: UUID, output_path: Path) -> dict[str, A
                 _fail(exception)
     file_count = await to_thread(_write_zip_from_tar, cached, output_path)
     return {"output_path": str(output_path), "file_count": file_count, "size_bytes": output_path.stat().st_size}
+
+
+@dataclass(frozen=True)
+class _ColmapCamera:
+    """One camera as sfm_model/cameras.txt states it, after bundle adjustment refined it."""
+
+    model: str
+    width: int
+    height: int
+    params: list[float]
+
+
+@dataclass(frozen=True)
+class _ColmapImage:
+    """One registered image: where its file is, and the pose COLMAP solved for it."""
+
+    name: str
+    camera_id: int
+    # COLMAP stores the world-to-camera transform: q rotates a world point into the camera frame.
+    quaternion_wxyz: tuple[float, float, float, float]
+    translation: tuple[float, float, float]
+
+
+def _parse_colmap_cameras(text: str) -> dict[int, _ColmapCamera]:
+    cameras: dict[int, _ColmapCamera] = {}
+    for line in text.splitlines():
+        if line.startswith("#") or not line.strip():
+            continue
+        fields = line.split()
+        cameras[int(fields[0])] = _ColmapCamera(
+            model=fields[1], width=int(fields[2]), height=int(fields[3]), params=[float(f) for f in fields[4:]]
+        )
+    return cameras
+
+
+def _parse_colmap_images(text: str) -> list[_ColmapImage]:
+    """The first of each image's two lines; the second holds its 2D points, which an export ignores."""
+    images: list[_ColmapImage] = []
+    for index, line in enumerate(row for row in text.splitlines() if not row.startswith("#")):
+        if index % 2 or not line.strip():
+            continue
+        fields = line.split()
+        images.append(
+            _ColmapImage(
+                name=fields[9],
+                camera_id=int(fields[8]),
+                quaternion_wxyz=(float(fields[1]), float(fields[2]), float(fields[3]), float(fields[4])),
+                translation=(float(fields[5]), float(fields[6]), float(fields[7])),
+            )
+        )
+    return images
+
+
+def _scaled_params(camera: _ColmapCamera, size: int) -> list[float]:
+    """`camera`'s params restated for a `size`-pixel render of the same view.
+
+    OPENCV_FISHEYE is equidistant: r = f * theta, so focal length and principal point scale with
+    the image while k1..k4 act on theta and are therefore scale-free. Rendering larger than the
+    reconstruction's own 1024 px keeps the refined distortion and just moves the pixels.
+    """
+    scale = size / camera.width
+    focal_x, focal_y, centre_x, centre_y, *distortion = camera.params
+    return [focal_x * scale, focal_y * scale, centre_x * scale, centre_y * scale, *distortion]
+
+
+def _view_of_camera_folder(folder: str, views: tuple[PanoramaView, ...]) -> PanoramaView | None:
+    """The layout view a rendered-view folder name (`camera0_h000`) was written for."""
+    return next((view for view in views if folder.endswith(f"_{view.name}")), None)
+
+
+def _render_views_from_capture(
+    capture_tar: Path,
+    output_dir: Path,
+    images: list[_ColmapImage],
+    cameras: dict[int, _ColmapCamera],
+    layout_name: str,
+    fov_deg: float,
+    size: int | None,
+    quality: int,
+) -> dict[str, Any]:
+    """Re-render every registered view of a spherical capture, with its intrinsics and pose.
+
+    The reconstructor renders these views into its own container's /tmp, downscales them to
+    1024 px in place for feature extraction and never uploads them, so there is no artifact to
+    copy -- but the render is deterministic, so rendering again from the spheres the capture tar
+    holds reproduces it, at whatever size is asked for rather than the 1024 px COLMAP kept.
+    """
+    views = panorama_layout(layout_name)
+    written = 0
+    pose_entries: list[dict[str, Any]] = []
+    camera_entries: dict[str, Any] = {}
+    maps: dict[str, Any] = {}
+    render_size: int | None = None
+
+    with tarfile.open(capture_tar) as tar:
+        members = {member.name: member for member in tar.getmembers() if member.isfile()}
+        for image in sorted(images, key=lambda i: i.name):
+            rig, camera_folder, filename = image.name.split("/")
+            view = _view_of_camera_folder(camera_folder, views)
+            if view is None:
+                continue
+            source_folder = camera_folder[: -(len(view.name) + 1)]
+            source = members.get(f"{rig}/{source_folder}/{filename}")
+            if source is None:
+                continue
+            extracted = tar.extractfile(source)
+            if extracted is None:
+                continue
+            with Image.open(BytesIO(extracted.read())) as opened:
+                frame = np.asarray(opened.convert("RGB"), dtype=np.uint8)
+            if render_size is None:
+                height, width = frame.shape[:2]
+                render_size = size if size is not None else cameras[image.camera_id].width
+                maps = {v.name: panorama_view_map(width, height, v, render_size, fov_deg) for v in views}
+                emit_progress("rendering", 0, len(images), f"{render_size}px at {fov_deg} degrees")
+            view_dir = output_dir / view.name
+            view_dir.mkdir(parents=True, exist_ok=True)
+            Image.fromarray(panorama_render(frame, maps[view.name])).save(view_dir / filename, quality=quality)
+            written += 1
+            if written % 50 == 0:
+                emit_progress("rendering", written, len(images))
+
+            camera = cameras[image.camera_id]
+            camera_entries.setdefault(
+                view.name,
+                {
+                    "model": camera.model,
+                    "width": render_size,
+                    "height": render_size,
+                    "params": _scaled_params(camera, render_size),
+                    "param_names": ["fx", "fy", "cx", "cy", "k1", "k2", "k3", "k4"],
+                },
+            )
+            pose_entries.append({
+                "file": f"{view.name}/{filename}",
+                "view": view.name,
+                "frame": Path(filename).stem,
+                "quaternion_wxyz": list(image.quaternion_wxyz),
+                "translation": list(image.translation),
+            })
+
+    (output_dir / "cameras.json").write_text(
+        dumps(
+            {
+                "layout": layout_name,
+                "view_fov_deg": fov_deg,
+                "size": render_size,
+                # Restated from the reconstruction's own cameras.txt, which bundle adjustment
+                # refined away from the ideal equidistant parameters the renderer started from --
+                # so these, not focal_length(size, fov), are what a consumer should believe.
+                "source": "sfm_model/cameras.txt, scaled to size",
+                "cameras": camera_entries,
+            },
+            indent=1,
+        )
+    )
+    (output_dir / "poses.json").write_text(
+        dumps(
+            {
+                # Spelled out because getting this backwards is silent: COLMAP stores
+                # world-to-camera, so a point moves as p_cam = R(q) @ p_world + t.
+                "convention": "cam_from_world; quaternion is (w, x, y, z); p_cam = R(q) @ p_world + t",
+                "images": pose_entries,
+            },
+            indent=1,
+        )
+    )
+    return {
+        "output_dir": str(output_dir),
+        "views": sorted(camera_entries),
+        "images": written,
+        "size": render_size,
+        "layout": layout_name,
+        "view_fov_deg": fov_deg,
+    }
+
+
+async def _export_views(reconstruction_id: UUID, output_dir: Path, size: int | None, quality: int) -> dict[str, Any]:
+    async with authenticated_api_client() as api:
+        try:
+            reconstruction = await api.get_reconstruction(id=reconstruction_id)
+            options: dict[str, Any] = reconstruction.manifest.get("options") or {}
+            if reconstruction.capture_session_id is None:
+                _fail_message(f"Reconstruction {reconstruction_id} has no capture session to render from")
+            capture_tar = await _ensure_cached_capture_tar(api, reconstruction.capture_session_id)
+            model_tar = await _ensure_cached_tar(api, reconstruction_id)
+        except ApiException as exception:
+            _fail(exception)
+
+    def read_model() -> tuple[list[_ColmapImage], dict[int, _ColmapCamera]]:
+        with tarfile.open(model_tar) as tar:
+            images_member = tar.extractfile("sfm_model/images.txt")
+            cameras_member = tar.extractfile("sfm_model/cameras.txt")
+            if images_member is None or cameras_member is None:
+                _fail_message(f"Reconstruction {reconstruction_id} has no sfm_model to read poses from")
+            return _parse_colmap_images(images_member.read().decode()), _parse_colmap_cameras(
+                cameras_member.read().decode()
+            )
+
+    images, cameras = await to_thread(read_model)
+    layout_name = str(options.get("spherical_layout") or "tetrahedron")
+    fov_deg = float(options.get("spherical_view_fov_deg") or SPHERICAL_VIEW_FOV_DEG)
+    result = await to_thread(
+        _render_views_from_capture,
+        capture_tar,
+        output_dir,
+        images,
+        cameras,
+        layout_name,
+        fov_deg,
+        size,
+        quality,
+    )
+    if not result["images"]:
+        _fail_message(
+            f"Reconstruction {reconstruction_id} registered no spherical views to export "
+            f"(layout {layout_name!r}); only a reconstruction of a spherical capture has any"
+        )
+    return result
+
+
+@app.command(name="export-views")
+def export_views(
+    reconstruction_id: Annotated[UUID, typer.Argument(help="Spherical reconstruction to export the views of")],
+    output_dir: Annotated[Path, typer.Argument(help="Directory to write the per-view image folders into")],
+    size: Annotated[
+        int | None,
+        typer.Option(
+            "--size",
+            help="Pixel size of each rendered view. Omitted, it matches the reconstruction's own cameras "
+            "(1024), so the intrinsics apply to the images unchanged; larger re-renders at higher "
+            "resolution and scales the intrinsics to match.",
+        ),
+    ] = None,
+    quality: Annotated[int, typer.Option("--quality", help="JPEG quality of the written views")] = 95,
+    json_output: Annotated[bool, typer.Option("--json", help="Emit JSON instead of text")] = False,
+) -> None:
+    """Write a spherical reconstruction's rendered views, their intrinsics and their poses.
+
+    The reconstructor never keeps the views it renders, so they are rendered again here from the
+    spheres the capture holds, using the layout and field of view this reconstruction was built
+    with. Intrinsics and poses come from its solved model, so the three agree with each other.
+    """
+    result = run(_export_views(reconstruction_id, output_dir, size, quality))
+    if json_output:
+        typer.echo(dumps(result))
+        return
+    typer.echo(
+        f"Exported {result['images']} view image(s) across {len(result['views'])} view(s) "
+        f"({result['layout']}, {result['view_fov_deg']} degrees, {result['size']}px) to {result['output_dir']}"
+    )
 
 
 @app.command(name="export-zip")
@@ -2366,6 +2678,12 @@ async def _run_pipeline(
             return session, reconstruction
         except ApiException as exception:
             _fail(exception)
+
+
+def _fail_message(message: str) -> NoReturn:
+    """Stop with an explanation, for a refusal that is ours rather than the API's."""
+    typer.echo(message, err=True)
+    raise typer.Exit(1)
 
 
 def _fail(exception: ApiException) -> NoReturn:

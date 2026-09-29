@@ -1,7 +1,9 @@
 import { useEffect, useState, type ReactNode } from "react";
 import {
   exportPoses,
+  exportReconstructionViews,
   exportReconstructionZip,
+  getCaptureInfo,
   importPath,
   saveLocalizationImages,
   saveLocalizationTable,
@@ -9,7 +11,7 @@ import {
   startPoselessReconstruct,
   startReconstruct,
 } from "../api";
-import type { ImportResult, VideoInfo, VideoSettings } from "../api";
+import type { CaptureInfo, ImportResult, SphericalOptions, VideoInfo, VideoSettings } from "../api";
 import { estimateVideoCapture } from "../api";
 import { errorText, joinPath, parentDir, readStored, store, STORAGE_KEYS } from "../storage";
 import type { PoselessImageSet, Reconstruction } from "../types";
@@ -135,6 +137,23 @@ export function optionsSummary(r: Reconstruction): string {
 
 // ── Reconstruct a capture ───────────────────────────────────────────────────
 
+// ReconstructionOptions' spherical defaults (core/reconstruction_options.py).
+const SPHERICAL_DEFAULTS: SphericalOptions = { layout: "tetrahedron", viewFovDeg: 150, viewSize: 1600 };
+
+// What the newest reconstruction of this capture was cut into, so reconstructing again starts from
+// the last choice rather than the schema default — the usual reason to reopen this dialog is to
+// change one of these, and the rest should stay put.
+function sphericalFrom(siblings: Reconstruction[]): SphericalOptions {
+  const options = siblings[0]?.options ?? {};
+  const value = (key: string, fallback: number): number =>
+    typeof options[key] === "number" ? (options[key] as number) : fallback;
+  return {
+    layout: typeof options.spherical_layout === "string" ? options.spherical_layout : SPHERICAL_DEFAULTS.layout,
+    viewFovDeg: value("spherical_view_fov_deg", SPHERICAL_DEFAULTS.viewFovDeg),
+    viewSize: value("spherical_view_size", SPHERICAL_DEFAULTS.viewSize),
+  };
+}
+
 export function ReconstructDialog({ captureName, captureId, siblings, onClose, onStarted }: {
   captureName: string;
   captureId: string;
@@ -149,12 +168,86 @@ export function ReconstructDialog({ captureName, captureId, siblings, onClose, o
   const [optionsJson, setOptionsJson] = useState(
     fromImageFolder ? JSON.stringify({ pose_prior_position_sigma_m: POSELESS_PRIOR_SIGMA_M }) : "",
   );
+  // Whether the capture is spherical decides whether the view fields apply at all, and it is only
+  // knowable from its manifest, so it is fetched when the dialog opens. Until it arrives the dialog
+  // is the plain one; a failure leaves it that way rather than blocking a reconstruction.
+  const [info, setInfo] = useState<CaptureInfo | null>(null);
+  const [spherical, setSpherical] = useState<SphericalOptions>(() => sphericalFrom(siblings));
+  useEffect(() => {
+    let live = true;
+    getCaptureInfo(captureId)
+      .then((result) => live && setInfo(result))
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [captureId]);
+
+  const isSpherical = info?.is_spherical ?? false;
   const { busy, error, submit } = useSubmit(
-    () => startReconstruct(captureId, optionsJson.trim() || null),
+    () => {
+      // Typed fields first, hand-written JSON over the top: the same precedence the CLI gives
+      // --options-json over its own flags, so the textarea stays the way to win an argument.
+      const typed = isSpherical
+        ? {
+            spherical_layout: spherical.layout,
+            spherical_view_fov_deg: spherical.viewFovDeg,
+            spherical_view_size: spherical.viewSize,
+          }
+        : {};
+      const typedJson = optionsJson.trim() ? (JSON.parse(optionsJson) as Record<string, unknown>) : {};
+      const merged = { ...typed, ...typedJson };
+      return startReconstruct(captureId, Object.keys(merged).length ? JSON.stringify(merged) : null);
+    },
     ({ job_id }) => onStarted(job_id),
   );
   return (
     <Modal title={`Reconstruct ${captureName}`} busy={busy} onClose={onClose}>
+      {isSpherical && (
+        <>
+          <div style={{ display: "flex", gap: 12 }}>
+            <label style={{ flex: 1 }}>
+              Views rendered from each sphere
+              <select value={spherical.layout} onChange={(e) => setSpherical({ ...spherical, layout: e.target.value })}>
+                <option value="tetrahedron">Tetrahedron — 4 views, covers the sphere at 141°+</option>
+                <option value="hexring">Hexring — 6 level-ish views, better for level queries</option>
+                <option value="cube">Cube — 6 faces, covers the sphere at 110°+</option>
+              </select>
+            </label>
+            <label style={{ width: 110 }}>
+              View field of view
+              <input
+                type="number"
+                min={1}
+                max={179}
+                value={spherical.viewFovDeg}
+                onChange={(e) => setSpherical({ ...spherical, viewFovDeg: Number(e.target.value) })}
+              />
+            </label>
+            <label style={{ width: 110 }}>
+              View size (px)
+              <input
+                type="number"
+                min={64}
+                value={spherical.viewSize}
+                onChange={(e) => setSpherical({ ...spherical, viewSize: Number(e.target.value) })}
+              />
+            </label>
+          </div>
+          <div style={{ ...HINT, marginTop: -8 }}>
+            These cut the sphere into the views a reconstructor can model, so changing them is exactly what
+            reconstructing again is for. Full coverage needs 141° for the tetrahedron, 110° for the cube and 150° for
+            the hexring; a narrower view than that drops the worst-covered directions, which for the hexring is mostly
+            sky. Stride and max frame width are not here because they are properties of the capture — its frames were
+            extracted and stored once, at{" "}
+            <span className="mono">
+              {info?.frame_width ?? "?"}x{info?.frame_height ?? "?"}
+            </span>
+            {info?.capture_interval_seconds ? ` every ${(info.capture_interval_seconds * 1000).toFixed(0)} ms` : ""} —
+            so changing either means importing the source video again.
+          </div>
+        </>
+      )}
       <label>
         Options (JSON, optional overrides for ReconstructionOptions)
         <textarea rows={6} placeholder='{"ransac_max_error": 2.0}' value={optionsJson} onChange={(e) => setOptionsJson(e.target.value)} />
@@ -469,7 +562,13 @@ export function ImportDialog({ onClose, onImported }: {
 
 // ── Export a reconstruction: zip archive, or its poses as localization-format JSON ─
 
-export type ExportKind = "zip" | "poses";
+export type ExportKind = "zip" | "poses" | "views";
+
+const EXPORT_DIR_KEYS: Record<ExportKind, string> = {
+  zip: STORAGE_KEYS.exportZipDir,
+  poses: STORAGE_KEYS.exportPosesDir,
+  views: STORAGE_KEYS.exportViewsDir,
+};
 
 export function ExportDialog({ kind, reconstruction, onClose, onDone }: {
   kind: ExportKind;
@@ -477,8 +576,13 @@ export function ExportDialog({ kind, reconstruction, onClose, onDone }: {
   onClose: () => void;
   onDone: (message: string) => void;
 }) {
-  const [dir, setDir] = useRemembered(kind === "zip" ? STORAGE_KEYS.exportZipDir : STORAGE_KEYS.exportPosesDir);
-  const [filename, setFilename] = useState(kind === "zip" ? `${reconstruction.id}.zip` : "poses.json");
+  const [dir, setDir] = useRemembered(EXPORT_DIR_KEYS[kind]);
+  // Views go into a folder of their own rather than one file, so the second field names the folder;
+  // an empty view size means "whatever the reconstruction's own cameras describe".
+  const [filename, setFilename] = useState(
+    kind === "zip" ? `${reconstruction.id}.zip` : kind === "poses" ? "poses.json" : `${reconstruction.id}-views`,
+  );
+  const [viewSize, setViewSize] = useState("");
   const outputPath = joinPath(dir.trim(), filename.trim());
   const { busy, error, submit } = useSubmit<string>(
     async () => {
@@ -486,24 +590,46 @@ export function ExportDialog({ kind, reconstruction, onClose, onDone }: {
         const result = await exportReconstructionZip(reconstruction.id, outputPath);
         return `Exported ${result.file_count} files to ${result.output_path}`;
       }
+      if (kind === "views") {
+        const result = await exportReconstructionViews(reconstruction.id, outputPath, Number(viewSize) || null);
+        return `Rendered ${result.images} image(s) across ${result.views.length} view(s) (${result.layout}, ${result.view_fov_deg}°, ${result.size}px) to ${result.output_dir}`;
+      }
       const result = await exportPoses(reconstruction.id, outputPath);
       return `Wrote ${result.count} pose(s) to ${result.output_path}`;
     },
     onDone,
   );
+  const title =
+    kind === "zip" ? "Export reconstruction as .zip" : kind === "poses" ? "Export poses as JSON" : "Export view image sets";
   return (
-    <Modal title={kind === "zip" ? "Export reconstruction as .zip" : "Export poses as JSON"} busy={busy} onClose={onClose}>
+    <Modal title={title} busy={busy} onClose={onClose}>
       <div style={HINT}>
         {kind === "zip"
           ? "The map data (point cloud, camera poses, features) of "
-          : "The map's own camera poses, in the same JSON shape as a localization run's results (e.g. as ground truth), from "}
+          : kind === "poses"
+            ? "The map's own camera poses, in the same JSON shape as a localization run's results (e.g. as ground truth), from "
+            : "One folder per rendered view, plus cameras.json and poses.json, from "}
         <span className="mono">{reconstruction.id}</span>.
       </div>
+      {kind === "views" && (
+        <div style={HINT}>
+          The reconstructor does not keep the views it renders, so they are rendered again from the capture's spheres at
+          the layout and field of view this reconstruction used. Intrinsics come from its solved model, so they are the
+          bundle-adjusted ones rather than the ideal ones, and the poses are world-to-camera. Only a reconstruction of a
+          spherical capture has views to export.
+        </div>
+      )}
       <PathField label="Output directory" value={dir} onChange={setDir} placeholder="/path/to/output/dir" browseTitle="Choose output directory" />
       <label>
-        Output filename
+        {kind === "views" ? "Output folder name" : "Output filename"}
         <input type="text" value={filename} onChange={(e) => setFilename(e.target.value)} />
       </label>
+      {kind === "views" && (
+        <label>
+          View size in pixels (blank = match the reconstruction's cameras)
+          <input type="number" min={64} placeholder="1024" value={viewSize} onChange={(e) => setViewSize(e.target.value)} />
+        </label>
+      )}
       {error && <div className="banner banner-error">{error}</div>}
       <Actions
         busy={busy}

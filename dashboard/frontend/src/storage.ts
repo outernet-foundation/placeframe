@@ -25,6 +25,7 @@ export const STORAGE_KEYS = {
   focalLength: "placeframe-dashboard.reconstruct.poselessFocalLength",
   exportZipDir: "placeframe-dashboard.visualize.exportZipOutputDir",
   exportPosesDir: "placeframe-dashboard.tools.exportPosesOutputDir",
+  exportViewsDir: "placeframe-dashboard.visualize.exportViewsOutputDir",
 } as const;
 
 // Server-side join: the dashboard always runs on the machine the CLI does, with Linux paths.

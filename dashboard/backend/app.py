@@ -225,6 +225,14 @@ async def list_captures() -> list[dict[str, Any]]:
     return await _run_howard_test_json_async("captures")
 
 
+# Whether a capture is spherical lives only in its manifest, which costs a fetch per capture — so
+# it is asked for one capture at a time, when a dialog needs it, rather than added to the listing
+# the tree polls.
+@get("/api/captures/{capture_id:str}/info")
+async def get_capture_info(capture_id: str) -> dict[str, Any]:
+    return await _run_howard_test_json_async("capture-info", capture_id)
+
+
 # `stats=false` skips each capture's mono/stereo + frame-count lookup (the API streams through the
 # capture tar for those), so the dashboard can draw the tree at once and fill them in afterwards.
 @get("/api/reconstructions")
@@ -1039,6 +1047,24 @@ async def export_reconstruction_zip(reconstruction_id: str, data: ExportZipReque
 
 
 @dataclass
+class ExportViewsRequest:
+    output_dir: str
+    # None renders at the size the reconstruction's own cameras describe, so the exported
+    # intrinsics apply to the exported images unchanged.
+    size: int | None = None
+
+
+# The views a spherical reconstruction was built from are rendered inside the reconstructor and
+# never uploaded, so this re-renders them from the capture's spheres at the layout and field of
+# view that reconstruction used. Minutes for a long capture, so it is a plain call the dialog
+# waits on rather than a tracked job — the same shape as export-zip.
+@post("/api/reconstructions/{reconstruction_id:str}/export-views")
+async def export_reconstruction_views(reconstruction_id: str, data: ExportViewsRequest) -> dict[str, Any]:
+    size_flags = ["--size", str(data.size)] if data.size else []
+    return await _run_howard_test_json_async("export-views", reconstruction_id, data.output_dir, *size_flags)
+
+
+@dataclass
 class ScreenshotRequest:
     plot_title: str
     image_base64: str
@@ -1116,6 +1142,8 @@ app = Litestar(
         save_localization_images,
         export_poses,
         export_reconstruction_zip,
+        export_reconstruction_views,
+        get_capture_info,
         save_screenshot,
     ],
     cors_config=cors_config,

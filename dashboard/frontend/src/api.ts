@@ -73,6 +73,53 @@ export interface VideoSettings {
   viewFovDeg: number | null;
 }
 
+// A capture's kind, which lives only in its manifest — asked for one capture at a time, when a
+// dialog needs it, rather than carried on the listing the tree polls.
+export interface CaptureInfo {
+  id: string;
+  is_spherical: boolean;
+  projection: string | null;
+  // The frames as stored. This is what max frame width settled on at import and cannot be changed
+  // by reconstructing again, only by importing the source video afresh.
+  frame_width: number | null;
+  frame_height: number | null;
+  capture_interval_seconds: number | null;
+  camera_count: number;
+}
+
+export function getCaptureInfo(captureId: string): Promise<CaptureInfo> {
+  return request(`/api/captures/${captureId}/info`);
+}
+
+// The three ReconstructionOptions fields that decide how a sphere is cut into views. Unlike stride
+// and max frame width they are applied at reconstruction time, so a new reconstruction can change
+// them without touching the capture.
+export interface SphericalOptions {
+  layout: string;
+  viewFovDeg: number;
+  viewSize: number;
+}
+
+export interface ExportViewsResult {
+  output_dir: string;
+  views: string[];
+  images: number;
+  size: number;
+  layout: string;
+  view_fov_deg: number;
+}
+
+export function exportReconstructionViews(
+  reconstructionId: string,
+  outputDir: string,
+  size: number | null,
+): Promise<ExportViewsResult> {
+  return request(`/api/reconstructions/${reconstructionId}/export-views`, {
+    method: "POST",
+    body: JSON.stringify({ output_dir: outputDir, size }),
+  });
+}
+
 export interface CaptureEstimate {
   stride: number;
   max_width: number;

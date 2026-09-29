@@ -607,6 +607,7 @@ export function CapturesPage() {
                   items={[
                     { label: "Zip archive…", onSelect: () => setDialog({ kind: "export", exportKind: "zip", reconstruction: r }) },
                     { label: "Poses (JSON)…", onSelect: () => setDialog({ kind: "export", exportKind: "poses", reconstruction: r }) },
+                    { label: "View image sets…", onSelect: () => setDialog({ kind: "export", exportKind: "views", reconstruction: r }) },
                   ]}
                 />
               </>
