@@ -62,15 +62,16 @@ export interface ImportResult {
   image_set?: PoselessImageSet;
   capture?: CaptureSession;
   reconstruction?: Reconstruction;
-  job_id?: string; // a video: extraction, upload and reconstruction take minutes
+  job_id?: string; // a video: extraction and upload take minutes, and stop at the capture
   name?: string;
 }
 
+// What importing a video settles: which frames the capture holds, and how wide they are. The views
+// a sphere is cut into are not here — those are chosen per reconstruction, and again when exporting
+// the views themselves.
 export interface VideoSettings {
   stride: number | null;
   maxWidth: number | null;
-  layout: string | null;
-  viewFovDeg: number | null;
 }
 
 // A capture's kind, which lives only in its manifest — asked for one capture at a time, when a
@@ -104,19 +105,28 @@ export interface ExportViewsResult {
   output_dir: string;
   views: string[];
   images: number;
+  frames: number;
   size: number;
   layout: string;
   view_fov_deg: number;
 }
 
-export function exportReconstructionViews(
-  reconstructionId: string,
+// Rendering views belongs to the capture, not to a reconstruction of it: which views exist is
+// decided by the layout and field of view alone, so every reconstruction of one capture would
+// otherwise produce the same images.
+export function exportCaptureViews(
+  captureId: string,
   outputDir: string,
-  size: number | null,
+  spherical: SphericalOptions,
 ): Promise<ExportViewsResult> {
-  return request(`/api/reconstructions/${reconstructionId}/export-views`, {
+  return request(`/api/captures/${captureId}/export-views`, {
     method: "POST",
-    body: JSON.stringify({ output_dir: outputDir, size }),
+    body: JSON.stringify({
+      output_dir: outputDir,
+      layout: spherical.layout,
+      view_fov_deg: spherical.viewFovDeg,
+      size: spherical.viewSize,
+    }),
   });
 }
 
@@ -144,8 +154,8 @@ export interface VideoInfo {
 
 // What a capture built at these settings would weigh. Asked before importing, because the API
 // rejects an oversized body outright and an extraction only reveals its size once it is spent.
-// Only the settings that change the frames matter here; the layout is applied at reconstruction
-// time, long after the capture is built, so it cannot change its size.
+// Every setting importing takes changes the frames, so the estimate prices exactly what will be
+// built — the layout and field of view, which do not affect a capture's size, are chosen later.
 export function estimateVideoCapture(
   path: string,
   settings: Pick<VideoSettings, "stride" | "maxWidth">,
@@ -166,8 +176,6 @@ export function importPath(path: string, newId = false, settings?: VideoSettings
       new_id: newId,
       stride: settings?.stride ?? null,
       max_width: settings?.maxWidth ?? null,
-      layout: settings?.layout ?? null,
-      view_fov_deg: settings?.viewFovDeg ?? null,
     }),
   });
 }

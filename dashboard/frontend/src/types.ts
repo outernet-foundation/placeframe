@@ -1,4 +1,7 @@
+// is_spherical is null when the capture's manifest could not be read, or when the listing was asked
+// not to check; the Export button for rendered views appears only on a definite true.
 export interface CaptureSession {
+  is_spherical?: boolean | null;
   id: string;
   name: string;
   device_type: string;

@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import {
+  exportCaptureViews,
   exportPoses,
-  exportReconstructionViews,
   exportReconstructionZip,
   getCaptureInfo,
   importPath,
@@ -14,7 +14,7 @@ import {
 import type { CaptureInfo, ImportResult, SphericalOptions, VideoInfo, VideoSettings } from "../api";
 import { estimateVideoCapture } from "../api";
 import { errorText, joinPath, parentDir, readStored, store, STORAGE_KEYS } from "../storage";
-import type { PoselessImageSet, Reconstruction } from "../types";
+import type { CaptureSession, PoselessImageSet, Reconstruction } from "../types";
 import { DirectoryBrowserDialog } from "./DirectoryBrowserDialog";
 
 // ── Shared pieces ───────────────────────────────────────────────────────────
@@ -459,13 +459,9 @@ export function ImportDialog({ onClose, onImported }: {
   const [newId, setNewId] = useState(false);
   const [stride, setStride] = useState("");
   const [maxWidth, setMaxWidth] = useState("");
-  const [layout, setLayout] = useState("");
-  const [fov, setFov] = useState("");
   const settings: VideoSettings = {
     stride: Number(stride) || null,
     maxWidth: maxWidth === "" ? null : Number(maxWidth),
-    layout: layout || null,
-    viewFovDeg: Number(fov) || null,
   };
   const { busy, error, submit } = useSubmit(
     () => importPath(path.trim(), newId, settings),
@@ -518,24 +514,10 @@ export function ImportDialog({ onClose, onImported }: {
               <input type="number" min={0} placeholder="3840" value={maxWidth} onChange={(e) => setMaxWidth(e.target.value)} />
             </label>
           </div>
-          <div style={{ display: "flex", gap: 12 }}>
-            <label style={{ flex: 1 }}>
-              Views rendered from each sphere
-              <select value={layout} onChange={(e) => setLayout(e.target.value)}>
-                <option value="">Tetrahedron — 4 views, covers the sphere (default)</option>
-                <option value="hexring">Hexring — 6 level-ish views, better for level queries</option>
-                <option value="cube">Cube — 6 faces</option>
-              </select>
-            </label>
-            <label style={{ width: 150 }}>
-              View field of view
-              <input type="number" min={1} max={179} placeholder="150" value={fov} onChange={(e) => setFov(e.target.value)} />
-            </label>
-          </div>
           <div style={{ ...HINT, marginTop: -8 }}>
-            A view matches a query best when it was taken looking the same way. Hexring keeps all six views near
-            horizontal, so at a narrower field of view (110–120°) it suits queries shot level, and drops mostly sky.
-            It does not change the capture, so a different layout is a re-reconstruction, not a re-import.
+            These are the capture: which frames it keeps, and how wide they are. Importing stops there — the views a
+            sphere is cut into are chosen when you reconstruct it, and again when you export the views themselves, so
+            one import can serve several of each.
           </div>
           <CaptureEstimateLine estimate={estimate} />
         </>
@@ -562,13 +544,7 @@ export function ImportDialog({ onClose, onImported }: {
 
 // ── Export a reconstruction: zip archive, or its poses as localization-format JSON ─
 
-export type ExportKind = "zip" | "poses" | "views";
-
-const EXPORT_DIR_KEYS: Record<ExportKind, string> = {
-  zip: STORAGE_KEYS.exportZipDir,
-  poses: STORAGE_KEYS.exportPosesDir,
-  views: STORAGE_KEYS.exportViewsDir,
-};
+export type ExportKind = "zip" | "poses";
 
 export function ExportDialog({ kind, reconstruction, onClose, onDone }: {
   kind: ExportKind;
@@ -576,13 +552,8 @@ export function ExportDialog({ kind, reconstruction, onClose, onDone }: {
   onClose: () => void;
   onDone: (message: string) => void;
 }) {
-  const [dir, setDir] = useRemembered(EXPORT_DIR_KEYS[kind]);
-  // Views go into a folder of their own rather than one file, so the second field names the folder;
-  // an empty view size means "whatever the reconstruction's own cameras describe".
-  const [filename, setFilename] = useState(
-    kind === "zip" ? `${reconstruction.id}.zip` : kind === "poses" ? "poses.json" : `${reconstruction.id}-views`,
-  );
-  const [viewSize, setViewSize] = useState("");
+  const [dir, setDir] = useRemembered(kind === "zip" ? STORAGE_KEYS.exportZipDir : STORAGE_KEYS.exportPosesDir);
+  const [filename, setFilename] = useState(kind === "zip" ? `${reconstruction.id}.zip` : "poses.json");
   const outputPath = joinPath(dir.trim(), filename.trim());
   const { busy, error, submit } = useSubmit<string>(
     async () => {
@@ -590,52 +561,100 @@ export function ExportDialog({ kind, reconstruction, onClose, onDone }: {
         const result = await exportReconstructionZip(reconstruction.id, outputPath);
         return `Exported ${result.file_count} files to ${result.output_path}`;
       }
-      if (kind === "views") {
-        const result = await exportReconstructionViews(reconstruction.id, outputPath, Number(viewSize) || null);
-        return `Rendered ${result.images} image(s) across ${result.views.length} view(s) (${result.layout}, ${result.view_fov_deg}°, ${result.size}px) to ${result.output_dir}`;
-      }
       const result = await exportPoses(reconstruction.id, outputPath);
       return `Wrote ${result.count} pose(s) to ${result.output_path}`;
     },
     onDone,
   );
-  const title =
-    kind === "zip" ? "Export reconstruction as .zip" : kind === "poses" ? "Export poses as JSON" : "Export view image sets";
   return (
-    <Modal title={title} busy={busy} onClose={onClose}>
+    <Modal title={kind === "zip" ? "Export reconstruction as .zip" : "Export poses as JSON"} busy={busy} onClose={onClose}>
       <div style={HINT}>
         {kind === "zip"
           ? "The map data (point cloud, camera poses, features) of "
-          : kind === "poses"
-            ? "The map's own camera poses, in the same JSON shape as a localization run's results (e.g. as ground truth), from "
-            : "One folder per rendered view, plus cameras.json and poses.json, from "}
+          : "The map's own camera poses, in the same JSON shape as a localization run's results (e.g. as ground truth), from "}
         <span className="mono">{reconstruction.id}</span>.
       </div>
-      {kind === "views" && (
-        <div style={HINT}>
-          The reconstructor does not keep the views it renders, so they are rendered again from the capture's spheres at
-          the layout and field of view this reconstruction used. Intrinsics come from its solved model, so they are the
-          bundle-adjusted ones rather than the ideal ones, and the poses are world-to-camera. Only a reconstruction of a
-          spherical capture has views to export.
-        </div>
-      )}
       <PathField label="Output directory" value={dir} onChange={setDir} placeholder="/path/to/output/dir" browseTitle="Choose output directory" />
       <label>
-        {kind === "views" ? "Output folder name" : "Output filename"}
+        Output filename
         <input type="text" value={filename} onChange={(e) => setFilename(e.target.value)} />
       </label>
-      {kind === "views" && (
-        <label>
-          View size in pixels (blank = match the reconstruction's cameras)
-          <input type="number" min={64} placeholder="1024" value={viewSize} onChange={(e) => setViewSize(e.target.value)} />
-        </label>
-      )}
       {error && <div className="banner banner-error">{error}</div>}
       <Actions
         busy={busy}
         disabled={!dir.trim() || !filename.trim()}
         label="Export"
         busyLabel="Exporting…"
+        onCancel={onClose}
+        onSubmit={() => void submit()}
+      />
+    </Modal>
+  );
+}
+
+// ── Export a spherical capture's rendered views ─────────────────────────────
+
+// Rendering belongs to the capture: which views exist is decided by the layout and field of view
+// alone, so a reconstruction of it has no say and every reconstruction would render the same images.
+export function ExportViewsDialog({ capture, onClose, onDone }: {
+  capture: CaptureSession;
+  onClose: () => void;
+  onDone: (message: string) => void;
+}) {
+  const [dir, setDir] = useRemembered(STORAGE_KEYS.exportViewsDir);
+  const [folder, setFolder] = useState(`${capture.name}-views`);
+  const [spherical, setSpherical] = useState<SphericalOptions>(SPHERICAL_DEFAULTS);
+  const outputDir = joinPath(dir.trim(), folder.trim());
+  const { busy, error, submit } = useSubmit<string>(async () => {
+    const result = await exportCaptureViews(capture.id, outputDir, spherical);
+    return `Rendered ${result.images} image(s) of ${result.frames} frame(s) across ${result.views.length} view(s) (${result.layout}, ${result.view_fov_deg}°, ${result.size}px) to ${result.output_dir}`;
+  }, onDone);
+  return (
+    <Modal title={`Export views of ${capture.name}`} busy={busy} onClose={onClose}>
+      <div style={HINT}>
+        One folder per view, plus a cameras.json giving the shared fisheye intrinsics and where each view points. Every
+        frame the capture holds is rendered; no reconstruction is involved, so this works before you have one.
+      </div>
+      <div style={{ display: "flex", gap: 12 }}>
+        <label style={{ flex: 1 }}>
+          Views rendered from each sphere
+          <select value={spherical.layout} onChange={(e) => setSpherical({ ...spherical, layout: e.target.value })}>
+            <option value="tetrahedron">Tetrahedron — 4 views, covers the sphere at 141°+</option>
+            <option value="hexring">Hexring — 6 level-ish views, better for level queries</option>
+            <option value="cube">Cube — 6 faces, covers the sphere at 110°+</option>
+          </select>
+        </label>
+        <label style={{ width: 110 }}>
+          View field of view
+          <input
+            type="number"
+            min={1}
+            max={179}
+            value={spherical.viewFovDeg}
+            onChange={(e) => setSpherical({ ...spherical, viewFovDeg: Number(e.target.value) })}
+          />
+        </label>
+        <label style={{ width: 110 }}>
+          View size (px)
+          <input
+            type="number"
+            min={64}
+            value={spherical.viewSize}
+            onChange={(e) => setSpherical({ ...spherical, viewSize: Number(e.target.value) })}
+          />
+        </label>
+      </div>
+      <PathField label="Output directory" value={dir} onChange={setDir} placeholder="/path/to/output/dir" browseTitle="Choose output directory" />
+      <label>
+        Output folder name
+        <input type="text" value={folder} onChange={(e) => setFolder(e.target.value)} />
+      </label>
+      {error && <div className="banner banner-error">{error}</div>}
+      <Actions
+        busy={busy}
+        disabled={!dir.trim() || !folder.trim()}
+        label="Export"
+        busyLabel="Rendering…"
         onCancel={onClose}
         onSubmit={() => void submit()}
       />

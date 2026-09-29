@@ -55,7 +55,7 @@ _HOWARD_TEST_ENV = {k: v for k, v in os.environ.items() if k != "VIRTUAL_ENV"}
 RECONSTRUCT_POLL_TIMEOUT_S = 1800.0
 RECONSTRUCT_POLL_INTERVAL_S = 3.0
 
-JobKind = Literal["reconstruct", "visualize", "localize"]
+JobKind = Literal["reconstruct", "visualize", "localize", "import"]
 JobStatus = Literal["running", "succeeded", "failed"]
 
 
@@ -374,9 +374,6 @@ class ImportRequest:
     # max_width is the width the rendered views can actually use.
     stride: int | None = None
     max_width: int | None = None
-    # Which views the sphere is reconstructed through, and how wide each one is.
-    layout: str | None = None
-    view_fov_deg: float | None = None
 
 
 @dataclass
@@ -500,18 +497,15 @@ def _video_path(path_str: str) -> Path:
     return path
 
 
-def _video_flags(
-    stride: int | None, max_width: int | None, layout: str | None = None, view_fov_deg: float | None = None
-) -> list[str]:
+# Only what decides the frames a capture holds. The layout and field of view used to be passed here
+# too, which meant the estimate priced one width and the extraction built another, since the default
+# width is derived from the field of view; importing no longer chooses either, so both agree again.
+def _video_flags(stride: int | None, max_width: int | None) -> list[str]:
     flags: list[str] = []
     if stride is not None:
         flags += ["--stride", str(stride)]
     if max_width is not None:
         flags += ["--max-width", str(max_width)]
-    if layout is not None:
-        flags += ["--layout", layout]
-    if view_fov_deg is not None:
-        flags += ["--view-fov-deg", str(view_fov_deg)]
     return flags
 
 
@@ -563,8 +557,9 @@ def _classify_import(path_str: str) -> tuple[str, Path]:
     raise ValueError(f"Cannot import {path.name}: expected a folder of images, a .tar, or a video")
 
 
-# A folder and a tar are quick; a video is minutes of extraction, upload and
-# reconstruction, so it returns a job the tree follows like any reconstruction.
+# A folder and a tar are quick; a video is minutes of extraction and upload, so it returns a job the
+# tree follows. It stops at the capture: which views a sphere is cut into is a per-reconstruction
+# choice, so importing settles only what the capture holds and Reconstruct decides the rest.
 @post("/api/import")
 async def import_path(data: ImportRequest) -> dict[str, Any]:
     kind, path = await asyncio.to_thread(_classify_import, data.path)
@@ -578,9 +573,9 @@ async def import_path(data: ImportRequest) -> dict[str, Any]:
         # operator to reconstruct, in the same state as one uploaded from a device.
         return {"kind": kind, "capture": await _run_howard_test_json_async("upload", str(path))}
 
-    job = Job(id=str(uuid.uuid4()), kind="reconstruct")
+    job = Job(id=str(uuid.uuid4()), kind="import")
     JOBS[job.id] = job
-    _spawn(_run_spherical_reconstruct_job(job, path, data.stride, data.max_width, data.layout, data.view_fov_deg))
+    _spawn(_run_spherical_import_job(job, path, data.stride, data.max_width))
     return {"kind": kind, "job_id": job.id, "name": path.stem}
 
 
@@ -910,31 +905,32 @@ async def _run_poseless_reconstruct_job(
         job.error = str(exc)
 
 
-async def _run_spherical_reconstruct_job(
+async def _run_spherical_import_job(
     job: Job,
     video: Path,
     stride: int | None = None,
     max_width: int | None = None,
-    layout: str | None = None,
-    view_fov_deg: float | None = None,
 ) -> None:
+    """Extract and upload a spherical video as a capture. No reconstruction follows."""
+
     def record(progress: dict[str, Any]) -> None:
         job.progress = progress
 
     try:
-        created = await asyncio.to_thread(
+        capture = await asyncio.to_thread(
             partial(
                 _run_howard_test_json_streaming,
-                "reconstruct-spherical",
+                "import-spherical",
                 str(video),
                 "--name",
                 video.stem,
-                *_video_flags(stride, max_width, layout, view_fov_deg),
+                *_video_flags(stride, max_width),
                 on_progress=record,
             )
         )
         job.progress = None
-        await _poll_reconstruction_until_terminal(job, created)
+        job.result = capture
+        job.status = "succeeded"
     except Exception as exc:
         job.status = "failed"
         job.error = str(exc)
@@ -1049,19 +1045,28 @@ async def export_reconstruction_zip(reconstruction_id: str, data: ExportZipReque
 @dataclass
 class ExportViewsRequest:
     output_dir: str
-    # None renders at the size the reconstruction's own cameras describe, so the exported
-    # intrinsics apply to the exported images unchanged.
-    size: int | None = None
+    layout: str
+    view_fov_deg: float
+    size: int
 
 
-# The views a spherical reconstruction was built from are rendered inside the reconstructor and
-# never uploaded, so this re-renders them from the capture's spheres at the layout and field of
-# view that reconstruction used. Minutes for a long capture, so it is a plain call the dialog
-# waits on rather than a tracked job — the same shape as export-zip.
-@post("/api/reconstructions/{reconstruction_id:str}/export-views")
-async def export_reconstruction_views(reconstruction_id: str, data: ExportViewsRequest) -> dict[str, Any]:
-    size_flags = ["--size", str(data.size)] if data.size else []
-    return await _run_howard_test_json_async("export-views", reconstruction_id, data.output_dir, *size_flags)
+# Which views a sphere yields is decided by the layout and field of view alone, so this belongs to
+# the capture: every reconstruction of one capture would otherwise re-render the same images. The
+# reconstructor's own renders are never uploaded, so there is nothing to copy either way. Minutes
+# for a long capture, so the dialog waits on it, the same shape as export-zip.
+@post("/api/captures/{capture_id:str}/export-views")
+async def export_capture_views(capture_id: str, data: ExportViewsRequest) -> dict[str, Any]:
+    return await _run_howard_test_json_async(
+        "export-views",
+        capture_id,
+        data.output_dir,
+        "--layout",
+        data.layout,
+        "--view-fov-deg",
+        str(data.view_fov_deg),
+        "--size",
+        str(data.size),
+    )
 
 
 @dataclass
@@ -1142,7 +1147,7 @@ app = Litestar(
         save_localization_images,
         export_poses,
         export_reconstruction_zip,
-        export_reconstruction_views,
+        export_capture_views,
         get_capture_info,
         save_screenshot,
     ],

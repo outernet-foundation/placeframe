@@ -16,6 +16,7 @@ import {
 import {
   ConfirmDeleteDialog,
   ExportDialog,
+  ExportViewsDialog,
   ImportDialog,
   LocalizeDialog,
   optionsSummary,
@@ -41,6 +42,7 @@ type Dialog =
   | { kind: "localize"; reconstruction: Reconstruction; label: string }
   | { kind: "import" }
   | { kind: "export"; exportKind: ExportKind; reconstruction: Reconstruction }
+  | { kind: "exportViews"; capture: CaptureSession }
   | { kind: "save"; saveKind: "table" | "images"; runId: string }
   | { kind: "deleteReconstruction"; reconstruction: Reconstruction }
   | { kind: "deleteSelection" };
@@ -470,6 +472,9 @@ export function CapturesPage() {
             </div>
           </div>
           <div className="node-actions">
+            {/* Rendering views is a property of the capture, so it sits here rather than on each
+                reconstruction, which would all render the same images. */}
+            {c.is_spherical && <button onClick={() => setDialog({ kind: "exportViews", capture: c })}>Export…</button>}
             {set ? (
               <button onClick={() => setDialog({ kind: "poseless", set })}>Reconstruct…</button>
             ) : (
@@ -607,7 +612,6 @@ export function CapturesPage() {
                   items={[
                     { label: "Zip archive…", onSelect: () => setDialog({ kind: "export", exportKind: "zip", reconstruction: r }) },
                     { label: "Poses (JSON)…", onSelect: () => setDialog({ kind: "export", exportKind: "poses", reconstruction: r }) },
-                    { label: "View image sets…", onSelect: () => setDialog({ kind: "export", exportKind: "views", reconstruction: r }) },
                   ]}
                 />
               </>
@@ -793,8 +797,9 @@ export function CapturesPage() {
               if (result.reconstruction.capture_session_id) setOpen(result.reconstruction.capture_session_id, true);
               notify("success", `Imported ${name} as reconstruction ${result.reconstruction.id}.`);
             } else if (result.job_id) {
-              // A video: frames are extracted and uploaded before a reconstruction exists to show.
-              notify("success", `Extracting ${name} and starting a reconstruction; this takes a few minutes.`);
+              // A video: minutes of extraction and upload, and it stops at the capture — the views
+              // it is cut into are chosen from its row, by Reconstruct… or by Export….
+              notify("success", `Extracting ${name} and uploading it as a capture; this takes a few minutes.`);
               void followJob(result.job_id);
             }
             void refreshFast().catch((err: unknown) => notify("error", errorText(err)));
@@ -805,6 +810,16 @@ export function CapturesPage() {
         <ExportDialog
           kind={dialog.exportKind}
           reconstruction={dialog.reconstruction}
+          onClose={() => setDialog(null)}
+          onDone={(message) => {
+            setDialog(null);
+            notify("success", message);
+          }}
+        />
+      )}
+      {dialog?.kind === "exportViews" && (
+        <ExportViewsDialog
+          capture={dialog.capture}
           onClose={() => setDialog(null)}
           onDone={(message) => {
             setDialog(null);
