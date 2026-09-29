@@ -284,6 +284,9 @@ export interface BrowseDirectoryResult {
   parent: string | null;
   entries: BrowseDirectoryEntry[];
   files: BrowseDirectoryEntry[]; // only populated when fileExtensions is given
+  // The path that was asked for, set only when it no longer exists and the server opened the
+  // nearest existing ancestor instead. Null on a normal browse.
+  requested: string | null;
 }
 
 // `path` omitted starts the browse at the server's home directory. `fileExtensions` (e.g.

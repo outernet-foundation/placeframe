@@ -34,10 +34,15 @@ export function DirectoryBrowserDialog({
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // A remembered folder that has since been deleted is not a failure — the server opens the nearest
+  // existing ancestor and reports what was asked for, which we show as information, not an error,
+  // so the dialog stays usable and the picked path is still valid.
+  const [notice, setNotice] = useState<string | null>(null);
 
   function navigate(target: string | undefined): void {
     setLoading(true);
     setError(null);
+    setNotice(null);
     setSelectedFile(null);
     browseDirectories(target, fileExtensions)
       .then((result) => {
@@ -45,6 +50,7 @@ export function DirectoryBrowserDialog({
         setParent(result.parent);
         setEntries(result.entries);
         setFiles(result.files ?? []);
+        setNotice(result.requested ? `${result.requested} no longer exists — opened the nearest existing folder.` : null);
       })
       .catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)))
       .finally(() => setLoading(false));
@@ -65,6 +71,7 @@ export function DirectoryBrowserDialog({
           {path}
         </div>
         {error && <div className="banner banner-error">{error}</div>}
+        {notice && <div className="banner banner-info">{notice}</div>}
         <div style={{ maxHeight: 280, overflowY: "auto", border: "1px solid #3d4149", borderRadius: 4 }}>
           <div
             className="browse-row"

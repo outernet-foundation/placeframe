@@ -175,9 +175,14 @@ async def _run_howard_test_bytes_async(*args: str) -> bytes:
 
 
 def _browse_directories(path: str | None, files: str | None = None) -> dict[str, Any]:
-    target = Path(path).expanduser().resolve() if path else Path.home()
-    if not target.is_dir():
-        raise NotFoundException(f"Not a directory: {target}")
+    requested = Path(path).expanduser().resolve() if path else Path.home()
+    # The picker restores the last-used folder from localStorage, so `requested` can name a
+    # directory that has since been deleted, renamed or unmounted. Opening the nearest surviving
+    # ancestor keeps browsing possible: raising here left the dialog with no entries and no parent
+    # to climb to, so there was no way to reach any other folder — the picker was simply stuck.
+    target = next((p for p in (requested, *requested.parents) if p.is_dir()), None)
+    if target is None:
+        raise NotFoundException(f"Not a directory: {requested}")
     # `files` is a comma-separated suffix list (e.g. ".tar"); when given, matching files are listed
     # alongside the subdirectories so the same browser can pick a file.
     suffixes = {s.strip().lower() for s in files.split(",") if s.strip()} if files else set()
@@ -193,7 +198,15 @@ def _browse_directories(path: str | None, files: str | None = None) -> dict[str,
         {"name": p.name, "path": str(p)} for p in children if suffixes and p.is_file() and p.suffix.lower() in suffixes
     ]
     parent = str(target.parent) if target.parent != target else None
-    return {"path": str(target), "parent": parent, "entries": entries, "files": file_entries}
+    return {
+        "path": str(target),
+        "parent": parent,
+        "entries": entries,
+        "files": file_entries,
+        # Set only when the requested directory was missing and an ancestor was substituted, so the
+        # UI can say why it opened somewhere other than where the user left off.
+        "requested": str(requested) if target != requested else None,
+    }
 
 
 # Server-local directory browser for the Localize tab's image-directory picker. A plain
