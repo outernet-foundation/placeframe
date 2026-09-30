@@ -18,7 +18,6 @@ permissions:
 
 env:
   RELEASE_DEVKIT_VERSION: 0.1.25
-  UNITY_DEVKIT_VERSION: 0.1.23
 
 jobs:
   mirror:
@@ -142,7 +141,7 @@ jobs:
           enable-cache: true
           save-cache: "false"
       - id: matrix
-        run: uvx --from unity-devkit==${UNITY_DEVKIT_VERSION} compile-check-unity-matrix >> "$GITHUB_OUTPUT"
+        run: uv run compile-check-unity-matrix >> "$GITHUB_OUTPUT"
 
   unity-check:
     if: github.ref != 'refs/heads/main'
@@ -168,9 +167,11 @@ jobs:
           enable-cache: true
           save-cache: "false"
       - run: >-
-          uvx --from unity-devkit==${UNITY_DEVKIT_VERSION} compile-check-unity
+          uv run compile-check-unity
           --project ${{ matrix.project-name }}
         env:
+          CI_REGISTRY_TOKEN: ${{ github.token }}
+          CI_REGISTRY_USERNAME: ${{ github.actor }}
           GITHUB_TOKEN: ${{ github.token }}
           LICENSE_CACHE_TAG: ${{ needs.unity-matrix.outputs.license-tag }}
           CACHE_REGISTRY: ghcr.io/${{ github.repository }}/cache
