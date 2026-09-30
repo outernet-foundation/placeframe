@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import os
 from pathlib import Path
 
@@ -12,7 +11,6 @@ from docker_devkit.context_sha import compute_service_shas
 from docker_devkit.documents import parse_bake
 from docker_devkit.image_refs import VersionCoupling, VersionSite, unpinned_references, version_coupling_violations
 from docker_devkit.lifecycle import require_manifest
-from python_devkit.preflight import preflight as run_battery
 
 # Keep in step with the prerequisites documented in stack/score/README.md.
 SCORE_K8S_VERSION = "0.15.0"
@@ -87,19 +85,7 @@ def main() -> None:
         )
         bash("./workloads/database-migrator/entrypoint.sh")
 
-    run_battery(Path())
-
-    spec_paths = " ".join(
-        f"{project}/openapi.json"
-        for project in json.loads(Path("build/openapi-projects.json").read_text(encoding="utf-8"))["projects"]
-    )
     _check_generated("datamodels", "uv run generate-datamodels", "packages/generated/python/datamodels/")
-    _check_generated(
-        "API clients",
-        "uv run generate-clients --config build/openapi-projects.json --no-cache",
-        f"{spec_paths} packages/generated/",
-        "uv run generate-clients --config build/openapi-projects.json",
-    )
 
     with ci_step("Fetch score tools"):
         # Fetched as release binaries rather than `go install`: score-spec tags without a leading

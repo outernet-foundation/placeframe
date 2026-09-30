@@ -24,7 +24,7 @@ dependencies = [
 known_first_party = ["build_scripts"]
 
 [tool.deptry.per_rule_ignores]
-DEP002 = ["datamodel-code-generator", "psycopg", "openapi-client-codegen"]
+DEP002 = ["datamodel-code-generator", "psycopg", "openapi-client-codegen", "python-devkit"]
 
 [build-system]
 requires = ["hatchling"]

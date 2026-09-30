@@ -30,14 +30,17 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: ./.github/actions/setup-uv
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          save-cache: "false"
 
       - name: Compute license cache tag
         id: tag
-        run: echo "value=$(uv run --no-sync unity-license-tag)" >> "$GITHUB_OUTPUT"
+        run: echo "value=$(uv rununity-license-tag)" >> "$GITHUB_OUTPUT"
 
       - name: Activate Unity license
-        run: uv run --no-sync activate-unity-license --oras-push
+        run: uv runactivate-unity-license --oras-push
         env:
           GITHUB_TOKEN: ${{ github.token }}
           LICENSE_CACHE_TAG: ${{ steps.tag.outputs.value }}
@@ -81,14 +84,17 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: ./.github/actions/setup-uv
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          save-cache: "false"
 
       - name: Codegen
         env:
           GITHUB_TOKEN: ${{ github.token }}
           LICENSE_CACHE_TAG: ${{ needs.activate-license.outputs.cache-tag }}
         run: |
-          uv run --no-sync codegen-cesium \
+          uv runcodegen-cesium \
             --mode ${{ matrix.mode }} \
             --platform ${{ matrix.platform }}
 
@@ -111,13 +117,16 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: ./.github/actions/setup-uv
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          save-cache: "false"
 
       - name: Build
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
-          uv run --no-sync build-cesium --platform linux
+          uv runbuild-cesium --platform linux
 
   build-native-windows:
     runs-on: windows-latest
@@ -131,7 +140,10 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: ./.github/actions/setup-uv
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          save-cache: "false"
 
       - uses: ilammy/msvc-dev-cmd@v1
 
@@ -139,7 +151,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
-          uv run --no-sync build-cesium --platform windows
+          uv runbuild-cesium --platform windows
 
   build-native-android:
     runs-on: ubuntu-latest
@@ -165,13 +177,16 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: ./.github/actions/setup-uv
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          save-cache: "false"
 
       - name: Build
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
-          uv run --no-sync build-cesium --platform android-${{ matrix.abi }}
+          uv runbuild-cesium --platform android-${{ matrix.abi }}
 
   combine-and-publish:
     runs-on: ubuntu-latest
@@ -195,11 +210,14 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: ./.github/actions/setup-uv
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          save-cache: "false"
 
       - name: Combine and publish
         env:
           GITHUB_TOKEN: ${{ github.token }}
           LICENSE_CACHE_TAG: ${{ needs.activate-license.outputs.cache-tag }}
         run: |
-          uv run --no-sync combine-cesium
+          uv runcombine-cesium

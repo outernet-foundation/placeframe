@@ -79,6 +79,11 @@ include = [
     "scripts/**/src/**/*.py",
     "scripts/**/src/**/*.pyi",
 ]
+# cesium codegen and combine target the pre-0.1.21 unity-devkit license API
+ignore = [
+    "build/src/build_scripts/cesium/codegen.py",
+    "build/src/build_scripts/cesium/combine.py",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["build/tests", "packages/python/common/tests", "scripts/tests", "workloads/s3-initializer/tests"]

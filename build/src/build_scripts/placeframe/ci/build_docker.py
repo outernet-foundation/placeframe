@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import shlex
-from typing import Literal
+from typing import Annotated, Literal
 
 import typer
 from bashrun.bash import bash
@@ -27,7 +27,15 @@ ci_app = typer.Typer(add_completion=False, pretty_exceptions_show_locals=False)
 
 
 @ci_app.command()
-def ci_main(variant: Variant = typer.Option(help="Build variant: common, cuda, or rocm")) -> None:
+def ci_main(
+    variant: Variant = typer.Option(help="Build variant: common, cuda, or rocm"),
+    targets: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--targets", help="Build only these services (from the image matrix); overrides the variant default"
+        ),
+    ] = None,
+) -> None:
     with ci_step("Setup"):
         configure_git(settings.github_workspace)
         free_disk_space(large_packages=True, docker_images=True, swap_storage=True)
@@ -42,4 +50,4 @@ def ci_main(variant: Variant = typer.Option(help="Build variant: common, cuda, o
     gpu: Gpu = variant if variant != "common" else "none"
 
     with ci_step(f"Build images ({variant})"):
-        run_build(mode="ci", gpu=gpu, gpu_only=variant != "common")
+        run_build(mode="ci", gpu=gpu, gpu_only=variant != "common", targets_opt=targets)

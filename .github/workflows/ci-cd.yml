@@ -1,0 +1,243 @@
+name: CI/CD
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [dev]
+
+# Cancel superseded runs on the same branch, except main — where publish-stable
+# must never die mid-release (overlapping release merges queue instead).
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+env:
+  RELEASE_DEVKIT_VERSION: 0.1.25
+  UNITY_DEVKIT_VERSION: 0.1.23
+
+jobs:
+  mirror:
+    if: github.ref != 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          save-cache: "false"
+      - shell: bash
+        run: echo "$GITHUB_TOKEN" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+      - run: uv run mirror
+
+  check:
+    if: github.ref != 'refs/heads/main'
+    needs: [mirror]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          save-cache: "true"
+      - run: uv run preflight-python
+      - run: uv run preflight
+      - run: uv run generate-clients --config openapi-client-codegen.yaml --check
+      - shell: bash
+        run: uvx --from release-devkit==${{ env.RELEASE_DEVKIT_VERSION }} publish-stable --dry-run
+
+  docker-matrix:
+    if: github.ref != 'refs/heads/main'
+    needs: [check]
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+      - uses: astral-sh/setup-uv@v7
+      - id: matrix
+        run: uv run docker-build-matrix >> "$GITHUB_OUTPUT"
+
+  build-docker:
+    if: github.ref != 'refs/heads/main'
+    needs: [docker-matrix]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.docker-matrix.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          save-cache: "false"
+      - uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+      - run: uv run build-docker --variant ${{ matrix.variant }} --targets ${{ matrix.targets }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-compose:
+    if: github.ref != 'refs/heads/main'
+    needs: [build-docker]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [cuda, rocm]
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          save-cache: "false"
+      - run: uv run publish-compose --variant ${{ matrix.variant }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+
+  unity-matrix:
+    if: github.ref != 'refs/heads/main'
+    needs: [check]
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+      license-tag: ${{ steps.matrix.outputs.license-tag }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          save-cache: "false"
+      - id: matrix
+        run: uvx --from unity-devkit==${UNITY_DEVKIT_VERSION} compile-check-unity-matrix >> "$GITHUB_OUTPUT"
+
+  unity-check:
+    if: github.ref != 'refs/heads/main'
+    needs: [unity-matrix]
+    permissions:
+      contents: read
+      packages: write
+    runs-on:
+      - self-hosted
+      - unity
+    container: ${{ matrix.editor-image }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.unity-matrix.outputs.matrix) }}
+    steps:
+      - name: Wipe workspace
+        run: |
+          find "$GITHUB_WORKSPACE" -mindepth 1 -delete
+          rm -rf ~/.cache/Unity
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          save-cache: "false"
+      - run: >-
+          uvx --from unity-devkit==${UNITY_DEVKIT_VERSION} compile-check-unity
+          --project ${{ matrix.project-name }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          LICENSE_CACHE_TAG: ${{ needs.unity-matrix.outputs.license-tag }}
+          CACHE_REGISTRY: ghcr.io/${{ github.repository }}/cache
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+
+  ensure-release-pr:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v7
+      - shell: bash
+        run: uvx --from release-devkit==${{ env.RELEASE_DEVKIT_VERSION }} ensure-release-pr
+
+  publish-stable:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: write
+      id-token: write
+      actions: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+          fetch-tags: true
+      - uses: astral-sh/setup-uv@v7
+      - shell: bash
+        run: uvx --from release-devkit==${{ env.RELEASE_DEVKIT_VERSION }} publish-stable --fetch-ci-artifacts
+        env:
+          NPM_CONFIG_LOGLEVEL: verbose
+
+  publish-dev:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    needs: [publish-compose, unity-check]
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v7
+      - shell: bash
+        run: uvx --from release-devkit==${{ env.RELEASE_DEVKIT_VERSION }} publish-dev
+        env:
+          NPM_CONFIG_LOGLEVEL: verbose
