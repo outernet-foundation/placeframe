@@ -1,6 +1,6 @@
 {
   "name": "org.outernet.logging",
-  "version": "0.0.0-local",
+  "version": "0.0.0+local",
   "displayName": "Outernet Logging",
   "description": "Structured logging with Serilog and Grafana Loki for Unity",
   "unity": "6000.0",
