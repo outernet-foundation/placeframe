@@ -37,8 +37,8 @@ Regeneration is deterministic: with no upstream change, `git status` comes back 
 
 ## Deploy: Docker
 
-The generated compose has no declared lifecycle in `[tool.docker-devkit.lifecycle]` (the
-table drives the hand-authored stack), so bring it up through the raw `docker compose`
+The generated compose has no declared lifecycle in `docker-devkit.yaml` (the `lifecycle:`
+section drives the hand-authored stack), so bring it up through the raw `docker compose`
 pressure valve, anchored at the repo root:
 
 ```bash
@@ -121,14 +121,16 @@ Tear down with `k3d cluster delete score-poc`.
 the Kubernetes path also [`k3d`](https://k3d.io) 5.x and `kubectl`. The service images must
 be available locally (`uv run build`) or pullable from `ghcr.io`.
 
-## CI enforces that the artifacts match their source
+## CI does not verify the generated artifacts
 
-`preflight` runs `generate-score` and fails when `stack/` comes back dirty, in the same shape
-as its datamodel- and client-codegen checks. It checks and fails; it never commits, because
-CI in this repo must not create commits on any branch. When it fires, run `uv run
-generate-score` locally and commit the result.
+The staleness gate is disabled: the check and its score-tool fetch sit commented out in
+`build/src/build_scripts/placeframe/ci/preflight.py`. The artifacts embed `tree-<sha>` image
+tags resolved from `compute_service_shas`, so every change inside a service's build context —
+a dependency-lock bump included — re-stales the committed output. Rather than pair every such
+change with a regeneration commit, regeneration is a manual step: follow the order in Generate
+above (commit the source change, regenerate, commit the artifacts).
 
-Two things make that gate viable. `stack/generated/k8s/.score-k8s/state.yaml` is committed,
+Generation remains deterministic. `stack/generated/k8s/.score-k8s/state.yaml` is committed,
 because `score-k8s` mints a random uid per workload on first sight and emits it as the
 `app.kubernetes.io/instance` label — without the state file a fresh checkout regenerates
 different manifests. And `generate-score` sorts the emitted documents, because `score-k8s`

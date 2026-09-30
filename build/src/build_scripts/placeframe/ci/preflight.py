@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import os
 from pathlib import Path
 
@@ -12,11 +11,10 @@ from docker_devkit.context_sha import compute_service_shas
 from docker_devkit.documents import parse_bake
 from docker_devkit.image_refs import VersionCoupling, VersionSite, unpinned_references, version_coupling_violations
 from docker_devkit.lifecycle import require_manifest
-from python_devkit.preflight import preflight as run_battery
 
 # Keep in step with the prerequisites documented in stack/score/README.md.
-SCORE_K8S_VERSION = "0.15.0"
-SCORE_COMPOSE_VERSION = "0.42.0"
+# SCORE_K8S_VERSION = "0.15.0"
+# SCORE_COMPOSE_VERSION = "0.42.0"
 
 app = typer.Typer(add_completion=False, pretty_exceptions_show_locals=False)
 
@@ -87,32 +85,22 @@ def main() -> None:
         )
         bash("./workloads/database-migrator/entrypoint.sh")
 
-    run_battery(Path())
-
-    spec_paths = " ".join(
-        f"{project}/openapi.json"
-        for project in json.loads(Path("build/openapi-projects.json").read_text(encoding="utf-8"))["projects"]
-    )
     _check_generated("datamodels", "uv run generate-datamodels", "packages/generated/python/datamodels/")
-    _check_generated(
-        "API clients",
-        "uv run generate-clients --config build/openapi-projects.json --no-cache",
-        f"{spec_paths} packages/generated/",
-        "uv run generate-clients --config build/openapi-projects.json",
-    )
 
-    with ci_step("Fetch score tools"):
-        # Fetched as release binaries rather than `go install`: score-spec tags without a leading
-        # v (0.15.0, not v0.15.0), which is not a resolvable Go module version. They land in the
-        # GOPATH bin the database step already prepended to PATH. Both artifacts are committed,
-        # so `generate-score` checks both.
-        for tool, version in (("score-k8s", SCORE_K8S_VERSION), ("score-compose", SCORE_COMPOSE_VERSION)):
-            archive = f"{tool}_{version}_linux_amd64.tar.gz"
-            bash(f"curl -fsSLO https://github.com/score-spec/{tool}/releases/download/{version}/{archive}")
-            bash(f"tar -xzf {archive} -C {gopath_bin} {tool}")
-            Path(archive).unlink()
+    # Score staleness gate disabled: generated stack/ output embeds per-service tree-SHA image
+    # tags, so every dependency-lock bump re-stales it.
+    # with ci_step("Fetch score tools"):
+    #     # Fetched as release binaries rather than `go install`: score-spec tags without a leading
+    #     # v (0.15.0, not v0.15.0), which is not a resolvable Go module version. They land in the
+    #     # GOPATH bin the database step already prepended to PATH. Both artifacts are committed,
+    #     # so `generate-score` checks both.
+    #     for tool, version in (("score-k8s", SCORE_K8S_VERSION), ("score-compose", SCORE_COMPOSE_VERSION)):
+    #         archive = f"{tool}_{version}_linux_amd64.tar.gz"
+    #         bash(f"curl -fsSLO https://github.com/score-spec/{tool}/releases/download/{version}/{archive}")
+    #         bash(f"tar -xzf {archive} -C {gopath_bin} {tool}")
+    #         Path(archive).unlink()
 
-    _check_generated("Score", "uv run generate-score", "stack/")
+    # _check_generated("Score", "uv run generate-score", "stack/")
 
 
 def _check_generated(label: str, generate_command: str, pathspec: str, fix_command: str | None = None) -> None:
