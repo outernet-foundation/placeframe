@@ -821,7 +821,7 @@ PlayerSettings:
   webGLCloseOnQuit: 0
   webWasm2023: 0
   scriptingDefineSymbols:
-    Android: MAGIC_LEAP
+    Android: OUTERNET_MAGIC_LEAP
   additionalCompilerArguments:
     Android: []
   platformArchitecture: {}
