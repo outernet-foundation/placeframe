@@ -1,0 +1,17 @@
+{
+    "name": "Placeframe.Auth",
+    "rootNamespace": "",
+    "references": [
+        "UniTask",
+        "Newtonsoft.Json"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -52,21 +52,23 @@ namespace Outernet.Logging
                 return JToken.FromObject(stackTrace);
             }
 
-            return JToken.FromObject(value switch
+            return value switch
             {
-                ScalarValue scalarValue => scalarValue.Value,
+                ScalarValue { Value: null } => JValue.CreateNull(),
 
-                StructureValue structureValue => structureValue.Properties
-                    .ToDictionary(property => property.Name, property => FromSerilogProperty(property.Name, property.Value, addHyperlinks)),
+                ScalarValue scalarValue => JToken.FromObject(scalarValue.Value),
 
-                DictionaryValue dictionaryValue => dictionaryValue.Elements
-                    .ToDictionary(kvp => kvp.Key.Value.ToString(), kvp => FromSerilogProperty(kvp.Key.Value.ToString(), kvp.Value, addHyperlinks)),
+                StructureValue structureValue => JToken.FromObject(structureValue.Properties
+                    .ToDictionary(property => property.Name, property => FromSerilogProperty(property.Name, property.Value, addHyperlinks))),
 
-                SequenceValue sequenceValue => sequenceValue.Elements
-                    .Select(element => FromSerilogProperty(null, element, addHyperlinks)),
+                DictionaryValue dictionaryValue => JToken.FromObject(dictionaryValue.Elements
+                    .ToDictionary(kvp => kvp.Key.Value.ToString(), kvp => FromSerilogProperty(kvp.Key.Value.ToString(), kvp.Value, addHyperlinks))),
+
+                SequenceValue sequenceValue => JToken.FromObject(sequenceValue.Elements
+                    .Select(element => FromSerilogProperty(null, element, addHyperlinks))),
 
                 _ => throw new NotSupportedException($"Unsupported property value type: {value.GetType()}")
-            });
+            };
         }
     }
 }

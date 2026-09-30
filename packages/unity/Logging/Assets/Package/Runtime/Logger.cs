@@ -42,7 +42,19 @@ namespace Outernet.Logging
             global::Serilog.Debugging.SelfLog.Enable(
                 error =>
                 {
-                    defaultUnityLogHandler.LogFormat(LogType.Error, null, error);
+                    // Guard against the SelfLog → defaultUnityLogHandler → Application.logMessageReceived
+                    // → UnityLogMessageReceived → Serilog → LokiSink.Emit feedback loop. Without this,
+                    // a sustained sink fault (LokiSink emits via SelfLog on every drain failure) keeps
+                    // re-queuing its own error message and the queue grows unboundedly.
+                    emittingToUnity = true;
+                    try
+                    {
+                        defaultUnityLogHandler.LogFormat(LogType.Error, null, error);
+                    }
+                    finally
+                    {
+                        emittingToUnity = false;
+                    }
                 });
 
             Application.SetStackTraceLogType(LogType.Log, StackTraceLogType.None);
@@ -75,9 +87,9 @@ namespace Outernet.Logging
             ObservableSystem.RegisterUnhandledExceptionHandler(exception => Log<TLogGroup>.Error(exception, "R3 subscription unhandled exception"));
         }
 
-        public static void EnableLoki(string domain, Func<UniTask<string>> tokenProvider, HttpMessageHandler handler = null)
+        public static void EnableLoki(string apiUrl, HttpMessageHandler authHandler)
         {
-            _lokiSink.Enable(domain, tokenProvider, handler);
+            _lokiSink.Enable(apiUrl, authHandler);
         }
 
         public static void Terminate()

@@ -52,7 +52,7 @@ class HeldOutFrameSelector(Protocol):
 
 class StrideHeldOutSelector:
     def __call__(self, frames_csv: str, options: HeldOutSelectionOptions) -> list[int]:
-        timestamps = [int(row["timestamp"]) for row in DictReader(StringIO(frames_csv))]
+        timestamps = [int(row["timestamp_ms"]) for row in DictReader(StringIO(frames_csv))]
         if not timestamps:
             return []
         if options.target_count <= 0:

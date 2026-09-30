@@ -97,6 +97,7 @@ Class | Method | HTTP request | Description
  - [LocalizationMetrics](docs/LocalizationMetrics.md)
  - [LocalizeImage400Response](docs/LocalizeImage400Response.md)
  - [LocalizeImage400ResponseExtra](docs/LocalizeImage400ResponseExtra.md)
+ - [PhaseTiming](docs/PhaseTiming.md)
  - [PinholeCameraConfig](docs/PinholeCameraConfig.md)
  - [ReconstructionMetrics](docs/ReconstructionMetrics.md)
  - [Transform](docs/Transform.md)

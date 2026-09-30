@@ -1,27 +1,20 @@
 {
   "dependencies": {
     "com.cysharp.r3": {
-      "version": "https://github.com/Cysharp/R3.git?path=src/R3.Unity/Assets/R3.Unity#1.2.9",
+      "version": "1.3.1",
       "depth": 0,
-      "source": "git",
+      "source": "registry",
       "dependencies": {
         "com.unity.modules.imgui": "1.0.0"
       },
-      "hash": "9b18209448c5e1f4572a4191b1f4f530a1d26c01"
+      "url": "https://package.openupm.com"
     },
     "com.cysharp.unitask": {
-      "version": "https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask",
+      "version": "2.5.11",
       "depth": 0,
-      "source": "git",
+      "source": "registry",
       "dependencies": {},
-      "hash": "73a63b7f672b88f7e9992f6917eb458a8cbb6fa9"
-    },
-    "com.github-glitchenzo.nugetforunity": {
-      "version": "https://github.com/GlitchEnzo/NuGetForUnity.git?path=/src/NuGetForUnity",
-      "depth": 0,
-      "source": "git",
-      "dependencies": {},
-      "hash": "34432703a177c97631a4eb1d908f086037c67969"
+      "url": "https://package.openupm.com"
     },
     "com.magicleap.unitysdk": {
       "version": "2.6.0",
@@ -383,11 +376,178 @@
       },
       "url": "https://packages.unity.com"
     },
-    "org.nuget.placeframeapiclient": {
+    "org.nuget.jsonsubtypes": {
+      "version": "2.0.1",
+      "depth": 1,
+      "source": "registry",
+      "dependencies": {
+        "org.nuget.newtonsoft.json": "13.0.1"
+      },
+      "url": "https://package.openupm.com"
+    },
+    "org.nuget.mathnet.numerics": {
+      "version": "5.0.0",
+      "depth": 0,
+      "source": "registry",
+      "dependencies": {},
+      "url": "https://package.openupm.com"
+    },
+    "org.nuget.microsoft.bcl.asyncinterfaces": {
+      "version": "6.0.0",
+      "depth": 2,
+      "source": "registry",
+      "dependencies": {
+        "org.nuget.system.threading.tasks.extensions": "4.5.4"
+      },
+      "url": "https://package.openupm.com"
+    },
+    "org.nuget.microsoft.bcl.timeprovider": {
+      "version": "8.0.0",
+      "depth": 2,
+      "source": "registry",
+      "dependencies": {
+        "org.nuget.microsoft.bcl.asyncinterfaces": "6.0.0"
+      },
+      "url": "https://package.openupm.com"
+    },
+    "org.nuget.newtonsoft.json": {
+      "version": "13.0.1",
+      "depth": 2,
+      "source": "registry",
+      "dependencies": {},
+      "url": "https://package.openupm.com"
+    },
+    "org.nuget.observablecollections": {
+      "version": "3.3.4",
+      "depth": 1,
+      "source": "registry",
+      "dependencies": {
+        "org.nuget.system.memory": "4.5.4",
+        "org.nuget.system.runtime.compilerservices.unsafe": "6.0.0"
+      },
+      "url": "https://package.openupm.com"
+    },
+    "org.nuget.observablecollections.r3": {
+      "version": "3.3.4",
+      "depth": 0,
+      "source": "registry",
+      "dependencies": {
+        "org.nuget.observablecollections": "3.3.4",
+        "org.nuget.r3": "1.0.0"
+      },
+      "url": "https://package.openupm.com"
+    },
+    "org.nuget.polly": {
+      "version": "8.8.0",
+      "depth": 0,
+      "source": "registry",
+      "dependencies": {
+        "org.nuget.polly.core": "8.8.0"
+      },
+      "url": "https://package.openupm.com"
+    },
+    "org.nuget.polly.core": {
+      "version": "8.8.0",
+      "depth": 1,
+      "source": "registry",
+      "dependencies": {
+        "org.nuget.microsoft.bcl.asyncinterfaces": "6.0.0",
+        "org.nuget.microsoft.bcl.timeprovider": "8.0.0",
+        "org.nuget.system.componentmodel.annotations": "4.5.0",
+        "org.nuget.system.threading.tasks.extensions": "4.5.4"
+      },
+      "url": "https://package.openupm.com"
+    },
+    "org.nuget.r3": {
+      "version": "1.0.0",
+      "depth": 1,
+      "source": "registry",
+      "dependencies": {
+        "org.nuget.microsoft.bcl.timeprovider": "8.0.0",
+        "org.nuget.system.buffers": "4.5.1",
+        "org.nuget.system.componentmodel.annotations": "5.0.0",
+        "org.nuget.system.memory": "4.5.5",
+        "org.nuget.system.runtime.compilerservices.unsafe": "6.0.0",
+        "org.nuget.system.threading.channels": "8.0.0"
+      },
+      "url": "https://package.openupm.com"
+    },
+    "org.nuget.sharpziplib": {
+      "version": "1.4.2",
+      "depth": 0,
+      "source": "registry",
+      "dependencies": {
+        "org.nuget.system.memory": "4.5.4",
+        "org.nuget.system.threading.tasks.extensions": "4.5.2"
+      },
+      "url": "https://package.openupm.com"
+    },
+    "org.nuget.system.buffers": {
+      "version": "4.5.1",
+      "depth": 2,
+      "source": "registry",
+      "dependencies": {},
+      "url": "https://package.openupm.com"
+    },
+    "org.nuget.system.componentmodel.annotations": {
+      "version": "5.0.0",
+      "depth": 2,
+      "source": "registry",
+      "dependencies": {},
+      "url": "https://package.openupm.com"
+    },
+    "org.nuget.system.memory": {
+      "version": "4.5.5",
+      "depth": 2,
+      "source": "registry",
+      "dependencies": {
+        "org.nuget.system.buffers": "4.5.1",
+        "org.nuget.system.numerics.vectors": "4.4.0",
+        "org.nuget.system.runtime.compilerservices.unsafe": "4.5.3"
+      },
+      "url": "https://package.openupm.com"
+    },
+    "org.nuget.system.numerics.vectors": {
+      "version": "4.4.0",
+      "depth": 2,
+      "source": "registry",
+      "dependencies": {},
+      "url": "https://package.openupm.com"
+    },
+    "org.nuget.system.runtime.compilerservices.unsafe": {
+      "version": "6.0.0",
+      "depth": 2,
+      "source": "registry",
+      "dependencies": {},
+      "url": "https://package.openupm.com"
+    },
+    "org.nuget.system.threading.channels": {
+      "version": "8.0.0",
+      "depth": 2,
+      "source": "registry",
+      "dependencies": {
+        "org.nuget.system.threading.tasks.extensions": "4.5.4"
+      },
+      "url": "https://package.openupm.com"
+    },
+    "org.nuget.system.threading.tasks.extensions": {
+      "version": "4.5.4",
+      "depth": 2,
+      "source": "registry",
+      "dependencies": {
+        "org.nuget.system.runtime.compilerservices.unsafe": "4.5.3"
+      },
+      "url": "https://package.openupm.com"
+    },
+    "org.outernet.placeframe.apiclient": {
       "version": "file:../../../../packages/generated/csharp/api-client/src/PlaceframeApiClient",
       "depth": 0,
       "source": "local",
-      "dependencies": {}
+      "dependencies": {
+        "com.unity.nuget.newtonsoft-json": "3.2.1",
+        "org.nuget.polly": "8.1.0",
+        "org.nuget.jsonsubtypes": "2.0.1"
+      }
     },
     "com.unity.modules.accessibility": {
       "version": "1.0.0",

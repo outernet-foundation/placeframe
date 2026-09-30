@@ -6,7 +6,7 @@ from typing import Any, Mapping, Protocol, cast
 import torch
 from lightglue import ALIKED, LightGlue  # type: ignore
 from numpy import float32
-from numpy.typing import NDArray  # noqa: TID251 — Phase T piece 3 follow-up migration
+from numpy.typing import NDArray  # noqa: TID251 — tracked in PLE-233
 from sklearn.decomposition import _pca  # type: ignore  # noqa: PLC2701 — no public API for IncrementalPCA internals
 from torch import Tensor, from_numpy  # type: ignore
 from torch.hub import get_dir
@@ -16,12 +16,14 @@ environ["DB_ROOT"] = ""  # required by dirtorch
 from dirtorch.extract_features import load_model  # type: ignore
 from dirtorch.utils.common import whiten_features  # type: ignore
 
-# From Hierarchical-Localization:
-#
-# The DIR model checkpoints (pickle files) include sklearn.decomposition.pca,
-# which has been deprecated in sklearn v0.24
-# and must be explicitly imported with `from sklearn.decomposition import PCA`.
-# This is a hacky workaround to maintain forward compatibility.
+# DIR's checkpoint (loaded in load_DIR below) is a pickled dict holding a live sklearn PCA object, not a
+# pure state-dict. That object was pickled against the module path `sklearn.decomposition.pca`, which
+# sklearn 0.24 made private by renaming it to `sklearn.decomposition._pca`. Unpickling resolves each class
+# by its stored `module.qualname`, so on modern sklearn the load raises ModuleNotFoundError on the old path
+# unless that path still resolves to something. Aliasing the private module back under the old name in
+# sys.modules — before any load_DIR call runs — is what lets the pickle find the PCA class. That same
+# pickled PCA object is also why load_DIR needs weights_only=False (see the comment there). Pattern lifted
+# from Hierarchical-Localization.
 sys.modules["sklearn.decomposition.pca"] = _pca
 
 MODEL_NAME = "Resnet-101-AP-GeM"
@@ -87,7 +89,13 @@ class DIR(Module):
 def load_DIR(device: str = "cpu"):
     _orig_load = torch.load  # type: ignore
 
-    # PyTorch 2.6 flips torch.load default to weights_only=True, so we temporarily force legacy loading to read DIR’s pickled checkpoint;
+    # PyTorch 2.6 flipped torch.load's default to weights_only=True, which only unpickles tensors and plain
+    # containers and rejects arbitrary classes. DIR's checkpoint is not a pure state-dict — it is a pickled
+    # dict carrying a live sklearn PCA object (the same object the module-level
+    # sys.modules["sklearn.decomposition.pca"] alias exists to make resolvable), so it loads only with
+    # weights_only=False. dirtorch's load_model calls torch.load with no weights_only argument
+    # (vendored/dirtorch/utils/common.py:121), so the only way to force legacy behavior through it is to
+    # monkey-patch torch.load for the duration of the load and restore it after.
     # see: https://dev-discuss.pytorch.org/t/bc-breaking-change-torch-load-is-being-flipped-to-use-weights-only-true-by-default-in-the-nightlies-after-137602/2573
     def _load_legacy(*args, **kwargs):  # type: ignore
         kwargs.setdefault("weights_only", False)  # type: ignore

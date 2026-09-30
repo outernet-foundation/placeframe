@@ -6,14 +6,14 @@ from enum import Enum
 from pathlib import Path
 
 import typer
-from common.bash import bash, bash_check_stream
+from bashrun.bash import bash, bash_check_stream
 from pydantic_settings import BaseSettings
 
-from ..shared.cache import restore, save
-from ..shared.ci_step import ci_step
-from ..shared.license_restore import restore_license
-from ..shared.setup import configure_git, free_disk_space, install_dotnet
-from ..shared.setup_oras import install_oras
+from ci_devkit.cache import restore, save
+from ci_devkit.ci_step import ci_step
+from unity_devkit.license_restore import restore_license
+from ci_devkit.setup import configure_git, free_disk_space, install_dotnet
+from ci_devkit.setup_oras import install_oras
 from .clone import clone
 from .paths import get_cesium_build_paths
 

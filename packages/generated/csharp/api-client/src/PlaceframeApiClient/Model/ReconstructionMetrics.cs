@@ -34,171 +34,35 @@ namespace PlaceframeApiClient.Model
         /// <summary>
         /// Initializes a new instance of the <see cref="ReconstructionMetrics" /> class.
         /// </summary>
-        /// <param name="totalImages">Total number of input images considered for this reconstruction run..</param>
-        /// <param name="registeredImages">Number of images successfully registered into the final model..</param>
-        /// <param name="registrationRate">Registration rate in percent: 100 × (registered_images / total_images). Computed after selecting the best reconstruction (max registered images)..</param>
-        /// <param name="num3dPoints">Count of 3D points in the selected &#39;best&#39; reconstruction..</param>
-        /// <param name="averageKeypointsPerImage">Average number of detected keypoints per image (after ALIKED extraction), computed across all images..</param>
-        /// <param name="reprojectionPixelError50thPercentile">Median (50th percentile) reprojection error in pixels across all valid 2D observations in registered images, measured using image.project_point(point3D.xyz) vs. observed 2D keypoint..</param>
-        /// <param name="reprojectionPixelError90thPercentile">90th percentile reprojection error in pixels across all valid 2D observations, computed the same way as the median..</param>
-        /// <param name="trackLength50thPercentile">Median (50th percentile) track length across 3D points in the selected model. Track length &#x3D; number of distinct images observing the point..</param>
-        /// <param name="percentTracksWithLengthGreaterThanOrEqualTo3">Percentage of 3D points whose track length is ≥ 3 (a common robustness threshold). Computed as 100 × (#points with length≥3 / #points)..</param>
+        /// <param name="reprojectionPixelError50thPercentile">Median reprojection error in pixels across all valid 2D observations in registered images..</param>
+        /// <param name="reprojectionPixelError90thPercentile">90th percentile reprojection error in pixels across all valid 2D observations..</param>
+        /// <param name="trackLength50thPercentile">Median number of distinct images observing each 3D point..</param>
         /// <param name="allVerifiedMatches">Total number of verified matches across all image pairs..</param>
-        /// <param name="allVerifiedMatchRate">Percentage of verified matches across all image pairs..</param>
-        /// <param name="allVerifiedMatchInliersMean">Mean number of inliers for all verified matches..</param>
-        /// <param name="allVerifiedMatchInliersMedian">Median number of inliers for all verified matches..</param>
-        /// <param name="stereoVerifiedMatches">Number of verified matches for stereo pairs (same frame, different sensors)..</param>
-        /// <param name="stereoVerifiedMatchRate">Percentage of verified matches for stereo pairs..</param>
-        /// <param name="stereoVerifiedMatchInliersMean">Mean number of inliers for verified matches for stereo pairs..</param>
-        /// <param name="stereoVerifiedMatchInliersMedian">Median number of inliers for verified matches for stereo pairs..</param>
-        /// <param name="sameSensorVerifiedMatches">Number of verified matches for same-sensor pairs (across frames)..</param>
-        /// <param name="sameSensorVerifiedMatchRate">Percentage of verified matches for same-sensor pairs..</param>
-        /// <param name="sameSensorVerifiedMatchInliersMean">Mean number of inliers for verified matches for same-sensor pairs..</param>
-        /// <param name="sameSensorVerifiedMatchInliersMedian">Median number of inliers for verified matches for same-sensor pairs..</param>
-        /// <param name="crossSensorVerifiedMatches">Number of verified matches for cross-sensor pairs (across frames)..</param>
-        /// <param name="crossSensorVerifiedMatchRate">Percentage of verified matches for cross-sensor pairs..</param>
-        /// <param name="crossSensorVerifiedMatchInliersMean">Mean number of inliers for verified matches for cross-sensor pairs..</param>
-        /// <param name="crossSensorVerifiedMatchInliersMedian">Median number of inliers for verified matches for cross-sensor pairs..</param>
+        /// <param name="allVerifiedMatchRate">Percentage of image pairs that passed two-view geometry verification..</param>
+        /// <param name="allVerifiedMatchInliersMean">Mean inlier count among verified image pairs..</param>
+        /// <param name="allVerifiedMatchInliersMedian">Median inlier count among verified image pairs..</param>
+        /// <param name="stereoVerifiedMatches">Number of verified stereo pairs (same frame, different sensors)..</param>
+        /// <param name="stereoVerifiedMatchRate">Percentage of stereo pairs that passed verification..</param>
+        /// <param name="stereoVerifiedMatchInliersMean">Mean inlier count among verified stereo pairs..</param>
+        /// <param name="stereoVerifiedMatchInliersMedian">Median inlier count among verified stereo pairs..</param>
         /// <param name="mapImageCount">Number of registered images in the reconstruction..</param>
         /// <param name="mapPointCount">Number of triangulated 3D points in the reconstruction..</param>
-        /// <param name="mapAvgTrackLength">Mean number of image observations per 3D point. Coarse density-of-evidence proxy..</param>
-        /// <param name="mapBoundingVolumeM3">Convex-hull volume of registered camera centers, in cubic meters. Captures spatial extent; complements image_count which only captures coverage density..</param>
-        /// <param name="mapViewpointDiversity">1 - |mean(unit viewing direction)| across registered cameras. Zero when all cameras face the same way; approaches one as viewing directions spread uniformly. Discriminates panoramic sweeps from single-viewpoint maps even when the rest of the metrics agree..</param>
-        /// <param name="truthAlignmentRmsResidualM">RMS over registered cameras of ||T·c_map - c_truth|| in meters, where T is the rigid Umeyama alignment from map to truth applied during reconstruction. Diagnostic for VIO-truth quality: small (~cm) means the truth poses are internally consistent with the COLMAP geometry; large values indicate VIO drift, scale errors, or other capture-time pose noise that disqualifies the capture from calibration..</param>
-        /// <param name="truthAlignmentMaxResidualM">Maximum over registered cameras of ||T·c_map - c_truth|| in meters. Companion to the RMS field; surfaces single-frame outliers that the RMS would smooth over..</param>
+        /// <param name="mapAvgTrackLength">Mean number of image observations per 3D point..</param>
+        /// <param name="mapViewpointDiversity">1 minus the magnitude of the mean unit viewing direction across registered cameras; 0 means uniform direction, approaches 1 as viewpoints spread..</param>
+        /// <param name="gravityAlignedInMapFrame">True when per-frame gravity samples aligned the map&#39;s vertical axis; False when no samples were available and only origin-shift was applied..</param>
+        /// <param name="gravitySampleCount">Number of registered frames that contributed gravity samples to the map-frame alignment..</param>
+        /// <param name="priorDriftResidualRmsM">RMS residual in meters of a rigid Umeyama fit from map camera centers to VIO position priors; None for multi-camera captures, which run priors-off and carry no per-frame positions..</param>
+        /// <param name="priorDriftResidualMaxM">Maximum residual in meters of the same Umeyama fit; surfaces single-frame outliers the RMS smooths over..</param>
+        /// <param name="phaseTimings">Per-phase wall-clock durations in execution order, captured at each set_phase boundary..</param>
+        /// <param name="pipelineVersion">RECONSTRUCTOR_SHA of the image that produced this reconstruction..</param>
         public ReconstructionMetrics()
         {
         }
 
         /// <summary>
-        /// Total number of input images considered for this reconstruction run.
+        /// Median reprojection error in pixels across all valid 2D observations in registered images.
         /// </summary>
-        /// <value>Total number of input images considered for this reconstruction run.</value>
-        [DataMember(Name = "total_images", EmitDefaultValue = true)]
-        public int? TotalImages
-        {
-            get{ return _TotalImages;}
-            set
-            {
-                _TotalImages = value;
-                _flagTotalImages = true;
-            }
-        }
-        private int? _TotalImages;
-        private bool _flagTotalImages;
-
-        /// <summary>
-        /// Returns false as TotalImages should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeTotalImages()
-        {
-            return _flagTotalImages;
-        }
-        /// <summary>
-        /// Number of images successfully registered into the final model.
-        /// </summary>
-        /// <value>Number of images successfully registered into the final model.</value>
-        [DataMember(Name = "registered_images", EmitDefaultValue = true)]
-        public int? RegisteredImages
-        {
-            get{ return _RegisteredImages;}
-            set
-            {
-                _RegisteredImages = value;
-                _flagRegisteredImages = true;
-            }
-        }
-        private int? _RegisteredImages;
-        private bool _flagRegisteredImages;
-
-        /// <summary>
-        /// Returns false as RegisteredImages should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeRegisteredImages()
-        {
-            return _flagRegisteredImages;
-        }
-        /// <summary>
-        /// Registration rate in percent: 100 × (registered_images / total_images). Computed after selecting the best reconstruction (max registered images).
-        /// </summary>
-        /// <value>Registration rate in percent: 100 × (registered_images / total_images). Computed after selecting the best reconstruction (max registered images).</value>
-        [DataMember(Name = "registration_rate", EmitDefaultValue = true)]
-        public double? RegistrationRate
-        {
-            get{ return _RegistrationRate;}
-            set
-            {
-                _RegistrationRate = value;
-                _flagRegistrationRate = true;
-            }
-        }
-        private double? _RegistrationRate;
-        private bool _flagRegistrationRate;
-
-        /// <summary>
-        /// Returns false as RegistrationRate should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeRegistrationRate()
-        {
-            return _flagRegistrationRate;
-        }
-        /// <summary>
-        /// Count of 3D points in the selected &#39;best&#39; reconstruction.
-        /// </summary>
-        /// <value>Count of 3D points in the selected &#39;best&#39; reconstruction.</value>
-        [DataMember(Name = "num_3d_points", EmitDefaultValue = true)]
-        public int? Num3dPoints
-        {
-            get{ return _Num3dPoints;}
-            set
-            {
-                _Num3dPoints = value;
-                _flagNum3dPoints = true;
-            }
-        }
-        private int? _Num3dPoints;
-        private bool _flagNum3dPoints;
-
-        /// <summary>
-        /// Returns false as Num3dPoints should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeNum3dPoints()
-        {
-            return _flagNum3dPoints;
-        }
-        /// <summary>
-        /// Average number of detected keypoints per image (after ALIKED extraction), computed across all images.
-        /// </summary>
-        /// <value>Average number of detected keypoints per image (after ALIKED extraction), computed across all images.</value>
-        [DataMember(Name = "average_keypoints_per_image", EmitDefaultValue = true)]
-        public double? AverageKeypointsPerImage
-        {
-            get{ return _AverageKeypointsPerImage;}
-            set
-            {
-                _AverageKeypointsPerImage = value;
-                _flagAverageKeypointsPerImage = true;
-            }
-        }
-        private double? _AverageKeypointsPerImage;
-        private bool _flagAverageKeypointsPerImage;
-
-        /// <summary>
-        /// Returns false as AverageKeypointsPerImage should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeAverageKeypointsPerImage()
-        {
-            return _flagAverageKeypointsPerImage;
-        }
-        /// <summary>
-        /// Median (50th percentile) reprojection error in pixels across all valid 2D observations in registered images, measured using image.project_point(point3D.xyz) vs. observed 2D keypoint.
-        /// </summary>
-        /// <value>Median (50th percentile) reprojection error in pixels across all valid 2D observations in registered images, measured using image.project_point(point3D.xyz) vs. observed 2D keypoint.</value>
+        /// <value>Median reprojection error in pixels across all valid 2D observations in registered images.</value>
         [DataMember(Name = "reprojection_pixel_error_50th_percentile", EmitDefaultValue = true)]
         public double? ReprojectionPixelError50thPercentile
         {
@@ -221,9 +85,9 @@ namespace PlaceframeApiClient.Model
             return _flagReprojectionPixelError50thPercentile;
         }
         /// <summary>
-        /// 90th percentile reprojection error in pixels across all valid 2D observations, computed the same way as the median.
+        /// 90th percentile reprojection error in pixels across all valid 2D observations.
         /// </summary>
-        /// <value>90th percentile reprojection error in pixels across all valid 2D observations, computed the same way as the median.</value>
+        /// <value>90th percentile reprojection error in pixels across all valid 2D observations.</value>
         [DataMember(Name = "reprojection_pixel_error_90th_percentile", EmitDefaultValue = true)]
         public double? ReprojectionPixelError90thPercentile
         {
@@ -246,9 +110,9 @@ namespace PlaceframeApiClient.Model
             return _flagReprojectionPixelError90thPercentile;
         }
         /// <summary>
-        /// Median (50th percentile) track length across 3D points in the selected model. Track length &#x3D; number of distinct images observing the point.
+        /// Median number of distinct images observing each 3D point.
         /// </summary>
-        /// <value>Median (50th percentile) track length across 3D points in the selected model. Track length &#x3D; number of distinct images observing the point.</value>
+        /// <value>Median number of distinct images observing each 3D point.</value>
         [DataMember(Name = "track_length_50th_percentile", EmitDefaultValue = true)]
         public double? TrackLength50thPercentile
         {
@@ -269,31 +133,6 @@ namespace PlaceframeApiClient.Model
         public bool ShouldSerializeTrackLength50thPercentile()
         {
             return _flagTrackLength50thPercentile;
-        }
-        /// <summary>
-        /// Percentage of 3D points whose track length is ≥ 3 (a common robustness threshold). Computed as 100 × (#points with length≥3 / #points).
-        /// </summary>
-        /// <value>Percentage of 3D points whose track length is ≥ 3 (a common robustness threshold). Computed as 100 × (#points with length≥3 / #points).</value>
-        [DataMember(Name = "percent_tracks_with_length_greater_than_or_equal_to_3", EmitDefaultValue = true)]
-        public double? PercentTracksWithLengthGreaterThanOrEqualTo3
-        {
-            get{ return _PercentTracksWithLengthGreaterThanOrEqualTo3;}
-            set
-            {
-                _PercentTracksWithLengthGreaterThanOrEqualTo3 = value;
-                _flagPercentTracksWithLengthGreaterThanOrEqualTo3 = true;
-            }
-        }
-        private double? _PercentTracksWithLengthGreaterThanOrEqualTo3;
-        private bool _flagPercentTracksWithLengthGreaterThanOrEqualTo3;
-
-        /// <summary>
-        /// Returns false as PercentTracksWithLengthGreaterThanOrEqualTo3 should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializePercentTracksWithLengthGreaterThanOrEqualTo3()
-        {
-            return _flagPercentTracksWithLengthGreaterThanOrEqualTo3;
         }
         /// <summary>
         /// Total number of verified matches across all image pairs.
@@ -321,9 +160,9 @@ namespace PlaceframeApiClient.Model
             return _flagAllVerifiedMatches;
         }
         /// <summary>
-        /// Percentage of verified matches across all image pairs.
+        /// Percentage of image pairs that passed two-view geometry verification.
         /// </summary>
-        /// <value>Percentage of verified matches across all image pairs.</value>
+        /// <value>Percentage of image pairs that passed two-view geometry verification.</value>
         [DataMember(Name = "all_verified_match_rate", EmitDefaultValue = true)]
         public double? AllVerifiedMatchRate
         {
@@ -346,9 +185,9 @@ namespace PlaceframeApiClient.Model
             return _flagAllVerifiedMatchRate;
         }
         /// <summary>
-        /// Mean number of inliers for all verified matches.
+        /// Mean inlier count among verified image pairs.
         /// </summary>
-        /// <value>Mean number of inliers for all verified matches.</value>
+        /// <value>Mean inlier count among verified image pairs.</value>
         [DataMember(Name = "all_verified_match_inliers_mean", EmitDefaultValue = true)]
         public double? AllVerifiedMatchInliersMean
         {
@@ -371,9 +210,9 @@ namespace PlaceframeApiClient.Model
             return _flagAllVerifiedMatchInliersMean;
         }
         /// <summary>
-        /// Median number of inliers for all verified matches.
+        /// Median inlier count among verified image pairs.
         /// </summary>
-        /// <value>Median number of inliers for all verified matches.</value>
+        /// <value>Median inlier count among verified image pairs.</value>
         [DataMember(Name = "all_verified_match_inliers_median", EmitDefaultValue = true)]
         public double? AllVerifiedMatchInliersMedian
         {
@@ -396,9 +235,9 @@ namespace PlaceframeApiClient.Model
             return _flagAllVerifiedMatchInliersMedian;
         }
         /// <summary>
-        /// Number of verified matches for stereo pairs (same frame, different sensors).
+        /// Number of verified stereo pairs (same frame, different sensors).
         /// </summary>
-        /// <value>Number of verified matches for stereo pairs (same frame, different sensors).</value>
+        /// <value>Number of verified stereo pairs (same frame, different sensors).</value>
         [DataMember(Name = "stereo_verified_matches", EmitDefaultValue = true)]
         public int? StereoVerifiedMatches
         {
@@ -421,9 +260,9 @@ namespace PlaceframeApiClient.Model
             return _flagStereoVerifiedMatches;
         }
         /// <summary>
-        /// Percentage of verified matches for stereo pairs.
+        /// Percentage of stereo pairs that passed verification.
         /// </summary>
-        /// <value>Percentage of verified matches for stereo pairs.</value>
+        /// <value>Percentage of stereo pairs that passed verification.</value>
         [DataMember(Name = "stereo_verified_match_rate", EmitDefaultValue = true)]
         public double? StereoVerifiedMatchRate
         {
@@ -446,9 +285,9 @@ namespace PlaceframeApiClient.Model
             return _flagStereoVerifiedMatchRate;
         }
         /// <summary>
-        /// Mean number of inliers for verified matches for stereo pairs.
+        /// Mean inlier count among verified stereo pairs.
         /// </summary>
-        /// <value>Mean number of inliers for verified matches for stereo pairs.</value>
+        /// <value>Mean inlier count among verified stereo pairs.</value>
         [DataMember(Name = "stereo_verified_match_inliers_mean", EmitDefaultValue = true)]
         public double? StereoVerifiedMatchInliersMean
         {
@@ -471,9 +310,9 @@ namespace PlaceframeApiClient.Model
             return _flagStereoVerifiedMatchInliersMean;
         }
         /// <summary>
-        /// Median number of inliers for verified matches for stereo pairs.
+        /// Median inlier count among verified stereo pairs.
         /// </summary>
-        /// <value>Median number of inliers for verified matches for stereo pairs.</value>
+        /// <value>Median inlier count among verified stereo pairs.</value>
         [DataMember(Name = "stereo_verified_match_inliers_median", EmitDefaultValue = true)]
         public double? StereoVerifiedMatchInliersMedian
         {
@@ -494,206 +333,6 @@ namespace PlaceframeApiClient.Model
         public bool ShouldSerializeStereoVerifiedMatchInliersMedian()
         {
             return _flagStereoVerifiedMatchInliersMedian;
-        }
-        /// <summary>
-        /// Number of verified matches for same-sensor pairs (across frames).
-        /// </summary>
-        /// <value>Number of verified matches for same-sensor pairs (across frames).</value>
-        [DataMember(Name = "same_sensor_verified_matches", EmitDefaultValue = true)]
-        public int? SameSensorVerifiedMatches
-        {
-            get{ return _SameSensorVerifiedMatches;}
-            set
-            {
-                _SameSensorVerifiedMatches = value;
-                _flagSameSensorVerifiedMatches = true;
-            }
-        }
-        private int? _SameSensorVerifiedMatches;
-        private bool _flagSameSensorVerifiedMatches;
-
-        /// <summary>
-        /// Returns false as SameSensorVerifiedMatches should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeSameSensorVerifiedMatches()
-        {
-            return _flagSameSensorVerifiedMatches;
-        }
-        /// <summary>
-        /// Percentage of verified matches for same-sensor pairs.
-        /// </summary>
-        /// <value>Percentage of verified matches for same-sensor pairs.</value>
-        [DataMember(Name = "same_sensor_verified_match_rate", EmitDefaultValue = true)]
-        public double? SameSensorVerifiedMatchRate
-        {
-            get{ return _SameSensorVerifiedMatchRate;}
-            set
-            {
-                _SameSensorVerifiedMatchRate = value;
-                _flagSameSensorVerifiedMatchRate = true;
-            }
-        }
-        private double? _SameSensorVerifiedMatchRate;
-        private bool _flagSameSensorVerifiedMatchRate;
-
-        /// <summary>
-        /// Returns false as SameSensorVerifiedMatchRate should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeSameSensorVerifiedMatchRate()
-        {
-            return _flagSameSensorVerifiedMatchRate;
-        }
-        /// <summary>
-        /// Mean number of inliers for verified matches for same-sensor pairs.
-        /// </summary>
-        /// <value>Mean number of inliers for verified matches for same-sensor pairs.</value>
-        [DataMember(Name = "same_sensor_verified_match_inliers_mean", EmitDefaultValue = true)]
-        public double? SameSensorVerifiedMatchInliersMean
-        {
-            get{ return _SameSensorVerifiedMatchInliersMean;}
-            set
-            {
-                _SameSensorVerifiedMatchInliersMean = value;
-                _flagSameSensorVerifiedMatchInliersMean = true;
-            }
-        }
-        private double? _SameSensorVerifiedMatchInliersMean;
-        private bool _flagSameSensorVerifiedMatchInliersMean;
-
-        /// <summary>
-        /// Returns false as SameSensorVerifiedMatchInliersMean should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeSameSensorVerifiedMatchInliersMean()
-        {
-            return _flagSameSensorVerifiedMatchInliersMean;
-        }
-        /// <summary>
-        /// Median number of inliers for verified matches for same-sensor pairs.
-        /// </summary>
-        /// <value>Median number of inliers for verified matches for same-sensor pairs.</value>
-        [DataMember(Name = "same_sensor_verified_match_inliers_median", EmitDefaultValue = true)]
-        public double? SameSensorVerifiedMatchInliersMedian
-        {
-            get{ return _SameSensorVerifiedMatchInliersMedian;}
-            set
-            {
-                _SameSensorVerifiedMatchInliersMedian = value;
-                _flagSameSensorVerifiedMatchInliersMedian = true;
-            }
-        }
-        private double? _SameSensorVerifiedMatchInliersMedian;
-        private bool _flagSameSensorVerifiedMatchInliersMedian;
-
-        /// <summary>
-        /// Returns false as SameSensorVerifiedMatchInliersMedian should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeSameSensorVerifiedMatchInliersMedian()
-        {
-            return _flagSameSensorVerifiedMatchInliersMedian;
-        }
-        /// <summary>
-        /// Number of verified matches for cross-sensor pairs (across frames).
-        /// </summary>
-        /// <value>Number of verified matches for cross-sensor pairs (across frames).</value>
-        [DataMember(Name = "cross_sensor_verified_matches", EmitDefaultValue = true)]
-        public int? CrossSensorVerifiedMatches
-        {
-            get{ return _CrossSensorVerifiedMatches;}
-            set
-            {
-                _CrossSensorVerifiedMatches = value;
-                _flagCrossSensorVerifiedMatches = true;
-            }
-        }
-        private int? _CrossSensorVerifiedMatches;
-        private bool _flagCrossSensorVerifiedMatches;
-
-        /// <summary>
-        /// Returns false as CrossSensorVerifiedMatches should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeCrossSensorVerifiedMatches()
-        {
-            return _flagCrossSensorVerifiedMatches;
-        }
-        /// <summary>
-        /// Percentage of verified matches for cross-sensor pairs.
-        /// </summary>
-        /// <value>Percentage of verified matches for cross-sensor pairs.</value>
-        [DataMember(Name = "cross_sensor_verified_match_rate", EmitDefaultValue = true)]
-        public double? CrossSensorVerifiedMatchRate
-        {
-            get{ return _CrossSensorVerifiedMatchRate;}
-            set
-            {
-                _CrossSensorVerifiedMatchRate = value;
-                _flagCrossSensorVerifiedMatchRate = true;
-            }
-        }
-        private double? _CrossSensorVerifiedMatchRate;
-        private bool _flagCrossSensorVerifiedMatchRate;
-
-        /// <summary>
-        /// Returns false as CrossSensorVerifiedMatchRate should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeCrossSensorVerifiedMatchRate()
-        {
-            return _flagCrossSensorVerifiedMatchRate;
-        }
-        /// <summary>
-        /// Mean number of inliers for verified matches for cross-sensor pairs.
-        /// </summary>
-        /// <value>Mean number of inliers for verified matches for cross-sensor pairs.</value>
-        [DataMember(Name = "cross_sensor_verified_match_inliers_mean", EmitDefaultValue = true)]
-        public double? CrossSensorVerifiedMatchInliersMean
-        {
-            get{ return _CrossSensorVerifiedMatchInliersMean;}
-            set
-            {
-                _CrossSensorVerifiedMatchInliersMean = value;
-                _flagCrossSensorVerifiedMatchInliersMean = true;
-            }
-        }
-        private double? _CrossSensorVerifiedMatchInliersMean;
-        private bool _flagCrossSensorVerifiedMatchInliersMean;
-
-        /// <summary>
-        /// Returns false as CrossSensorVerifiedMatchInliersMean should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeCrossSensorVerifiedMatchInliersMean()
-        {
-            return _flagCrossSensorVerifiedMatchInliersMean;
-        }
-        /// <summary>
-        /// Median number of inliers for verified matches for cross-sensor pairs.
-        /// </summary>
-        /// <value>Median number of inliers for verified matches for cross-sensor pairs.</value>
-        [DataMember(Name = "cross_sensor_verified_match_inliers_median", EmitDefaultValue = true)]
-        public double? CrossSensorVerifiedMatchInliersMedian
-        {
-            get{ return _CrossSensorVerifiedMatchInliersMedian;}
-            set
-            {
-                _CrossSensorVerifiedMatchInliersMedian = value;
-                _flagCrossSensorVerifiedMatchInliersMedian = true;
-            }
-        }
-        private double? _CrossSensorVerifiedMatchInliersMedian;
-        private bool _flagCrossSensorVerifiedMatchInliersMedian;
-
-        /// <summary>
-        /// Returns false as CrossSensorVerifiedMatchInliersMedian should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeCrossSensorVerifiedMatchInliersMedian()
-        {
-            return _flagCrossSensorVerifiedMatchInliersMedian;
         }
         /// <summary>
         /// Number of registered images in the reconstruction.
@@ -746,9 +385,9 @@ namespace PlaceframeApiClient.Model
             return _flagMapPointCount;
         }
         /// <summary>
-        /// Mean number of image observations per 3D point. Coarse density-of-evidence proxy.
+        /// Mean number of image observations per 3D point.
         /// </summary>
-        /// <value>Mean number of image observations per 3D point. Coarse density-of-evidence proxy.</value>
+        /// <value>Mean number of image observations per 3D point.</value>
         [DataMember(Name = "map_avg_track_length", EmitDefaultValue = true)]
         public double? MapAvgTrackLength
         {
@@ -771,34 +410,9 @@ namespace PlaceframeApiClient.Model
             return _flagMapAvgTrackLength;
         }
         /// <summary>
-        /// Convex-hull volume of registered camera centers, in cubic meters. Captures spatial extent; complements image_count which only captures coverage density.
+        /// 1 minus the magnitude of the mean unit viewing direction across registered cameras; 0 means uniform direction, approaches 1 as viewpoints spread.
         /// </summary>
-        /// <value>Convex-hull volume of registered camera centers, in cubic meters. Captures spatial extent; complements image_count which only captures coverage density.</value>
-        [DataMember(Name = "map_bounding_volume_m3", EmitDefaultValue = true)]
-        public double? MapBoundingVolumeM3
-        {
-            get{ return _MapBoundingVolumeM3;}
-            set
-            {
-                _MapBoundingVolumeM3 = value;
-                _flagMapBoundingVolumeM3 = true;
-            }
-        }
-        private double? _MapBoundingVolumeM3;
-        private bool _flagMapBoundingVolumeM3;
-
-        /// <summary>
-        /// Returns false as MapBoundingVolumeM3 should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeMapBoundingVolumeM3()
-        {
-            return _flagMapBoundingVolumeM3;
-        }
-        /// <summary>
-        /// 1 - |mean(unit viewing direction)| across registered cameras. Zero when all cameras face the same way; approaches one as viewing directions spread uniformly. Discriminates panoramic sweeps from single-viewpoint maps even when the rest of the metrics agree.
-        /// </summary>
-        /// <value>1 - |mean(unit viewing direction)| across registered cameras. Zero when all cameras face the same way; approaches one as viewing directions spread uniformly. Discriminates panoramic sweeps from single-viewpoint maps even when the rest of the metrics agree.</value>
+        /// <value>1 minus the magnitude of the mean unit viewing direction across registered cameras; 0 means uniform direction, approaches 1 as viewpoints spread.</value>
         [DataMember(Name = "map_viewpoint_diversity", EmitDefaultValue = true)]
         public double? MapViewpointDiversity
         {
@@ -821,54 +435,154 @@ namespace PlaceframeApiClient.Model
             return _flagMapViewpointDiversity;
         }
         /// <summary>
-        /// RMS over registered cameras of ||T·c_map - c_truth|| in meters, where T is the rigid Umeyama alignment from map to truth applied during reconstruction. Diagnostic for VIO-truth quality: small (~cm) means the truth poses are internally consistent with the COLMAP geometry; large values indicate VIO drift, scale errors, or other capture-time pose noise that disqualifies the capture from calibration.
+        /// True when per-frame gravity samples aligned the map&#39;s vertical axis; False when no samples were available and only origin-shift was applied.
         /// </summary>
-        /// <value>RMS over registered cameras of ||T·c_map - c_truth|| in meters, where T is the rigid Umeyama alignment from map to truth applied during reconstruction. Diagnostic for VIO-truth quality: small (~cm) means the truth poses are internally consistent with the COLMAP geometry; large values indicate VIO drift, scale errors, or other capture-time pose noise that disqualifies the capture from calibration.</value>
-        [DataMember(Name = "truth_alignment_rms_residual_m", EmitDefaultValue = true)]
-        public double? TruthAlignmentRmsResidualM
+        /// <value>True when per-frame gravity samples aligned the map&#39;s vertical axis; False when no samples were available and only origin-shift was applied.</value>
+        [DataMember(Name = "gravity_aligned_in_map_frame", EmitDefaultValue = true)]
+        public bool? GravityAlignedInMapFrame
         {
-            get{ return _TruthAlignmentRmsResidualM;}
+            get{ return _GravityAlignedInMapFrame;}
             set
             {
-                _TruthAlignmentRmsResidualM = value;
-                _flagTruthAlignmentRmsResidualM = true;
+                _GravityAlignedInMapFrame = value;
+                _flagGravityAlignedInMapFrame = true;
             }
         }
-        private double? _TruthAlignmentRmsResidualM;
-        private bool _flagTruthAlignmentRmsResidualM;
+        private bool? _GravityAlignedInMapFrame;
+        private bool _flagGravityAlignedInMapFrame;
 
         /// <summary>
-        /// Returns false as TruthAlignmentRmsResidualM should not be serialized given that it's read-only.
+        /// Returns false as GravityAlignedInMapFrame should not be serialized given that it's read-only.
         /// </summary>
         /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeTruthAlignmentRmsResidualM()
+        public bool ShouldSerializeGravityAlignedInMapFrame()
         {
-            return _flagTruthAlignmentRmsResidualM;
+            return _flagGravityAlignedInMapFrame;
         }
         /// <summary>
-        /// Maximum over registered cameras of ||T·c_map - c_truth|| in meters. Companion to the RMS field; surfaces single-frame outliers that the RMS would smooth over.
+        /// Number of registered frames that contributed gravity samples to the map-frame alignment.
         /// </summary>
-        /// <value>Maximum over registered cameras of ||T·c_map - c_truth|| in meters. Companion to the RMS field; surfaces single-frame outliers that the RMS would smooth over.</value>
-        [DataMember(Name = "truth_alignment_max_residual_m", EmitDefaultValue = true)]
-        public double? TruthAlignmentMaxResidualM
+        /// <value>Number of registered frames that contributed gravity samples to the map-frame alignment.</value>
+        [DataMember(Name = "gravity_sample_count", EmitDefaultValue = true)]
+        public int? GravitySampleCount
         {
-            get{ return _TruthAlignmentMaxResidualM;}
+            get{ return _GravitySampleCount;}
             set
             {
-                _TruthAlignmentMaxResidualM = value;
-                _flagTruthAlignmentMaxResidualM = true;
+                _GravitySampleCount = value;
+                _flagGravitySampleCount = true;
             }
         }
-        private double? _TruthAlignmentMaxResidualM;
-        private bool _flagTruthAlignmentMaxResidualM;
+        private int? _GravitySampleCount;
+        private bool _flagGravitySampleCount;
 
         /// <summary>
-        /// Returns false as TruthAlignmentMaxResidualM should not be serialized given that it's read-only.
+        /// Returns false as GravitySampleCount should not be serialized given that it's read-only.
         /// </summary>
         /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeTruthAlignmentMaxResidualM()
+        public bool ShouldSerializeGravitySampleCount()
         {
-            return _flagTruthAlignmentMaxResidualM;
+            return _flagGravitySampleCount;
+        }
+        /// <summary>
+        /// RMS residual in meters of a rigid Umeyama fit from map camera centers to VIO position priors; None for multi-camera captures, which run priors-off and carry no per-frame positions.
+        /// </summary>
+        /// <value>RMS residual in meters of a rigid Umeyama fit from map camera centers to VIO position priors; None for multi-camera captures, which run priors-off and carry no per-frame positions.</value>
+        [DataMember(Name = "prior_drift_residual_rms_m", EmitDefaultValue = true)]
+        public double? PriorDriftResidualRmsM
+        {
+            get{ return _PriorDriftResidualRmsM;}
+            set
+            {
+                _PriorDriftResidualRmsM = value;
+                _flagPriorDriftResidualRmsM = true;
+            }
+        }
+        private double? _PriorDriftResidualRmsM;
+        private bool _flagPriorDriftResidualRmsM;
+
+        /// <summary>
+        /// Returns false as PriorDriftResidualRmsM should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializePriorDriftResidualRmsM()
+        {
+            return _flagPriorDriftResidualRmsM;
+        }
+        /// <summary>
+        /// Maximum residual in meters of the same Umeyama fit; surfaces single-frame outliers the RMS smooths over.
+        /// </summary>
+        /// <value>Maximum residual in meters of the same Umeyama fit; surfaces single-frame outliers the RMS smooths over.</value>
+        [DataMember(Name = "prior_drift_residual_max_m", EmitDefaultValue = true)]
+        public double? PriorDriftResidualMaxM
+        {
+            get{ return _PriorDriftResidualMaxM;}
+            set
+            {
+                _PriorDriftResidualMaxM = value;
+                _flagPriorDriftResidualMaxM = true;
+            }
+        }
+        private double? _PriorDriftResidualMaxM;
+        private bool _flagPriorDriftResidualMaxM;
+
+        /// <summary>
+        /// Returns false as PriorDriftResidualMaxM should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializePriorDriftResidualMaxM()
+        {
+            return _flagPriorDriftResidualMaxM;
+        }
+        /// <summary>
+        /// Per-phase wall-clock durations in execution order, captured at each set_phase boundary.
+        /// </summary>
+        /// <value>Per-phase wall-clock durations in execution order, captured at each set_phase boundary.</value>
+        [DataMember(Name = "phase_timings", EmitDefaultValue = true)]
+        public List<PhaseTiming> PhaseTimings
+        {
+            get{ return _PhaseTimings;}
+            set
+            {
+                _PhaseTimings = value;
+                _flagPhaseTimings = true;
+            }
+        }
+        private List<PhaseTiming> _PhaseTimings;
+        private bool _flagPhaseTimings;
+
+        /// <summary>
+        /// Returns false as PhaseTimings should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializePhaseTimings()
+        {
+            return _flagPhaseTimings;
+        }
+        /// <summary>
+        /// RECONSTRUCTOR_SHA of the image that produced this reconstruction.
+        /// </summary>
+        /// <value>RECONSTRUCTOR_SHA of the image that produced this reconstruction.</value>
+        [DataMember(Name = "pipeline_version", EmitDefaultValue = true)]
+        public string PipelineVersion
+        {
+            get{ return _PipelineVersion;}
+            set
+            {
+                _PipelineVersion = value;
+                _flagPipelineVersion = true;
+            }
+        }
+        private string _PipelineVersion;
+        private bool _flagPipelineVersion;
+
+        /// <summary>
+        /// Returns false as PipelineVersion should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializePipelineVersion()
+        {
+            return _flagPipelineVersion;
         }
         /// <summary>
         /// Returns the string presentation of the object
@@ -878,15 +592,9 @@ namespace PlaceframeApiClient.Model
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("class ReconstructionMetrics {\n");
-            sb.Append("  TotalImages: ").Append(TotalImages).Append("\n");
-            sb.Append("  RegisteredImages: ").Append(RegisteredImages).Append("\n");
-            sb.Append("  RegistrationRate: ").Append(RegistrationRate).Append("\n");
-            sb.Append("  Num3dPoints: ").Append(Num3dPoints).Append("\n");
-            sb.Append("  AverageKeypointsPerImage: ").Append(AverageKeypointsPerImage).Append("\n");
             sb.Append("  ReprojectionPixelError50thPercentile: ").Append(ReprojectionPixelError50thPercentile).Append("\n");
             sb.Append("  ReprojectionPixelError90thPercentile: ").Append(ReprojectionPixelError90thPercentile).Append("\n");
             sb.Append("  TrackLength50thPercentile: ").Append(TrackLength50thPercentile).Append("\n");
-            sb.Append("  PercentTracksWithLengthGreaterThanOrEqualTo3: ").Append(PercentTracksWithLengthGreaterThanOrEqualTo3).Append("\n");
             sb.Append("  AllVerifiedMatches: ").Append(AllVerifiedMatches).Append("\n");
             sb.Append("  AllVerifiedMatchRate: ").Append(AllVerifiedMatchRate).Append("\n");
             sb.Append("  AllVerifiedMatchInliersMean: ").Append(AllVerifiedMatchInliersMean).Append("\n");
@@ -895,21 +603,16 @@ namespace PlaceframeApiClient.Model
             sb.Append("  StereoVerifiedMatchRate: ").Append(StereoVerifiedMatchRate).Append("\n");
             sb.Append("  StereoVerifiedMatchInliersMean: ").Append(StereoVerifiedMatchInliersMean).Append("\n");
             sb.Append("  StereoVerifiedMatchInliersMedian: ").Append(StereoVerifiedMatchInliersMedian).Append("\n");
-            sb.Append("  SameSensorVerifiedMatches: ").Append(SameSensorVerifiedMatches).Append("\n");
-            sb.Append("  SameSensorVerifiedMatchRate: ").Append(SameSensorVerifiedMatchRate).Append("\n");
-            sb.Append("  SameSensorVerifiedMatchInliersMean: ").Append(SameSensorVerifiedMatchInliersMean).Append("\n");
-            sb.Append("  SameSensorVerifiedMatchInliersMedian: ").Append(SameSensorVerifiedMatchInliersMedian).Append("\n");
-            sb.Append("  CrossSensorVerifiedMatches: ").Append(CrossSensorVerifiedMatches).Append("\n");
-            sb.Append("  CrossSensorVerifiedMatchRate: ").Append(CrossSensorVerifiedMatchRate).Append("\n");
-            sb.Append("  CrossSensorVerifiedMatchInliersMean: ").Append(CrossSensorVerifiedMatchInliersMean).Append("\n");
-            sb.Append("  CrossSensorVerifiedMatchInliersMedian: ").Append(CrossSensorVerifiedMatchInliersMedian).Append("\n");
             sb.Append("  MapImageCount: ").Append(MapImageCount).Append("\n");
             sb.Append("  MapPointCount: ").Append(MapPointCount).Append("\n");
             sb.Append("  MapAvgTrackLength: ").Append(MapAvgTrackLength).Append("\n");
-            sb.Append("  MapBoundingVolumeM3: ").Append(MapBoundingVolumeM3).Append("\n");
             sb.Append("  MapViewpointDiversity: ").Append(MapViewpointDiversity).Append("\n");
-            sb.Append("  TruthAlignmentRmsResidualM: ").Append(TruthAlignmentRmsResidualM).Append("\n");
-            sb.Append("  TruthAlignmentMaxResidualM: ").Append(TruthAlignmentMaxResidualM).Append("\n");
+            sb.Append("  GravityAlignedInMapFrame: ").Append(GravityAlignedInMapFrame).Append("\n");
+            sb.Append("  GravitySampleCount: ").Append(GravitySampleCount).Append("\n");
+            sb.Append("  PriorDriftResidualRmsM: ").Append(PriorDriftResidualRmsM).Append("\n");
+            sb.Append("  PriorDriftResidualMaxM: ").Append(PriorDriftResidualMaxM).Append("\n");
+            sb.Append("  PhaseTimings: ").Append(PhaseTimings).Append("\n");
+            sb.Append("  PipelineVersion: ").Append(PipelineVersion).Append("\n");
             sb.Append("}\n");
             return sb.ToString();
         }
