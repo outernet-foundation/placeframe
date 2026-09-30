@@ -30,9 +30,9 @@ ci_app = typer.Typer(add_completion=False, pretty_exceptions_show_locals=False)
 def ci_main(
     variant: Variant = typer.Option(help="Build variant: common, cuda, or rocm"),
     targets: Annotated[
-        list[str] | None,
+        str | None,
         typer.Option(
-            "--targets", help="Build only these services (from the image matrix); overrides the variant default"
+            "--targets", help="Space-separated services to build (from the image matrix); overrides the variant default"
         ),
     ] = None,
 ) -> None:
@@ -50,4 +50,4 @@ def ci_main(
     gpu: Gpu = variant if variant != "common" else "none"
 
     with ci_step(f"Build images ({variant})"):
-        run_build(mode="ci", gpu=gpu, gpu_only=variant != "common", targets_opt=targets)
+        run_build(mode="ci", gpu=gpu, gpu_only=variant != "common", targets_opt=targets.split() if targets else None)

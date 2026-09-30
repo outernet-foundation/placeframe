@@ -100,7 +100,7 @@ jobs:
       - uses: docker/setup-qemu-action@v3
         with:
           platforms: arm64
-      - run: uv run build-docker --variant ${{ matrix.variant }} --targets ${{ matrix.targets }}
+      - run: uv run build-docker --variant ${{ matrix.variant }} --targets "${{ matrix.targets }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
