@@ -37,8 +37,8 @@ Regeneration is deterministic: with no upstream change, `git status` comes back 
 
 ## Deploy: Docker
 
-The generated compose has no declared lifecycle in `[tool.docker-devkit.lifecycle]` (the
-table drives the hand-authored stack), so bring it up through the raw `docker compose`
+The generated compose has no declared lifecycle in `docker-devkit.yaml` (the `lifecycle:`
+section drives the hand-authored stack), so bring it up through the raw `docker compose`
 pressure valve, anchored at the repo root:
 
 ```bash
