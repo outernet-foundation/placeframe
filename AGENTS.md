@@ -28,7 +28,7 @@ The ruff configuration is two files: `ruff.base.toml` is the org-canonical confi
 
 **Tests**: `uv run pytest` from repo root. Tests live alongside each service (e.g. `workloads/localizer/tests/`).
 
-**Full preflight**: CI runs three steps from the repo root — `uv run --no-sync preflight-python` (the python battery: sync, lint, format check, type check, deptry, pytest, lock-file check, ruff drift), `uv run --no-sync preflight` (repo-specific checks: image refs, version couplings, database setup, datamodel + score codegen staleness), and `uv run --no-sync generate-clients --check` (openapi client staleness). Run all three before claiming a change is CI-clean; running individual checks won't catch failures in the others. `preflight` tears down and re-brings-up `compose.postgres.yml`, so it interrupts a running stack.
+**Full preflight**: CI runs three steps from the repo root — `uv run --no-sync preflight-python` (the python battery: sync, lint, format check, type check, deptry, pytest, lock-file check, ruff drift), `uv run --no-sync preflight` (repo-specific checks: image refs, version couplings, database setup, datamodel codegen staleness), and `uv run --no-sync generate-clients --check` (openapi client staleness). Run all three before claiming a change is CI-clean; running individual checks won't catch failures in the others. `preflight` tears down and re-brings-up `compose.postgres.yml`, so it interrupts a running stack.
 
 ## Server stack
 
