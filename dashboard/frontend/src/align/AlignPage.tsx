@@ -84,12 +84,17 @@ export function AlignPage() {
       .catch((err: unknown) => setStatus(errorText(err)));
   }, []);
 
+  // Which maps have been taken on. Kept in a ref rather than decided inside the state updater:
+  // React runs an updater eagerly only while its queue is empty, so a flag set in there is still
+  // unset for every map after the first of a batch -- and the fetch guarded by it never ran, which
+  // left those maps on "loading..." for ever, with no error because nothing had failed.
+  const requested = useRef<Set<string>>(new Set());
   const addMap = useCallback(
     (r: Reconstruction) => {
-      let added = false;
+      if (requested.current.has(r.id)) return;
+      requested.current.add(r.id);
       setMaps((prev) => {
         if (prev.some((m) => m.id === r.id)) return prev;
-        added = true;
         const color = MAP_COLORS[prev.length % MAP_COLORS.length];
         const label = r.capture_name ?? r.id.slice(0, 8);
         return [
@@ -105,7 +110,6 @@ export function AlignPage() {
         },
         ];
       });
-      if (!added) return;
       setReferenceId((prev) => prev || r.id);
       fetchPoints(r.id)
         .then((cloud) => {
@@ -121,6 +125,12 @@ export function AlignPage() {
 
   // Opened from the captures tree with a selection: the maps to place are named in the URL, so the
   // page arrives ready rather than asking for them again.
+  // Abandons the placement and returns to the tree the maps were chosen in. Nothing is kept: a
+  // placement only exists in memory until Save placement, so leaving is the whole undo.
+  const cancel = useCallback(() => {
+    window.location.href = "/";
+  }, []);
+
   const preloaded = useRef(false);
   useEffect(() => {
     if (preloaded.current || available.length === 0) return;
@@ -311,25 +321,8 @@ export function AlignPage() {
         {status && <div className="banner banner-error">{status}</div>}
         {saved && <div className="banner banner-success">Alignment saved as {saved}.</div>}
 
-        <label>
-          Add a map
-          <select
-            value=""
-            onChange={(e) => {
-              const r = available.find((x) => x.id === e.target.value);
-              if (r) addMap(r);
-            }}
-          >
-            <option value="">Choose a reconstruction…</option>
-            {available
-              .filter((r) => !maps.some((m) => m.id === r.id))
-              .map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.capture_name ?? r.id.slice(0, 8)} — {r.map_image_count ?? "?"} images
-                </option>
-              ))}
-          </select>
-        </label>
+        {/* The maps to place are chosen in the captures tree and arrive in the URL, so there is no
+            picker here: this page does one thing, and changing the selection means going back. */}
 
         <table className="align-table">
           <thead>
@@ -383,6 +376,9 @@ export function AlignPage() {
         </div>
 
         <div className="align-actions">
+          <button disabled={busy} onClick={cancel}>
+            Cancel
+          </button>
           <button disabled={busy || maps.length < 2 || !referenceId} onClick={() => submit(false)}>
             Save placement
           </button>
