@@ -35,6 +35,14 @@ export type CameraMode = "frustum" | "arrows" | "off";
 export type LocCameraMode = "frustum" | "axes" | "off";
 export type PointSize = number | "off"; // 1-10, or "off"
 
+// Perspective is the default because a point cloud reads as 3D largely through foreshortening.
+// Orthographic is what makes an axis-on view say something a perspective one cannot: with no
+// perspective divide, a plane parallel to the viewing direction projects to a line, so a wall or a
+// shelf face collapses to an edge you can judge straightness against.
+export type Projection = "perspective" | "orthographic";
+
+const PERSPECTIVE_FOV_DEG = 50;
+
 // Point size at level N is cloudRadius * POINT_SIZE_UNIT * N; level 2 matches the viewer's old
 // fixed default (cloudRadius * 0.004).
 const POINT_SIZE_UNIT = 0.002;
@@ -413,8 +421,16 @@ export class PointCloudScene {
   private readonly container: HTMLElement;
   private readonly renderer: THREE.WebGLRenderer;
   private readonly scene: THREE.Scene;
-  private readonly camera: THREE.PerspectiveCamera;
+  // Both cameras are kept positioned and oriented together, so switching between them is only a
+  // change of projection: the viewpoint, the zoom and everything downstream stay where they were.
+  private readonly perspectiveCamera: THREE.PerspectiveCamera;
+  private readonly orthographicCamera: THREE.OrthographicCamera;
+  private projection: Projection = "perspective";
   private readonly resizeObserver: ResizeObserver;
+
+  private get camera(): THREE.PerspectiveCamera | THREE.OrthographicCamera {
+    return this.projection === "perspective" ? this.perspectiveCamera : this.orthographicCamera;
+  }
 
   private axesGroup: THREE.Group | null = null;
   private gizmoGroup: THREE.Group | null = null;
@@ -454,7 +470,11 @@ export class PointCloudScene {
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(SCENE_BACKGROUND_COLOR);
 
-    this.camera = new THREE.PerspectiveCamera(50, 1, 0.001, 100000);
+    this.perspectiveCamera = new THREE.PerspectiveCamera(PERSPECTIVE_FOV_DEG, 1, 0.001, 100000);
+    // A negative near plane so the frustum reaches behind the camera too. An orthographic view has
+    // no perspective divide keeping the cloud in front of it, and zooming in past the near face
+    // would otherwise start slicing the map away rather than magnifying it.
+    this.orthographicCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, -100000, 100000);
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -605,16 +625,45 @@ export class PointCloudScene {
 
   setPointSize(size: PointSize): void {
     this.pointSize = size;
+    this.applyPointSize();
+  }
+
+  /** Sets the material size for the current projection, from the level setPointSize was given. */
+  private applyPointSize(): void {
     if (!this.pointsObject) return;
-    if (size === "off") {
+    if (this.pointSize === "off") {
       this.pointsObject.visible = false;
       return;
     }
     this.pointsObject.visible = true;
-    (this.pointsObject.material as THREE.PointsMaterial).size = Math.max(
-      this.cloudRadius * POINT_SIZE_UNIT * size,
-      0.0005,
-    );
+    const material = this.pointsObject.material as THREE.PointsMaterial;
+    const world = Math.max(this.cloudRadius * POINT_SIZE_UNIT * this.pointSize, 0.0005);
+    if (this.projection === "perspective") {
+      material.size = world;
+      return;
+    }
+    // sizeAttenuation is a perspective divide, so it is off under orthographic -- which makes
+    // `size` a pixel count rather than a world length. Converting by hand keeps a point the size
+    // it would have been, and keeps it growing as you zoom in, which a fixed pixel size would not.
+    const height = this.container.clientHeight || 1;
+    const frustumHeight = this.orthographicCamera.top - this.orthographicCamera.bottom || 1;
+    material.size = Math.max((world / frustumHeight) * height, 1);
+  }
+
+  setProjection(projection: Projection): void {
+    if (projection === this.projection) return;
+    this.projection = projection;
+    if (this.pointsObject) {
+      const material = this.pointsObject.material as THREE.PointsMaterial;
+      material.sizeAttenuation = projection === "perspective";
+      material.needsUpdate = true;
+    }
+    this.updateCamera();
+    this.applyPointSize();
+  }
+
+  getProjection(): Projection {
+    return this.projection;
   }
 
   // Overlays localized query poses (from the Localize tab's "Visualize poses" button, or the
@@ -685,16 +734,37 @@ export class PointCloudScene {
   // means there is no internal Euler/az-el conversion anywhere, so no gimbal lock is possible.
   private updateCamera(): void {
     const back = new THREE.Vector3(0, 0, 1).applyQuaternion(this.cameraOrientation);
-    this.camera.position.copy(this.target).addScaledVector(back, this.distance);
-    this.camera.quaternion.copy(this.cameraOrientation);
+    const position = this.target.clone().addScaledVector(back, this.distance);
+    for (const camera of [this.perspectiveCamera, this.orthographicCamera]) {
+      camera.position.copy(position);
+      camera.quaternion.copy(this.cameraOrientation);
+    }
+    this.updateOrthographicFrustum();
+  }
+
+  // The orthographic frustum is sized to frame exactly what the perspective camera frames from the
+  // same distance -- half-height d * tan(fov/2) -- so toggling projection changes how the cloud is
+  // projected without changing how much of it is on screen.
+  private updateOrthographicFrustum(): void {
+    const halfHeight = this.distance * Math.tan(THREE.MathUtils.degToRad(PERSPECTIVE_FOV_DEG) / 2);
+    const halfWidth = halfHeight * this.perspectiveCamera.aspect;
+    const camera = this.orthographicCamera;
+    camera.left = -halfWidth;
+    camera.right = halfWidth;
+    camera.top = halfHeight;
+    camera.bottom = -halfHeight;
+    camera.updateProjectionMatrix();
+    // Point size is in pixels under orthographic, and the pixels-per-metre just changed.
+    if (this.projection === "orthographic") this.applyPointSize();
   }
 
   private resize(): void {
     const width = this.container.clientWidth || 1;
     const height = this.container.clientHeight || 1;
     this.renderer.setSize(width, height);
-    this.camera.aspect = width / height;
-    this.camera.updateProjectionMatrix();
+    this.perspectiveCamera.aspect = width / height;
+    this.perspectiveCamera.updateProjectionMatrix();
+    this.updateOrthographicFrustum();
   }
 
   private animate = (): void => {

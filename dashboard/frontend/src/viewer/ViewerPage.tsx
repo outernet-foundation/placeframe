@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { fetchPoints, getLocalization, saveScreenshot } from "../api";
-import { DEFAULT_POINT_SIZE, PointCloudScene, type CameraMode, type LocCameraMode, type PointSize } from "./PointCloudScene";
+import {
+  DEFAULT_POINT_SIZE,
+  PointCloudScene,
+  type CameraMode,
+  type LocCameraMode,
+  type PointSize,
+  type Projection,
+} from "./PointCloudScene";
 import "./viewer.css";
 
 const POINT_SIZE_LEVELS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
@@ -27,6 +34,7 @@ export function ViewerPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [hasCameraPoses, setHasCameraPoses] = useState(false);
   const [cameraMode, setCameraModeState] = useState<CameraMode>("frustum");
+  const [projection, setProjectionState] = useState<Projection>("perspective");
   const [pointSize, setPointSizeState] = useState<PointSize>(DEFAULT_POINT_SIZE);
   const [hasLocalizedPoses, setHasLocalizedPoses] = useState(false);
   const [locCameraMode, setLocCameraModeState] = useState<LocCameraMode>("frustum");
@@ -152,6 +160,22 @@ export function ViewerPage() {
           <button onClick={() => sceneRef.current?.setPlaneView("x", "y")}>XY</button>
           <button onClick={() => sceneRef.current?.setPlaneView("x", "z")}>XZ</button>
           <button onClick={() => sceneRef.current?.setPlaneView("y", "z")}>YZ</button>
+          {/* Orthographic is what an axis-on view is usually for: with no perspective divide a
+              plane parallel to the view direction projects to a line, so a wall reads as an edge
+              you can judge. Left as a toggle rather than tied to the XY/XZ/YZ buttons, so the two
+              projections can be compared on the same viewpoint. */}
+          <select
+            value={projection}
+            onChange={(e) => {
+              const next = e.target.value as Projection;
+              setProjectionState(next);
+              sceneRef.current?.setProjection(next);
+            }}
+            title="Orthographic squashes planes parallel to the view direction into lines"
+          >
+            <option value="perspective">Perspective</option>
+            <option value="orthographic">Orthographic</option>
+          </select>
           <button onClick={handleCapture} disabled={status !== "ready"}>
             Capture
           </button>
