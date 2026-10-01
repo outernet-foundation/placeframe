@@ -285,6 +285,16 @@ export function AlignPage() {
         return;
       }
       if (job.reconstruction_id) {
+        // A merge too big to upload in one body is thinned rather than refused, which is not what
+        // was asked for, so say it happened rather than let the frame count quietly differ.
+        const result = job.result as { stride?: number; stride_raised_from?: number | null } | undefined;
+        if (result?.stride_raised_from != null && result.stride) {
+          setStatus(
+            `These captures were too large to upload whole, so every ${result.stride}th frame was kept. ` +
+              `The reconstructor drops frames closer together than keyframe_min_distance_m anyway, so the ` +
+              `frames lost first are ones it would not have used.`,
+          );
+        }
         setSaved(`Merged and reconstructing as ${job.reconstruction_id.slice(0, 8)} — follow it in the captures tree.`);
         return;
       }

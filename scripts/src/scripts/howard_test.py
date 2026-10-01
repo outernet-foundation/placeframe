@@ -3,7 +3,7 @@ from __future__ import annotations
 import base64
 import csv
 import re
-from math import radians, tan
+from math import ceil, radians, tan
 import sys
 import tarfile
 import zipfile
@@ -1126,6 +1126,22 @@ def merge_aligned(
         typer.echo(f"Reconstruction {result['reconstruction_id']} queued")
 
 
+# How much of the body limit a merge aims to fill. The slack covers what thinning does not shrink
+# -- manifests, frames.csv, tar padding -- and frames heavier than their capture's average.
+MERGE_SIZE_MARGIN = 0.9
+
+
+def _stride_to_fit(total_bytes: int, stride: int) -> int:
+    """Smallest stride at or above `stride` whose share of `total_bytes` fits in one request body.
+
+    Frame images are nearly all of a capture's bytes and are what thinning drops, so the merged
+    size falls about linearly with the stride. Never below the stride asked for: this only ever
+    thins further than requested.
+    """
+    budget = REQUEST_MAX_BODY_SIZE * MERGE_SIZE_MARGIN
+    return max(stride, 1, ceil(total_bytes / budget))
+
+
 def _kept_frames(frames_csv: str, stride: int) -> set[str]:
     """Timestamps surviving `stride`, read from a rig's frames.csv (first column, after the header)."""
     rows = frames_csv.splitlines()
@@ -1144,16 +1160,38 @@ async def _merge_aligned(
 ) -> dict[str, Any]:
     async with authenticated_api_client() as api:
         try:
-            merged_manifest: dict[str, Any] | None = None
-            members: list[tuple[str, bytes]] = []
-            # Rigs are numbered across the whole merge, not per capture: a capture that is itself a
-            # merge brings several, and they all have to end up with ids of their own.
-            next_rig = 0
+            # Price the merge before downloading any of it. The sizes the API already knows settle
+            # the stride, so an oversized merge is thinned up front rather than built over minutes
+            # and then refused -- and the thinning is announced, because it is not what was asked for.
+            captures: list[tuple[dict[str, Any], UUID]] = []
+            total_bytes = 0
             for entry in alignment["maps"]:
                 reconstruction = await api.get_reconstruction(id=UUID(entry["reconstruction_id"]))
                 capture_id = reconstruction.capture_session_id
                 if capture_id is None:
                     raise RuntimeError(f"Reconstruction {entry['reconstruction_id']} has no capture to merge")
+                session = await api.get_capture_session(id=capture_id)
+                total_bytes += session.size_bytes or 0
+                captures.append((entry, capture_id))
+
+            requested_stride = stride
+            stride = _stride_to_fit(total_bytes, stride)
+            if stride > requested_stride:
+                typer.echo(
+                    f"Warning: these captures total {_format_size(total_bytes)}, over the "
+                    f"{_format_size(REQUEST_MAX_BODY_SIZE)} the API accepts in one body. Keeping every "
+                    f"{stride} frames instead of every {requested_stride} so the merge fits. The "
+                    f"reconstructor drops frames closer together than keyframe_min_distance_m anyway, "
+                    f"so the frames lost first are ones it would not have used.",
+                    err=True,
+                )
+
+            merged_manifest: dict[str, Any] | None = None
+            members: list[tuple[str, bytes]] = []
+            # Rigs are numbered across the whole merge, not per capture: a capture that is itself a
+            # merge brings several, and they all have to end up with ids of their own.
+            next_rig = 0
+            for entry, capture_id in captures:
                 tar_bytes = await api.download_capture_session_tar(id=capture_id, _request_timeout=REQUEST_TIMEOUT)
                 with tarfile.open(fileobj=BytesIO(tar_bytes)) as tar:
                     manifest = loads(tar.extractfile("manifest.json").read())  # pyright: ignore[reportOptionalMemberAccess]
@@ -1222,14 +1260,21 @@ async def _merge_aligned(
             # closing the connection, which reaches the caller as a read error with nothing in it to
             # say what was wrong -- after the minutes the merge just spent.
             if len(tar_bytes) > REQUEST_MAX_BODY_SIZE:
+                # The stride was chosen from the captures' own sizes, so reaching here means those
+                # sizes understated what the merge weighs -- raising it by hand is the way out.
                 _fail_message(
-                    f"The merged capture is {_format_size(len(tar_bytes))}, over the "
-                    f"{_format_size(REQUEST_MAX_BODY_SIZE)} the API accepts in one body. Raise --stride to keep "
-                    f"fewer frames of each capture (--stride 2 keeps every second), or merge fewer captures."
+                    f"The merged capture is {_format_size(len(tar_bytes))} even at --stride {stride}, over the "
+                    f"{_format_size(REQUEST_MAX_BODY_SIZE)} the API accepts in one body. Raise --stride further, "
+                    f"or merge fewer captures."
                 )
 
             capture = await upload_capture_session(api, f"{name}.tar", tar_bytes, DeviceType.ZED, name)
-            out: dict[str, Any] = {"capture_session_id": str(capture.id), "size_bytes": capture.size_bytes}
+            out: dict[str, Any] = {
+                "capture_session_id": str(capture.id),
+                "size_bytes": capture.size_bytes,
+                "stride": stride,
+                "stride_raised_from": requested_stride if stride > requested_stride else None,
+            }
             if reconstruct:
                 options = ReconstructionOptions(cross_rig_pair_distance_m=pair_distance_m)
                 reconstruction = await create_reconstruction(api, capture.id, options, False, RECONSTRUCTION_TIMEOUT_S)
