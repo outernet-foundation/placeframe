@@ -843,7 +843,11 @@ async def _poll_reconstruction_until_terminal(job: Job, created: dict[str, Any])
 
     deadline = time.monotonic() + RECONSTRUCT_POLL_TIMEOUT_S
     status = created
-    while status["status"] not in ("succeeded", "failed", "cancelled"):
+    # .get, not ["status"]: a caller that only learned the reconstruction's id -- the merge job,
+    # whose CLI reports an id and nothing else -- has no status to offer, and reading one straight
+    # off raised a KeyError that reached the operator as "Merge failed: 'status'" on a merge that
+    # had in fact worked. Absent means "not terminal yet", which the first poll then settles.
+    while status.get("status") not in ("succeeded", "failed", "cancelled"):
         if time.monotonic() > deadline:
             _raise_poll_timeout(job.reconstruction_id)
         await asyncio.sleep(RECONSTRUCT_POLL_INTERVAL_S)
@@ -852,11 +856,11 @@ async def _poll_reconstruction_until_terminal(job: Job, created: dict[str, Any])
         status = await _run_howard_test_json_async("show", job.reconstruction_id, "--cache")
         job.result = status
 
-    if status["status"] == "succeeded":
+    if status.get("status") == "succeeded":
         job.status = "succeeded"
     else:
         job.status = "failed"
-        job.error = status.get("error") or f"Reconstruction ended as {status['status']}"
+        job.error = status.get("error") or f"Reconstruction ended as {status.get('status')}"
 
 
 async def _run_reconstruct_job(job: Job, capture_id: str, options_json: str | None) -> None:
