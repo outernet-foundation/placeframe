@@ -643,11 +643,16 @@ export class PointCloudScene {
       return;
     }
     // sizeAttenuation is a perspective divide, so it is off under orthographic -- which makes
-    // `size` a pixel count rather than a world length. Converting by hand keeps a point the size
-    // it would have been, and keeps it growing as you zoom in, which a fixed pixel size would not.
+    // `size` a pixel count rather than a world length, and leaves the conversion to us.
+    //
+    // The conversion reproduces three's own attenuation rather than the geometrically true size:
+    // its shader is gl_PointSize = size * (scale / -mvPosition.z) with scale = viewportHeight / 2,
+    // which carries no field-of-view term, so a point three draws is tan(fov/2) of the size the
+    // projection says it should be. Converting honestly instead made orthographic points 1/tan(25
+    // degrees) = 2.1x fatter than the same setting drew in perspective. The depth is the orbit
+    // distance, so a point at the centre of interest is the size it was before the toggle.
     const height = this.container.clientHeight || 1;
-    const frustumHeight = this.orthographicCamera.top - this.orthographicCamera.bottom || 1;
-    material.size = Math.max((world / frustumHeight) * height, 1);
+    material.size = Math.max((world * height) / (2 * this.distance), 1);
   }
 
   setProjection(projection: Projection): void {
