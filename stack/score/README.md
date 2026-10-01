@@ -88,8 +88,8 @@ kubectl create secret generic placeframe-secrets \
   --from-literal=DATABASE_API_USER_PASSWORD=$(openssl rand -hex 16) \
   --from-literal=DATABASE_AUTH_USER_PASSWORD=$(openssl rand -hex 16) \
   --from-literal=DATABASE_ORCHESTRATION_USER_PASSWORD=$(openssl rand -hex 16) \
-  --from-literal=MINIO_ACCESS_KEY=$(openssl rand -hex 8) \
-  --from-literal=MINIO_SECRET_KEY=$(openssl rand -hex 16) \
+  --from-literal=S3_ACCESS_KEY=$(openssl rand -hex 8) \
+  --from-literal=S3_SECRET_KEY=$(openssl rand -hex 16) \
   --from-literal=KEYCLOAK_ADMIN_PASSWORD=$(openssl rand -hex 16) \
   --from-literal=PUBLIC_URL=http://localhost:8443 \
   --from-literal=AUTH_MODE=disabled \
@@ -174,7 +174,7 @@ Image tags come from `compute_service_shas` at generation time — the same func
   not just `/health`.
 - **`bucket` (type `s3`)** — a **custom** provisioner overriding the built-in, which mints
   random credentials at generation time and uses a random service and bucket name that loki
-  (its config hardcodes `minio:9000` and bucket `loki`) cannot reach.
+  (its config hardcodes `seaweedfs:8333` and bucket `loki`) cannot reach.
 
 ## Postgres backends: StatefulSet or CloudNativePG
 
@@ -208,8 +208,9 @@ for a throwaway PoC, a blocker for real adoption:
   namespace).
 
 MinIO is no longer on this list: the built-in `s3` provisioner's untagged
-`quay.io/minio/minio` was replaced by `placeframe-s3.provisioners.yaml`, which is
-digest-pinned.
+`quay.io/minio/minio` was replaced by `placeframe-s3.provisioners.yaml`, which stands up
+SeaweedFS from a first-party image. MinIO revoked anonymous pulls on both Docker Hub and
+quay.io in September 2026, so the upstream images are unreachable regardless of pinning.
 
 ## See also
 

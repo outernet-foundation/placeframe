@@ -24,7 +24,7 @@ generate-score:
     - restart-policy.tpl
   k8s_provisioners:
     - placeframe-postgres.k8s.provisioners.yaml
-    - placeframe-minio.k8s.provisioners.yaml
+    - placeframe-seaweedfs.k8s.provisioners.yaml
     - placeframe-config.k8s.provisioners.yaml
     - placeframe-keycloak.k8s.provisioners.yaml
   publishes:

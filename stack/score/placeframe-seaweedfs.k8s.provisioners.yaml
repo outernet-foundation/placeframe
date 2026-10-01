@@ -1,0 +1,125 @@
+# Custom Kubernetes provisioner for the `s3` resource: stands up SeaweedFS + the real
+# buckets, but references the externally managed `placeframe-secrets` Secret (created by
+# the Pulumi infra program) for credentials instead of generating its own — so the output
+# contains no secret values. Overrides the built-in s3 provisioner for the k8s target.
+# Register via: score-k8s init --provisioners <this file>.
+- uri: template://placeframe/seaweedfs-k8s
+  type: s3
+  description: SeaweedFS object storage using externally managed placeframe-secrets credentials.
+  state: |
+    service: seaweedfs
+    bucket: dev-reconstructions
+    capturesBucket: dev-captures
+  outputs: |
+    endpoint: http://{{ .State.service }}:8333
+    bucket: {{ .State.bucket }}
+    access_key_id: {{ encodeSecretRef "placeframe-secrets" "S3_ACCESS_KEY" }}
+    secret_key: {{ encodeSecretRef "placeframe-secrets" "S3_SECRET_KEY" }}
+  manifests: |
+    - apiVersion: v1
+      kind: Service
+      metadata:
+        name: {{ .State.service }}
+      spec:
+        selector:
+          app.kubernetes.io/instance: {{ .State.service }}
+        ports:
+        - port: 8333
+          targetPort: 8333
+    - apiVersion: apps/v1
+      kind: StatefulSet
+      metadata:
+        name: {{ .State.service }}
+        annotations:
+          argocd.argoproj.io/sync-options: Prune=false
+      spec:
+        replicas: 1
+        serviceName: {{ .State.service }}
+        selector:
+          matchLabels:
+            app.kubernetes.io/instance: {{ .State.service }}
+        template:
+          metadata:
+            labels:
+              app.kubernetes.io/instance: {{ .State.service }}
+          spec:
+            containers:
+            - name: seaweedfs
+              image: ghcr.io/outernet-foundation/placeframe/seaweedfs:{{ env "SEAWEEDFS_SHA" }}
+              # The wrapper renders /etc/seaweedfs/s3.json from S3_ACCESS_KEY / S3_SECRET_KEY
+              # before handing off to the upstream entrypoint. -s3.auditLogConfig is omitted:
+              # it points the fluent sink at a seaweedfs-audit relay that only compose runs.
+              command: ["/usr/local/bin/entrypoint-wrapper.sh"]
+              args: ["server", "-filer", "-s3", "-s3.port=8333", "-s3.config=/etc/seaweedfs/s3.json"]
+              ports:
+              - containerPort: 8333
+              env:
+              - name: S3_ACCESS_KEY
+                valueFrom:
+                  secretKeyRef:
+                    name: placeframe-secrets
+                    key: S3_ACCESS_KEY
+              - name: S3_SECRET_KEY
+                valueFrom:
+                  secretKeyRef:
+                    name: placeframe-secrets
+                    key: S3_SECRET_KEY
+              # weed binds its listeners staggered, so a single-port probe passes before S3 is
+              # reachable. Gate on master status AND the S3 listener, as compose.yml does.
+              readinessProbe:
+                exec:
+                  command:
+                  - /bin/sh
+                  - -c
+                  - curl -fsS http://127.0.0.1:9333/cluster/status && curl -s -o /dev/null http://127.0.0.1:8333/
+                initialDelaySeconds: 10
+                periodSeconds: 5
+                failureThreshold: 60
+              volumeMounts:
+              - name: data
+                mountPath: /data
+        volumeClaimTemplates:
+        - metadata:
+            name: data
+          spec:
+            accessModes: [ReadWriteOnce]
+            storageClassName: {{ env "SCORE_STORAGE_CLASS" | default "hcloud-volumes" }}
+            resources:
+              requests:
+                storage: 50Gi
+    - apiVersion: batch/v1
+      kind: Job
+      metadata:
+        name: {{ .State.service }}-buckets
+        # A Job's spec.template is immutable, so Argo CD cannot patch this in place when the
+        # image sha moves. As a Sync hook the previous Job is deleted first. Re-running is
+        # safe: the initializer verifies a present bucket and creates only a missing one.
+        annotations:
+          argocd.argoproj.io/hook: Sync
+          argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+      spec:
+        backoffLimit: 30
+        template:
+          spec:
+            restartPolicy: OnFailure
+            containers:
+            - name: buckets
+              image: ghcr.io/outernet-foundation/placeframe/s3-initializer:{{ env "S3_INITIALIZER_SHA" }}
+              # Both buckets, not just the resource's own. capturesBucket is the name the api
+              # hardcodes (workloads/api/src/routers/capture_sessions.py) and the reconstructor
+              # reads from, so without it a capture upload fails against a missing bucket.
+              env:
+              - name: S3_ENDPOINT_URL
+                value: http://{{ .State.service }}:8333
+              - name: S3_BUCKETS
+                value: {{ .State.capturesBucket }} {{ .State.bucket }}
+              - name: S3_ACCESS_KEY
+                valueFrom:
+                  secretKeyRef:
+                    name: placeframe-secrets
+                    key: S3_ACCESS_KEY
+              - name: S3_SECRET_KEY
+                valueFrom:
+                  secretKeyRef:
+                    name: placeframe-secrets
+                    key: S3_SECRET_KEY

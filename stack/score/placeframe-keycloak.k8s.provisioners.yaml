@@ -3,7 +3,7 @@
 # reads on --import-realm). Hostname, public URL, and admin password come from the externally
 # managed placeframe-secrets Secret; no values are emitted here. Keycloak can't be a normal
 # Score workload (initContainer + StatefulSet + PVC), so it is provisioned as raw manifests
-# like postgres/minio. Register via: score-k8s init --provisioners <this file>.
+# like postgres/seaweedfs. Register via: score-k8s init --provisioners <this file>.
 - uri: template://placeframe/keycloak-k8s
   type: placeframe-keycloak
   description: Keycloak with realm imported by auth-initializer; hostname/credentials from placeframe-secrets.

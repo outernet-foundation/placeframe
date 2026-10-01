@@ -23,9 +23,9 @@ containers:
       DATABASE_ORCHESTRATION_USER_PASSWORD: ${resources.db.orchestration_password}
       LOCALIZER_CONTAINER_URL: http://localhost:8000
       LOKI_URL: http://localhost:3100
-      MINIO_ENDPOINT_URL: ${resources.bucket.endpoint}
-      MINIO_ACCESS_KEY: ${resources.bucket.access_key_id}
-      MINIO_SECRET_KEY: ${resources.bucket.secret_key}
+      S3_ENDPOINT_URL: ${resources.bucket.endpoint}
+      S3_ACCESS_KEY: ${resources.bucket.access_key_id}
+      S3_SECRET_KEY: ${resources.bucket.secret_key}
       RECONSTRUCTIONS_BUCKET: ${resources.bucket.bucket}
     livenessProbe:
       httpGet:
