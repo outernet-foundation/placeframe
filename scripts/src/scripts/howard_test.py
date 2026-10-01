@@ -1093,6 +1093,15 @@ def merge_aligned(
         float, typer.Option(help="Pair frames of different captures within this many metres of each other")
     ] = ALIGNED_MERGE_PAIR_DISTANCE_M,
     reconstruct: Annotated[bool, typer.Option(help="Create a reconstruction from the merged capture")] = True,
+    stride: Annotated[
+        int,
+        typer.Option(
+            "--stride",
+            help="Keep every Nth frame of each capture. The merge is uploaded as one body, so a "
+            "large merge has to be thinned to fit; the reconstructor drops close-together frames "
+            "anyway (keyframe_min_distance_m), so the first frames lost are ones it would not use.",
+        ),
+    ] = 1,
     json_output: Annotated[bool, typer.Option("--json", help="Emit JSON instead of text")] = False,
 ) -> None:
     """Merge the captures behind an alignment into one, with their priors in a common frame.
@@ -1105,7 +1114,9 @@ def merge_aligned(
     """
     alignment = loads(alignment_path.read_text())
     result = run(
-        _merge_aligned(alignment, name or alignment.get("name") or "aligned merge", pair_distance_m, reconstruct)
+        _merge_aligned(
+            alignment, name or alignment.get("name") or "aligned merge", pair_distance_m, reconstruct, stride
+        )
     )
     if json_output:
         typer.echo(dumps(result))
@@ -1115,20 +1126,35 @@ def merge_aligned(
         typer.echo(f"Reconstruction {result['reconstruction_id']} queued")
 
 
+def _kept_frames(frames_csv: str, stride: int) -> set[str]:
+    """Timestamps surviving `stride`, read from a rig's frames.csv (first column, after the header)."""
+    rows = frames_csv.splitlines()
+    stamps = [row.split(",")[0] for row in rows[1:] if row.strip()]
+    return set(stamps[::stride])
+
+
+def _thin_frames_csv(frames_csv: str, kept: set[str]) -> str:
+    rows = frames_csv.splitlines()
+    body = [row for row in rows[1:] if row.strip() and row.split(",")[0] in kept]
+    return "\n".join([rows[0], *body]) + "\n"
+
+
 async def _merge_aligned(
-    alignment: dict[str, Any], name: str, pair_distance_m: float, reconstruct: bool
+    alignment: dict[str, Any], name: str, pair_distance_m: float, reconstruct: bool, stride: int
 ) -> dict[str, Any]:
     async with authenticated_api_client() as api:
         try:
             merged_manifest: dict[str, Any] | None = None
             members: list[tuple[str, bytes]] = []
-            for index, entry in enumerate(alignment["maps"]):
+            # Rigs are numbered across the whole merge, not per capture: a capture that is itself a
+            # merge brings several, and they all have to end up with ids of their own.
+            next_rig = 0
+            for entry in alignment["maps"]:
                 reconstruction = await api.get_reconstruction(id=UUID(entry["reconstruction_id"]))
                 capture_id = reconstruction.capture_session_id
                 if capture_id is None:
                     raise RuntimeError(f"Reconstruction {entry['reconstruction_id']} has no capture to merge")
                 tar_bytes = await api.download_capture_session_tar(id=capture_id, _request_timeout=REQUEST_TIMEOUT)
-                rig = f"rig{index}"
                 with tarfile.open(fileobj=BytesIO(tar_bytes)) as tar:
                     manifest = loads(tar.extractfile("manifest.json").read())  # pyright: ignore[reportOptionalMemberAccess]
                     if merged_manifest is None:
@@ -1139,23 +1165,49 @@ async def _merge_aligned(
                         }
                     elif manifest["axis_convention"] != merged_manifest["axis_convention"]:
                         raise RuntimeError("Captures disagree about their axis convention; they cannot be merged")
-                    source_rig = manifest["rigs"][0]
-                    source_id = source_rig["id"]
-                    source_rig["id"] = rig
-                    merged_manifest["rigs"].append(source_rig)
+                    # Every rig this capture carries, not just the first: a capture that is itself a
+                    # merge has one per capture that went into it, and renaming only the first left
+                    # the rest out of the manifest with their members colliding with the renamed ones.
+                    rig_ids: dict[str, str] = {}
+                    for source_rig in manifest["rigs"]:
+                        rig_ids[source_rig["id"]] = f"rig{next_rig}"
+                        source_rig["id"] = f"rig{next_rig}"
+                        merged_manifest["rigs"].append(source_rig)
+                        next_rig += 1
+
+                    # Which frames survive the stride, decided per rig from its own frames.csv so a
+                    # kept image always has the row that says where it was taken.
+                    kept: dict[str, set[str]] = {}
+                    if stride > 1:
+                        for member in tar.getmembers():
+                            if member.isfile() and member.name.endswith("frames.csv"):
+                                csv_text = tar.extractfile(member).read().decode()  # pyright: ignore[reportOptionalMemberAccess]
+                                kept[member.name.partition("/")[0]] = _kept_frames(csv_text, stride)
+
                     for member in tar.getmembers():
                         if member.name == "manifest.json" or not member.isfile():
                             continue
+                        source_id, _, rest = member.name.partition("/")
+                        if source_id not in rig_ids:
+                            raise RuntimeError(f"Capture {capture_id} has {member.name}, which belongs to no rig")
                         data = tar.extractfile(member).read()  # pyright: ignore[reportOptionalMemberAccess]
                         if member.name.endswith("frames.csv"):
+                            if source_id in kept:
+                                data = _thin_frames_csv(data.decode(), kept[source_id]).encode()
                             data = _apply_yaw(
                                 float(entry["yaw_deg"]),
                                 float(entry.get("scale", 1.0)),
                                 tuple(float(v) for v in entry["translation"]),  # pyright: ignore[reportArgumentType]
                                 data.decode(),
                             ).encode()
-                        members.append((member.name.replace(f"{source_id}/", f"{rig}/", 1), data))
-                typer.echo(f"  {capture_id} -> {rig} ({len(members)} members so far)", err=True)
+                        elif source_id in kept:
+                            # Frame images are named for their timestamp; anything else a capture
+                            # carries (a recording, a calibration blob) is not a frame and is kept.
+                            stem = Path(rest).stem
+                            if stem.isdigit() and stem not in kept[source_id]:
+                                continue
+                        members.append((f"{rig_ids[source_id]}/{rest}", data))
+                typer.echo(f"  {capture_id} -> {', '.join(rig_ids.values())} ({len(members)} members so far)", err=True)
 
             assert merged_manifest is not None
             buffer = BytesIO()
@@ -1166,6 +1218,15 @@ async def _merge_aligned(
                     tar.addfile(info, BytesIO(data))
             tar_bytes = buffer.getvalue()
             typer.echo(f"Merged capture is {_format_size(len(tar_bytes))}", err=True)
+            # Checked here rather than met as a failed upload: the API rejects an oversized body by
+            # closing the connection, which reaches the caller as a read error with nothing in it to
+            # say what was wrong -- after the minutes the merge just spent.
+            if len(tar_bytes) > REQUEST_MAX_BODY_SIZE:
+                _fail_message(
+                    f"The merged capture is {_format_size(len(tar_bytes))}, over the "
+                    f"{_format_size(REQUEST_MAX_BODY_SIZE)} the API accepts in one body. Raise --stride to keep "
+                    f"fewer frames of each capture (--stride 2 keeps every second), or merge fewer captures."
+                )
 
             capture = await upload_capture_session(api, f"{name}.tar", tar_bytes, DeviceType.ZED, name)
             out: dict[str, Any] = {"capture_session_id": str(capture.id), "size_bytes": capture.size_bytes}
