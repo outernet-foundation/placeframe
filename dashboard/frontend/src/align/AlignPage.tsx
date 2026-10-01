@@ -69,6 +69,9 @@ export function AlignPage() {
   // One merge at a time: pressing again uploads another copy of the same merged capture and
   // queues a second reconstruction behind the first, with nothing to say it happened.
   const [busy, setBusy] = useState(false);
+  // The merged capture is named before it is built, not after: it is a capture the operator will
+  // go looking for later, and nothing downstream offers a chance to rename it.
+  const [mergeName, setMergeName] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const thinned = useRef<Map<string, Float32Array>>(new Map());
   const view = useRef({ scale: 4, ox: 0, oz: 0 });
@@ -302,7 +305,7 @@ export function AlignPage() {
     }
   }, []);
 
-  const submit = (reconstruct: boolean) => {
+  const submit = (reconstruct: boolean, mergeName: string | null = null) => {
     const payload: AlignedMap[] = maps.map((m) => ({
       reconstruction_id: m.id,
       yaw_deg: m.yawDeg,
@@ -311,7 +314,7 @@ export function AlignPage() {
     }));
     setStatus(null);
     setBusy(true);
-    saveAlignment(payload, referenceId, null, reconstruct)
+    saveAlignment(payload, referenceId, mergeName, reconstruct)
       .then(async (r) => {
         if (!reconstruct || !r.job_id) {
           setSaved(`Placement saved as ${r.id}.`);
@@ -392,7 +395,11 @@ export function AlignPage() {
           <button disabled={busy || maps.length < 2 || !referenceId} onClick={() => submit(false)}>
             Save placement
           </button>
-          <button className="primary" disabled={busy || maps.length < 2 || !referenceId} onClick={() => submit(true)}>
+          <button
+            className="primary"
+            disabled={busy || maps.length < 2 || !referenceId}
+            onClick={() => setMergeName(maps.map((m) => m.label).join(" + "))}
+          >
             {busy ? "Merging…" : "Merge and reconstruct"}
           </button>
         </div>
@@ -403,6 +410,49 @@ export function AlignPage() {
           without it two walks through the same corner can share almost nothing.
         </div>
       </div>
+      {mergeName !== null && (
+        <div className="dialog-overlay" onClick={() => setMergeName(null)}>
+          <div className="dialog" onClick={(e) => e.stopPropagation()}>
+            <h3>Name the merged capture</h3>
+            <div className="align-hint">
+              The merge becomes a capture of its own, holding every placed capture as a rig, and the
+              reconstruction built from it takes the same name. Naming it for the walks that went in is
+              what makes it findable later.
+            </div>
+            <label>
+              Name
+              <input
+                autoFocus
+                type="text"
+                value={mergeName}
+                onChange={(e) => setMergeName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && mergeName.trim()) {
+                    const chosen = mergeName.trim();
+                    setMergeName(null);
+                    submit(true, chosen);
+                  }
+                  if (e.key === "Escape") setMergeName(null);
+                }}
+              />
+            </label>
+            <div className="dialog-actions">
+              <button onClick={() => setMergeName(null)}>Cancel</button>
+              <button
+                className="primary"
+                disabled={!mergeName.trim()}
+                onClick={() => {
+                  const chosen = mergeName.trim();
+                  setMergeName(null);
+                  submit(true, chosen);
+                }}
+              >
+                Merge and reconstruct
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <canvas
         ref={canvasRef}
         className="align-canvas"

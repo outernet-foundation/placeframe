@@ -436,14 +436,19 @@ async def save_alignment(data: AlignmentRequest) -> dict[str, Any]:
         return payload
     job = Job(id=str(uuid.uuid4()), kind="reconstruct")
     JOBS[job.id] = job
-    _spawn(_run_aligned_merge_job(job, alignment_id))
+    _spawn(_run_aligned_merge_job(job, alignment_id, data.name))
     return {**payload, "job_id": job.id}
 
 
-async def _run_aligned_merge_job(job: Job, alignment_id: str) -> None:
+async def _run_aligned_merge_job(job: Job, alignment_id: str, name: str | None) -> None:
     try:
         created = await _run_howard_test_json_async(
-            "merge-aligned", str(ALIGNMENTS_DIR / f"{alignment_id}.json"), "--name", f"aligned {alignment_id[:8]}"
+            # The operator's name when they gave one: a merge is a capture they will go looking for
+            # later, and "aligned 3f7c1a02" says nothing about which walks went into it.
+            "merge-aligned",
+            str(ALIGNMENTS_DIR / f"{alignment_id}.json"),
+            "--name",
+            name or f"aligned {alignment_id[:8]}",
         )
         job.result = created
         if created.get("reconstruction_id"):
