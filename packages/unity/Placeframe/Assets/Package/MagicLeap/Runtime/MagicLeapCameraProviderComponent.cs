@@ -5,7 +5,7 @@ namespace Placeframe.Core.MagicLeap
 {
     public class MagicLeapCameraProviderComponent : CameraProviderComponent
     {
-#if MAGIC_LEAP
+#if OUTERNET_MAGIC_LEAP
         private MagicLeapCameraProvider _provider;
 
         private void Awake()

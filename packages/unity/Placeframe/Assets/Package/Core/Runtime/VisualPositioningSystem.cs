@@ -47,7 +47,6 @@ namespace Placeframe.Core
         private static IDisposable _localizationSubscription;
         private static IDisposable _slewSubscription;
         private static HashSet<Guid> _maps = new HashSet<Guid>();
-        private static bool _visualizationsVisible = true;
         private static ICameraProvider _cameraProvider;
 
         private static FilterState _state = RelocalizationFilter.InitialState();
