@@ -520,7 +520,7 @@
       "url": "https://package.openupm.com"
     },
     "org.outernet.placeframe.apiclient": {
-      "version": "0.1.8-dev.35547537192",
+      "version": "0.1.8-dev.35815669170",
       "depth": 0,
       "source": "registry",
       "dependencies": {
