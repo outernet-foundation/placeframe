@@ -1,6 +1,6 @@
 {
   "name": "org.outernet.placeframe.auth",
-  "version": "0.0.0-local",
+  "version": "0.0.1-preview",
   "displayName": "Placeframe - Auth",
   "description": "Backend authorization handlers for Placeframe clients",
   "unity": "6000.0",
