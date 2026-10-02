@@ -1,8 +1,11 @@
 {
-    "name": "Placeframe.Auth",
+    "name": "Placeframe.Core",
     "rootNamespace": "",
     "references": [
-        "UniTask"
+        "Unity.Mathematics",
+        "UniTask",
+        "R3.Unity",
+        "PlaceframeApiClient"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

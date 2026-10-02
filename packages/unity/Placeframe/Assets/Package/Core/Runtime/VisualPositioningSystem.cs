@@ -47,7 +47,6 @@ namespace Placeframe.Core
         private static IDisposable _localizationSubscription;
         private static IDisposable _slewSubscription;
         private static HashSet<Guid> _maps = new HashSet<Guid>();
-        private static bool _visualizationsVisible = true;
         private static ICameraProvider _cameraProvider;
 
         private static FilterState _state = RelocalizationFilter.InitialState();
@@ -64,6 +63,7 @@ namespace Placeframe.Core
         public static bool BypassInnovationGate;
         public static bool BypassKalman;
 
+        public static bool Initialized { get; private set; }
         public static LocalizationMetrics MostRecentMetrics => _state.MostRecentMetrics;
         public static LocalizationMetrics LastReceivedMetrics { get; private set; }
         public static DefaultApi Api => _api;
@@ -124,6 +124,8 @@ namespace Placeframe.Core
             _slewSubscription = Observable
                 .EveryUpdate(UnityFrameProvider.Update)
                 .Subscribe(_ => ApplyStepResult(RelocalizationFilter.TickSlew(_state, Time.deltaTime)));
+
+            Initialized = true;
         }
 
         public static async UniTask SetLocalizationMaps(double3 ecefPosition, double radius, CancellationToken cancellationToken = default)
