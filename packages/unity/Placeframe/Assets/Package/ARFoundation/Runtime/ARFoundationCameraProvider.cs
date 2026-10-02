@@ -177,7 +177,7 @@ namespace Placeframe.Core.ARFoundation
                     {
                         _cameraManager.currentConfiguration = bestConfig;
                     }
-                    catch (Exception exc)
+                    catch
                     {
                         // no-op, platform doesn't support setting config
                     }
