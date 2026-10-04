@@ -83,6 +83,18 @@ export interface PoselessImageSet {
   focal_length?: number;
 }
 
+export interface LocalizationMetrics {
+  num_inliers: number;
+  num_correspondences: number;
+  num_matches: number;
+  inlier_ratio: number;
+  inlier_coverage: number;
+  reprojection_error_median: number;
+  confidence_tight: number;
+  confidence_loose: number;
+  confidence_is_calibrated: boolean;
+}
+
 export interface LocalizationImage {
   index: number;
   filename: string;
@@ -92,7 +104,54 @@ export interface LocalizationImage {
   position: { x: number; y: number; z: number } | null;
   quaternion_xyzw: [number, number, number, number] | null;
   rpy_deg: { roll: number; pitch: number; yaw: number } | null;
+  // Absent on runs localized before these were recorded, so both are optional.
+  metrics?: LocalizationMetrics | null;
+  has_detail?: boolean;
   thumbnail_base64: string;
+}
+
+// `status` of one raw LightGlue match. NO_POINT3D is a match the matcher liked but PnP never
+// saw, because the database keypoint carried no triangulated point — distinct from an outlier.
+export const MATCH_NO_POINT3D = 0;
+export const MATCH_OUTLIER = 1;
+export const MATCH_INLIER = 2;
+
+export interface PairDetail {
+  rank: number;
+  image_id: number;
+  name: string;
+  width: number;
+  height: number;
+  retrieval_score: number;
+  num_keypoints: number;
+  num_matches: number;
+  num_correspondences: number;
+  num_inliers: number;
+  inlier_ratio: number;
+  reprojection_error_median: number | null;
+  distance_m: number | null;
+  view_angle_deg: number | null;
+  // Parallel arrays over this pair's raw matches. A negative reprojection error means
+  // undefined, either because PnP never saw the match or because it reprojected nowhere real.
+  query_xy: [number, number][];
+  database_xy: [number, number][];
+  status: number[];
+  reprojection_error_px: number[];
+}
+
+export interface LocalizationDetail {
+  reconstruction_id: string;
+  // The intrinsics the pipeline actually used, in the canonicalized frame every keypoint
+  // coordinate below lives in — NOT the displayed image's natural size.
+  camera: { width: number; height: number; fx: number; fy: number; cx: number; cy: number };
+  retrieval_top_k: number;
+  ransac_threshold: number;
+  num_query_keypoints: number;
+  timings_ms: Record<string, number>;
+  pairs: PairDetail[];
+  metrics: (LocalizationMetrics & { measurement_covariance: number[][]; pnp_covariance: number[][] }) | null;
+  gate: { loose_min: number; tight_min: number; passed: boolean } | null;
+  failure_reason: string | null;
 }
 
 export interface LocalizationResult {

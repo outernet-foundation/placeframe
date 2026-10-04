@@ -37,6 +37,12 @@ PLACEFRAME_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = PLACEFRAME_ROOT / "data"
 RECONSTRUCTIONS_DIR = DATA_DIR / "reconstructions"
 LOCALIZATIONS_DIR = DATA_DIR / "localizations"
+# Mirrors howard_test.LOCALIZATION_DETAILS_DIRNAME; this project is deliberately not a member of
+# the placeframe workspace, so the name is duplicated rather than imported.
+LOCALIZATION_DETAILS_DIRNAME = "details"
+# Database images resolved for the Details view, keyed by reconstruction. Shared across runs:
+# which pixels a COLMAP image name refers to depends on the reconstruction, not the query.
+MAP_IMAGES_DIR = DATA_DIR / "map_images"
 VISUALIZATIONS_DIR = DATA_DIR / "visualizations"
 POSELESS_SETS_DIR = DATA_DIR / "poseless_sets"
 ALIGNMENTS_DIR = DATA_DIR / "alignments"
@@ -746,6 +752,9 @@ class LocalizeRequest:
     # Horizontal field of view of the query images. Needed when they did not come from the map
     # capture's own camera, which a spherical map never has a pinhole one to offer.
     fov_deg: float | None = None
+    # Record per-query diagnostics so the Details view has something to show. Off by default:
+    # it adds roughly 50-200 KB per image on disk.
+    detail: bool = False
 
 
 @dataclass
@@ -964,6 +973,8 @@ async def _run_localize_job(job: Job, data: LocalizeRequest, run_id: str) -> Non
         if data.fov_deg is not None:
             args += ["--fov-deg", str(data.fov_deg)]
         args.append("--use-chunking" if data.use_chunking else "--no-chunking")
+        if data.detail:
+            args.append("--detail")
         job.result = await _run_howard_test_json_async(*args)
         job.status = "succeeded"
     except Exception as exc:
@@ -1024,6 +1035,99 @@ async def get_localization_progress(run_id: str) -> dict[str, Any]:
     if not path.exists():
         return {"completed": 0, "total": 0}
     return json.loads(path.read_text())
+
+
+def _map_image_cache_name(image_name: str) -> str:
+    # Must match howard_test.map_image_cache_name: that command writes the files this serves.
+    return image_name.replace("/", "__")
+
+
+def _localization_image_entry(run_id: str, index: int) -> dict[str, Any]:
+    path = LOCALIZATIONS_DIR / run_id / "results.json"
+    if not path.exists():
+        raise NotFoundException(f"No localization run {run_id}")
+    result = json.loads(path.read_text())
+    for entry in result.get("images", []):
+        if entry.get("index") == index:
+            return {"entry": entry, "reconstruction_id": result.get("reconstruction_id")}
+    raise NotFoundException(f"Run {run_id} has no image {index}")
+
+
+@get("/api/localizations/{run_id:str}/images/{index:int}/detail")
+async def get_localization_detail(run_id: str, index: int) -> dict[str, Any]:
+    # Out of line from results.json on purpose: one query's correspondence arrays outweigh every
+    # pose in the run, so the run table stays small and this is fetched only when someone opens
+    # a single image. Written only for runs localized with `--detail`.
+    path = LOCALIZATIONS_DIR / run_id / LOCALIZATION_DETAILS_DIRNAME / f"{index}.json"
+    if not path.exists():
+        raise NotFoundException(
+            f"No detail for image {index} of run {run_id}. Re-run the localization with Detail enabled."
+        )
+    return json.loads(path.read_text())
+
+
+@get("/api/localizations/{run_id:str}/images/{index:int}/image")
+async def get_localization_query_image(run_id: str, index: int) -> File:
+    """The query image at full resolution, for drawing correspondences over.
+
+    The run only stores a 200x150 thumbnail inline, which is far too small to show feature
+    matches on. Images are referenced by their original path and never copied into the run, so
+    this can legitimately 404 for an old run whose source folder has since moved.
+    """
+    entry = _localization_image_entry(run_id, index)["entry"]
+    source = entry.get("path")
+    if not source:
+        raise NotFoundException(f"Image {index} of run {run_id} has no source path")
+    path = Path(source)
+    if not await asyncio.to_thread(path.is_file):
+        raise NotFoundException(f"Query image no longer on disk: {source}")
+    return File(path=path, media_type="image/jpeg", filename=path.name)
+
+
+@get("/api/localizations/{run_id:str}/images/{index:int}/pairs/{rank:int}/image")
+async def get_localization_pair_image(run_id: str, index: int, rank: int) -> File:
+    """One retrieved database image, resolved to pixels and cached on disk.
+
+    Nothing server-side holds these. A rig capture's images sit in the capture tar under the
+    same name COLMAP recorded; a spherical capture's are renders the reconstructor discarded and
+    have to be reproduced from the equirectangular frame. `howard-test map-images` handles both.
+
+    The whole detail's worth of names is resolved on the first miss rather than one per request:
+    each call pays `uv run` startup plus an API round trip, so twelve lazy calls would make
+    opening a dialog feel broken. One subprocess warms every pane.
+    """
+    detail_path = LOCALIZATIONS_DIR / run_id / LOCALIZATION_DETAILS_DIRNAME / f"{index}.json"
+    if not detail_path.exists():
+        raise NotFoundException(f"No detail for image {index} of run {run_id}")
+    detail = json.loads(detail_path.read_text())
+    pairs = detail.get("pairs", [])
+    if not 0 <= rank < len(pairs):
+        raise NotFoundException(f"Image {index} of run {run_id} has no pair at rank {rank}")
+
+    reconstruction_id = detail.get("reconstruction_id") or _localization_image_entry(run_id, index)[
+        "reconstruction_id"
+    ]
+    cache_dir = MAP_IMAGES_DIR / str(reconstruction_id)
+    name = pairs[rank]["name"]
+    cached = cache_dir / _map_image_cache_name(name)
+
+    if not cached.exists():
+        # --size is the width COLMAP recorded for these views. A spherical map's panes are
+        # re-rendered, and the keypoints drawn over them are expressed in that frame, so a
+        # render at the reconstruction's configured size would misplace every overlay if the
+        # two ever disagreed.
+        await _run_howard_test_json_async(
+            "map-images",
+            str(reconstruction_id),
+            str(cache_dir),
+            "--size",
+            str(pairs[rank]["width"]),
+            *(argument for pair in pairs for argument in ("--name", pair["name"])),
+        )
+
+    if not cached.exists():
+        raise NotFoundException(f"Could not resolve database image {name}")
+    return File(path=cached, media_type="image/jpeg", filename=cached.name)
 
 
 @post("/api/localizations/{run_id:str}/save-table")
@@ -1152,6 +1256,9 @@ app = Litestar(
         get_points,
         get_localization,
         get_localization_progress,
+        get_localization_detail,
+        get_localization_query_image,
+        get_localization_pair_image,
         save_localization_table,
         save_localization_images,
         export_poses,

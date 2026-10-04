@@ -1,4 +1,5 @@
-from typing import Annotated, cast
+import json
+from typing import Annotated, Any, cast
 from uuid import UUID
 
 from common.multipart_requests import (
@@ -9,6 +10,7 @@ from common.multipart_requests import (
 )
 from core.axis_convention import AxisConvention
 from core.camera_config import PinholeCameraConfig
+from core.localization_detail import LocalizationDetail
 from core.localization_metrics import LocalizationMetrics
 from core.transform import Float3, Float4, Transform
 from datamodels.public_tables import Reconstruction
@@ -44,6 +46,7 @@ class LocalizationRequest(MultipartRequestModel):
     retrieval_top_k: int | None = None
     ransac_threshold: float | None = None
     use_chunking: bool = True
+    detail: bool = False
     image: UploadFile
 
 
@@ -52,6 +55,28 @@ class MapLocalization(BaseModel):
     camera_from_map_transform: Transform
     map_transform: Transform
     metrics: LocalizationMetrics
+    # Present only when the request asked for it. Pure diagnostics -- nothing in the pose path
+    # reads it, so a client that does not request it pays nothing.
+    detail: LocalizationDetail | None = None
+
+
+def _localizer_failure(exception: ApiException) -> tuple[str, list[Any] | None]:
+    """The localizer's own 422 reason and its structured per-reconstruction failures.
+
+    The localizer answers a total failure with `{detail: str, extra: [LocalizationFailure]}`.
+    Both are forwarded: the string so a human sees why, the list so a diagnostic client can
+    read the failing query's detail payload, which is the case most worth inspecting.
+    """
+    body = cast(str | bytes | None, exception.body)
+    if body is None:
+        return "Localization failed", None
+    try:
+        payload = cast(dict[str, Any], json.loads(body))
+    except (ValueError, TypeError):
+        return "Localization failed", None
+    message = payload.get("detail")
+    extra = cast("list[Any] | None", payload.get("extra") if isinstance(payload.get("extra"), list) else None)
+    return (message if isinstance(message, str) and message else "Localization failed", extra)
 
 
 @post("/", operation_class=MultipartRequestOperation)
@@ -84,6 +109,7 @@ async def localize_image(
                 retrieval_top_k=data.retrieval_top_k,
                 ransac_threshold=data.ransac_threshold,
                 use_chunking=data.use_chunking,
+                detail=data.detail,
             )
 
             return [
@@ -104,6 +130,11 @@ async def localize_image(
                         ),
                     ),
                     metrics=LocalizationMetrics.model_validate(localization.metrics.model_dump()),
+                    detail=(
+                        LocalizationDetail.model_validate(localization.detail.model_dump())
+                        if localization.detail is not None
+                        else None
+                    ),
                 )
                 for localization in localizations
             ]
@@ -111,7 +142,12 @@ async def localize_image(
         except ApiException as e:
             status = cast(int | None, e.status)
             if status == 422:
-                raise HTTPException(status_code=HTTP_422_UNPROCESSABLE_ENTITY) from e
+                # Forward the localizer's own reason rather than an empty 422. "No matching
+                # keypoints found", "Pose estimation failed" and "Confidence below gate" are
+                # three different problems with three different fixes, and a caller that cannot
+                # tell them apart cannot act on any of them.
+                message, failures = _localizer_failure(e)
+                raise HTTPException(status_code=HTTP_422_UNPROCESSABLE_ENTITY, detail=message, extra=failures) from e
             raise HTTPException(status_code=HTTP_502_BAD_GATEWAY, detail="Localization session backend error") from e
 
 

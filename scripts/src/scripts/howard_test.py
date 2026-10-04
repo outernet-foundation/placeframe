@@ -84,6 +84,9 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 DATA_DIR = REPO_ROOT / "data"
 RECONSTRUCTIONS_DIR = DATA_DIR / "reconstructions"
 LOCALIZATIONS_DIR = DATA_DIR / "localizations"
+# Per-image diagnostic payloads live beside a run rather than inside results.json: the
+# correspondence arrays for one query outweigh every pose in the run put together.
+LOCALIZATION_DETAILS_DIRNAME = "details"
 # Capture tars, cached the same way and for the same reason: export-views re-renders a spherical
 # capture's views from the spheres it holds, and re-downloading those for every export would be a
 # multi-GB fetch per click.
@@ -1690,6 +1693,16 @@ def localize(
             "MATCH_BATCH_SIZE). Disable to reproduce the pre-fix behavior for comparison.",
         ),
     ] = True,
+    detail: Annotated[
+        bool,
+        typer.Option(
+            "--detail/--no-detail",
+            help="Record per-query diagnostics: which database images retrieval chose, how each "
+            "one matched, and where every correspondence landed in both images. Written to "
+            f"{LOCALIZATION_DETAILS_DIRNAME}/<index>.json beside the run, one file per image, "
+            "and kept for failed queries too. Adds roughly 100 KB per image",
+        ),
+    ] = False,
     fov_deg: Annotated[
         float | None,
         typer.Option(
@@ -1731,7 +1744,15 @@ def localize(
 
     capture_id, entries = run(
         _localize(
-            reconstruction_id, images, retrieval_top_k, ransac_threshold, use_chunking, query_camera, report_progress
+            reconstruction_id,
+            images,
+            retrieval_top_k,
+            ransac_threshold,
+            use_chunking,
+            query_camera,
+            report_progress,
+            detail,
+            run_dir / LOCALIZATION_DETAILS_DIRNAME if detail else None,
         )
     )
     result: dict[str, Any] = {
@@ -1741,6 +1762,9 @@ def localize(
         "image_dir": str(image_dir.resolve()),
         "created_at": datetime.now(timezone.utc).isoformat(),
         "use_chunking": use_chunking,
+        "retrieval_top_k": retrieval_top_k,
+        "ransac_threshold": ransac_threshold,
+        "detail": detail,
         "images": entries,
     }
     (run_dir / "results.json").write_text(dumps(result))
@@ -2497,6 +2521,8 @@ async def _localize(
     use_chunking: bool,
     query_camera: PinholeCameraConfig | None = None,
     report_progress: Callable[[int], None] | None = None,
+    detail: bool = False,
+    detail_dir: Path | None = None,
 ) -> tuple[UUID, list[dict[str, Any]]]:
     async with authenticated_api_client() as api:
         try:
@@ -2523,6 +2549,8 @@ async def _localize(
                     retrieval_top_k,
                     ransac_threshold,
                     use_chunking,
+                    detail,
+                    detail_dir,
                 )
                 entries.append(entry)
                 if report_progress is not None:
@@ -2651,6 +2679,8 @@ async def _localize_one_image(
     retrieval_top_k: int,
     ransac_threshold: float,
     use_chunking: bool,
+    detail: bool = False,
+    detail_dir: Path | None = None,
 ) -> dict[str, Any]:
     entry: dict[str, Any] = {
         "index": index,
@@ -2661,6 +2691,8 @@ async def _localize_one_image(
         "position": None,
         "quaternion_xyzw": None,
         "rpy_deg": None,
+        "metrics": None,
+        "has_detail": False,
         "thumbnail_base64": _build_thumbnail_data_uri(image_bytes),
     }
 
@@ -2675,9 +2707,15 @@ async def _localize_one_image(
             retrieval_top_k=retrieval_top_k,
             ransac_threshold=ransac_threshold,
             use_chunking=use_chunking,
+            detail=detail,
         )
     except ApiException as exception:
-        entry["error"] = str(exception)
+        reason, failure_detail = _localization_failure(exception)
+        entry["error"] = reason
+        # A failed query is the one most worth looking at closely, so its detail is kept on
+        # exactly the same terms as a successful one.
+        if failure_detail is not None:
+            entry["has_detail"] = _write_detail(detail_dir, index, failure_detail)
         return entry
 
     if not responses:
@@ -2701,7 +2739,70 @@ async def _localize_one_image(
     entry["position"] = {"x": float(position[0]), "y": float(position[1]), "z": float(position[2])}
     entry["quaternion_xyzw"] = [float(v) for v in quat_xyzw]
     entry["rpy_deg"] = {"roll": float(roll), "pitch": float(pitch), "yaw": float(yaw)}
+    # The localizer has always returned these and the run table has always thrown them away,
+    # which left "it localized" and "it localized well" indistinguishable. Cheap to keep.
+    entry["metrics"] = _summarize_metrics(best.metrics)
+    if best.detail is not None:
+        entry["has_detail"] = _write_detail(detail_dir, index, best.detail.to_dict())
     return entry
+
+
+def _summarize_metrics(metrics: Any) -> dict[str, Any]:
+    """The scalar quality signals, flattened for the run table.
+
+    Deliberately excludes the covariance matrices: they are 6x6 each and belong in the
+    per-image detail file, not in a results.json the dashboard loads whole.
+    """
+    return {
+        "num_inliers": metrics.num_inliers,
+        "num_correspondences": metrics.num_correspondences,
+        "num_matches": metrics.num_matches,
+        "inlier_ratio": metrics.inlier_ratio,
+        "inlier_coverage": metrics.inlier_coverage,
+        "reprojection_error_median": metrics.reprojection_error_median,
+        "confidence_tight": metrics.confidence_tight,
+        "confidence_loose": metrics.confidence_loose,
+        "confidence_is_calibrated": metrics.confidence_is_calibrated,
+    }
+
+
+def _localization_failure(exception: ApiException) -> tuple[str, dict[str, Any] | None]:
+    """The API's own reason for a 4xx, and the failing query's detail when it carries one.
+
+    The API answers a total localization failure with `{detail: str, extra: [...]}`, where each
+    `extra` entry is one reconstruction's failure including its diagnostic payload. Falling back
+    to `str(exception)` keeps the old behaviour for every other error shape.
+    """
+    body = cast("str | bytes | None", exception.body)
+    if body is None:
+        return str(exception), None
+    try:
+        payload = cast("dict[str, Any]", loads(body))
+    except (ValueError, TypeError):
+        return str(exception), None
+    message = payload.get("detail")
+    extra = payload.get("extra")
+    failure_detail = None
+    if isinstance(extra, list) and extra and isinstance(extra[0], dict):
+        candidate = cast("dict[str, Any]", extra[0]).get("detail")
+        if isinstance(candidate, dict):
+            failure_detail = cast("dict[str, Any]", candidate)
+    return (message if isinstance(message, str) and message else str(exception)), failure_detail
+
+
+def _write_detail(detail_dir: Path | None, index: int, detail: dict[str, Any]) -> bool:
+    """Persist one query's detail beside the run, out of line from results.json.
+
+    Correspondence arrays for a dozen candidates run to tens of thousands of numbers per query,
+    so folding them into results.json would make the dashboard's run table load a payload
+    hundreds of times larger than the poses it renders. One file per image, fetched only when
+    someone opens that image.
+    """
+    if detail_dir is None:
+        return False
+    detail_dir.mkdir(parents=True, exist_ok=True)
+    (detail_dir / f"{index}.json").write_text(dumps(detail))
+    return True
 
 
 def _build_thumbnail_data_uri(image_bytes: bytes) -> str:

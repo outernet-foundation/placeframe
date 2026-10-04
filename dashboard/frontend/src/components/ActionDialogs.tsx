@@ -352,8 +352,9 @@ export function LocalizeDialog({ reconstructionLabel, reconstructionId, onClose,
   const [imageDir, setImageDir] = useRemembered(STORAGE_KEYS.localizeImageDir);
   const [useChunking, setUseChunking] = useState(true);
   const [fovDeg, setFovDeg] = useRemembered(STORAGE_KEYS.localizeFovDeg);
+  const [detail, setDetail] = useState(true);
   const { busy, error, submit } = useSubmit(
-    () => startLocalize(reconstructionId, imageDir.trim(), null, null, useChunking, Number(fovDeg) || null),
+    () => startLocalize(reconstructionId, imageDir.trim(), null, null, useChunking, Number(fovDeg) || null, detail),
     ({ run_id }) => onStarted(run_id),
   );
   return (
@@ -380,6 +381,15 @@ export function LocalizeDialog({ reconstructionLabel, reconstructionId, onClose,
       <div style={{ ...HINT, marginTop: -8 }}>
         Matches each query image against retrieval candidates in small batches instead of one large batch, capping
         peak GPU memory per image. Recommended; disable only to reproduce the pre-fix behavior for comparison.
+      </div>
+      <label style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        <input type="checkbox" checked={detail} onChange={(e) => setDetail(e.target.checked)} />
+        Record per-image diagnostics
+      </label>
+      <div style={{ ...HINT, marginTop: -8 }}>
+        Keeps which database images retrieval chose, how each one matched, and where every correspondence landed,
+        so each row gets a Details view. Costs roughly 50-200 KB per image on disk; kept for failed queries too,
+        which are the ones most worth looking at.
       </div>
       {error && <div className="banner banner-error">{error}</div>}
       <Actions busy={busy} disabled={!imageDir.trim()} label="Run" busyLabel="Starting…" onCancel={onClose} onSubmit={() => void submit()} />

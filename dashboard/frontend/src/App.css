@@ -438,3 +438,91 @@ button.pencil:hover {
   border-color: #343845;
   color: #fff;
 }
+
+/* Localization Details view: two image panes side by side plus a twelve-row candidate table,
+   so far wider than a standard dialog.
+
+   Written as `.dialog.dialog-wide` rather than `.dialog-wide` on purpose. viewer/viewer.css
+   declares its own `.dialog { width: 420px }`, which loads after this file and would otherwise
+   win on source order at equal specificity. */
+.dialog.dialog-wide {
+  width: min(1500px, 95vw);
+  max-height: 92vh;
+  overflow-y: auto;
+}
+
+.detail-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 10px;
+}
+
+.detail-summary-item {
+  background: #14161a;
+  border: 1px solid #2a2e35;
+  border-radius: 4px;
+  padding: 8px 10px;
+}
+
+.detail-summary-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #8b909b;
+}
+
+.detail-summary-value {
+  font-size: 15px;
+  margin-top: 2px;
+}
+
+.detail-summary-hint {
+  font-size: 11px;
+  color: #8b909b;
+  margin-top: 3px;
+}
+
+.detail-canvas {
+  width: 100%;
+  display: block;
+  background: #14161a;
+  border: 1px solid #2a2e35;
+  border-radius: 4px;
+}
+
+.detail-legend {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+
+/* `.dialog label` sets flex-direction: column and outranks a bare class, so these would
+   otherwise stack the checkbox, swatch and caption on three lines. */
+.dialog .detail-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-direction: row;
+  color: #e6e6e6;
+  font-size: 13px;
+}
+
+.dialog .detail-legend-item input {
+  margin: 0;
+}
+
+.detail-swatch {
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.detail-pairs tbody tr:hover {
+  background: #22262e;
+}
+
+.detail-pairs tbody tr.selected {
+  background: #2d3a4d;
+}

@@ -9,6 +9,7 @@ from core.axis_convention import AxisConvention, change_basis_unity_from_opencv_
 from core.camera_config import PinholeCameraConfig
 from core.image_preprocess import canonicalize_image, canonicalize_intrinsics
 from core.lightglue import Descriptors, Keypoints, MatchIndices
+from core.localization_detail import LocalizationDetail
 from core.localization_metrics import RANSAC_THRESHOLD_DEFAULT, RETRIEVAL_TOP_K_DEFAULT, LocalizationMetrics
 from core.model_wrappers import (
     LocalFeatureOutput,
@@ -20,13 +21,15 @@ from core.opq import decode_descriptors
 from core.model_wrappers import RetrievalDim
 from core.tensor_types import TT
 from core.transform import Float3, Float4, Transform
-from numpy import asarray, float32, vstack
+from numpy import asarray, float32, float64, vstack
+from numpy.linalg import norm
 from pycolmap import AbsolutePoseEstimationOptions, RANSACOptions
 from pycolmap import Camera as ColmapCamera
 from pycolmap._core import Rigid3d, estimate_and_refine_absolute_pose, set_random_seed  # type: ignore  # noqa: PLC2701 — no public API
 from scipy.spatial.transform import Rotation
 from torch import Tensor, cuda, inference_mode, manual_seed, topk  # type: ignore
 
+from .build_detail import build_localization_detail
 from .build_metrics import build_localization_metrics
 from core.calibration import CalibrationArtifact
 from .map import Map
@@ -65,7 +68,12 @@ local_feature_matcher: Callable[
 
 
 class LocalizationError(ValueError):
-    pass
+    # Carries whatever detail had been gathered when the attempt gave up. A query that fails
+    # is the one most worth inspecting, so the diagnostic payload has to survive the raise --
+    # otherwise the only queries you can look at closely are the ones that already worked.
+    def __init__(self, message: str, detail: LocalizationDetail | None = None) -> None:
+        super().__init__(message)
+        self.detail = detail
 
 
 def load_models():
@@ -93,7 +101,8 @@ def localize_image_against_reconstruction(
     pipeline_version: str,
     calibration: CalibrationArtifact,
     use_chunking: bool = True,
-) -> tuple[Transform, LocalizationMetrics]:
+    detail: bool = False,
+) -> tuple[Transform, LocalizationMetrics, LocalizationDetail | None]:
 
     set_random_seed(LOCALIZER_RANDOM_SEED)
     manual_seed(LOCALIZER_RANDOM_SEED)
@@ -129,7 +138,9 @@ def localize_image_against_reconstruction(
     database_descriptors = to(from_numpy(map.descriptors), DEVICE)
     per_image_similarity = database_descriptors @ query_descriptor
     top_k = retrieval_top_k if retrieval_top_k is not None else RETRIEVAL_TOP_K_DEFAULT
-    top_k_image_indices: list[int] = topk(per_image_similarity, top_k).indices.cpu().tolist()  # type: ignore
+    top_k_result = topk(per_image_similarity, top_k)
+    top_k_image_indices: list[int] = top_k_result.indices.cpu().tolist()  # type: ignore
+    retrieval_scores: list[float] = top_k_result.values.cpu().tolist()  # type: ignore
     matched_image_ids = [map.ordered_image_ids[i] for i in top_k_image_indices]
     timings["retrieval"] = perf_counter() - t
 
@@ -170,8 +181,16 @@ def localize_image_against_reconstruction(
     # Collect 2D-3D correspondences
     query_keypoint_indices: list[int] = []
     point3d_indices: list[int] = []
+    # Which pair each correspondence came from, as (database image id, index within that pair's
+    # raw match list). The correspondence list below is flat across every retrieved image, so
+    # without this the RANSAC inlier mask cannot be attributed back to the image that produced
+    # each inlier -- and "which candidate actually carried the pose" is the single most useful
+    # thing to know about a query. Only populated when detail was asked for.
+    correspondence_sources: list[tuple[int, int]] = []
     for image_id in matched_image_ids:
-        for database_image_keypoint_index, query_image_keypoint_index in zip(*match_indices[(str(image_id), "query")]):
+        for slot, (database_image_keypoint_index, query_image_keypoint_index) in enumerate(
+            zip(*match_indices[(str(image_id), "query")])
+        ):
             point2D = map.images[image_id].points2D[int(database_image_keypoint_index)]  # noqa: N806 — pycolmap CV notation
 
             if not point2D.has_point3D():
@@ -179,10 +198,47 @@ def localize_image_against_reconstruction(
 
             query_keypoint_indices.append(int(query_image_keypoint_index))
             point3d_indices.append(int(point2D.point3D_id))
+            if detail:
+                correspondence_sources.append((image_id, slot))
+
+    def _detail(
+        metrics: LocalizationMetrics | None,
+        inlier_mask: Any | None,
+        reprojection_errors: Any | None,
+        cam_from_world: Rigid3d | None,
+        failure_reason: str | None,
+    ) -> LocalizationDetail | None:
+        if not detail:
+            return None
+        # The success path sets this at the very end, which a failing query never reaches --
+        # leaving the Details view reporting a total of 0 ms next to stages that plainly took
+        # longer. Timed here instead, so it covers the work actually done before giving up.
+        timings.setdefault("total", perf_counter() - t0)
+        return build_localization_detail(
+            map=map,
+            camera=camera,
+            matched_image_ids=matched_image_ids,
+            retrieval_scores=retrieval_scores,
+            match_indices=match_indices,
+            keypoints=keypoints,
+            correspondence_sources=correspondence_sources,
+            inlier_mask=inlier_mask,
+            reprojection_errors=reprojection_errors,
+            cam_from_world=cam_from_world,
+            top_k=top_k,
+            ransac_threshold=ransac_threshold if ransac_threshold is not None else RANSAC_THRESHOLD_DEFAULT,
+            num_query_keypoints=int(keypoints["query"].shape[0]),
+            timings=timings,
+            metrics=metrics,
+            calibration=calibration,
+            failure_reason=failure_reason,
+        )
 
     # Verify we have enough correspondences
     if not query_keypoint_indices:
-        raise LocalizationError("No matching keypoints found")
+        raise LocalizationError(
+            "No matching keypoints found", _detail(None, None, None, None, "No matching keypoints found")
+        )
 
     # Create COLMAP camera model
     width, height, *params = canonicalize_intrinsics(camera)
@@ -208,7 +264,17 @@ def localize_image_against_reconstruction(
 
     # Check if pose estimation was successful
     if pnp_result is None:
-        raise LocalizationError("Pose estimation failed")
+        raise LocalizationError("Pose estimation failed", _detail(None, None, None, None, "Pose estimation failed"))
+
+    # Residual per correspondence, not just per inlier: a Details view wants to colour every
+    # drawn match by how far off it reprojected, and the gap between a near-threshold outlier
+    # and a wild one is what distinguishes a slightly-wrong pose from a wrong-place match.
+    correspondence_residuals = None
+    if detail:
+        colmap_rotation = pnp_result["cam_from_world"].rotation.matrix()
+        colmap_translation = asarray(pnp_result["cam_from_world"].translation, dtype=float64)
+        camera_frame_points = (colmap_rotation @ points3D.T).T + colmap_translation[None, :]
+        correspondence_residuals = norm(pycolmap_camera.img_from_cam(cam_points=camera_frame_points) - points2D, axis=1)
 
     # Change basis if needed
     cam_from_world = cast(Rigid3d, pnp_result["cam_from_world"])
@@ -239,10 +305,14 @@ def localize_image_against_reconstruction(
     )
 
     if metrics.confidence_loose < calibration.loose_min or metrics.confidence_tight < calibration.tight_min:
-        raise LocalizationError(
+        reason = (
             f"Confidence below gate: "
             f"loose={metrics.confidence_loose:.3f} (min {calibration.loose_min}), "
             f"tight={metrics.confidence_tight:.3f} (min {calibration.tight_min})"
+        )
+        raise LocalizationError(
+            reason,
+            _detail(metrics, pnp_result["inlier_mask"], correspondence_residuals, cam_from_world, reason),
         )
 
     timings["total"] = perf_counter() - t0
@@ -251,4 +321,8 @@ def localize_image_against_reconstruction(
     # Success
     print(transform.model_dump_json(indent=2))
     print(metrics.model_dump_json(indent=2))
-    return transform, metrics
+    return (
+        transform,
+        metrics,
+        _detail(metrics, pnp_result["inlier_mask"], correspondence_residuals, cam_from_world, None),
+    )

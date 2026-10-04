@@ -1,6 +1,7 @@
 import type {
   CaptureSession,
   Job,
+  LocalizationDetail,
   LocalizationMap,
   LocalizationResult,
   LocalizationSummary,
@@ -268,6 +269,7 @@ export function startLocalize(
   ransacThreshold: number | null,
   useChunking: boolean,
   fovDeg: number | null,
+  detail = false,
 ): Promise<{ job_id: string; run_id: string }> {
   return request("/api/localize", {
     method: "POST",
@@ -278,12 +280,27 @@ export function startLocalize(
       ransac_threshold: ransacThreshold,
       use_chunking: useChunking,
       fov_deg: fovDeg,
+      detail,
     }),
   });
 }
 
 export function getLocalization(runId: string): Promise<LocalizationResult> {
   return request(`/api/localizations/${runId}`);
+}
+
+export function getLocalizationDetail(runId: string, index: number): Promise<LocalizationDetail> {
+  return request(`/api/localizations/${runId}/images/${index}/detail`);
+}
+
+// Image URLs rather than fetches: the browser loads these straight into <img>/Image(), so there
+// is no reason to pull the bytes through fetch() first.
+export function localizationQueryImageUrl(runId: string, index: number): string {
+  return `${API_BASE}/api/localizations/${runId}/images/${index}/image`;
+}
+
+export function localizationPairImageUrl(runId: string, index: number, rank: number): string {
+  return `${API_BASE}/api/localizations/${runId}/images/${index}/pairs/${rank}/image`;
 }
 
 export interface LocalizationProgress {
