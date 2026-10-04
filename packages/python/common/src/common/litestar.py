@@ -65,6 +65,13 @@ def log_http_exception(request: Request[Any, Any, Any], exception: HTTPException
 
     if isinstance(exception, ValidationException) and exception.extra:
         content["validation_errors"] = exception.extra
+    elif exception.extra:
+        # Anything else a handler deliberately attached. Dropping it silently cost the localizer
+        # its per-reconstruction failure payload: a rejected query could report why it failed in
+        # one sentence but not carry the diagnostics explaining it, which is precisely the case
+        # worth inspecting. `extra` is only ever set explicitly, so passing it through leaks
+        # nothing a handler did not choose to send.
+        content["extra"] = exception.extra
 
     return Response(content=content, status_code=exception.status_code)
 
