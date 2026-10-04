@@ -831,8 +831,9 @@ namespace PlaceframeApiClient.Api
         /// <param name="retrievalTopK"> (optional)</param>
         /// <param name="ransacThreshold"> (optional)</param>
         /// <param name="useChunking"> (optional, default to true)</param>
+        /// <param name="detail"> (optional, default to false)</param>
         /// <returns>List&lt;MapLocalization&gt;</returns>
-        List<MapLocalization> LocalizeImage(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image, int? retrievalTopK = default, double? ransacThreshold = default, bool? useChunking = default);
+        List<MapLocalization> LocalizeImage(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image, int? retrievalTopK = default, double? ransacThreshold = default, bool? useChunking = default, bool? detail = default);
 
         /// <summary>
         /// LocalizeImage
@@ -848,8 +849,9 @@ namespace PlaceframeApiClient.Api
         /// <param name="retrievalTopK"> (optional)</param>
         /// <param name="ransacThreshold"> (optional)</param>
         /// <param name="useChunking"> (optional, default to true)</param>
+        /// <param name="detail"> (optional, default to false)</param>
         /// <returns>ApiResponse of List&lt;MapLocalization&gt;</returns>
-        ApiResponse<List<MapLocalization>> LocalizeImageWithHttpInfo(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image, int? retrievalTopK = default, double? ransacThreshold = default, bool? useChunking = default);
+        ApiResponse<List<MapLocalization>> LocalizeImageWithHttpInfo(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image, int? retrievalTopK = default, double? ransacThreshold = default, bool? useChunking = default, bool? detail = default);
         /// <summary>
         /// RetryReconstruction
         /// </summary>
@@ -2053,9 +2055,10 @@ namespace PlaceframeApiClient.Api
         /// <param name="retrievalTopK"> (optional)</param>
         /// <param name="ransacThreshold"> (optional)</param>
         /// <param name="useChunking"> (optional, default to true)</param>
+        /// <param name="detail"> (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;MapLocalization&gt;</returns>
-        Cysharp.Threading.Tasks.UniTask<List<MapLocalization>> LocalizeImageAsync(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image, int? retrievalTopK = default, double? ransacThreshold = default, bool? useChunking = default, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<List<MapLocalization>> LocalizeImageAsync(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image, int? retrievalTopK = default, double? ransacThreshold = default, bool? useChunking = default, bool? detail = default, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// LocalizeImage
@@ -2071,9 +2074,10 @@ namespace PlaceframeApiClient.Api
         /// <param name="retrievalTopK"> (optional)</param>
         /// <param name="ransacThreshold"> (optional)</param>
         /// <param name="useChunking"> (optional, default to true)</param>
+        /// <param name="detail"> (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;MapLocalization&gt;)</returns>
-        Cysharp.Threading.Tasks.UniTask<ApiResponse<List<MapLocalization>>> LocalizeImageWithHttpInfoAsync(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image, int? retrievalTopK = default, double? ransacThreshold = default, bool? useChunking = default, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<List<MapLocalization>>> LocalizeImageWithHttpInfoAsync(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image, int? retrievalTopK = default, double? ransacThreshold = default, bool? useChunking = default, bool? detail = default, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// RetryReconstruction
         /// </summary>
@@ -7411,10 +7415,11 @@ namespace PlaceframeApiClient.Api
         /// <param name="retrievalTopK"> (optional)</param>
         /// <param name="ransacThreshold"> (optional)</param>
         /// <param name="useChunking"> (optional, default to true)</param>
+        /// <param name="detail"> (optional, default to false)</param>
         /// <returns>List&lt;MapLocalization&gt;</returns>
-        public List<MapLocalization> LocalizeImage(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image, int? retrievalTopK = default, double? ransacThreshold = default, bool? useChunking = default)
+        public List<MapLocalization> LocalizeImage(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image, int? retrievalTopK = default, double? ransacThreshold = default, bool? useChunking = default, bool? detail = default)
         {
-            PlaceframeApiClient.Client.ApiResponse<List<MapLocalization>> localVarResponse = LocalizeImageWithHttpInfo(mapIds, cameraConfig, axisConvention, image, retrievalTopK, ransacThreshold, useChunking);
+            PlaceframeApiClient.Client.ApiResponse<List<MapLocalization>> localVarResponse = LocalizeImageWithHttpInfo(mapIds, cameraConfig, axisConvention, image, retrievalTopK, ransacThreshold, useChunking, detail);
             return localVarResponse.Data;
         }
 
@@ -7429,8 +7434,9 @@ namespace PlaceframeApiClient.Api
         /// <param name="retrievalTopK"> (optional)</param>
         /// <param name="ransacThreshold"> (optional)</param>
         /// <param name="useChunking"> (optional, default to true)</param>
+        /// <param name="detail"> (optional, default to false)</param>
         /// <returns>ApiResponse of List&lt;MapLocalization&gt;</returns>
-        public PlaceframeApiClient.Client.ApiResponse<List<MapLocalization>> LocalizeImageWithHttpInfo(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image, int? retrievalTopK = default, double? ransacThreshold = default, bool? useChunking = default)
+        public PlaceframeApiClient.Client.ApiResponse<List<MapLocalization>> LocalizeImageWithHttpInfo(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image, int? retrievalTopK = default, double? ransacThreshold = default, bool? useChunking = default, bool? detail = default)
         {
             // verify the required parameter 'mapIds' is set
             if (mapIds == null)
@@ -7495,6 +7501,11 @@ namespace PlaceframeApiClient.Api
             {
                 // Primitive types (int, string, bool) go as standard form fields
                 localVarRequestOptions.FormParameters.Add("use_chunking", PlaceframeApiClient.Client.ClientUtils.ParameterToString(useChunking));
+            }
+            if (detail != null)
+            {
+                // Primitive types (int, string, bool) go as standard form fields
+                localVarRequestOptions.FormParameters.Add("detail", PlaceframeApiClient.Client.ClientUtils.ParameterToString(detail));
             }
             localVarRequestOptions.FileParameters.Add("image", image);
 
@@ -7522,11 +7533,12 @@ namespace PlaceframeApiClient.Api
         /// <param name="retrievalTopK"> (optional)</param>
         /// <param name="ransacThreshold"> (optional)</param>
         /// <param name="useChunking"> (optional, default to true)</param>
+        /// <param name="detail"> (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;MapLocalization&gt;</returns>
-        public async Cysharp.Threading.Tasks.UniTask<List<MapLocalization>> LocalizeImageAsync(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image, int? retrievalTopK = default, double? ransacThreshold = default, bool? useChunking = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<List<MapLocalization>> LocalizeImageAsync(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image, int? retrievalTopK = default, double? ransacThreshold = default, bool? useChunking = default, bool? detail = default, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlaceframeApiClient.Client.ApiResponse<List<MapLocalization>> localVarResponse = await LocalizeImageWithHttpInfoAsync(mapIds, cameraConfig, axisConvention, image, retrievalTopK, ransacThreshold, useChunking, cancellationToken);
+            PlaceframeApiClient.Client.ApiResponse<List<MapLocalization>> localVarResponse = await LocalizeImageWithHttpInfoAsync(mapIds, cameraConfig, axisConvention, image, retrievalTopK, ransacThreshold, useChunking, detail, cancellationToken);
             return localVarResponse.Data;
         }
 
@@ -7541,9 +7553,10 @@ namespace PlaceframeApiClient.Api
         /// <param name="retrievalTopK"> (optional)</param>
         /// <param name="ransacThreshold"> (optional)</param>
         /// <param name="useChunking"> (optional, default to true)</param>
+        /// <param name="detail"> (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;MapLocalization&gt;)</returns>
-        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<List<MapLocalization>>> LocalizeImageWithHttpInfoAsync(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image, int? retrievalTopK = default, double? ransacThreshold = default, bool? useChunking = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<List<MapLocalization>>> LocalizeImageWithHttpInfoAsync(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image, int? retrievalTopK = default, double? ransacThreshold = default, bool? useChunking = default, bool? detail = default, System.Threading.CancellationToken cancellationToken = default)
         {
             // verify the required parameter 'mapIds' is set
             if (mapIds == null)
@@ -7610,6 +7623,11 @@ namespace PlaceframeApiClient.Api
             {
                 // Primitive types (int, string, bool) go as standard form fields
                 localVarRequestOptions.FormParameters.Add("use_chunking", PlaceframeApiClient.Client.ClientUtils.ParameterToString(useChunking));
+            }
+            if (detail != null)
+            {
+                // Primitive types (int, string, bool) go as standard form fields
+                localVarRequestOptions.FormParameters.Add("detail", PlaceframeApiClient.Client.ClientUtils.ParameterToString(detail));
             }
             localVarRequestOptions.FileParameters.Add("image", image);
 

@@ -183,6 +183,28 @@
         ],
         "title": "Float4"
       },
+      "GateDetail": {
+        "properties": {
+          "loose_min": {
+            "type": "number",
+            "format": "double"
+          },
+          "tight_min": {
+            "type": "number",
+            "format": "double"
+          },
+          "passed": {
+            "type": "boolean"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loose_min",
+          "passed",
+          "tight_min"
+        ],
+        "title": "GateDetail"
+      },
       "Localization": {
         "properties": {
           "id": {
@@ -194,6 +216,10 @@
           },
           "metrics": {
             "$ref": "#/components/schemas/LocalizationMetrics"
+          },
+          "detail": {
+            "nullable": true,
+            "$ref": "#/components/schemas/LocalizationDetail"
           }
         },
         "type": "object",
@@ -203,6 +229,62 @@
           "transform"
         ],
         "title": "Localization"
+      },
+      "LocalizationDetail": {
+        "properties": {
+          "reconstruction_id": {
+            "type": "string"
+          },
+          "camera": {
+            "$ref": "#/components/schemas/PinholeCameraConfig"
+          },
+          "retrieval_top_k": {
+            "type": "integer"
+          },
+          "ransac_threshold": {
+            "type": "number",
+            "format": "double"
+          },
+          "num_query_keypoints": {
+            "type": "integer"
+          },
+          "timings_ms": {
+            "additionalProperties": {
+              "type": "number",
+              "format": "double"
+            },
+            "type": "object"
+          },
+          "pairs": {
+            "items": {
+              "$ref": "#/components/schemas/PairDetail"
+            },
+            "type": "array"
+          },
+          "metrics": {
+            "nullable": true,
+            "$ref": "#/components/schemas/LocalizationMetrics"
+          },
+          "gate": {
+            "nullable": true,
+            "$ref": "#/components/schemas/GateDetail"
+          },
+          "failure_reason": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object",
+        "required": [
+          "camera",
+          "num_query_keypoints",
+          "pairs",
+          "ransac_threshold",
+          "reconstruction_id",
+          "retrieval_top_k",
+          "timings_ms"
+        ],
+        "title": "LocalizationDetail"
       },
       "LocalizationMetrics": {
         "properties": {
@@ -313,6 +395,10 @@
             "type": "boolean",
             "default": true
           },
+          "detail": {
+            "type": "boolean",
+            "default": false
+          },
           "image": {
             "type": "string",
             "format": "binary"
@@ -327,6 +413,112 @@
           "reconstruction_ids"
         ],
         "title": "LocalizationRequest"
+      },
+      "PairDetail": {
+        "properties": {
+          "rank": {
+            "type": "integer"
+          },
+          "image_id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "width": {
+            "type": "integer"
+          },
+          "height": {
+            "type": "integer"
+          },
+          "retrieval_score": {
+            "type": "number",
+            "format": "double"
+          },
+          "num_keypoints": {
+            "type": "integer"
+          },
+          "num_matches": {
+            "type": "integer"
+          },
+          "num_correspondences": {
+            "type": "integer"
+          },
+          "num_inliers": {
+            "type": "integer"
+          },
+          "inlier_ratio": {
+            "type": "number",
+            "format": "double"
+          },
+          "reprojection_error_median": {
+            "nullable": true,
+            "type": "number",
+            "format": "double"
+          },
+          "distance_m": {
+            "nullable": true,
+            "type": "number",
+            "format": "double"
+          },
+          "view_angle_deg": {
+            "nullable": true,
+            "type": "number",
+            "format": "double"
+          },
+          "query_xy": {
+            "items": {
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "type": "array"
+            },
+            "type": "array"
+          },
+          "database_xy": {
+            "items": {
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "type": "array"
+            },
+            "type": "array"
+          },
+          "status": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "reprojection_error_px": {
+            "items": {
+              "type": "number",
+              "format": "double"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object",
+        "required": [
+          "database_xy",
+          "height",
+          "image_id",
+          "inlier_ratio",
+          "name",
+          "num_correspondences",
+          "num_inliers",
+          "num_keypoints",
+          "num_matches",
+          "query_xy",
+          "rank",
+          "reprojection_error_px",
+          "retrieval_score",
+          "status",
+          "width"
+        ],
+        "title": "PairDetail"
       },
       "PhaseTiming": {
         "properties": {

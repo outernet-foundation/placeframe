@@ -2469,6 +2469,26 @@ components:
       - z
       title: Float4
       type: object
+    GateDetail:
+      example:
+        tight_min: 5.944895607614016
+        passed: true
+        loose_min: 6.878052220127876
+      properties:
+        loose_min:
+          format: double
+          type: number
+        tight_min:
+          format: double
+          type: number
+        passed:
+          type: boolean
+      required:
+      - loose_min
+      - passed
+      - tight_min
+      title: GateDetail
+      type: object
     GroupBatchCreate:
       example:
         parent_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
@@ -2659,6 +2679,147 @@ components:
       - image_list
       title: LinkType
       type: string
+    LocalizationDetail:
+      example:
+        timings_ms:
+          key: 1.0246457001441578
+        ransac_threshold: 7.386281948385884
+        num_query_keypoints: 1
+        reconstruction_id: reconstruction_id
+        metrics:
+          num_correspondences: 5
+          pipeline_version: pipeline_version
+          measurement_covariance:
+          - - 3.616076749251911
+            - 3.616076749251911
+          - - 3.616076749251911
+            - 3.616076749251911
+          confidence_tight: 7.061401241503109
+          inlier_coverage: 2.3021358869347655
+          confidence_loose: 9.301444243932576
+          num_inliers: 1
+          inlier_ratio: 0.8008281904610115
+          reprojection_error_median: 6.027456183070403
+          pnp_covariance:
+          - - 2.027123023002322
+            - 2.027123023002322
+          - - 2.027123023002322
+            - 2.027123023002322
+          num_matches: 5
+          confidence_is_calibrated: true
+        gate:
+          tight_min: 5.944895607614016
+          passed: true
+          loose_min: 6.878052220127876
+        failure_reason: failure_reason
+        camera:
+          orientation: TOP_LEFT
+          fx: 2.027123023002322
+          fy: 4.145608029883936
+          cx: 7.386281948385884
+          cy: 1.2315135367772556
+          width: 9
+          height: 3
+        retrieval_top_k: 4
+        pairs:
+        - num_keypoints: 5
+          num_inliers: 6
+          inlier_ratio: 8.762042012749001
+          reprojection_error_median: 9.018348186070783
+          query_xy:
+          - - 6.965117697638846
+            - 6.965117697638846
+          - - 6.965117697638846
+            - 6.965117697638846
+          database_xy:
+          - - 1.284659006116532
+            - 1.284659006116532
+          - - 1.284659006116532
+            - 1.284659006116532
+          num_correspondences: 9
+          retrieval_score: 4.965218492984954
+          view_angle_deg: 3.5571952270680973
+          reprojection_error_px:
+          - 6.778324963048013
+          - 6.778324963048013
+          name: name
+          width: 7
+          rank: 1
+          image_id: 6
+          num_matches: 9
+          distance_m: 6.438423552598547
+          height: 1
+          status:
+          - 2
+          - 2
+        - num_keypoints: 5
+          num_inliers: 6
+          inlier_ratio: 8.762042012749001
+          reprojection_error_median: 9.018348186070783
+          query_xy:
+          - - 6.965117697638846
+            - 6.965117697638846
+          - - 6.965117697638846
+            - 6.965117697638846
+          database_xy:
+          - - 1.284659006116532
+            - 1.284659006116532
+          - - 1.284659006116532
+            - 1.284659006116532
+          num_correspondences: 9
+          retrieval_score: 4.965218492984954
+          view_angle_deg: 3.5571952270680973
+          reprojection_error_px:
+          - 6.778324963048013
+          - 6.778324963048013
+          name: name
+          width: 7
+          rank: 1
+          image_id: 6
+          num_matches: 9
+          distance_m: 6.438423552598547
+          height: 1
+          status:
+          - 2
+          - 2
+      properties:
+        reconstruction_id:
+          type: string
+        camera:
+          $ref: "#/components/schemas/PinholeCameraConfig"
+        retrieval_top_k:
+          type: integer
+        ransac_threshold:
+          format: double
+          type: number
+        num_query_keypoints:
+          type: integer
+        timings_ms:
+          additionalProperties:
+            format: double
+            type: number
+          type: object
+        pairs:
+          items:
+            $ref: "#/components/schemas/PairDetail"
+          type: array
+        metrics:
+          $ref: "#/components/schemas/LocalizationMetrics"
+        gate:
+          $ref: "#/components/schemas/GateDetail"
+        failure_reason:
+          nullable: true
+          type: string
+      required:
+      - camera
+      - num_query_keypoints
+      - pairs
+      - ransac_threshold
+      - reconstruction_id
+      - retrieval_top_k
+      - timings_ms
+      title: LocalizationDetail
+      type: object
     LocalizationEvaluationCreate:
       example:
         pipeline_version: pipeline_version
@@ -3324,6 +3485,9 @@ components:
         use_chunking:
           default: true
           type: boolean
+        detail:
+          default: false
+          type: boolean
         image:
           format: binary
           type: string
@@ -3368,6 +3532,108 @@ components:
             - 2.027123023002322
           num_matches: 5
           confidence_is_calibrated: true
+        detail:
+          timings_ms:
+            key: 1.0246457001441578
+          ransac_threshold: 7.386281948385884
+          num_query_keypoints: 1
+          reconstruction_id: reconstruction_id
+          metrics:
+            num_correspondences: 5
+            pipeline_version: pipeline_version
+            measurement_covariance:
+            - - 3.616076749251911
+              - 3.616076749251911
+            - - 3.616076749251911
+              - 3.616076749251911
+            confidence_tight: 7.061401241503109
+            inlier_coverage: 2.3021358869347655
+            confidence_loose: 9.301444243932576
+            num_inliers: 1
+            inlier_ratio: 0.8008281904610115
+            reprojection_error_median: 6.027456183070403
+            pnp_covariance:
+            - - 2.027123023002322
+              - 2.027123023002322
+            - - 2.027123023002322
+              - 2.027123023002322
+            num_matches: 5
+            confidence_is_calibrated: true
+          gate:
+            tight_min: 5.944895607614016
+            passed: true
+            loose_min: 6.878052220127876
+          failure_reason: failure_reason
+          camera:
+            orientation: TOP_LEFT
+            fx: 2.027123023002322
+            fy: 4.145608029883936
+            cx: 7.386281948385884
+            cy: 1.2315135367772556
+            width: 9
+            height: 3
+          retrieval_top_k: 4
+          pairs:
+          - num_keypoints: 5
+            num_inliers: 6
+            inlier_ratio: 8.762042012749001
+            reprojection_error_median: 9.018348186070783
+            query_xy:
+            - - 6.965117697638846
+              - 6.965117697638846
+            - - 6.965117697638846
+              - 6.965117697638846
+            database_xy:
+            - - 1.284659006116532
+              - 1.284659006116532
+            - - 1.284659006116532
+              - 1.284659006116532
+            num_correspondences: 9
+            retrieval_score: 4.965218492984954
+            view_angle_deg: 3.5571952270680973
+            reprojection_error_px:
+            - 6.778324963048013
+            - 6.778324963048013
+            name: name
+            width: 7
+            rank: 1
+            image_id: 6
+            num_matches: 9
+            distance_m: 6.438423552598547
+            height: 1
+            status:
+            - 2
+            - 2
+          - num_keypoints: 5
+            num_inliers: 6
+            inlier_ratio: 8.762042012749001
+            reprojection_error_median: 9.018348186070783
+            query_xy:
+            - - 6.965117697638846
+              - 6.965117697638846
+            - - 6.965117697638846
+              - 6.965117697638846
+            database_xy:
+            - - 1.284659006116532
+              - 1.284659006116532
+            - - 1.284659006116532
+              - 1.284659006116532
+            num_correspondences: 9
+            retrieval_score: 4.965218492984954
+            view_angle_deg: 3.5571952270680973
+            reprojection_error_px:
+            - 6.778324963048013
+            - 6.778324963048013
+            name: name
+            width: 7
+            rank: 1
+            image_id: 6
+            num_matches: 9
+            distance_m: 6.438423552598547
+            height: 1
+            status:
+            - 2
+            - 2
         map_transform:
           rotation:
             w: 5.962133916683182
@@ -3388,6 +3654,8 @@ components:
           $ref: "#/components/schemas/Transform"
         metrics:
           $ref: "#/components/schemas/LocalizationMetrics"
+        detail:
+          $ref: "#/components/schemas/LocalizationDetail"
       required:
       - camera_from_map_transform
       - id
@@ -3856,6 +4124,116 @@ components:
       - rotation_z
       - updated_at
       title: NodeRead
+      type: object
+    PairDetail:
+      example:
+        num_keypoints: 5
+        num_inliers: 6
+        inlier_ratio: 8.762042012749001
+        reprojection_error_median: 9.018348186070783
+        query_xy:
+        - - 6.965117697638846
+          - 6.965117697638846
+        - - 6.965117697638846
+          - 6.965117697638846
+        database_xy:
+        - - 1.284659006116532
+          - 1.284659006116532
+        - - 1.284659006116532
+          - 1.284659006116532
+        num_correspondences: 9
+        retrieval_score: 4.965218492984954
+        view_angle_deg: 3.5571952270680973
+        reprojection_error_px:
+        - 6.778324963048013
+        - 6.778324963048013
+        name: name
+        width: 7
+        rank: 1
+        image_id: 6
+        num_matches: 9
+        distance_m: 6.438423552598547
+        height: 1
+        status:
+        - 2
+        - 2
+      properties:
+        rank:
+          type: integer
+        image_id:
+          type: integer
+        name:
+          type: string
+        width:
+          type: integer
+        height:
+          type: integer
+        retrieval_score:
+          format: double
+          type: number
+        num_keypoints:
+          type: integer
+        num_matches:
+          type: integer
+        num_correspondences:
+          type: integer
+        num_inliers:
+          type: integer
+        inlier_ratio:
+          format: double
+          type: number
+        reprojection_error_median:
+          format: double
+          nullable: true
+          type: number
+        distance_m:
+          format: double
+          nullable: true
+          type: number
+        view_angle_deg:
+          format: double
+          nullable: true
+          type: number
+        query_xy:
+          items:
+            items:
+              format: double
+              type: number
+            type: array
+          type: array
+        database_xy:
+          items:
+            items:
+              format: double
+              type: number
+            type: array
+          type: array
+        status:
+          items:
+            type: integer
+          type: array
+        reprojection_error_px:
+          items:
+            format: double
+            type: number
+          type: array
+      required:
+      - database_xy
+      - height
+      - image_id
+      - inlier_ratio
+      - name
+      - num_correspondences
+      - num_inliers
+      - num_keypoints
+      - num_matches
+      - query_xy
+      - rank
+      - reprojection_error_px
+      - retrieval_score
+      - status
+      - width
+      title: PairDetail
       type: object
     PhaseTiming:
       example:

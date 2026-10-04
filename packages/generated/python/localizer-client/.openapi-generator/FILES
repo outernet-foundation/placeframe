@@ -15,10 +15,13 @@ placeframe_localizer_client/models/__init__.py
 placeframe_localizer_client/models/axis_convention.py
 placeframe_localizer_client/models/float3.py
 placeframe_localizer_client/models/float4.py
+placeframe_localizer_client/models/gate_detail.py
 placeframe_localizer_client/models/localization.py
+placeframe_localizer_client/models/localization_detail.py
 placeframe_localizer_client/models/localization_metrics.py
 placeframe_localizer_client/models/localize_image400_response.py
 placeframe_localizer_client/models/localize_image400_response_extra.py
+placeframe_localizer_client/models/pair_detail.py
 placeframe_localizer_client/models/phase_timing.py
 placeframe_localizer_client/models/pinhole_camera_config.py
 placeframe_localizer_client/models/reconstruction_metrics.py

@@ -42,6 +42,7 @@ __all__ = [
     "ExpandedReconstruction",
     "Float3",
     "Float4",
+    "GateDetail",
     "GetCaptureSessions400Response",
     "GetCaptureSessions400ResponseExtra",
     "GroupBatchCreate",
@@ -53,6 +54,7 @@ __all__ = [
     "LayerCreate",
     "LayerRead",
     "LinkType",
+    "LocalizationDetail",
     "LocalizationEvaluationCreate",
     "LocalizationEvaluationRead",
     "LocalizationMapBatchUpdate",
@@ -65,6 +67,7 @@ __all__ = [
     "NodeBatchUpdate",
     "NodeCreate",
     "NodeRead",
+    "PairDetail",
     "PhaseTiming",
     "PinholeCameraConfig",
     "ReconstructionCreate",
@@ -110,6 +113,7 @@ from placeframe_api_client.models.expanded_capture_session import ExpandedCaptur
 from placeframe_api_client.models.expanded_reconstruction import ExpandedReconstruction as ExpandedReconstruction
 from placeframe_api_client.models.float3 import Float3 as Float3
 from placeframe_api_client.models.float4 import Float4 as Float4
+from placeframe_api_client.models.gate_detail import GateDetail as GateDetail
 from placeframe_api_client.models.get_capture_sessions400_response import GetCaptureSessions400Response as GetCaptureSessions400Response
 from placeframe_api_client.models.get_capture_sessions400_response_extra import GetCaptureSessions400ResponseExtra as GetCaptureSessions400ResponseExtra
 from placeframe_api_client.models.group_batch_create import GroupBatchCreate as GroupBatchCreate
@@ -121,6 +125,7 @@ from placeframe_api_client.models.layer_batch_update import LayerBatchUpdate as 
 from placeframe_api_client.models.layer_create import LayerCreate as LayerCreate
 from placeframe_api_client.models.layer_read import LayerRead as LayerRead
 from placeframe_api_client.models.link_type import LinkType as LinkType
+from placeframe_api_client.models.localization_detail import LocalizationDetail as LocalizationDetail
 from placeframe_api_client.models.localization_evaluation_create import LocalizationEvaluationCreate as LocalizationEvaluationCreate
 from placeframe_api_client.models.localization_evaluation_read import LocalizationEvaluationRead as LocalizationEvaluationRead
 from placeframe_api_client.models.localization_map_batch_update import LocalizationMapBatchUpdate as LocalizationMapBatchUpdate
@@ -133,6 +138,7 @@ from placeframe_api_client.models.node_batch_create import NodeBatchCreate as No
 from placeframe_api_client.models.node_batch_update import NodeBatchUpdate as NodeBatchUpdate
 from placeframe_api_client.models.node_create import NodeCreate as NodeCreate
 from placeframe_api_client.models.node_read import NodeRead as NodeRead
+from placeframe_api_client.models.pair_detail import PairDetail as PairDetail
 from placeframe_api_client.models.phase_timing import PhaseTiming as PhaseTiming
 from placeframe_api_client.models.pinhole_camera_config import PinholeCameraConfig as PinholeCameraConfig
 from placeframe_api_client.models.reconstruction_create import ReconstructionCreate as ReconstructionCreate

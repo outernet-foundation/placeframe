@@ -26,6 +26,7 @@ placeframe_api_client/models/expanded_capture_session.py
 placeframe_api_client/models/expanded_reconstruction.py
 placeframe_api_client/models/float3.py
 placeframe_api_client/models/float4.py
+placeframe_api_client/models/gate_detail.py
 placeframe_api_client/models/get_capture_sessions400_response.py
 placeframe_api_client/models/get_capture_sessions400_response_extra.py
 placeframe_api_client/models/group_batch_create.py
@@ -37,6 +38,7 @@ placeframe_api_client/models/layer_batch_update.py
 placeframe_api_client/models/layer_create.py
 placeframe_api_client/models/layer_read.py
 placeframe_api_client/models/link_type.py
+placeframe_api_client/models/localization_detail.py
 placeframe_api_client/models/localization_evaluation_create.py
 placeframe_api_client/models/localization_evaluation_read.py
 placeframe_api_client/models/localization_map_batch_update.py
@@ -49,6 +51,7 @@ placeframe_api_client/models/node_batch_create.py
 placeframe_api_client/models/node_batch_update.py
 placeframe_api_client/models/node_create.py
 placeframe_api_client/models/node_read.py
+placeframe_api_client/models/pair_detail.py
 placeframe_api_client/models/phase_timing.py
 placeframe_api_client/models/pinhole_camera_config.py
 placeframe_api_client/models/reconstruction_create.py

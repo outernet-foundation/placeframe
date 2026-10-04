@@ -17,27 +17,32 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict
-from typing import Any, ClassVar, Dict, List, Optional
-from uuid import UUID
-from placeframe_api_client.models.localization_detail import LocalizationDetail
+from pydantic import BaseModel, ConfigDict, StrictFloat, StrictInt, StrictStr
+from typing import Any, ClassVar, Dict, List, Optional, Union
+from placeframe_api_client.models.gate_detail import GateDetail
 from placeframe_api_client.models.localization_metrics import LocalizationMetrics
-from placeframe_api_client.models.transform import Transform
+from placeframe_api_client.models.pair_detail import PairDetail
+from placeframe_api_client.models.pinhole_camera_config import PinholeCameraConfig
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
 
-class MapLocalization(BaseModel):
+class LocalizationDetail(BaseModel):
     """
-    MapLocalization
+    LocalizationDetail
     """ # noqa: E501
-    id: UUID
-    camera_from_map_transform: Transform
-    map_transform: Transform
-    metrics: LocalizationMetrics
-    detail: Optional[LocalizationDetail] = None
+    reconstruction_id: StrictStr
+    camera: PinholeCameraConfig
+    retrieval_top_k: StrictInt
+    ransac_threshold: Union[StrictFloat, StrictInt]
+    num_query_keypoints: StrictInt
+    timings_ms: Dict[str, Union[StrictFloat, StrictInt]]
+    pairs: List[PairDetail]
+    metrics: Optional[LocalizationMetrics] = None
+    gate: Optional[GateDetail] = None
+    failure_reason: Optional[StrictStr] = None
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["id", "camera_from_map_transform", "map_transform", "metrics", "detail"]
+    __properties: ClassVar[List[str]] = ["reconstruction_id", "camera", "retrieval_top_k", "ransac_threshold", "num_query_keypoints", "timings_ms", "pairs", "metrics", "gate", "failure_reason"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -57,7 +62,7 @@ class MapLocalization(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of MapLocalization from a JSON string"""
+        """Create an instance of LocalizationDetail from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -80,28 +85,37 @@ class MapLocalization(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
-        # override the default output from pydantic by calling `to_dict()` of camera_from_map_transform
-        if self.camera_from_map_transform:
-            _dict['camera_from_map_transform'] = self.camera_from_map_transform.to_dict()
-        # override the default output from pydantic by calling `to_dict()` of map_transform
-        if self.map_transform:
-            _dict['map_transform'] = self.map_transform.to_dict()
+        # override the default output from pydantic by calling `to_dict()` of camera
+        if self.camera:
+            _dict['camera'] = self.camera.to_dict()
+        # override the default output from pydantic by calling `to_dict()` of each item in pairs (list)
+        _items = []
+        if self.pairs:
+            for _item_pairs in self.pairs:
+                if _item_pairs:
+                    _items.append(_item_pairs.to_dict())
+            _dict['pairs'] = _items
         # override the default output from pydantic by calling `to_dict()` of metrics
         if self.metrics:
             _dict['metrics'] = self.metrics.to_dict()
-        # override the default output from pydantic by calling `to_dict()` of detail
-        if self.detail:
-            _dict['detail'] = self.detail.to_dict()
+        # override the default output from pydantic by calling `to_dict()` of gate
+        if self.gate:
+            _dict['gate'] = self.gate.to_dict()
         # puts key-value pairs in additional_properties in the top level
         if self.additional_properties is not None:
             for _key, _value in self.additional_properties.items():
                 _dict[_key] = _value
 
+        # set to None if failure_reason (nullable) is None
+        # and model_fields_set contains the field
+        if self.failure_reason is None and "failure_reason" in self.model_fields_set:
+            _dict['failure_reason'] = None
+
         return _dict
 
     @classmethod
     def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of MapLocalization from a dict"""
+        """Create an instance of LocalizationDetail from a dict"""
         if obj is None:
             return None
 
@@ -109,11 +123,16 @@ class MapLocalization(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "id": obj.get("id"),
-            "camera_from_map_transform": Transform.from_dict(obj["camera_from_map_transform"]) if obj.get("camera_from_map_transform") is not None else None,
-            "map_transform": Transform.from_dict(obj["map_transform"]) if obj.get("map_transform") is not None else None,
+            "reconstruction_id": obj.get("reconstruction_id"),
+            "camera": PinholeCameraConfig.from_dict(obj["camera"]) if obj.get("camera") is not None else None,
+            "retrieval_top_k": obj.get("retrieval_top_k"),
+            "ransac_threshold": obj.get("ransac_threshold"),
+            "num_query_keypoints": obj.get("num_query_keypoints"),
+            "timings_ms": obj.get("timings_ms"),
+            "pairs": [PairDetail.from_dict(_item) for _item in obj["pairs"]] if obj.get("pairs") is not None else None,
             "metrics": LocalizationMetrics.from_dict(obj["metrics"]) if obj.get("metrics") is not None else None,
-            "detail": LocalizationDetail.from_dict(obj["detail"]) if obj.get("detail") is not None else None
+            "gate": GateDetail.from_dict(obj["gate"]) if obj.get("gate") is not None else None,
+            "failure_reason": obj.get("failure_reason")
         })
         # store additional fields in additional_properties
         for _key in obj.keys():
