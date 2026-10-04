@@ -143,6 +143,9 @@ JPEG_QUALITY = 95
 PROGRESS_MARKER = "@progress "
 SPHERICAL_VIEW_SIZE = 1600
 SPHERICAL_VIEW_FOV_DEG = 150.0
+# Mirrors ReconstructionOptions.spherical_layout's own default, used only as the fallback when
+# a reconstruction's manifest predates the field.
+SPHERICAL_LAYOUT = "tetrahedron"
 
 _NATURAL_SORT_SPLIT_RE = re.compile(r"(\d+)")
 
@@ -1579,6 +1582,147 @@ def _render_capture_views(
         "layout": layout_name,
         "view_fov_deg": fov_deg,
     }
+
+
+def map_image_cache_name(image_name: str) -> str:
+    """A COLMAP image name flattened into one safe filename.
+
+    Names are paths (`rig3/camera1/1117741.jpg`, `yaw060_dn15/000147.jpg`), so they cannot be
+    used as cache filenames directly without either creating directories per rig/view or
+    letting a name escape the cache directory.
+    """
+    return image_name.replace("/", "__")
+
+
+def _resolve_map_images(
+    capture_tar: Path,
+    output_dir: Path,
+    names: list[str],
+    layout_name: str,
+    fov_deg: float,
+    size: int,
+    quality: int,
+) -> dict[str, Any]:
+    """Materialize the database images a map was built from, by COLMAP image name.
+
+    Two shapes of name reach this. A rig capture's images are stored in the capture tar at
+    exactly the name COLMAP recorded (`rig3/camera1/1117741.jpg`), so they are extracted
+    verbatim. A spherical capture's are not stored at all -- the reconstructor renders
+    `<view>/<frame>.jpg` from an equirectangular frame and throws the render away -- so those
+    are re-rendered here from `rig0/camera0/<frame>.jpg` using the same projection, at the
+    layout and field of view the reconstruction recorded in its manifest. Get those wrong and
+    the pixels come back subtly misaligned with the keypoints drawn over them.
+    """
+    output_dir.mkdir(parents=True, exist_ok=True)
+    written: dict[str, str] = {}
+    missing: list[str] = []
+    view_maps: dict[str, ViewMapT] = {}
+    views = {view.name: view for view in panorama_layout(layout_name)}
+
+    with tarfile.open(capture_tar) as tar:
+        members = {member.name for member in tar.getmembers() if member.isfile()}
+        for name in names:
+            target = output_dir / f"{map_image_cache_name(name)}"
+            if target.exists():
+                written[name] = str(target)
+                continue
+
+            if name in members:
+                extracted = tar.extractfile(name)
+                if extracted is None:
+                    missing.append(name)
+                    continue
+                target.write_bytes(extracted.read())
+                written[name] = str(target)
+                continue
+
+            # A spherical capture's views are stored under a derived camera id, not under the
+            # view name: rig.SphericalExpansion.camera_id is f"{source_camera_id}_{view.name}",
+            # so COLMAP records `rig0/camera0_C/345000.jpg` for view "C" of `rig0/camera0`.
+            # (panorama.projection's "a view's name becomes an image folder" comment describes
+            # the standalone export, not what the reconstructor writes.)
+            parts = name.split("/")
+            if len(parts) != 3:
+                missing.append(name)
+                continue
+            rig_id, camera_id, frame = parts
+            source_camera, separator, view_name = camera_id.rpartition("_")
+            if not separator or view_name not in views:
+                missing.append(name)
+                continue
+
+            sphere_member = f"{rig_id}/{source_camera}/{frame}"
+            if sphere_member not in members:
+                missing.append(name)
+                continue
+            extracted = tar.extractfile(sphere_member)
+            if extracted is None:
+                missing.append(name)
+                continue
+            with Image.open(BytesIO(extracted.read())) as opened:
+                sphere = np.asarray(opened.convert("RGB"), dtype=np.uint8)
+            if view_name not in view_maps:
+                height, width = sphere.shape[:2]
+                view_maps[view_name] = panorama_view_map(width, height, views[view_name], size, fov_deg)
+            Image.fromarray(panorama_render(sphere, view_maps[view_name])).save(target, quality=quality)
+            written[name] = str(target)
+
+    return {"output_dir": str(output_dir), "written": written, "missing": missing}
+
+
+async def _map_images(
+    reconstruction_id: UUID, output_dir: Path, names: list[str], quality: int, size: int | None = None
+) -> dict[str, Any]:
+    async with authenticated_api_client() as api:
+        try:
+            reconstruction = await api.get_reconstruction(id=reconstruction_id)
+            capture_id = reconstruction.capture_session_id
+            if capture_id is None:
+                _fail_message(f"Reconstruction {reconstruction_id} has no capture session")
+            options = cast("dict[str, Any]", (reconstruction.manifest or {}).get("options") or {})
+            capture_tar = await _ensure_cached_capture_tar(api, capture_id)
+        except ApiException as exception:
+            _fail(exception)
+    return await to_thread(
+        _resolve_map_images,
+        capture_tar,
+        output_dir,
+        names,
+        cast("str", options.get("spherical_layout", SPHERICAL_LAYOUT)),
+        float(cast("float", options.get("spherical_view_fov_deg", SPHERICAL_VIEW_FOV_DEG))),
+        size if size is not None else int(cast("int", options.get("spherical_view_size", SPHERICAL_VIEW_SIZE))),
+        quality,
+    )
+
+
+@app.command(name="map-images")
+def map_images(
+    reconstruction_id: Annotated[UUID, typer.Argument(help="Reconstruction whose database images to resolve")],
+    output_dir: Annotated[Path, typer.Argument(help="Directory to write the resolved images into")],
+    name: Annotated[
+        list[str],
+        typer.Option("--name", help="A COLMAP image name to resolve; repeat for several"),
+    ],
+    size: Annotated[
+        int | None,
+        typer.Option(
+            "--size",
+            help="Edge length to render spherical views at, overriding the reconstruction's own. "
+            "Give the width COLMAP recorded for the view: keypoints are expressed in that frame, "
+            "so anything drawn over a differently-sized render lands in the wrong place",
+        ),
+    ] = None,
+    quality: Annotated[int, typer.Option("--quality", help="JPEG quality for re-rendered spherical views")] = 90,
+    json_output: Annotated[bool, typer.Option("--json", help="Emit JSON instead of a summary")] = False,
+) -> None:
+    """Resolve a map's database images to pixels, extracting or re-rendering as needed."""
+    result = run(_map_images(reconstruction_id, output_dir, name, quality, size))
+    if json_output:
+        typer.echo(dumps(result))
+        return
+    typer.echo(f"Resolved {len(result['written'])} of {len(name)} image(s) into {result['output_dir']}")
+    if result["missing"]:
+        typer.echo(f"Missing: {', '.join(result['missing'])}", err=True)
 
 
 async def _export_views(
