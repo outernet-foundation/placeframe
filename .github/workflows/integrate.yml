@@ -1,0 +1,167 @@
+name: Integrate
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [dev]
+
+concurrency:
+  group: integrate-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint-workflows:
+    runs-on: ubuntu-latest
+    steps:
+      - &checkout
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - &uv-restore
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          save-cache: "false"
+      - &setup-release-devkit
+        uses: ./.github/actions/setup-release-devkit
+      - run: uv run --project "$RUNNER_TEMP/release-devkit" --locked --no-dev lint-workflows
+
+  mirror-images:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - *checkout
+      - *uv-restore
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - run: uv run mirror
+
+  preflight:
+    needs: [lint-workflows, mirror-images]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - *checkout
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          save-cache: "true"
+      - run: uv run --no-sync preflight-python
+      - run: uv run --no-sync preflight
+      - run: uv run --no-sync generate-clients --config openapi-client-codegen.yaml --check
+
+  validate-release-plan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          # Perform a full clone, required for tags
+          fetch-depth: 0
+          fetch-tags: true
+          persist-credentials: false
+      - *uv-restore
+      - *setup-release-devkit
+      - run: uv run --project "$RUNNER_TEMP/release-devkit" --locked --no-dev validate-release-plan
+
+  get-docker-matrix:
+    needs: [preflight, validate-release-plan]
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - *checkout
+      - *uv-restore
+      - id: matrix
+        run: uv run docker-build-matrix >> "$GITHUB_OUTPUT"
+
+  build-docker:
+    needs: [get-docker-matrix]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.get-docker-matrix.outputs.matrix) }}
+    steps:
+      - *checkout
+      - *uv-restore
+      - uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+      - run: uv run build-docker --variant ${{ matrix.variant }} --targets "${{ matrix.targets }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-compose:
+    needs: [build-docker]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [cuda, rocm]
+    steps:
+      - *checkout
+      - *uv-restore
+      - run: uv run publish-compose --variant ${{ matrix.variant }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+
+  get-unity-matrix:
+    needs: [preflight, validate-release-plan]
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+      license: ${{ steps.matrix.outputs.license }}
+    steps:
+      - *checkout
+      - *uv-restore
+      - id: matrix
+        run: uv run compile-check-unity-matrix >> "$GITHUB_OUTPUT"
+
+  preflight-unity:
+    needs: [get-unity-matrix]
+    permissions:
+      contents: read
+      packages: write
+    runs-on:
+      - self-hosted
+      - unity
+    container: ${{ matrix.editor-image }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.get-unity-matrix.outputs.matrix) }}
+    steps:
+      - name: Wipe workspace
+        run: find "$GITHUB_WORKSPACE" -mindepth 1 -delete; rm -rf ~/.cache/Unity
+      - *checkout
+      - *uv-restore
+      - run: >-
+          uv run compile-check-unity
+          --project ${{ matrix.project-name }}
+          --registry ghcr.io/${{ github.repository }}
+          --license ${{ needs.get-unity-matrix.outputs.license }}
+        env:
+          CI_REGISTRY_TOKEN: ${{ github.token }}
+          CI_REGISTRY_USERNAME: ${{ github.actor }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}

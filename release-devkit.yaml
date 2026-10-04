@@ -1,5 +1,4 @@
-requires: ">=0.1"
-ci_workflow: ci-cd.yml
+ci_workflow: release.yml
 packages:
   placeframe-api-client:
     path: packages/generated/csharp/api-client/src/PlaceframeApiClient

@@ -1,0 +1,11 @@
+name: setup-release-devkit
+description: Install release-devkit at the pinned commit into RUNNER_TEMP
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        RELEASE_DEVKIT_COMMIT: ad4215260f7b24ec36d94ddc2ba6660be8afc5fb
+      run: |
+        git clone https://github.com/outernet-foundation/release-devkit.git "$RUNNER_TEMP/release-devkit"
+        git -C "$RUNNER_TEMP/release-devkit" checkout "$RELEASE_DEVKIT_COMMIT"
