@@ -44,9 +44,27 @@ pure rotation: translations are exactly zero, not merely small.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Literal
 
 import numpy as np
+
+
 from numpy.typing import NDArray  # noqa: TID251 — tracked in PLE-233
+
+# How a view samples the sphere.
+#
+# "fisheye" is equidistant (r = f * theta): angular resolution is uniform across the field, and
+# any field of view under 180 degrees is representable. It is the only option that can cover a
+# sphere in few views.
+#
+# "rectilinear" is a pinhole view (r = f * tan(theta)): straight lines stay straight and local
+# patches stay near-isotropic, which is what a phone camera produces. It cannot approach 180
+# degrees -- magnification goes as 1/cos^2(theta) off axis -- so it is for narrow views only,
+# and covering a sphere with it takes many more of them.
+#
+# Which to prefer is set by what the query images look like, not by the sphere: a map image that
+# matches the query's projection and angular resolution gives a feature matcher a far easier job.
+Projection = Literal["fisheye", "rectilinear"]
 
 # Half the tetrahedral tilt angle: asin(1/sqrt(3)) in degrees.
 TETRA_TILT_DEG = 35.264389682754654
@@ -100,15 +118,35 @@ def layout(name: str) -> tuple[View, ...]:
         raise ValueError(f"unknown layout {name!r}; known layouts: {', '.join(sorted(LAYOUTS))}") from None
 
 
-def focal_length(size: int, fov_deg: float) -> float:
-    """Pixels per radian for an equidistant view whose circle spans `fov_deg`."""
-    return (size / 2) / np.radians(fov_deg / 2)
+def focal_length(size: int, fov_deg: float, projection: Projection = "fisheye") -> float:
+    """Focal length in pixels for a view spanning `fov_deg` across `size` pixels.
+
+    Equidistant gives pixels per radian directly; rectilinear is the pinhole focal length, for
+    which the same field of view needs a longer focal length and so resolves the centre of the
+    field more finely at the cost of reaching nowhere near 180 degrees.
+    """
+    half = np.radians(fov_deg / 2)
+    if projection == "rectilinear":
+        return (size / 2) / np.tan(half)
+    return (size / 2) / half
 
 
-def camera_params(size: int, fov_deg: float) -> list[float]:
-    """COLMAP OPENCV_FISHEYE parameters (fx, fy, cx, cy, k1..k4) for a view."""
-    focal = focal_length(size, fov_deg)
+def camera_model(projection: Projection) -> str:
+    """The COLMAP camera model a view of this projection is exactly described by."""
+    return "PINHOLE" if projection == "rectilinear" else "OPENCV_FISHEYE"
+
+
+def camera_params(size: int, fov_deg: float, projection: Projection = "fisheye") -> list[float]:
+    """COLMAP camera parameters for a view.
+
+    OPENCV_FISHEYE (fx, fy, cx, cy, k1..k4) for an equidistant view, PINHOLE (fx, fy, cx, cy)
+    for a rectilinear one. Both are exact for a rendered view rather than estimated, because
+    the projection that produced the pixels is the one being described.
+    """
+    focal = focal_length(size, fov_deg, projection)
     centre = (size - 1) / 2
+    if projection == "rectilinear":
+        return [focal, focal, centre, centre]
     return [focal, focal, centre, centre, 0.0, 0.0, 0.0, 0.0]
 
 
@@ -158,31 +196,52 @@ class ViewMap:
     map_x: NDArray[np.float32]
     map_y: NDArray[np.float32]
     inside: NDArray[np.bool_]
+    projection: Projection = "fisheye"
 
     @property
     def camera_params(self) -> list[float]:
-        return camera_params(self.size, self.fov_deg)
+        return camera_params(self.size, self.fov_deg, self.projection)
+
+    @property
+    def camera_model(self) -> str:
+        return camera_model(self.projection)
 
 
-def view_map(pano_width: int, pano_height: int, view: View, size: int, fov_deg: float) -> ViewMap:
+def view_map(
+    pano_width: int,
+    pano_height: int,
+    view: View,
+    size: int,
+    fov_deg: float,
+    projection: Projection = "fisheye",
+) -> ViewMap:
     """Sampling tables for one view of an equirectangular frame of this size."""
-    focal = focal_length(size, fov_deg)
+    focal = focal_length(size, fov_deg, projection)
     centre = (size - 1) / 2
 
     px, py = np.meshgrid(np.arange(size, dtype=np.float32), np.arange(size, dtype=np.float32))
     dx, dy = px - centre, py - centre
-    radius = np.hypot(dx, dy)
-    theta = radius / focal
-    phi = np.arctan2(dy, dx)
 
-    cam = np.stack([np.sin(theta) * np.cos(phi), np.sin(theta) * np.sin(phi), np.cos(theta)], axis=-1)
+    if projection == "rectilinear":
+        # A pinhole view fills its frame, so every pixel carries image -- there is no circle to
+        # mask off and no corner to discard.
+        cam = np.stack([dx, dy, np.full_like(dx, focal)], axis=-1)
+        cam /= np.linalg.norm(cam, axis=-1, keepdims=True)
+        inside = np.ones(dx.shape, dtype=bool)
+    else:
+        radius = np.hypot(dx, dy)
+        theta = radius / focal
+        phi = np.arctan2(dy, dx)
+        cam = np.stack([np.sin(theta) * np.cos(phi), np.sin(theta) * np.sin(phi), np.cos(theta)], axis=-1)
+        inside = radius <= size / 2
+
     rays = cam @ pano_from_cam(view).T
 
     lon = np.arctan2(rays[..., 0], rays[..., 2])
     lat = np.arcsin(np.clip(rays[..., 1], -1.0, 1.0))
     map_x = (((lon / (2 * np.pi) + 0.5) * pano_width) % pano_width).astype(np.float32)
     map_y = ((0.5 - lat / np.pi) * pano_height).astype(np.float32)
-    return ViewMap(view, size, fov_deg, map_x, map_y, radius <= size / 2)
+    return ViewMap(view, size, fov_deg, map_x, map_y, inside, projection)
 
 
 def render(frame: NDArray[np.uint8], tables: ViewMap) -> NDArray[np.uint8]:
