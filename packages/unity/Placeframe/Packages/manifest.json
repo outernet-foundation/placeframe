@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "com.cysharp.r3": "1.3.1",
+    "com.cysharp.r3": "1.2.9",
     "com.cysharp.unitask": "2.5.11",
     "com.magicleap.unitysdk": "2.6.0",
     "com.unity.ai.navigation": "2.0.9",
@@ -60,18 +60,12 @@
     {
       "name": "npmjs",
       "url": "https://registry.npmjs.org",
-      "scopes": [
-        "com.magicleap",
-        "org.outernet"
-      ]
+      "scopes": ["com.magicleap", "org.outernet"]
     },
     {
       "name": "OpenUPM",
       "url": "https://package.openupm.com",
-      "scopes": [
-        "org.nuget",
-        "com.cysharp"
-      ]
+      "scopes": ["org.nuget", "com.cysharp"]
     }
   ]
 }
