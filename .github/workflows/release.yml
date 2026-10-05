@@ -11,27 +11,6 @@ permissions:
   contents: read
 
 jobs:
-  ensure-release-pr:
-    if: github.ref == 'refs/heads/dev'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          persist-credentials: false
-      - &uv-restore
-        uses: astral-sh/setup-uv@v7
-        with:
-          enable-cache: true
-          save-cache: "false"
-      - &setup-release-devkit
-        uses: ./.github/actions/setup-release-devkit
-      - run: uv run --project "$RUNNER_TEMP/release-devkit" --locked --no-dev ensure-release-pr
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-
   publish-prerelease:
     if: github.ref == 'refs/heads/dev'
     runs-on: ubuntu-latest
@@ -45,8 +24,13 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
           persist-credentials: false
-      - *uv-restore
-      - *setup-release-devkit
+      - &uv-restore
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          save-cache: "false"
+      - &setup-release-devkit
+        uses: ./.github/actions/setup-release-devkit
       - &nuget-login
         uses: NuGet/login@v1
         id: nuget-login
