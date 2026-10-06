@@ -23,6 +23,7 @@
     "org.outernet.placeframe.apiclient": "0.0.0+local",
     "org.nuget.mathnet.numerics": "5.0.0",
     "org.nuget.sharpziplib": "1.4.2",
-    "org.nuget.polly": "8.8.0"
+    "org.nuget.polly": "8.8.0",
+    "org.nuget.r3": "1.2.9"
   }
 }

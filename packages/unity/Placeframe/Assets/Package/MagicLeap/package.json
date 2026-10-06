@@ -17,6 +17,8 @@
   "dependencies": {
     "org.outernet.placeframe": "0.0.0+local",
     "com.cysharp.unitask": "2.5.11",
-    "com.magicleap.unitysdk": "2.6.0"
+    "com.cysharp.r3": "1.2.9",
+    "com.magicleap.unitysdk": "2.6.0",
+    "org.nuget.r3": "1.2.9"
   }
 }
