@@ -59,9 +59,9 @@ jobs:
         with:
           enable-cache: true
           save-cache: "true"
-      - run: uv run --no-sync preflight-python
-      - run: uv run --no-sync preflight
-      - run: uv run --no-sync generate-clients --config openapi-client-codegen.yaml --check
+      - run: uv run preflight-python
+      - run: uv run preflight
+      - run: uv run generate-clients --config openapi-client-codegen.yaml --check
 
   validate-release-plan:
     runs-on: ubuntu-latest

@@ -298,16 +298,16 @@ wheels = [
 
 [[package]]
 name = "ci-devkit"
-version = "0.1.14"
+version = "0.1.15"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "bashrun" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/22/25/dc42c65e6147eb64477eae4f410b26d630f03f46c3d3bdcdab374df28081/ci_devkit-0.1.14.tar.gz", hash = "sha256:f8b45fa995bba626edda29c191883224173155a39137da5a1bc67f09ad28d337", size = 51204, upload-time = "2026-09-30T04:06:27.581Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/5d/5c/e84138adac160d979de230f037ac7b3b2e5862023ec6b517ab4b46387352/ci_devkit-0.1.15.tar.gz", hash = "sha256:7854f83faf058e583a136a849fc3434d4d0ed50fe7d3bc7cbd57dc7ad19881da", size = 53313, upload-time = "2026-10-05T04:49:32.306Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/4f/08/56cafd065e2d00ad90d450867282d79469bc4c7c9eefa1dc11dcf84e0c96/ci_devkit-0.1.14-py3-none-any.whl", hash = "sha256:64b74d797a040d8d57735eda30dbb59844d0de9c64e53dd24e9769d10bc34e18", size = 25689, upload-time = "2026-09-30T04:06:26.522Z" },
+    { url = "https://files.pythonhosted.org/packages/62/e7/838a15efbe762e4bcf36c44bec898a318b3e6cb76812ede0d662742df056/ci_devkit-0.1.15-py3-none-any.whl", hash = "sha256:17386d85ecce3ef8fbf97c896c7b442e4b8d3183ef0208e097027aac76067832", size = 28031, upload-time = "2026-10-05T04:49:31.485Z" },
 ]
 
 [[package]]
@@ -2003,7 +2003,7 @@ dev = [
     { name = "pytest-asyncio", specifier = ">=0.24.0" },
     { name = "ruff", specifier = ">=0.14.11" },
     { name = "scripts", editable = "scripts" },
-    { name = "unity-devkit", specifier = ">=0.1.18" },
+    { name = "unity-devkit", specifier = ">=0.1.25" },
 ]
 
 [[package]]
@@ -3429,7 +3429,7 @@ wheels = [
 
 [[package]]
 name = "unity-devkit"
-version = "0.1.23"
+version = "0.1.25"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "bashrun" },
@@ -3438,9 +3438,9 @@ dependencies = [
     { name = "pydantic-settings" },
     { name = "typer" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/85/73/14c020c369de876886753ca4929a4f5edb516d74b70393ae51219e54fca3/unity_devkit-0.1.23.tar.gz", hash = "sha256:09eef2de1b0ef112a5f5e02b25b4f877914b6dbaf02d4ed25a31c9e29f82a281", size = 15906, upload-time = "2026-09-30T06:23:24.065Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/47/64/5bf225b8ce4ab56984f998e96c0dd69983161c6c31b547d29e626db746d8/unity_devkit-0.1.25.tar.gz", hash = "sha256:897140191e5a71b575d2e1cb3eda1664cabba784b0314977ff7815632f089c51", size = 16210, upload-time = "2026-10-05T05:37:23.767Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/24/a8/2d4073d057641964ee878cba1a881895bceebf0956806b6661a2f046de3e/unity_devkit-0.1.23-py3-none-any.whl", hash = "sha256:b9e5ea6b9f74d4660a8a8513077da35d2143cc6edca4426d45e8feb4b8fd92a0", size = 18480, upload-time = "2026-09-30T06:23:23.119Z" },
+    { url = "https://files.pythonhosted.org/packages/87/ff/83e04dee87a4bc19ca304881e69225fbb36f29eb88963ae44547f08c0e9a/unity_devkit-0.1.25-py3-none-any.whl", hash = "sha256:58ed873efd30d37b584a88a473a04472713f41295543397b3f3d687d3da4762a", size = 19023, upload-time = "2026-10-05T05:37:22.932Z" },
 ]
 
 [[package]]
