@@ -1,6 +1,7 @@
 *.csproj
 *.sln
 Assets/Packages/
+Assets/Packages.meta
 Build/
 Build.meta
 Builds/
