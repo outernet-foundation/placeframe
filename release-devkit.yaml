@@ -1,4 +1,4 @@
-ci_workflow: release.yml
+ci_workflow: integrate.yml
 packages:
   placeframe-api-client:
     path: packages/generated/csharp/api-client/src/PlaceframeApiClient
