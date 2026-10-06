@@ -1,4 +1,4 @@
-#if MAGIC_LEAP
+#if OUTERNET_MAGIC_LEAP
 using System;
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;

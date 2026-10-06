@@ -1,0 +1,43 @@
+ci_workflow: release.yml
+packages:
+  placeframe-api-client:
+    path: packages/generated/csharp/api-client/src/PlaceframeApiClient
+    major_minor: "0.1"
+    registries:
+      nuget: PlaceframeApiClient
+      npm: org.outernet.placeframe.apiclient
+  placeframe-core:
+    path: packages/unity/Placeframe/Assets/Package/Core
+    major_minor: "1.0"
+    registries:
+      npm: org.outernet.placeframe
+  placeframe-arfoundation:
+    path: packages/unity/Placeframe/Assets/Package/ARFoundation
+    major_minor: "1.0"
+    registries:
+      npm: org.outernet.placeframe.arfoundation
+  placeframe-magicleap:
+    path: packages/unity/Placeframe/Assets/Package/MagicLeap
+    major_minor: "1.0"
+    registries:
+      npm: org.outernet.placeframe.magicleap
+  placeframe-auth:
+    path: packages/unity/Placeframe/Assets/Package/Auth
+    major_minor: "0.1"
+    registries:
+      npm: org.outernet.placeframe.auth
+  placeframe-logging:
+    path: packages/unity/Logging/Assets/Package
+    major_minor: "0.1"
+    registries:
+      npm: org.outernet.logging
+  placeframe-common:
+    path: packages/python/common
+    major_minor: "0.1"
+    registries:
+      pypi: placeframe-common
+  placeframe-core-python:
+    path: packages/python/core
+    major_minor: "0.1"
+    registries:
+      pypi: placeframe-core

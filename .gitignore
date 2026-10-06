@@ -4,6 +4,7 @@
 **/*.pyd
 **/.venv/
 **/*.egg-info
+**/dist/
 **/build/
 !/build/
 **/*.sln
@@ -18,9 +19,16 @@
 .act
 .env
 .secrets
+stack/generated/k8s/manifests.local.yaml
+stack/score/.score-compose/
+stack/generated/k8s/.score-k8s/*
+!stack/generated/k8s/.score-k8s/state.yaml
 metadata.json
 storage/
 tidy-commits.json
 .build-version.json
 artifacts/
 .pnpm-store/
+.placeframe/
+.claude/scheduled_tasks.lock
+bookmark.md

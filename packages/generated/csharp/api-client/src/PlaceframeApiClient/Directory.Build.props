@@ -1,5 +1,6 @@
 <Project>
-  <ItemGroup>
-    <PackageReference Include="UniTask" Version="2.5.10" />
-  </ItemGroup>
+  <PropertyGroup>
+    <BaseIntermediateOutputPath>$(MSBuildThisFileDirectory)../../obj/$(MSBuildProjectName)/</BaseIntermediateOutputPath>
+    <BaseOutputPath>$(MSBuildThisFileDirectory)../../bin/$(MSBuildProjectName)/</BaseOutputPath>
+  </PropertyGroup>
 </Project>

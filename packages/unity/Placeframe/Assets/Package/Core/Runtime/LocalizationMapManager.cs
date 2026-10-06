@@ -4,23 +4,34 @@ using UnityEngine;
 
 namespace Placeframe.Core
 {
-    public class LocalizationMapManager : MonoBehaviour
+    public class LocalizationMapVisualizerManager : MonoBehaviour
     {
-        public LocalizationMap localizationMapPrefab;
-        private Dictionary<Guid, LocalizationMap> _visualizers = new Dictionary<Guid, LocalizationMap>();
+        public LocalizationMapVisualizer localizationMapPrefab;
+        private bool _visible = true;
+        private Dictionary<Guid, LocalizationMapVisualizer> _visualizers = new Dictionary<Guid, LocalizationMapVisualizer>();
 
         private void Awake()
         {
-            VisualPositioningSystem.SetLocalizationMapManager(this);
+            VisualPositioningSystem.OnLocalizationMapAdded += AddMap;
+            VisualPositioningSystem.OnLocalizationMapRemoved += RemoveMap;
+
+            foreach (var map in VisualPositioningSystem.LocalizationMaps)
+                AddMap(map);
         }
 
-        public void AddMap(Guid mapID, bool visible)
+        private void OnDestroy()
+        {
+            VisualPositioningSystem.OnLocalizationMapAdded -= AddMap;
+            VisualPositioningSystem.OnLocalizationMapRemoved -= RemoveMap;
+        }
+
+        public void AddMap(Guid mapID)
         {
             if (_visualizers.ContainsKey(mapID))
                 throw new InvalidOperationException($"Map {mapID} is already added");
 
             _visualizers[mapID] = Instantiate(localizationMapPrefab, Vector3.zero, Quaternion.identity);
-            _visualizers[mapID].SetVisible(visible);
+            _visualizers[mapID].SetVisible(_visible);
             _visualizers[mapID].Load(mapID);
         }
 
@@ -35,10 +46,10 @@ namespace Placeframe.Core
 
         public void SetVisible(bool visible)
         {
+            _visible = visible;
+
             foreach (var visualizer in _visualizers.Values)
-            {
                 visualizer.SetVisible(visible);
-            }
         }
     }
 }

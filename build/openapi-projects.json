@@ -1,5 +1,0 @@
-{
-  "docker/localizer": ["python"],
-  "docker/api": ["python", "csharp"],
-  "docker/zed-capture": ["csharp"]
-}

@@ -70,11 +70,9 @@ namespace Placeframe.Core
         }
 
         // Skew(v) returns the 3x3 matrix M such that M * x = v × x for any vector x.
-        private static double3x3 Skew(double3 v) =>
-            new double3x3(new double3(0, v.z, -v.y), new double3(-v.z, 0, v.x), new double3(v.y, -v.x, 0));
+        private static double3x3 Skew(double3 v) => new double3x3(new double3(0, v.z, -v.y), new double3(-v.z, 0, v.x), new double3(v.y, -v.x, 0));
 
         // Recovers v from the antisymmetric part of m. Robust to symmetric numerical noise.
-        private static double3 SkewInverse(double3x3 m) =>
-            new double3((m.c1.z - m.c2.y) * 0.5, (m.c2.x - m.c0.z) * 0.5, (m.c0.y - m.c1.x) * 0.5);
+        private static double3 SkewInverse(double3x3 m) => new double3((m.c1.z - m.c2.y) * 0.5, (m.c2.x - m.c0.z) * 0.5, (m.c0.y - m.c1.x) * 0.5);
     }
 }

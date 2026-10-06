@@ -1,16 +1,16 @@
 from __future__ import annotations
 
 import shlex
-from typing import Literal
+from typing import Annotated, Literal
 
 import typer
-from common.bash import bash
-from common.detect_gpu import Gpu
+from bashrun.bash import bash
+from docker_devkit.detect_gpu import Gpu
 from pydantic_settings import BaseSettings
 
-from ...shared.ci_step import ci_step
-from ...shared.setup import configure_git, free_disk_space
-from ..build_docker import run_build
+from ci_devkit.ci_step import ci_step
+from ci_devkit.setup import configure_git, free_disk_space
+from docker_devkit.build_docker import run_build
 
 Variant = Literal["common", "cuda", "rocm"]
 
@@ -27,7 +27,15 @@ ci_app = typer.Typer(add_completion=False, pretty_exceptions_show_locals=False)
 
 
 @ci_app.command()
-def ci_main(variant: Variant = typer.Option(help="Build variant: common, cuda, or rocm")) -> None:
+def ci_main(
+    variant: Variant = typer.Option(help="Build variant: common, cuda, or rocm"),
+    targets: Annotated[
+        str | None,
+        typer.Option(
+            "--targets", help="Space-separated services to build (from the image matrix); overrides the variant default"
+        ),
+    ] = None,
+) -> None:
     with ci_step("Setup"):
         configure_git(settings.github_workspace)
         free_disk_space(large_packages=True, docker_images=True, swap_storage=True)
@@ -39,20 +47,7 @@ def ci_main(variant: Variant = typer.Option(help="Build variant: common, cuda, o
             stdin_text=settings.github_token,
         )
 
-    gpu: Gpu = variant if variant != "common" else "cuda"
-    targets = (
-        [f"localizer-{variant}", f"reconstructor-{variant}"]
-        if variant != "common"
-        else [
-            "api",
-            "auth-initializer",
-            "create-database",
-            "gateway",
-            "initialize-cloudbeaver",
-            "migrate-database",
-            "state-sync",
-        ]
-    )
+    gpu: Gpu = variant if variant != "common" else "none"
 
     with ci_step(f"Build images ({variant})"):
-        run_build(mode="ci", gpu=gpu, targets_opt=targets)
+        run_build(mode="ci", gpu=gpu, gpu_only=variant != "common", targets_opt=targets.split() if targets else None)

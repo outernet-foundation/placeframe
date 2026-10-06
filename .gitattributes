@@ -1,3 +1,3 @@
 * text=auto eol=lf
 .env.lock merge=ours
-build/versions.json merge=ours
+build/versions.json merge=oursruff.base.toml -text
