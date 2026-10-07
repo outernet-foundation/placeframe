@@ -5,21 +5,21 @@ metadata:
   annotations:
     k8s.score.dev/workload-name: api
   labels:
-    app.kubernetes.io/instance: api-7ae5e8b491
+    app.kubernetes.io/instance: api-03400ec588
     app.kubernetes.io/managed-by: score-k8s
     app.kubernetes.io/name: api
   name: api
 spec:
   selector:
     matchLabels:
-      app.kubernetes.io/instance: api-7ae5e8b491
+      app.kubernetes.io/instance: api-03400ec588
   strategy: {}
   template:
     metadata:
       annotations:
         k8s.score.dev/workload-name: api
       labels:
-        app.kubernetes.io/instance: api-7ae5e8b491
+        app.kubernetes.io/instance: api-03400ec588
         app.kubernetes.io/managed-by: score-k8s
         app.kubernetes.io/name: api
     spec:
@@ -84,18 +84,6 @@ spec:
               value: http://localhost:8000
             - name: LOKI_URL
               value: http://localhost:3100
-            - name: MINIO_ACCESS_KEY
-              valueFrom:
-                secretKeyRef:
-                  key: MINIO_ACCESS_KEY
-                  name: placeframe-secrets
-            - name: MINIO_ENDPOINT_URL
-              value: http://minio:9000
-            - name: MINIO_SECRET_KEY
-              valueFrom:
-                secretKeyRef:
-                  key: MINIO_SECRET_KEY
-                  name: placeframe-secrets
             - name: POSTGRES_HOST
               value: pf-postgres
             - name: PUBLIC_URL
@@ -104,8 +92,20 @@ spec:
                   key: PUBLIC_URL
                   name: placeframe-secrets
             - name: RECONSTRUCTIONS_BUCKET
-              value: reconstructions
-          image: ghcr.io/outernet-foundation/placeframe/api:tree-19bcf81e1b2f5fbdfece166877de67f035a51016
+              value: dev-reconstructions
+            - name: S3_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: S3_ACCESS_KEY
+                  name: placeframe-secrets
+            - name: S3_ENDPOINT_URL
+              value: http://seaweedfs:8333
+            - name: S3_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: S3_SECRET_KEY
+                  name: placeframe-secrets
+          image: ghcr.io/outernet-foundation/placeframe/api:tree-35ba0e139f65717c5e3dfbac92949defc4cb2dfc
           livenessProbe:
             httpGet:
               path: /health
@@ -120,21 +120,21 @@ metadata:
   annotations:
     k8s.score.dev/workload-name: gateway
   labels:
-    app.kubernetes.io/instance: gateway-63f43f747f
+    app.kubernetes.io/instance: gateway-7b9d446cd8
     app.kubernetes.io/managed-by: score-k8s
     app.kubernetes.io/name: gateway
   name: gateway
 spec:
   selector:
     matchLabels:
-      app.kubernetes.io/instance: gateway-63f43f747f
+      app.kubernetes.io/instance: gateway-7b9d446cd8
   strategy: {}
   template:
     metadata:
       annotations:
         k8s.score.dev/workload-name: gateway
       labels:
-        app.kubernetes.io/instance: gateway-63f43f747f
+        app.kubernetes.io/instance: gateway-7b9d446cd8
         app.kubernetes.io/managed-by: score-k8s
         app.kubernetes.io/name: gateway
     spec:
@@ -161,21 +161,21 @@ metadata:
   annotations:
     k8s.score.dev/workload-name: lease-server
   labels:
-    app.kubernetes.io/instance: lease-server-1ec460ca93
+    app.kubernetes.io/instance: lease-server-97427824b2
     app.kubernetes.io/managed-by: score-k8s
     app.kubernetes.io/name: lease-server
   name: lease-server
 spec:
   selector:
     matchLabels:
-      app.kubernetes.io/instance: lease-server-1ec460ca93
+      app.kubernetes.io/instance: lease-server-97427824b2
   strategy: {}
   template:
     metadata:
       annotations:
         k8s.score.dev/workload-name: lease-server
       labels:
-        app.kubernetes.io/instance: lease-server-1ec460ca93
+        app.kubernetes.io/instance: lease-server-97427824b2
         app.kubernetes.io/managed-by: score-k8s
         app.kubernetes.io/name: lease-server
     spec:
@@ -194,7 +194,7 @@ spec:
               value: development
             - name: POSTGRES_HOST
               value: pf-postgres
-          image: ghcr.io/outernet-foundation/placeframe/lease-server:tree-7b3d4cec6cf3f2d2d98f578ed3cf112a1158d9a8
+          image: ghcr.io/outernet-foundation/placeframe/lease-server:tree-c19874616f3264dcdc155617be3fb73de6c94e5a
           livenessProbe:
             httpGet:
               path: /health
@@ -202,37 +202,6 @@ spec:
           name: lease-server
           resources: {}
 status: {}
----
-apiVersion: batch/v1
-kind: Job
-metadata:
-  annotations:
-    argocd.argoproj.io/hook: Sync
-    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
-  name: minio-bucket
-spec:
-  backoffLimit: 30
-  template:
-    spec:
-      containers:
-        - command:
-            - /bin/sh
-            - -c
-            - mc alias set local http://minio:9000 $(MINIO_ACCESS_KEY) $(MINIO_SECRET_KEY) && mc mb --ignore-existing local/reconstructions && mc mb --ignore-existing local/dev-captures
-          env:
-            - name: MINIO_ACCESS_KEY
-              valueFrom:
-                secretKeyRef:
-                  key: MINIO_ACCESS_KEY
-                  name: placeframe-secrets
-            - name: MINIO_SECRET_KEY
-              valueFrom:
-                secretKeyRef:
-                  key: MINIO_SECRET_KEY
-                  name: placeframe-secrets
-          image: quay.io/minio/mc@sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727
-          name: bucket
-      restartPolicy: OnFailure
 ---
 apiVersion: batch/v1
 kind: Job
@@ -295,7 +264,7 @@ spec:
                 secretKeyRef:
                   key: DATABASE_ORCHESTRATION_USER_PASSWORD
                   name: placeframe-secrets
-          image: ghcr.io/outernet-foundation/placeframe/database-manager:tree-d69c18305f567e658be165e13d45e0caa0bd6669
+          image: ghcr.io/outernet-foundation/placeframe/database-manager:tree-bf0ab67d9b306cb0666a1b08124593b17a32f530
           name: create
           volumeMounts:
             - mountPath: /mnt/efs
@@ -339,13 +308,44 @@ spec:
           name: migrate
       restartPolicy: OnFailure
 ---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+  name: seaweedfs-buckets
+spec:
+  backoffLimit: 30
+  template:
+    spec:
+      containers:
+        - env:
+            - name: S3_ENDPOINT_URL
+              value: http://seaweedfs:8333
+            - name: S3_BUCKETS
+              value: dev-captures dev-reconstructions
+            - name: S3_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: S3_ACCESS_KEY
+                  name: placeframe-secrets
+            - name: S3_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: S3_SECRET_KEY
+                  name: placeframe-secrets
+          image: ghcr.io/outernet-foundation/placeframe/s3-initializer:tree-8e88e7fc82c68a271040c4e165c3a1b674e561ce
+          name: buckets
+      restartPolicy: OnFailure
+---
 apiVersion: v1
 kind: Service
 metadata:
   annotations:
     k8s.score.dev/workload-name: api
   labels:
-    app.kubernetes.io/instance: api-7ae5e8b491
+    app.kubernetes.io/instance: api-03400ec588
     app.kubernetes.io/managed-by: score-k8s
     app.kubernetes.io/name: api
   name: api
@@ -356,7 +356,7 @@ spec:
       protocol: TCP
       targetPort: 8000
   selector:
-    app.kubernetes.io/instance: api-7ae5e8b491
+    app.kubernetes.io/instance: api-03400ec588
 status:
   loadBalancer: {}
 ---
@@ -366,7 +366,7 @@ metadata:
   annotations:
     k8s.score.dev/workload-name: gateway
   labels:
-    app.kubernetes.io/instance: gateway-63f43f747f
+    app.kubernetes.io/instance: gateway-7b9d446cd8
     app.kubernetes.io/managed-by: score-k8s
     app.kubernetes.io/name: gateway
   name: gateway
@@ -377,7 +377,7 @@ spec:
       protocol: TCP
       targetPort: 8443
   selector:
-    app.kubernetes.io/instance: gateway-63f43f747f
+    app.kubernetes.io/instance: gateway-7b9d446cd8
 status:
   loadBalancer: {}
 ---
@@ -398,7 +398,7 @@ metadata:
   annotations:
     k8s.score.dev/workload-name: lease-server
   labels:
-    app.kubernetes.io/instance: lease-server-1ec460ca93
+    app.kubernetes.io/instance: lease-server-97427824b2
     app.kubernetes.io/managed-by: score-k8s
     app.kubernetes.io/name: lease-server
   name: lease-server
@@ -409,20 +409,9 @@ spec:
       protocol: TCP
       targetPort: 8000
   selector:
-    app.kubernetes.io/instance: lease-server-1ec460ca93
+    app.kubernetes.io/instance: lease-server-97427824b2
 status:
   loadBalancer: {}
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: minio
-spec:
-  ports:
-    - port: 9000
-      targetPort: 9000
-  selector:
-    app.kubernetes.io/instance: minio
 ---
 apiVersion: v1
 kind: Service
@@ -434,6 +423,17 @@ spec:
       targetPort: 5432
   selector:
     app.kubernetes.io/instance: pf-postgres
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: seaweedfs
+spec:
+  ports:
+    - port: 8333
+      targetPort: 8333
+  selector:
+    app.kubernetes.io/instance: seaweedfs
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -532,58 +532,6 @@ kind: StatefulSet
 metadata:
   annotations:
     argocd.argoproj.io/sync-options: Prune=false
-  name: minio
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app.kubernetes.io/instance: minio
-  serviceName: minio
-  template:
-    metadata:
-      labels:
-        app.kubernetes.io/instance: minio
-    spec:
-      containers:
-        - args:
-            - server
-            - /data
-            - --console-address
-            - :9001
-          env:
-            - name: MINIO_ROOT_USER
-              valueFrom:
-                secretKeyRef:
-                  key: MINIO_ACCESS_KEY
-                  name: placeframe-secrets
-            - name: MINIO_ROOT_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  key: MINIO_SECRET_KEY
-                  name: placeframe-secrets
-          image: quay.io/minio/minio@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
-          name: minio
-          ports:
-            - containerPort: 9000
-          volumeMounts:
-            - mountPath: /data
-              name: data
-  volumeClaimTemplates:
-    - metadata:
-        name: data
-      spec:
-        accessModes:
-          - ReadWriteOnce
-        resources:
-          requests:
-            storage: 50Gi
-        storageClassName: hcloud-volumes
----
-apiVersion: apps/v1
-kind: StatefulSet
-metadata:
-  annotations:
-    argocd.argoproj.io/sync-options: Prune=false
   name: pf-postgres
 spec:
   replicas: 1
@@ -625,4 +573,68 @@ spec:
         resources:
           requests:
             storage: 1Gi
+        storageClassName: hcloud-volumes
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
+  name: seaweedfs
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: seaweedfs
+  serviceName: seaweedfs
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: seaweedfs
+    spec:
+      containers:
+        - args:
+            - server
+            - -filer
+            - -s3
+            - -s3.port=8333
+            - -s3.config=/etc/seaweedfs/s3.json
+          command:
+            - /usr/local/bin/entrypoint-wrapper.sh
+          env:
+            - name: S3_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: S3_ACCESS_KEY
+                  name: placeframe-secrets
+            - name: S3_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: S3_SECRET_KEY
+                  name: placeframe-secrets
+          image: ghcr.io/outernet-foundation/placeframe/seaweedfs:tree-87d17dcc9c251802f59e5d93d33786050f586f3f
+          name: seaweedfs
+          ports:
+            - containerPort: 8333
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - curl -fsS http://127.0.0.1:9333/cluster/status && curl -s -o /dev/null http://127.0.0.1:8333/
+            failureThreshold: 60
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          volumeMounts:
+            - mountPath: /data
+              name: data
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 50Gi
         storageClassName: hcloud-volumes

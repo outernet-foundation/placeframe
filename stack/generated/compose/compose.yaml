@@ -24,14 +24,14 @@ services:
       DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-development}
       LOCALIZER_CONTAINER_URL: http://localhost:8000
       LOKI_URL: http://localhost:3100
-      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:?err}
-      MINIO_ENDPOINT_URL: http://minio:9000
-      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:?err}
       POSTGRES_HOST: pf-postgres
       PUBLIC_URL: ${PUBLIC_URL:?err}
       RECONSTRUCTIONS_BUCKET: dev-reconstructions
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?err}
+      S3_ENDPOINT_URL: http://seaweedfs:8333
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?err}
     hostname: api
-    image: ghcr.io/outernet-foundation/placeframe/api:tree-19bcf81e1b2f5fbdfece166877de67f035a51016
+    image: ghcr.io/outernet-foundation/placeframe/api:tree-35ba0e139f65717c5e3dfbac92949defc4cb2dfc
     ports:
       - target: 8000
         published: "8000"
@@ -73,42 +73,7 @@ services:
       DEPLOYMENT_ENVIRONMENT: development
       POSTGRES_HOST: pf-postgres
     hostname: lease-server
-    image: ghcr.io/outernet-foundation/placeframe/lease-server:tree-7b3d4cec6cf3f2d2d98f578ed3cf112a1158d9a8
-  minio:
-    command:
-      - server
-      - /data
-      - --console-address
-      - :9001
-    environment:
-      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:?err}
-      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:?err}
-    healthcheck:
-      test:
-        - CMD
-        - curl
-        - -f
-        - http://localhost:9000/minio/health/ready
-      timeout: 2s
-      interval: 2s
-      retries: 30
-    image: quay.io/minio/minio@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
-    restart: always
-    volumes:
-      - type: volume
-        source: minio-data
-        target: /data
-  minio-init:
-    depends_on:
-      minio:
-        condition: service_healthy
-        required: false
-    entrypoint:
-      - /bin/sh
-      - -c
-      - mc alias set local http://minio:9000 ${MINIO_ACCESS_KEY:?err} ${MINIO_SECRET_KEY:?err} && mc mb --ignore-existing local/dev-captures && mc mb --ignore-existing local/dev-reconstructions && mc mb --ignore-existing local/loki
-    image: quay.io/minio/mc@sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727
-    restart: "no"
+    image: ghcr.io/outernet-foundation/placeframe/lease-server:tree-c19874616f3264dcdc155617be3fb73de6c94e5a
   pf-postgres:
     entrypoint:
       - /usr/local/bin/entrypoint-wrapper.sh
@@ -158,7 +123,7 @@ services:
       POSTGRES_ADMIN_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:?err}
       POSTGRES_ADMIN_USER: ${POSTGRES_ADMIN_USER:?err}
       POSTGRES_HOST: pf-postgres
-    image: ghcr.io/outernet-foundation/placeframe/database-manager:tree-d69c18305f567e658be165e13d45e0caa0bd6669
+    image: ghcr.io/outernet-foundation/placeframe/database-manager:tree-bf0ab67d9b306cb0666a1b08124593b17a32f530
     restart: "no"
     volumes:
       - type: volume
@@ -179,17 +144,48 @@ services:
       DB_USER: placeframe_owner
     image: ghcr.io/outernet-foundation/placeframe/database-migrator:tree-82d31655502cfa8eaaaf276755b1eddefd5b9ab5
     restart: "no"
+  seaweedfs:
+    command:
+      - server
+      - -filer
+      - -s3
+      - -s3.port=8333
+      - -s3.config=/etc/seaweedfs/s3.json
+    entrypoint:
+      - /usr/local/bin/entrypoint-wrapper.sh
+    environment:
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?err}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?err}
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - curl -fsS http://127.0.0.1:9333/cluster/status && curl -s -o /dev/null http://127.0.0.1:8333/
+      timeout: 2s
+      interval: 2s
+      retries: 45
+    image: ghcr.io/outernet-foundation/placeframe/seaweedfs:tree-87d17dcc9c251802f59e5d93d33786050f586f3f
+    restart: always
+    volumes:
+      - type: volume
+        source: seaweedfs-data
+        target: /data
+  seaweedfs-init:
+    depends_on:
+      seaweedfs:
+        condition: service_healthy
+        required: false
+    environment:
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?err}
+      S3_BUCKETS: dev-captures dev-reconstructions loki
+      S3_ENDPOINT_URL: http://seaweedfs:8333
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?err}
+    image: ghcr.io/outernet-foundation/placeframe/s3-initializer:tree-8e88e7fc82c68a271040c4e165c3a1b674e561ce
+    restart: "no"
   wait-for-resources:
     command:
       - echo
     depends_on:
       keycloak:
-        condition: service_started
-        required: true
-      minio:
-        condition: service_healthy
-        required: true
-      minio-init:
         condition: service_started
         required: true
       pf-postgres:
@@ -201,11 +197,17 @@ services:
       pf-postgres-migrate:
         condition: service_started
         required: true
+      seaweedfs:
+        condition: service_healthy
+        required: true
+      seaweedfs-init:
+        condition: service_started
+        required: true
     image: alpine
 volumes:
-  minio-data:
-    driver: local
   pf-postgres-data:
     driver: local
   pf-postgres-efs:
+    driver: local
+  seaweedfs-data:
     driver: local

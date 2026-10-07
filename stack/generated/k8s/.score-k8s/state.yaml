@@ -4,7 +4,7 @@ workloads:
       apiVersion: score.dev/v1b1
       containers:
         api:
-          image: ghcr.io/outernet-foundation/placeframe/api:tree-19bcf81e1b2f5fbdfece166877de67f035a51016
+          image: ghcr.io/outernet-foundation/placeframe/api:tree-35ba0e139f65717c5e3dfbac92949defc4cb2dfc
           livenessProbe:
             httpGet:
               path: /health
@@ -26,12 +26,12 @@ workloads:
             DEPLOYMENT_ENVIRONMENT: ${resources.config.deployment_environment}
             LOCALIZER_CONTAINER_URL: http://localhost:8000
             LOKI_URL: http://localhost:3100
-            MINIO_ACCESS_KEY: ${resources.bucket.access_key_id}
-            MINIO_ENDPOINT_URL: ${resources.bucket.endpoint}
-            MINIO_SECRET_KEY: ${resources.bucket.secret_key}
             POSTGRES_HOST: ${resources.db.host}
             PUBLIC_URL: ${resources.config.public_url}
             RECONSTRUCTIONS_BUCKET: ${resources.bucket.bucket}
+            S3_ACCESS_KEY: ${resources.bucket.access_key_id}
+            S3_ENDPOINT_URL: ${resources.bucket.endpoint}
+            S3_SECRET_KEY: ${resources.bucket.secret_key}
       metadata:
         name: api
       resources:
@@ -53,7 +53,7 @@ workloads:
             port: 8000
             targetPort: 8000
     file: api.yaml
-    instance_suffix: -7ae5e8b491
+    instance_suffix: -03400ec588
   gateway:
     spec:
       apiVersion: score.dev/v1b1
@@ -75,13 +75,13 @@ workloads:
             port: 8443
             targetPort: 8443
     file: gateway.yaml
-    instance_suffix: -63f43f747f
+    instance_suffix: -7b9d446cd8
   lease-server:
     spec:
       apiVersion: score.dev/v1b1
       containers:
         lease-server:
-          image: ghcr.io/outernet-foundation/placeframe/lease-server:tree-7b3d4cec6cf3f2d2d98f578ed3cf112a1158d9a8
+          image: ghcr.io/outernet-foundation/placeframe/lease-server:tree-c19874616f3264dcdc155617be3fb73de6c94e5a
           livenessProbe:
             httpGet:
               path: /health
@@ -104,10 +104,10 @@ workloads:
             port: 8000
             targetPort: 8000
     file: lease-server.yaml
-    instance_suffix: -1ec460ca93
+    instance_suffix: -97427824b2
 resources:
   placeframe-config.default#placeframe-config:
-    guid: 16d9cde6-bf6c-4582-2cb8-53d4df63c47c
+    guid: a01d1004-f196-476f-28a6-6c8e379d5896
     type: placeframe-config
     class: default
     id: placeframe-config
@@ -125,7 +125,7 @@ resources:
       deployment_environment: "\U0001F510\U0001F4ACplaceframe-secrets_DEPLOYMENT_ENVIRONMENT\U0001F4AC\U0001F510"
       public_url: "\U0001F510\U0001F4ACplaceframe-secrets_PUBLIC_URL\U0001F4AC\U0001F510"
   placeframe-keycloak.default#placeframe-keycloak:
-    guid: edb01605-84a0-4a62-fab9-ca9b4c771cc1
+    guid: 219dc21a-09f7-4524-1832-8d0ea45c7c24
     type: placeframe-keycloak
     class: default
     id: placeframe-keycloak
@@ -139,7 +139,7 @@ resources:
     outputs:
       certs_url: http://keycloak:8080/realms/placeframe-dev/protocol/openid-connect/certs
   placeframe-postgres.default#placeframe-db:
-    guid: 322c7046-1ba1-4cc5-efa6-ebfa4f3cc263
+    guid: 549ddbdb-02db-4b39-1467-524ba30e6bd1
     type: placeframe-postgres
     class: default
     id: placeframe-db
@@ -162,22 +162,22 @@ resources:
       owner_username: placeframe_owner
       port: 5432
   s3.default#placeframe-bucket:
-    guid: 80c9986f-4428-4364-0d1a-3246830f5cff
+    guid: b55a0d9d-5961-4000-8859-ef02c97dd898
     type: s3
     class: default
     id: placeframe-bucket
     metadata: {}
     params: {}
     source_workload: api
-    provisioner: template://placeframe/minio-k8s
+    provisioner: template://placeframe/seaweedfs-k8s
     state:
-      bucket: reconstructions
+      bucket: dev-reconstructions
       capturesBucket: dev-captures
-      service: minio
+      service: seaweedfs
     outputs:
-      access_key_id: "\U0001F510\U0001F4ACplaceframe-secrets_MINIO_ACCESS_KEY\U0001F4AC\U0001F510"
-      bucket: reconstructions
-      endpoint: http://minio:9000
-      secret_key: "\U0001F510\U0001F4ACplaceframe-secrets_MINIO_SECRET_KEY\U0001F4AC\U0001F510"
+      access_key_id: "\U0001F510\U0001F4ACplaceframe-secrets_S3_ACCESS_KEY\U0001F4AC\U0001F510"
+      bucket: dev-reconstructions
+      endpoint: http://seaweedfs:8333
+      secret_key: "\U0001F510\U0001F4ACplaceframe-secrets_S3_SECRET_KEY\U0001F4AC\U0001F510"
 shared_state: {}
 patching_templates: []
