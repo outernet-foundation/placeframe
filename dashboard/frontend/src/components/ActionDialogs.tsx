@@ -449,10 +449,13 @@ function CaptureEstimateLine({ estimate }: { estimate: EstimateState }) {
   // The arithmetic in full, so an over-limit setting is visible before it costs an extraction.
   const line = `${capture.frames} frames x ${formatBytes(capture.bytes_per_frame)} at ${capture.width}x${capture.height} = ${formatBytes(capture.total_bytes)}`;
   const limit = `limit ${formatBytes(limit_bytes)}`;
+  // Over the limit is not a refusal: import-spherical stores such a capture straight into the stack's
+  // storage and creates its row without a body, so the API's request limit never sees it. That path
+  // needs the stack's containers on this machine, which the dashboard's development use assumes.
   return capture.over_limit ? (
-    <div className="banner banner-error">
-      {line} — over the {limit}. Halving the width cuts the size by roughly a third; doubling the stride halves
-      the frames.
+    <div style={{ ...HINT, marginTop: -8 }}>
+      {line} — over the {limit} for an upload through the API, so it will be stored directly in the stack's storage
+      instead (development stack only). Halving the width or doubling the stride would bring it under the limit.
     </div>
   ) : (
     <div style={{ ...HINT, marginTop: -8 }}>

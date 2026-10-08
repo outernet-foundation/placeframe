@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import csv
 import re
+import subprocess
 from math import ceil, radians, tan
 import sys
 import tarfile
@@ -11,7 +12,7 @@ from asyncio import gather, run, sleep, to_thread
 from collections.abc import Callable
 from datetime import datetime, timezone
 from dataclasses import dataclass
-from io import BytesIO
+from io import BytesIO, TextIOWrapper
 from json import dumps, loads
 from shutil import rmtree
 from pathlib import Path
@@ -44,6 +45,7 @@ from matplotlib import pyplot as plt  # noqa: E402 -- backend must be selected b
 from placeframe_api_client import (
     ApiException,
     AxisConvention,
+    CaptureSessionCreate,
     CaptureSessionRead,
     CaptureSessionUpdate,
     DefaultApi,
@@ -147,6 +149,19 @@ SPHERICAL_VIEW_FOV_DEG = 150.0
 # a reconstruction's manifest predates the field.
 SPHERICAL_LAYOUT = "tetrahedron"
 
+# Where a capture goes when it is too large to pass through the API in one request body. The API
+# holds a whole upload in memory, which is what REQUEST_MAX_BODY_SIZE bounds; storage itself has no
+# such limit. The development stack's MinIO listens only on the Docker network, so the bytes are
+# streamed through the stack's own MinIO client container, whose `local` alias compose.yml sets up.
+# The capture row is then created through the API without a body (POST /capture_sessions/bulk), and
+# the reconstructor fetches `<id>.tar` from this bucket exactly as it does for an uploaded capture.
+# Development stack only: it needs those containers on this machine. The bucket mirrors the API's
+# BUCKET (docker/api/src/routers/capture_sessions.py) and the reconstructor's CAPTURES_BUCKET.
+DIRECT_STORE_CONTAINER = "placeframe-minio-logger-1"
+DIRECT_STORE_BUCKET = "dev-captures"
+# The API's MIN_TEMPORAL_COVERAGE, applied here because a direct store skips the API's checks.
+MIN_TEMPORAL_COVERAGE = 0.5
+
 _NATURAL_SORT_SPLIT_RE = re.compile(r"(\d+)")
 
 
@@ -202,6 +217,128 @@ async def upload_capture_session(
         id=id,
         _request_timeout=REQUEST_TIMEOUT,
     )
+
+
+def _validate_temporal_coverage(tar: tarfile.TarFile, capture_interval_seconds: float) -> None:
+    try:
+        frames_file = tar.extractfile(tar.getmember("rig0/frames.csv"))
+    except KeyError:
+        return
+    if frames_file is None:
+        return
+    reader = csv.reader(TextIOWrapper(frames_file, encoding="utf-8"))
+    next(reader, None)
+    timestamps = [float(row[0]) for row in reader if row]
+    if len(timestamps) < 2:
+        return
+    duration_s = (max(timestamps) - min(timestamps)) / 1000
+    expected_frames = duration_s / capture_interval_seconds
+    if expected_frames <= 0:
+        return
+    coverage = len(timestamps) / expected_frames
+    if coverage < MIN_TEMPORAL_COVERAGE:
+        raise ValueError(
+            f"insufficient temporal coverage: {len(timestamps)} frames but {expected_frames:.0f} expected over "
+            f"{duration_s:.1f}s ({coverage:.1%}); minimum is {MIN_TEMPORAL_COVERAGE:.0%}"
+        )
+
+
+def validate_capture_tar(tar_bytes: bytes) -> None:
+    """The checks the API applies to an uploaded capture, for one that will not pass through it.
+
+    Mirrors docker/api/src/routers/capture_sessions.py's _validate_capture_session_tar: a readable
+    manifest.json that parses, and enough frames for the interval it declares.
+    """
+    try:
+        with tarfile.open(fileobj=BytesIO(tar_bytes), mode="r:*") as tar:
+            try:
+                member = tar.getmember("manifest.json")
+            except KeyError:
+                raise ValueError("capture tar is missing manifest.json") from None
+            manifest_file = tar.extractfile(member) if member.isfile() else None
+            if manifest_file is None:
+                raise ValueError("manifest.json is not a readable file")
+            try:
+                manifest = CaptureSessionManifest.model_validate_json(manifest_file.read().decode("utf-8"))
+            except Exception as exception:
+                raise ValueError(f"manifest.json is invalid: {exception}") from exception
+            if manifest.capture_interval_seconds is not None:
+                _validate_temporal_coverage(tar, manifest.capture_interval_seconds)
+    except tarfile.ReadError as exception:
+        raise ValueError(f"invalid tar: {exception}") from exception
+
+
+def _direct_store_client(*arguments: str, stdin: bytes | None = None) -> None:
+    command = ["docker", "exec", "-i", DIRECT_STORE_CONTAINER, "mc", *arguments]
+    try:
+        completed = subprocess.run(command, input=stdin, capture_output=True, check=False)  # noqa: S603
+    except FileNotFoundError as exception:
+        raise RuntimeError(
+            "docker is not on PATH; a direct store needs the development stack on this machine"
+        ) from exception
+    if completed.returncode != 0:
+        detail = completed.stderr.decode(errors="replace").strip() or f"exit status {completed.returncode}"
+        raise RuntimeError(f"mc {arguments[0]} failed: {detail}")
+
+
+def store_capture_directly(tar_bytes: bytes, capture_id: UUID) -> None:
+    """Stream a capture tar into the stack's captures bucket, around the API's request body."""
+    _direct_store_client("pipe", f"local/{DIRECT_STORE_BUCKET}/{capture_id}.tar", stdin=tar_bytes)
+
+
+def remove_directly_stored_capture(capture_id: UUID) -> None:
+    _direct_store_client("rm", f"local/{DIRECT_STORE_BUCKET}/{capture_id}.tar")
+
+
+def direct_store_wanted(direct: bool | None, size_bytes: int) -> bool:
+    """Whether a capture of this size goes around the API: asked for, or needed because it would not fit."""
+    return size_bytes > REQUEST_MAX_BODY_SIZE if direct is None else direct
+
+
+def _announce_direct_store(estimate: CaptureSizeEstimate, direct: bool | None) -> None:
+    """Say up front how an estimated capture will reach the stack, or refuse one that cannot.
+
+    Decided from the estimate so a build that cannot land is never started; the final decision is
+    made again on the real size in submit_capture, which only matters at the boundary.
+    """
+    if not estimate.over_limit:
+        return
+    if direct is False:
+        raise typer.BadParameter(
+            f"a capture of {estimate.describe()} exceeds the {_format_size(REQUEST_MAX_BODY_SIZE)} upload limit "
+            "and --no-direct forbids storing it directly; raise --stride or lower --max-width"
+        )
+    typer.echo(
+        f"over the {_format_size(REQUEST_MAX_BODY_SIZE)} upload limit, so the capture will be stored directly "
+        "in the stack's storage (development stack only)",
+        err=True,
+    )
+
+
+async def submit_capture(api: DefaultApi, name: str, tar_bytes: bytes, direct: bool) -> CaptureSessionRead:
+    """Get a capture tar into the stack: through the API when it fits, around it when it does not.
+
+    The direct path stores the bytes first and creates the row second, so a failure between the
+    two leaves an object with no row; it is removed before the error propagates.
+    """
+    if not direct:
+        return await upload_capture_session(api, f"{name}.tar", tar_bytes, DeviceType.ARFOUNDATION, name)
+    validate_capture_tar(tar_bytes)
+    capture_id = uuid4()
+    await to_thread(store_capture_directly, tar_bytes, capture_id)
+    try:
+        created = await api.create_capture_sessions(
+            [
+                CaptureSessionCreate(
+                    id=capture_id, device_type=DeviceType.ARFOUNDATION, name=name, size_bytes=len(tar_bytes)
+                )
+            ],
+            _request_timeout=REQUEST_TIMEOUT,
+        )
+    except Exception:
+        await to_thread(remove_directly_stored_capture, capture_id)
+        raise
+    return created[0]
 
 
 # Frames sampled to size a capture. JPEG size depends on what is in the picture, so this measures
@@ -1325,6 +1462,15 @@ def reconstruct_spherical(
     options_json: Annotated[
         str | None, typer.Option(help="JSON overrides for ReconstructionOptions; applied over the flags above")
     ] = None,
+    direct: Annotated[
+        bool | None,
+        typer.Option(
+            "--direct/--no-direct",
+            help="Store the capture straight into the stack's storage and create its row without a body, "
+            "around the API's request limit (development stack only). Omitted, it happens when the capture "
+            "would not fit through the API",
+        ),
+    ] = None,
     wait: Annotated[bool, typer.Option(help="Poll until the reconstruction reaches a terminal status")] = False,
     timeout_s: Annotated[float, typer.Option(help="Seconds to wait for --wait before giving up")] = (
         RECONSTRUCTION_TIMEOUT_S
@@ -1337,12 +1483,7 @@ def reconstruct_spherical(
     # learn a number that a few sampled frames already tell us.
     estimate = estimate_capture_size(video, stride, resolved_max_width)
     typer.echo(f"{video.name}: {estimate.describe()}", err=True)
-    if estimate.over_limit:
-        raise typer.BadParameter(
-            f"this capture would be {_format_size(estimate.total_bytes)}, over the API's "
-            f"{_format_size(REQUEST_MAX_BODY_SIZE)} body limit. Halving --max-width cuts it by roughly a third "
-            f"(not a quarter -- a JPEG costs more per pixel as it shrinks), or double --stride to halve the frames."
-        )
+    _announce_direct_store(estimate, direct)
     overrides: dict[str, Any] = loads(options_json) if options_json else {}
     overrides.setdefault("spherical_layout", layout)
     overrides.setdefault("spherical_view_fov_deg", view_fov_deg)
@@ -1357,6 +1498,7 @@ def reconstruct_spherical(
             target_keyframes,
             wait,
             timeout_s,
+            direct,
         )
     )
     _report_reconstruction(reconstruction, json_output)
@@ -2098,7 +2240,9 @@ async def _reconstruct(
             _fail(exception)
 
 
-async def _import_spherical(video_path: Path, name: str, stride: int, max_width: int) -> dict[str, Any]:
+async def _import_spherical(
+    video_path: Path, name: str, stride: int, max_width: int, direct: bool | None = None
+) -> dict[str, Any]:
     """Build a capture from a spherical video and upload it, stopping there.
 
     Reconstructing is a separate step because the views a sphere is cut into are a per-reconstruction
@@ -2113,13 +2257,16 @@ async def _import_spherical(video_path: Path, name: str, stride: int, max_width:
         lambda current, total: emit_progress("extracting", current, total),
     )
     typer.echo(f"{video_path.name}: {summary}; capture is {_format_size(len(tar_bytes))}", err=True)
-    emit_progress("uploading", detail=_format_size(len(tar_bytes)))
+    use_direct = direct_store_wanted(direct, len(tar_bytes))
+    emit_progress("storing" if use_direct else "uploading", detail=_format_size(len(tar_bytes)))
     async with authenticated_api_client() as api:
         try:
-            capture = await upload_capture_session(api, f"{name}.tar", tar_bytes, DeviceType.ARFOUNDATION, name)
+            capture = await submit_capture(api, name, tar_bytes, use_direct)
         except ApiException as exception:
             _fail(exception)
-    typer.echo(f"Uploaded spherical capture {capture.id} ({frame_count} frames)", err=True)
+    typer.echo(
+        f"{'Stored' if use_direct else 'Uploaded'} spherical capture {capture.id} ({frame_count} frames)", err=True
+    )
     return {**_capture_to_dict(capture), "frame_count": frame_count}
 
 
@@ -2136,6 +2283,15 @@ def import_spherical(
             "default view can use; 0 keeps the camera's own resolution",
         ),
     ] = None,
+    direct: Annotated[
+        bool | None,
+        typer.Option(
+            "--direct/--no-direct",
+            help="Store the capture straight into the stack's storage and create its row without a body, "
+            "around the API's request limit (development stack only). Omitted, it happens when the capture "
+            "would not fit through the API",
+        ),
+    ] = None,
     json_output: Annotated[bool, typer.Option("--json", help="Emit JSON instead of text")] = False,
 ) -> None:
     """Import a spherical video as a capture, without reconstructing it."""
@@ -2144,12 +2300,8 @@ def import_spherical(
     )
     estimate = estimate_capture_size(video, stride, resolved_max_width)
     typer.echo(f"{video.name}: {estimate.describe()}", err=True)
-    if estimate.over_limit:
-        raise typer.BadParameter(
-            f"a capture of {estimate.describe()} exceeds the {_format_size(REQUEST_MAX_BODY_SIZE)} upload limit; "
-            "raise --stride or lower --max-width"
-        )
-    result = run(_import_spherical(video, name, stride, resolved_max_width))
+    _announce_direct_store(estimate, direct)
+    result = run(_import_spherical(video, name, stride, resolved_max_width, direct))
     if json_output:
         typer.echo(dumps(result))
         return
@@ -2165,6 +2317,7 @@ async def _reconstruct_spherical(
     target_keyframes: int | None,
     wait: bool,
     timeout_s: float,
+    direct: bool | None = None,
 ) -> ReconstructionReadWithQueue:
     # Extraction is minutes of decoding with nothing to show for it until the end, so it reports
     # per frame; the upload that follows is one body, so it can only announce itself.
@@ -2180,11 +2333,15 @@ async def _reconstruct_spherical(
     # caller.
     options = _poseless_options(options_json, frame_count, target_keyframes)
     typer.echo(f"{video_path.name}: {summary}; capture is {_format_size(len(tar_bytes))}", err=True)
-    emit_progress("uploading", detail=_format_size(len(tar_bytes)))
+    use_direct = direct_store_wanted(direct, len(tar_bytes))
+    emit_progress("storing" if use_direct else "uploading", detail=_format_size(len(tar_bytes)))
     async with authenticated_api_client() as api:
         try:
-            capture = await upload_capture_session(api, f"{name}.tar", tar_bytes, DeviceType.ARFOUNDATION, name)
-            typer.echo(f"Uploaded spherical capture {capture.id} ({frame_count} frames)", err=True)
+            capture = await submit_capture(api, name, tar_bytes, use_direct)
+            typer.echo(
+                f"{'Stored' if use_direct else 'Uploaded'} spherical capture {capture.id} ({frame_count} frames)",
+                err=True,
+            )
             emit_progress("queueing", detail=str(capture.id))
             return await create_reconstruction(api, capture.id, options, wait, timeout_s)
         except ApiException as exception:
