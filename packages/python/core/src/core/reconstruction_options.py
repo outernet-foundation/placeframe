@@ -94,3 +94,7 @@ class ReconstructionOptions(BaseModel):
         default=1600,
         description="Width and height in pixels of each view rendered from a spherical capture. The default samples a 150-degree view at about 10.7 pixels per degree, half the angular resolution of a 7680-wide equirectangular frame.",
     )
+    spherical_sequential_views: Literal["all", "neighbouring", "same"] = Field(
+        default="all",
+        description="Which view combinations a spherical capture's sequential frame pairs expand into. Two panoramas within sequential_window_m of each other are paired view by view. 'all' crosses every view of one with every view of the other: 16 image pairs per frame pair for the tetrahedron, 36 for the hexring and cube. 'neighbouring' pairs each view with itself and with the views whose axes are nearest to it in the layout: for the tetrahedron that is every view (all four are 109.5 degrees apart, so nothing changes), for the hexring its two ring neighbours (18 pairs), for the cube the four adjacent faces (30 pairs). 'same' pairs each view only with itself (4 or 6 pairs). The narrower settings assume the camera turns by less than a view's spacing between consecutive panoramas; a sharper turn is left to retrieval, which is unaffected, as are cross-rig pairs and every non-spherical capture. On a Union Square loop the cross-view sequential pairs were three quarters of the sequential pairs and shared a tenth as many points as same-view pairs, so the narrower settings mostly remove matching work.",
+    )

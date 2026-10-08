@@ -211,6 +211,7 @@ def run_reconstruction(
         options.retrieval_neighbors(),
         options.retrieval_min_score(),
         options.cross_rig_pair_distance_m(),
+        options.spherical_sequential_views(),
     )
     file_name, file_bytes = write_pairs(pairs, WORK_DIR)
     _put_artifact(s3_client, settings.reconstructions_bucket, reconstruction_id, file_name, file_bytes)

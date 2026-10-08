@@ -138,7 +138,12 @@ export function optionsSummary(r: Reconstruction): string {
 // ── Reconstruct a capture ───────────────────────────────────────────────────
 
 // ReconstructionOptions' spherical defaults (core/reconstruction_options.py).
-const SPHERICAL_DEFAULTS: SphericalOptions = { layout: "tetrahedron", viewFovDeg: 150, viewSize: 1600 };
+const SPHERICAL_DEFAULTS: SphericalOptions = {
+  layout: "tetrahedron",
+  viewFovDeg: 150,
+  viewSize: 1600,
+  sequentialViews: "all",
+};
 
 // What the newest reconstruction of this capture was cut into, so reconstructing again starts from
 // the last choice rather than the schema default — the usual reason to reopen this dialog is to
@@ -151,6 +156,10 @@ function sphericalFrom(siblings: Reconstruction[]): SphericalOptions {
     layout: typeof options.spherical_layout === "string" ? options.spherical_layout : SPHERICAL_DEFAULTS.layout,
     viewFovDeg: value("spherical_view_fov_deg", SPHERICAL_DEFAULTS.viewFovDeg),
     viewSize: value("spherical_view_size", SPHERICAL_DEFAULTS.viewSize),
+    sequentialViews:
+      typeof options.spherical_sequential_views === "string"
+        ? options.spherical_sequential_views
+        : SPHERICAL_DEFAULTS.sequentialViews,
   };
 }
 
@@ -193,6 +202,7 @@ export function ReconstructDialog({ captureName, captureId, siblings, onClose, o
             spherical_layout: spherical.layout,
             spherical_view_fov_deg: spherical.viewFovDeg,
             spherical_view_size: spherical.viewSize,
+            spherical_sequential_views: spherical.sequentialViews,
           }
         : {};
       const typedJson = optionsJson.trim() ? (JSON.parse(optionsJson) as Record<string, unknown>) : {};
@@ -234,9 +244,23 @@ export function ReconstructDialog({ captureName, captureId, siblings, onClose, o
               />
             </label>
           </div>
+          <label>
+            Views paired across consecutive panoramas
+            <select
+              value={spherical.sequentialViews}
+              onChange={(e) => setSpherical({ ...spherical, sequentialViews: e.target.value })}
+            >
+              <option value="all">All combinations — every view against every view (16 or 36 pairs per step)</option>
+              <option value="neighbouring">Neighbouring views — each view with itself and its nearest views in the layout</option>
+              <option value="same">Same view only — the cheapest; a turn between panoramas is left to retrieval</option>
+            </select>
+          </label>
           <div style={{ ...HINT, marginTop: -8 }}>
             These cut the sphere into the views a reconstructor can model, so changing them is exactly what
-            reconstructing again is for. Full coverage needs 141° for the tetrahedron, 110° for the cube and 150° for
+            reconstructing again is for. The pairing choice only trims the sequential matches between consecutive
+            panoramas: on a tetrahedron every view neighbours every other, so it matters for the hexring (36 → 18
+            pairs per step) and cube (36 → 30), where views facing away from each other shared a tenth as many points
+            as same-view pairs. Full coverage needs 141° for the tetrahedron, 110° for the cube and 150° for
             the hexring; a narrower view than that drops the worst-covered directions, which for the hexring is mostly
             sky. Stride and max frame width are not here because they are properties of the capture — its frames were
             extracted and stored once, at{" "}

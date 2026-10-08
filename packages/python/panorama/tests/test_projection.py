@@ -132,3 +132,42 @@ def test_hexring_trades_coverage_for_views_that_look_level() -> None:
     assert (worst <= 150.0 / 2).all()  # still covers the whole sphere when asked to
     assert (worst[useful] <= 120.0 / 2).mean() > 0.98
     assert (worst[useful] <= 100.0 / 2).mean() > 0.89
+
+
+# ── Which views are nearest to which ─────────────────────────────────────────
+
+
+def test_a_view_is_at_angle_zero_to_itself() -> None:
+    for view in projection.HEXRING:
+        assert projection.angle_between_views_deg(view, view) == pytest.approx(0.0, abs=1e-3)
+
+
+def test_hexring_axis_angles() -> None:
+    """60 degrees of yaw plus the alternating tilt: neighbours at the docstring's 66.5, two steps at
+    113.5 (same tilt, so less than the 120 of yaw), opposite views a full 180 apart."""
+    h = projection.HEXRING
+    assert projection.angle_between_views_deg(h[0], h[1]) == pytest.approx(66.45, abs=0.05)
+    assert projection.angle_between_views_deg(h[0], h[2]) == pytest.approx(113.55, abs=0.05)
+    assert projection.angle_between_views_deg(h[0], h[3]) == pytest.approx(180.0, abs=0.05)
+
+
+def test_hexring_neighbours_are_the_two_ring_neighbours() -> None:
+    views = projection.HEXRING
+    for i, view in enumerate(views):
+        names = {other.name for other in projection.neighbouring_views(view, views)}
+        assert names == {views[(i - 1) % 6].name, views[(i + 1) % 6].name}, view.name
+
+
+def test_tetrahedron_views_all_neighbour_each_other() -> None:
+    """Axes 109.5 degrees apart, every pair alike."""
+    for view in projection.TETRAHEDRON:
+        others = projection.neighbouring_views(view, projection.TETRAHEDRON)
+        assert len(others) == 3
+        for other in others:
+            assert projection.angle_between_views_deg(view, other) == pytest.approx(109.47, abs=0.05)
+
+
+def test_cube_faces_neighbour_the_four_adjacent_faces() -> None:
+    front = projection.CUBE[0]
+    names = {other.name for other in projection.neighbouring_views(front, projection.CUBE)}
+    assert names == {"right", "left", "up", "down"}

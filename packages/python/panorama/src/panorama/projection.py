@@ -186,6 +186,39 @@ def cam_from_rig(view: View, reference: View) -> NDArray[np.float64]:
     return pano_from_cam(view).T @ pano_from_cam(reference)
 
 
+def view_axis(view: View) -> NDArray[np.float64]:
+    """Unit direction a view's optical axis points in, in panorama axes."""
+    return pano_from_cam(view) @ np.array([0.0, 0.0, 1.0])
+
+
+def angle_between_views_deg(a: View, b: View) -> float:
+    """Angle between two views' optical axes, in degrees."""
+    cosine = float(np.clip(view_axis(a) @ view_axis(b), -1.0, 1.0))
+    return float(np.degrees(np.arccos(cosine)))
+
+
+# Axis angles that differ by less than this are the same spacing: the layouts are defined with
+# exact symmetry, so this only absorbs floating-point noise in the trigonometry.
+NEIGHBOUR_ANGLE_TOLERANCE_DEG = 0.5
+
+
+def neighbouring_views(view: View, views: tuple[View, ...]) -> tuple[View, ...]:
+    """The views of a layout whose axes are nearest to this one's, excluding itself.
+
+    Structural rather than a field-of-view test: whether two cones intersect at
+    all says little about how much they see in common (hexring views two steps
+    apart still share a 6-degree sliver at 120 degrees), while the nearest views
+    are the ones a feature drifts into as the camera turns. For the tetrahedron
+    every other view is nearest (all 109.5 degrees away); for the hexring the two
+    ring neighbours (66.5); for the cube the four adjacent faces (90).
+    """
+    others = [(angle_between_views_deg(view, other), other) for other in views if other is not view]
+    if not others:
+        return ()
+    nearest = min(angle for angle, _ in others)
+    return tuple(other for angle, other in others if angle - nearest < NEIGHBOUR_ANGLE_TOLERANCE_DEG)
+
+
 @dataclass(frozen=True)
 class ViewMap:
     """Where each pixel of a rendered view samples the equirectangular frame."""

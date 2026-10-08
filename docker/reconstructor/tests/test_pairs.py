@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import numpy as np
 from core.axis_convention import AxisConvention
 from core.camera_config import PinholeCameraConfig
 from core.capture_session_manifest import RigCameraConfig, RigConfig
@@ -110,3 +111,78 @@ def test_rigs_beyond_the_window_are_left_alone() -> None:
         cross_rig_pair_distance_m=2.0,
     )
     assert cross_rig(pairs) == []
+
+
+def _sequential_pairs(mode: str, **layout: object) -> list[Pair]:
+    rig = build(spherical_rig(), **layout)
+    pairs = generate_image_pairs(
+        {"rig0": rig},
+        {},
+        sequential_window_m=3.0,
+        retrieval_neighbors=0,
+        retrieval_min_score=0.0,
+        spherical_sequential_views=mode,
+    )
+    return [pair for pair in pairs if pair.source == PairSource.SEQUENTIAL]
+
+
+def _view(image: str) -> str:
+    return image.split("/")[1]
+
+
+def test_all_crosses_every_view_with_every_view() -> None:
+    """The fixture has two frames one step apart, so one frame pair: 6 x 6 for the hexring."""
+    pairs = _sequential_pairs("all", spherical_layout="hexring", spherical_view_fov_deg=120.0)
+    assert len(pairs) == 36
+
+
+def test_same_keeps_one_pair_per_view() -> None:
+    pairs = _sequential_pairs("same", spherical_layout="hexring", spherical_view_fov_deg=120.0)
+    assert len(pairs) == 6
+    assert all(_view(pair.image_a) == _view(pair.image_b) for pair in pairs)
+
+
+def test_neighbouring_keeps_each_hexring_view_with_itself_and_its_two_neighbours() -> None:
+    pairs = _sequential_pairs("neighbouring", spherical_layout="hexring", spherical_view_fov_deg=120.0)
+    assert len(pairs) == 18
+    # Pairs are canonicalized to lexical order, so either side may be the earlier frame.
+    partners: dict[str, set[str]] = {}
+    for pair in pairs:
+        a, b = _view(pair.image_a), _view(pair.image_b)
+        partners.setdefault(a, set()).add(b)
+        partners.setdefault(b, set()).add(a)
+    assert partners["camera0_h000"] == {"camera0_h300", "camera0_h000", "camera0_h060"}
+    assert partners["camera0_h180"] == {"camera0_h120", "camera0_h180", "camera0_h240"}
+
+
+def test_neighbouring_changes_nothing_for_the_tetrahedron() -> None:
+    """Its views are all 109.5 degrees apart, so every view is every other's nearest."""
+    everything = _sequential_pairs("all")
+    neighbouring = _sequential_pairs("neighbouring")
+    assert len(everything) == 16
+    assert set(neighbouring) == set(everything)
+
+
+def test_neighbouring_cube_drops_only_the_opposite_face() -> None:
+    pairs = _sequential_pairs("neighbouring", spherical_layout="cube", spherical_view_fov_deg=120.0)
+    assert len(pairs) == 30
+    assert not [
+        pair for pair in pairs if {_view(pair.image_a), _view(pair.image_b)} == {"camera0_front", "camera0_back"}
+    ]
+
+
+def test_retrieval_is_not_filtered_by_the_view_choice() -> None:
+    """Retrieval decides by appearance, not by where the views point."""
+    rig = build(spherical_rig(), spherical_layout="hexring", spherical_view_fov_deg=120.0)
+    images = [f"rig0/{camera}/{frame}.jpg" for camera in rig.cameras for frame in rig.frame_poses]
+    descriptors = {name: np.full(4, 1.0, dtype=np.float32) for name in images}  # everything looks alike
+    pairs = generate_image_pairs(
+        {"rig0": rig},
+        descriptors,
+        sequential_window_m=0.0,
+        retrieval_neighbors=20,
+        retrieval_min_score=0.0,
+        spherical_sequential_views="same",
+    )
+    retrieved = [pair for pair in pairs if pair.source == PairSource.RETRIEVAL]
+    assert any(_view(pair.image_a) != _view(pair.image_b) for pair in retrieved)

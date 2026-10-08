@@ -9,6 +9,7 @@ import torch
 from numpy import float32, where
 from numpy.linalg import norm
 from numpy.typing import NDArray  # noqa: TID251 — tracked in PLE-233
+from panorama.projection import neighbouring_views
 from torch import from_numpy, topk  # type: ignore
 
 from .rig import Rig
@@ -39,6 +40,31 @@ SOURCE_PRECEDENCE: tuple[PairSource, ...] = (
 )
 
 
+def sequential_camera_pairs(rig: Rig, spherical_sequential_views: str) -> list[tuple[str, str]]:
+    """The (camera, camera) combinations a sequential frame pair of this rig expands into.
+
+    Every combination for a rig of real cameras: nothing is known about what they
+    see in common. The views of a spherical capture point in known directions,
+    so combinations that look away from each other can be left out
+    (ReconstructionOptions.spherical_sequential_views). Ordered, since the pairs
+    they expand into are written out and matched in this order.
+    """
+    cameras = list(rig.cameras)
+    expansion = rig.spherical_expansion
+    if expansion is None or spherical_sequential_views == "all":
+        return [(a, b) for a in cameras for b in cameras]
+    if spherical_sequential_views == "same":
+        return [(a, a) for a in cameras]
+    if spherical_sequential_views == "neighbouring":
+        allowed = {
+            expansion.camera_id(view): {expansion.camera_id(view)}
+            | {expansion.camera_id(other) for other in neighbouring_views(view, expansion.views)}
+            for view in expansion.views
+        }
+        return [(a, b) for a in cameras for b in cameras if b in allowed[a]]
+    raise ValueError(f"unknown spherical_sequential_views {spherical_sequential_views!r}")
+
+
 def generate_image_pairs(
     rigs: dict[str, Rig],
     global_descriptors: dict[str, NDArray[float32]],
@@ -46,6 +72,7 @@ def generate_image_pairs(
     retrieval_neighbors: int,
     retrieval_min_score: float,
     cross_rig_pair_distance_m: float = 0.0,
+    spherical_sequential_views: str = "all",
 ) -> list[Pair]:
 
     # Cameras of one frame see the scene from one instant, which is only useful
@@ -76,15 +103,18 @@ def generate_image_pairs(
 
     # Keyed by camera id rather than by the manifest config's own id: a spherical
     # capture's cameras are views derived from one manifest camera, so they all
-    # carry its id and only the key names the folder their images are in.
+    # carry its id and only the key names the folder their images are in. A
+    # sequential pair stays within one rig, so one rig's camera combinations apply.
+    camera_pairs_by_rig = {
+        rig_id: sequential_camera_pairs(rig, spherical_sequential_views) for rig_id, rig in rigs.items()
+    }
     sequential_image_pairs = [
         (
             f"{rig_id_a}/{camera_a}/{frame_id_a}.jpg",
             f"{rig_id_b}/{camera_b}/{frame_id_b}.jpg",
         )
         for (rig_id_a, frame_id_a), (rig_id_b, frame_id_b) in sequential_frame_pairs
-        for camera_a in rigs[rig_id_a].cameras
-        for camera_b in rigs[rig_id_b].cameras
+        for camera_a, camera_b in camera_pairs_by_rig[rig_id_a]
     ]
 
     # Frames of different rigs that the priors put close together. Retrieval is otherwise the only

@@ -85,6 +85,59 @@ namespace PlaceframeApiClient.Model
             return _flagSphericalLayout;
         }
         /// <summary>
+        /// Which view combinations a spherical capture&#39;s sequential frame pairs expand into. Two panoramas within sequential_window_m of each other are paired view by view. &#39;all&#39; crosses every view of one with every view of the other: 16 image pairs per frame pair for the tetrahedron, 36 for the hexring and cube. &#39;neighbouring&#39; pairs each view with itself and with the views whose axes are nearest to it in the layout: for the tetrahedron that is every view (all four are 109.5 degrees apart, so nothing changes), for the hexring its two ring neighbours (18 pairs), for the cube the four adjacent faces (30 pairs). &#39;same&#39; pairs each view only with itself (4 or 6 pairs). The narrower settings assume the camera turns by less than a view&#39;s spacing between consecutive panoramas; a sharper turn is left to retrieval, which is unaffected, as are cross-rig pairs and every non-spherical capture. On a Union Square loop the cross-view sequential pairs were three quarters of the sequential pairs and shared a tenth as many points as same-view pairs, so the narrower settings mostly remove matching work.
+        /// </summary>
+        /// <value>Which view combinations a spherical capture&#39;s sequential frame pairs expand into. Two panoramas within sequential_window_m of each other are paired view by view. &#39;all&#39; crosses every view of one with every view of the other: 16 image pairs per frame pair for the tetrahedron, 36 for the hexring and cube. &#39;neighbouring&#39; pairs each view with itself and with the views whose axes are nearest to it in the layout: for the tetrahedron that is every view (all four are 109.5 degrees apart, so nothing changes), for the hexring its two ring neighbours (18 pairs), for the cube the four adjacent faces (30 pairs). &#39;same&#39; pairs each view only with itself (4 or 6 pairs). The narrower settings assume the camera turns by less than a view&#39;s spacing between consecutive panoramas; a sharper turn is left to retrieval, which is unaffected, as are cross-rig pairs and every non-spherical capture. On a Union Square loop the cross-view sequential pairs were three quarters of the sequential pairs and shared a tenth as many points as same-view pairs, so the narrower settings mostly remove matching work.</value>
+        [JsonConverter(typeof(StringEnumConverter))]
+        public enum SphericalSequentialViewsEnum
+        {
+            /// <summary>
+            /// Enum All for value: all
+            /// </summary>
+            [EnumMember(Value = "all")]
+            All = 1,
+
+            /// <summary>
+            /// Enum Neighbouring for value: neighbouring
+            /// </summary>
+            [EnumMember(Value = "neighbouring")]
+            Neighbouring = 2,
+
+            /// <summary>
+            /// Enum Same for value: same
+            /// </summary>
+            [EnumMember(Value = "same")]
+            Same = 3
+        }
+
+
+        /// <summary>
+        /// Which view combinations a spherical capture&#39;s sequential frame pairs expand into. Two panoramas within sequential_window_m of each other are paired view by view. &#39;all&#39; crosses every view of one with every view of the other: 16 image pairs per frame pair for the tetrahedron, 36 for the hexring and cube. &#39;neighbouring&#39; pairs each view with itself and with the views whose axes are nearest to it in the layout: for the tetrahedron that is every view (all four are 109.5 degrees apart, so nothing changes), for the hexring its two ring neighbours (18 pairs), for the cube the four adjacent faces (30 pairs). &#39;same&#39; pairs each view only with itself (4 or 6 pairs). The narrower settings assume the camera turns by less than a view&#39;s spacing between consecutive panoramas; a sharper turn is left to retrieval, which is unaffected, as are cross-rig pairs and every non-spherical capture. On a Union Square loop the cross-view sequential pairs were three quarters of the sequential pairs and shared a tenth as many points as same-view pairs, so the narrower settings mostly remove matching work.
+        /// </summary>
+        /// <value>Which view combinations a spherical capture&#39;s sequential frame pairs expand into. Two panoramas within sequential_window_m of each other are paired view by view. &#39;all&#39; crosses every view of one with every view of the other: 16 image pairs per frame pair for the tetrahedron, 36 for the hexring and cube. &#39;neighbouring&#39; pairs each view with itself and with the views whose axes are nearest to it in the layout: for the tetrahedron that is every view (all four are 109.5 degrees apart, so nothing changes), for the hexring its two ring neighbours (18 pairs), for the cube the four adjacent faces (30 pairs). &#39;same&#39; pairs each view only with itself (4 or 6 pairs). The narrower settings assume the camera turns by less than a view&#39;s spacing between consecutive panoramas; a sharper turn is left to retrieval, which is unaffected, as are cross-rig pairs and every non-spherical capture. On a Union Square loop the cross-view sequential pairs were three quarters of the sequential pairs and shared a tenth as many points as same-view pairs, so the narrower settings mostly remove matching work.</value>
+
+        [DataMember(Name = "spherical_sequential_views", EmitDefaultValue = false)]
+        public SphericalSequentialViewsEnum? SphericalSequentialViews
+        {
+            get{ return _SphericalSequentialViews;}
+            set
+            {
+                _SphericalSequentialViews = value;
+                _flagSphericalSequentialViews = true;
+            }
+        }
+        private SphericalSequentialViewsEnum? _SphericalSequentialViews;
+        private bool _flagSphericalSequentialViews;
+
+        /// <summary>
+        /// Returns false as SphericalSequentialViews should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeSphericalSequentialViews()
+        {
+            return _flagSphericalSequentialViews;
+        }
+        /// <summary>
         /// Initializes a new instance of the <see cref="ReconstructionOptions" /> class.
         /// </summary>
         /// <param name="deterministicSeed">PRNG seed and single-threaded gate for reproducible reconstructions; None means non-deterministic..</param>
@@ -109,6 +162,7 @@ namespace PlaceframeApiClient.Model
         /// <param name="sphericalLayout">How a spherical (equirectangular) capture is cut into the views a reconstructor can model. COLMAP&#39;s fisheye models only represent rays under 90 degrees off axis, so the sphere cannot be one camera. &#39;tetrahedron&#39; is four views whose axes are 109.5 degrees apart, covering the sphere at spherical_view_fov_deg &gt;&#x3D; 141. &#39;hexring&#39; is six views 60 degrees apart in yaw, tilted alternately 15 degrees up and down: it also covers the sphere at 150, but it is meant for narrower views, where keeping every view near horizontal matches a query shot level far better than a 150-degree view does, and what coverage it loses is mostly sky. &#39;cube&#39; is the six cube-face directions. Ignored for every other kind of capture. (default to SphericalLayoutEnum.Tetrahedron).</param>
         /// <param name="sphericalViewFovDeg">Field of view of each view rendered from a spherical capture, in degrees. Must stay under 180 (COLMAP&#39;s fisheye models cannot represent a ray 90 degrees off axis) and at or above 141 for the tetrahedron layout to cover the whole sphere; the default leaves 4.5 degrees of overlap at the worst-covered direction. (default to 150.0D).</param>
         /// <param name="sphericalViewSize">Width and height in pixels of each view rendered from a spherical capture. The default samples a 150-degree view at about 10.7 pixels per degree, half the angular resolution of a 7680-wide equirectangular frame. (default to 1600).</param>
+        /// <param name="sphericalSequentialViews">Which view combinations a spherical capture&#39;s sequential frame pairs expand into. Two panoramas within sequential_window_m of each other are paired view by view. &#39;all&#39; crosses every view of one with every view of the other: 16 image pairs per frame pair for the tetrahedron, 36 for the hexring and cube. &#39;neighbouring&#39; pairs each view with itself and with the views whose axes are nearest to it in the layout: for the tetrahedron that is every view (all four are 109.5 degrees apart, so nothing changes), for the hexring its two ring neighbours (18 pairs), for the cube the four adjacent faces (30 pairs). &#39;same&#39; pairs each view only with itself (4 or 6 pairs). The narrower settings assume the camera turns by less than a view&#39;s spacing between consecutive panoramas; a sharper turn is left to retrieval, which is unaffected, as are cross-rig pairs and every non-spherical capture. On a Union Square loop the cross-view sequential pairs were three quarters of the sequential pairs and shared a tenth as many points as same-view pairs, so the narrower settings mostly remove matching work. (default to SphericalSequentialViewsEnum.All).</param>
         public ReconstructionOptions()
         {
         }
@@ -668,6 +722,7 @@ namespace PlaceframeApiClient.Model
             sb.Append("  SphericalLayout: ").Append(SphericalLayout).Append("\n");
             sb.Append("  SphericalViewFovDeg: ").Append(SphericalViewFovDeg).Append("\n");
             sb.Append("  SphericalViewSize: ").Append(SphericalViewSize).Append("\n");
+            sb.Append("  SphericalSequentialViews: ").Append(SphericalSequentialViews).Append("\n");
             sb.Append("}\n");
             return sb.ToString();
         }

@@ -93,13 +93,15 @@ export function getCaptureInfo(captureId: string): Promise<CaptureInfo> {
   return request(`/api/captures/${captureId}/info`);
 }
 
-// The three ReconstructionOptions fields that decide how a sphere is cut into views. Unlike stride
-// and max frame width they are applied at reconstruction time, so a new reconstruction can change
-// them without touching the capture.
+// The ReconstructionOptions fields that decide how a sphere is cut into views, and which of those
+// views get paired across consecutive panoramas. Unlike stride and max frame width they are applied
+// at reconstruction time, so a new reconstruction can change them without touching the capture.
+// Rendering views for export reads only the first three.
 export interface SphericalOptions {
   layout: string;
   viewFovDeg: number;
   viewSize: number;
+  sequentialViews: string;
 }
 
 export interface ExportViewsResult {

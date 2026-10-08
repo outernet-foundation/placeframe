@@ -47,6 +47,9 @@ class OptionsBuilder:
     def cross_rig_pair_distance_m(self):
         return self.options.cross_rig_pair_distance_m
 
+    def spherical_sequential_views(self):
+        return self.options.spherical_sequential_views
+
     def pose_prior_position_sigma_m(self):
         return self.options.pose_prior_position_sigma_m
 

@@ -49,8 +49,9 @@ class ReconstructionOptions(BaseModel):
     spherical_layout: Optional[StrictStr] = Field(default='tetrahedron', description="How a spherical (equirectangular) capture is cut into the views a reconstructor can model. COLMAP's fisheye models only represent rays under 90 degrees off axis, so the sphere cannot be one camera. 'tetrahedron' is four views whose axes are 109.5 degrees apart, covering the sphere at spherical_view_fov_deg >= 141. 'hexring' is six views 60 degrees apart in yaw, tilted alternately 15 degrees up and down: it also covers the sphere at 150, but it is meant for narrower views, where keeping every view near horizontal matches a query shot level far better than a 150-degree view does, and what coverage it loses is mostly sky. 'cube' is the six cube-face directions. Ignored for every other kind of capture.")
     spherical_view_fov_deg: Optional[Union[StrictFloat, StrictInt]] = Field(default=150.0, description="Field of view of each view rendered from a spherical capture, in degrees. Must stay under 180 (COLMAP's fisheye models cannot represent a ray 90 degrees off axis) and at or above 141 for the tetrahedron layout to cover the whole sphere; the default leaves 4.5 degrees of overlap at the worst-covered direction.")
     spherical_view_size: Optional[StrictInt] = Field(default=1600, description="Width and height in pixels of each view rendered from a spherical capture. The default samples a 150-degree view at about 10.7 pixels per degree, half the angular resolution of a 7680-wide equirectangular frame.")
+    spherical_sequential_views: Optional[StrictStr] = Field(default='all', description="Which view combinations a spherical capture's sequential frame pairs expand into. Two panoramas within sequential_window_m of each other are paired view by view. 'all' crosses every view of one with every view of the other: 16 image pairs per frame pair for the tetrahedron, 36 for the hexring and cube. 'neighbouring' pairs each view with itself and with the views whose axes are nearest to it in the layout: for the tetrahedron that is every view (all four are 109.5 degrees apart, so nothing changes), for the hexring its two ring neighbours (18 pairs), for the cube the four adjacent faces (30 pairs). 'same' pairs each view only with itself (4 or 6 pairs). The narrower settings assume the camera turns by less than a view's spacing between consecutive panoramas; a sharper turn is left to retrieval, which is unaffected, as are cross-rig pairs and every non-spherical capture. On a Union Square loop the cross-view sequential pairs were three quarters of the sequential pairs and shared a tenth as many points as same-view pairs, so the narrower settings mostly remove matching work.")
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["deterministic_seed", "keyframe_min_distance_m", "sequential_window_m", "retrieval_neighbors", "retrieval_min_score", "ransac_max_error", "ransac_min_inlier_ratio", "two_view_min_num_inliers", "triangulation_minimum_angle", "mapper_filter_max_reprojection_error", "bundle_adjustment_global_frames_ratio", "bundle_adjustment_global_function_tolerance", "pose_prior_position_sigma_m", "pair_vio_em_max_rotation_disagreement_deg", "pair_vio_em_max_translation_direction_deg", "pair_vio_em_min_baseline_m", "max_keypoints_per_image", "held_out_frame_timestamps", "cross_rig_pair_distance_m", "spherical_layout", "spherical_view_fov_deg", "spherical_view_size"]
+    __properties: ClassVar[List[str]] = ["deterministic_seed", "keyframe_min_distance_m", "sequential_window_m", "retrieval_neighbors", "retrieval_min_score", "ransac_max_error", "ransac_min_inlier_ratio", "two_view_min_num_inliers", "triangulation_minimum_angle", "mapper_filter_max_reprojection_error", "bundle_adjustment_global_frames_ratio", "bundle_adjustment_global_function_tolerance", "pose_prior_position_sigma_m", "pair_vio_em_max_rotation_disagreement_deg", "pair_vio_em_max_translation_direction_deg", "pair_vio_em_min_baseline_m", "max_keypoints_per_image", "held_out_frame_timestamps", "cross_rig_pair_distance_m", "spherical_layout", "spherical_view_fov_deg", "spherical_view_size", "spherical_sequential_views"]
 
     @field_validator('spherical_layout')
     def spherical_layout_validate_enum(cls, value):
@@ -60,6 +61,16 @@ class ReconstructionOptions(BaseModel):
 
         if value not in set(['tetrahedron', 'cube', 'hexring']):
             raise ValueError("must be one of enum values ('tetrahedron', 'cube', 'hexring')")
+        return value
+
+    @field_validator('spherical_sequential_views')
+    def spherical_sequential_views_validate_enum(cls, value):
+        """Validates the enum"""
+        if value is None:
+            return value
+
+        if value not in set(['all', 'neighbouring', 'same']):
+            raise ValueError("must be one of enum values ('all', 'neighbouring', 'same')")
         return value
 
     model_config = ConfigDict(
@@ -151,7 +162,8 @@ class ReconstructionOptions(BaseModel):
             "cross_rig_pair_distance_m": obj.get("cross_rig_pair_distance_m") if obj.get("cross_rig_pair_distance_m") is not None else 0.0,
             "spherical_layout": obj.get("spherical_layout") if obj.get("spherical_layout") is not None else 'tetrahedron',
             "spherical_view_fov_deg": obj.get("spherical_view_fov_deg") if obj.get("spherical_view_fov_deg") is not None else 150.0,
-            "spherical_view_size": obj.get("spherical_view_size") if obj.get("spherical_view_size") is not None else 1600
+            "spherical_view_size": obj.get("spherical_view_size") if obj.get("spherical_view_size") is not None else 1600,
+            "spherical_sequential_views": obj.get("spherical_sequential_views") if obj.get("spherical_sequential_views") is not None else 'all'
         })
         # store additional fields in additional_properties
         for _key in obj.keys():
