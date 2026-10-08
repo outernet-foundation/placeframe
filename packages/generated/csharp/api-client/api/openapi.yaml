@@ -4679,12 +4679,19 @@ components:
             \ it also covers the sphere at 150, but it is meant for narrower views,\
             \ where keeping every view near horizontal matches a query shot level\
             \ far better than a 150-degree view does, and what coverage it loses is\
-            \ mostly sky. 'cube' is the six cube-face directions. Ignored for every\
-            \ other kind of capture."
+            \ mostly sky. 'cube' is the six cube-face directions. 'dodecahedron' is\
+            \ twelve views along a dodecahedron's face normals, each with five neighbours\
+            \ 63.4 degrees away, covering the sphere at 75 degrees: at that width\
+            \ a view matched at 1024 pixels resolves 13.7 pixels per degree, the angular\
+            \ resolution of a Zed frame, where the wider layouts manage 7 to 9. Six\
+            \ of its views sit near level (60 degrees apart, tilted alternately 10.8\
+            \ degrees) and six steep ones at 52.6 degrees take the facades and sky;\
+            \ none points straight up or down. Ignored for every other kind of capture."
           enum:
           - tetrahedron
           - cube
           - hexring
+          - dodecahedron
           type: string
         spherical_view_fov_deg:
           default: 150.0
@@ -4708,18 +4715,19 @@ components:
             \ pairs expand into. Two panoramas within sequential_window_m of each\
             \ other are paired view by view. 'all' crosses every view of one with\
             \ every view of the other: 16 image pairs per frame pair for the tetrahedron,\
-            \ 36 for the hexring and cube. 'neighbouring' pairs each view with itself\
-            \ and with the views whose axes are nearest to it in the layout: for the\
-            \ tetrahedron that is every view (all four are 109.5 degrees apart, so\
-            \ nothing changes), for the hexring its two ring neighbours (18 pairs),\
-            \ for the cube the four adjacent faces (30 pairs). 'same' pairs each view\
-            \ only with itself (4 or 6 pairs). The narrower settings assume the camera\
-            \ turns by less than a view's spacing between consecutive panoramas; a\
-            \ sharper turn is left to retrieval, which is unaffected, as are cross-rig\
-            \ pairs and every non-spherical capture. On a Union Square loop the cross-view\
-            \ sequential pairs were three quarters of the sequential pairs and shared\
-            \ a tenth as many points as same-view pairs, so the narrower settings\
-            \ mostly remove matching work."
+            \ 36 for the hexring and cube, 144 for the dodecahedron. 'neighbouring'\
+            \ pairs each view with itself and with the views whose axes are nearest\
+            \ to it in the layout: for the tetrahedron that is every view (all four\
+            \ are 109.5 degrees apart, so nothing changes), for the hexring its two\
+            \ ring neighbours (18 pairs), for the cube the four adjacent faces (30\
+            \ pairs), for the dodecahedron its five neighbours (72 pairs). 'same'\
+            \ pairs each view only with itself (4, 6 or 12 pairs). The narrower settings\
+            \ assume the camera turns by less than a view's spacing between consecutive\
+            \ panoramas; a sharper turn is left to retrieval, which is unaffected,\
+            \ as are cross-rig pairs and every non-spherical capture. On a Union Square\
+            \ loop the cross-view sequential pairs were three quarters of the sequential\
+            \ pairs and shared a tenth as many points as same-view pairs, so the narrower\
+            \ settings mostly remove matching work."
           enum:
           - all
           - neighbouring

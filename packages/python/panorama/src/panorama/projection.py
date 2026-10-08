@@ -36,6 +36,18 @@ Layouts:
                that possible -- six coplanar views could not reach a pole at any
                field of view a fisheye model can represent, since every axis
                would be 90 degrees from it.
+  DODECAHEDRON twelve views along the face normals of a dodecahedron (the
+               vertices of an icosahedron), every one with five neighbours
+               exactly 63.4 degrees away. The worst-covered direction is 37.4
+               degrees from its nearest axis, so 75 degrees covers the whole
+               sphere, and at that width a view matched at 1024 pixels resolves
+               13.7 pixels per degree -- the resolution of a Zed frame, which
+               the wider layouts fall well short of. Oriented with a
+               dodecahedron vertex up: six views sit near level, 60 degrees
+               apart in yaw and tilted alternately 10.8 degrees up and down (a
+               hexring with a smaller tilt), and six steeper ones at 52.6
+               degrees cover facades, canopy, sky and ground. No view points
+               straight up or down, so none is spent on the operator.
 
 All views of a frame share one optical centre, so the rig that relates them is
 pure rotation: translations are exactly zero, not merely small.
@@ -108,7 +120,29 @@ HEXRING: tuple[View, ...] = tuple(
     for index, yaw in enumerate((0, 60, 120, 180, 240, 300))
 )
 
-LAYOUTS: dict[str, tuple[View, ...]] = {"tetrahedron": TETRAHEDRON, "cube": CUBE, "hexring": HEXRING}
+# The twelve icosahedron vertex directions with an icosahedron face (a dodecahedron vertex) up:
+# at each of six yaws, one view near level and one steep, the tilts alternating in sign around the
+# ring so that neighbouring axes are all the icosahedron's 63.4 degrees apart. The elevations are
+# those of an icosahedron's vertices measured from a face: asin(1 / (sqrt(3) * phi)) and
+# asin(phi / sqrt(3)) with phi the golden ratio.
+DODECA_NEAR_TILT_DEG = 10.812316964000
+DODECA_FAR_TILT_DEG = 52.622631859000
+
+DODECAHEDRON: tuple[View, ...] = tuple(
+    view
+    for index, yaw in enumerate((0, 60, 120, 180, 240, 300))
+    for view in (
+        View(f"n{yaw:03d}", float(yaw), DODECA_NEAR_TILT_DEG if index % 2 == 0 else -DODECA_NEAR_TILT_DEG),
+        View(f"s{yaw:03d}", float(yaw), -DODECA_FAR_TILT_DEG if index % 2 == 0 else DODECA_FAR_TILT_DEG),
+    )
+)
+
+LAYOUTS: dict[str, tuple[View, ...]] = {
+    "tetrahedron": TETRAHEDRON,
+    "cube": CUBE,
+    "hexring": HEXRING,
+    "dodecahedron": DODECAHEDRON,
+}
 
 
 def layout(name: str) -> tuple[View, ...]:

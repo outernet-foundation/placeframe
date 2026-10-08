@@ -171,3 +171,50 @@ def test_cube_faces_neighbour_the_four_adjacent_faces() -> None:
     front = projection.CUBE[0]
     names = {other.name for other in projection.neighbouring_views(front, projection.CUBE)}
     assert names == {"right", "left", "up", "down"}
+
+
+# ── Dodecahedron ─────────────────────────────────────────────────────────────
+
+
+def _direction(view: projection.View) -> NDArray[np.float64]:
+    return projection.view_axis(view)
+
+
+def test_dodecahedron_has_twelve_distinct_views_with_five_neighbours_each() -> None:
+    views = projection.DODECAHEDRON
+    assert len(views) == 12
+    assert len({view.name for view in views}) == 12
+    for view in views:
+        neighbours = projection.neighbouring_views(view, views)
+        assert len(neighbours) == 5, view.name
+        for other in neighbours:
+            assert projection.angle_between_views_deg(view, other) == pytest.approx(63.435, abs=0.01)
+
+
+def test_dodecahedron_is_the_icosahedron_vertex_directions() -> None:
+    """Every pair of axes is 63.4, 116.6 or 180 degrees apart: the icosahedron's three vertex distances."""
+    views = projection.DODECAHEDRON
+    for a in views:
+        for b in views:
+            if a is b:
+                continue
+            angle = projection.angle_between_views_deg(a, b)
+            assert min(abs(angle - 63.435), abs(angle - 116.565), abs(angle - 180.0)) < 0.01, (a.name, b.name, angle)
+
+
+def test_dodecahedron_faces_front_near_level_and_points_nowhere_straight_up() -> None:
+    front = next(view for view in projection.DODECAHEDRON if view.name == "n000")
+    assert front.yaw_deg == 0.0
+    assert front.pitch_deg == pytest.approx(10.81, abs=0.01)
+    assert all(abs(view.pitch_deg) < 60 for view in projection.DODECAHEDRON)
+
+
+@pytest.mark.parametrize(("fov_deg", "covered"), [(76.0, True), (72.0, False)])
+def test_dodecahedron_covers_the_sphere_from_75_degrees(fov_deg: float, covered: bool) -> None:
+    """The worst direction is a dodecahedron vertex, 37.4 degrees from its three nearest axes."""
+    axes = np.array([_direction(view) for view in projection.DODECAHEDRON])
+    rng = np.random.default_rng(0)
+    samples = rng.normal(size=(20000, 3))
+    samples /= np.linalg.norm(samples, axis=1, keepdims=True)
+    nearest = np.degrees(np.arccos(np.clip(samples @ axes.T, -1, 1))).min(axis=1)
+    assert bool(nearest.max() <= fov_deg / 2) is covered

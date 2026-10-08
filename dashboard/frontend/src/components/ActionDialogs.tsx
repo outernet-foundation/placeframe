@@ -221,6 +221,7 @@ export function ReconstructDialog({ captureName, captureId, siblings, onClose, o
               <select value={spherical.layout} onChange={(e) => setSpherical({ ...spherical, layout: e.target.value })}>
                 <option value="tetrahedron">Tetrahedron — 4 views, covers the sphere at 141°+</option>
                 <option value="hexring">Hexring — 6 level-ish views, better for level queries</option>
+                <option value="dodecahedron">Dodecahedron — 12 narrow views, Zed-like resolution at 75°</option>
                 <option value="cube">Cube — 6 faces, covers the sphere at 110°+</option>
               </select>
             </label>
@@ -259,10 +260,12 @@ export function ReconstructDialog({ captureName, captureId, siblings, onClose, o
             These cut the sphere into the views a reconstructor can model, so changing them is exactly what
             reconstructing again is for. The pairing choice only trims the sequential matches between consecutive
             panoramas: on a tetrahedron every view neighbours every other, so it matters for the hexring (36 → 18
-            pairs per step) and cube (36 → 30), where views facing away from each other shared a tenth as many points
-            as same-view pairs. Full coverage needs 141° for the tetrahedron, 110° for the cube and 150° for
-            the hexring; a narrower view than that drops the worst-covered directions, which for the hexring is mostly
-            sky. Stride and max frame width are not here because they are properties of the capture — its frames were
+            pairs per step), cube (36 → 30) and dodecahedron (144 → 72), where views facing away from each other
+            shared a tenth as many points as same-view pairs. Full coverage needs 141° for the tetrahedron, 110° for
+            the cube, 150° for the hexring and 75° for the dodecahedron; a narrower view than that drops the
+            worst-covered directions, which for the hexring is mostly sky. Views are matched at 1024 px whatever the
+            view size, so a narrower view is a sharper one: 75° on the dodecahedron is 13.7 px per degree, 150° on
+            the tetrahedron 6.8. Stride and max frame width are not here because they are properties of the capture — its frames were
             extracted and stored once, at{" "}
             <span className="mono">
               {info?.frame_width ?? "?"}x{info?.frame_height ?? "?"}
@@ -659,6 +662,7 @@ export function ExportViewsDialog({ capture, onClose, onDone }: {
             <option value="tetrahedron">Tetrahedron — 4 views, covers the sphere at 141°+</option>
             <option value="hexring">Hexring — 6 level-ish views, better for level queries</option>
             <option value="cube">Cube — 6 faces, covers the sphere at 110°+</option>
+            <option value="dodecahedron">Dodecahedron — 12 narrow views, Zed-like resolution at 75°</option>
           </select>
         </label>
         <label style={{ width: 110 }}>

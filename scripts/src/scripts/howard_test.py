@@ -1445,7 +1445,8 @@ def reconstruct_spherical(
         typer.Option(
             help=f"Which views to reconstruct through ({', '.join(sorted(LAYOUTS))}). tetrahedron covers the "
             "sphere with four wide views; hexring keeps six narrower views near horizontal, which suits a map "
-            "whose queries are shot level and drops mostly sky"
+            "whose queries are shot level and drops mostly sky; dodecahedron is twelve narrow views that cover "
+            "the sphere at 75 degrees, matched at twice the angular resolution of the tetrahedron"
         ),
     ] = "tetrahedron",
     view_fov_deg: Annotated[

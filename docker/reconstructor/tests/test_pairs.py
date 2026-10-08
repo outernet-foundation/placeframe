@@ -186,3 +186,10 @@ def test_retrieval_is_not_filtered_by_the_view_choice() -> None:
     )
     retrieved = [pair for pair in pairs if pair.source == PairSource.RETRIEVAL]
     assert any(_view(pair.image_a) != _view(pair.image_b) for pair in retrieved)
+
+
+def test_dodecahedron_pairs_each_view_with_itself_and_five_neighbours() -> None:
+    everything = _sequential_pairs("all", spherical_layout="dodecahedron", spherical_view_fov_deg=75.0)
+    neighbouring = _sequential_pairs("neighbouring", spherical_layout="dodecahedron", spherical_view_fov_deg=75.0)
+    same = _sequential_pairs("same", spherical_layout="dodecahedron", spherical_view_fov_deg=75.0)
+    assert (len(everything), len(neighbouring), len(same)) == (144, 72, 12)
