@@ -32,6 +32,7 @@ from placeframe_lease_server_client import ReconstructionStatus
 from pycolmap._core import set_random_seed  # noqa: PLC2701 — no public API
 from torch import Tensor, cuda, from_numpy, inference_mode  # type: ignore
 
+from .batching import LIGHTGLUE_BATCH_SIZE_ENV, lightglue_batch_size
 from .colmap import COLMAP_DB_FILE, run_colmap_reconstruction
 from .keyframes import select_keyframes_by_distance
 from .metrics_builder import MetricsBuilder
@@ -50,16 +51,6 @@ CAPTURE_SESSION_DIRECTORY = WORK_DIR / "capture_session"
 COMPRESSION_OPQ_NUMBER_OF_SUBVECTORS = 16
 COMPRESSION_OPQ_NUMBER_OF_BITS_PER_SUBVECTOR = 8
 COMPRESSION_OPQ_NUMBER_OF_TRAINING_ITERATIONS = 20
-# Pairs per LightGlue forward pass. Peak GPU memory for one pass scales with the keypoints summed
-# across its batch, so this is the ceiling on how much the matching stage asks for at once --
-# independent of how many pairs there are in total. It matches the localizer's MATCH_BATCH_SIZE
-# because the two services share a GPU and the same failure: at 16 this stage asked for 340 MiB in
-# a single allocation and died on its first batch while the localizer held the rest of an 8 GiB
-# card. Not a ReconstructionOptions field: batching changes how matching is computed, never what it
-# produces, and every option is part of the blob that decides whether an existing reconstruction
-# can be reused (scripts/fit_calibration.py's match_or_create_reconstruction), so a compute-only
-# knob there would split otherwise-identical reconstructions and force needless rebuilds.
-LIGHTGLUE_BATCH_SIZE = 4
 
 global_descriptor_extractor: Callable[[Tensor], TT[RetrievalDim]]
 local_feature_extractor: Callable[[Tensor], LocalFeatureOutput]
@@ -257,14 +248,20 @@ def run_reconstruction(
 
     image_name_pairs: list[tuple[str, str]] = [(pair.image_a, pair.image_b) for pair in pairs]
 
-    # Match features
+    # Match features. Pairs per pass follow the keypoint cap (see batching.py): peak memory is
+    # batch x cap^2, so a higher cap matches fewer pairs at once instead of asking for more memory.
+    batch_size = lightglue_batch_size(options.max_keypoints_per_image(), environ.get(LIGHTGLUE_BATCH_SIZE_ENV))
+    print(
+        f"Matching {len(pairs)} pairs, {batch_size} per LightGlue pass "
+        f"(up to {options.max_keypoints_per_image()} keypoints per image)"
+    )
     publisher.set_phase(ReconstructionStatus.MATCHING_FEATURES, total=len(pairs))
     match_indices = local_feature_matcher(
         image_name_pairs,
         keypoints,
         descriptors,
         sizes,
-        LIGHTGLUE_BATCH_SIZE,
+        batch_size,
         publisher.on_progress,
     )
     if cuda.is_available():

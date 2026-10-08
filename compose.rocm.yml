@@ -23,6 +23,8 @@ services:
       DEPLOYMENT_ENVIRONMENT: "${DEPLOYMENT_ENVIRONMENT:-development}"
       SERVICE_VERSION: "${RECONSTRUCTOR_SHA:?err}"
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://alloy:4317"
+      # Empty defers to the automatic rule in reconstructor/batching.py.
+      LIGHTGLUE_BATCH_SIZE: "${LIGHTGLUE_BATCH_SIZE:-}"
 
   localizer-rocm:
     image: "ghcr.io/outernet-foundation/placeframe/localizer-rocm:${LOCALIZER_SHA:?err}"
