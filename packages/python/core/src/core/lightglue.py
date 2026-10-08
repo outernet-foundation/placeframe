@@ -36,8 +36,12 @@ def lightglue_match(
     device: str,
     on_progress: Callable[[int], None] | None = None,
 ) -> MatchIndices:
-    keypoints_tensors = Keypoints({name: from_numpy(kp).to(device) for name, kp in keypoints.items()})
-    descriptors_tensors = Descriptors({name: from_numpy(desc).to(device) for name, desc in descriptors.items()})
+    # Host tensors, moved to the device one batch at a time by lightglue_match_tensors. Staging
+    # every image's features on the GPU up front costs images x keypoints x 130 floats: a 1420-image
+    # map at 5000 keypoints is 3.7 GB, which fit, and a 4260-image one is 11 GB, which did not. The
+    # per-batch copy is a few megabytes against a pass that takes far longer than the transfer.
+    keypoints_tensors = Keypoints({name: from_numpy(kp) for name, kp in keypoints.items()})
+    descriptors_tensors = Descriptors({name: from_numpy(desc) for name, desc in descriptors.items()})
 
     return lightglue_match_tensors(
         lightglue, pairs, keypoints_tensors, descriptors_tensors, sizes, batch_size, device, on_progress
@@ -60,16 +64,18 @@ def lightglue_match_tensors(
         print(f"Matching features: batch {batch_start // batch_size + 1} of {num_batches}")
         batch_pairs = pairs[batch_start : batch_start + batch_size]
 
+        # Features may live on the host (the reconstructor's whole-map arrays) or already on the
+        # device (the localizer's handful of images); .to(device) is a no-op for the latter.
         with inference_mode():
             matches = lightglue({
                 "image0": {
-                    "keypoints": pad_sequence([keypoints[a] for a, _ in batch_pairs], batch_first=True),
-                    "descriptors": pad_sequence([descriptors[a] for a, _ in batch_pairs], batch_first=True),
+                    "keypoints": pad_sequence([keypoints[a] for a, _ in batch_pairs], batch_first=True).to(device),
+                    "descriptors": pad_sequence([descriptors[a] for a, _ in batch_pairs], batch_first=True).to(device),
                     "image_size": tensor([sizes[a] for a, _ in batch_pairs], device=device),
                 },
                 "image1": {
-                    "keypoints": pad_sequence([keypoints[b] for _, b in batch_pairs], batch_first=True),
-                    "descriptors": pad_sequence([descriptors[b] for _, b in batch_pairs], batch_first=True),
+                    "keypoints": pad_sequence([keypoints[b] for _, b in batch_pairs], batch_first=True).to(device),
+                    "descriptors": pad_sequence([descriptors[b] for _, b in batch_pairs], batch_first=True).to(device),
                     "image_size": tensor([sizes[b] for _, b in batch_pairs], device=device),
                 },
             })["matches0"]
