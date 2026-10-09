@@ -32,7 +32,11 @@ RUN --mount=type=cache,id=uvcache,sharing=locked,target=/root/.cache/uv \
     uv pip install -r pylock.neural-networks-${TORCH_DEVICE}.toml
 
 COPY packages/python/neural-networks /app/packages/python/neural-networks
-RUN uv pip install --no-deps --no-sources /app/packages/python/neural-networks/third-party/deep-image-retrieval
-RUN uv pip install --no-deps --no-sources /app/packages/python/neural-networks
+RUN --mount=type=cache,id=uvcache,sharing=locked,target=/root/.cache/uv \
+    UV_HTTP_TIMEOUT=600 UV_HTTP_RETRIES=10 \
+    uv pip install --no-deps --no-sources /app/packages/python/neural-networks/third-party/deep-image-retrieval
+RUN --mount=type=cache,id=uvcache,sharing=locked,target=/root/.cache/uv \
+    UV_HTTP_TIMEOUT=600 UV_HTTP_RETRIES=10 \
+    uv pip install --no-deps --no-sources /app/packages/python/neural-networks
 
 RUN uv run python -c "import neural_networks.preload"

@@ -15,7 +15,9 @@ RUN --mount=type=cache,id=uvcache,sharing=locked,target=/root/.cache/uv \
 COPY packages/python/core /app/packages/python/core
 COPY packages/python/common /app/packages/python/common
 COPY docker/localizer /app/docker/localizer
-RUN uv pip install --no-deps --no-sources \
+RUN --mount=type=cache,id=uvcache,sharing=locked,target=/root/.cache/uv \
+    UV_HTTP_TIMEOUT=600 UV_HTTP_RETRIES=10 \
+    uv pip install --no-deps --no-sources \
     /app/packages/python/common \
     /app/packages/python/core \
     /app/docker/localizer

@@ -49,7 +49,9 @@ ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 FROM base AS dev
 
 # Install editable packages for development
-RUN uv pip install --no-deps --no-sources \
+RUN --mount=type=cache,id=uvcache,sharing=locked,target=/root/.cache/uv \
+    UV_HTTP_TIMEOUT=600 UV_HTTP_RETRIES=10 \
+    uv pip install --no-deps --no-sources \
     -e /app/packages/python/common \
     -e /app/packages/python/core \
     -e /app/packages/generated/python/datamodels \
@@ -61,7 +63,9 @@ RUN uv pip check
 FROM base AS prod
 
 # Install non-editable packages for production
-RUN uv pip install --no-deps --no-sources \
+RUN --mount=type=cache,id=uvcache,sharing=locked,target=/root/.cache/uv \
+    UV_HTTP_TIMEOUT=600 UV_HTTP_RETRIES=10 \
+    uv pip install --no-deps --no-sources \
     /app/packages/python/common \
     /app/packages/python/core \
     /app/packages/generated/python/datamodels \
