@@ -10,7 +10,8 @@ from core.reconstruction_options import ReconstructionOptions
 from datamodels.public_tables import Reconstruction, ReconstructionStatus
 from litestar import Router, post
 from litestar.di import Provide
-from litestar.exceptions import NotFoundException
+from litestar.exceptions import HTTPException, NotFoundException
+from litestar.status_codes import HTTP_409_CONFLICT
 from pydantic import BaseModel
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -128,6 +129,11 @@ async def update_progress(session: AsyncSession, id: UUID, data: ProgressUpdate)
     if not row:
         raise NotFoundException("Reconstruction not found")
 
+    # A cancelled job is refused rather than dropped: this is how the worker, which otherwise never
+    # reads the row, learns to abandon it (reconstructor.progress_publisher).
+    if row.status == ReconstructionStatus.CANCELLED:
+        raise HTTPException(status_code=HTTP_409_CONFLICT, detail="Reconstruction was cancelled")
+
     # Progress writes are fire-and-forget from the worker and can land after the job reached a
     # terminal status; dropping them stops a late write from flipping a finished job back to in-progress.
     if row.status in TERMINAL_STATUSES:
@@ -203,6 +209,13 @@ async def _finalize_lease(session: AsyncSession, id: UUID, status: Reconstructio
 
     if not row:
         raise NotFoundException("Reconstruction not found")
+
+    # A worker finishing a job that was cancelled under it would otherwise overwrite the
+    # cancellation with its result; the result is refused and discarded instead.
+    if row.status == ReconstructionStatus.CANCELLED:
+        raise HTTPException(
+            status_code=HTTP_409_CONFLICT, detail="Reconstruction was cancelled; its result is discarded"
+        )
 
     row.status = status
     # Clear progress fields on terminal transition so callers don't see stale phase numbers.

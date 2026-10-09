@@ -974,6 +974,65 @@ def delete_reconstruction(
         typer.echo(f"  local cache files deleted: {removed['cached_files']}")
 
 
+# The worker container of the development stack. Cancelling marks the row; the worker only notices
+# at its next progress write, which during bundle adjustment can be an hour away. Restarting the
+# container takes the eviction path (requeue, which is a no-op for a cancelled row, then exit), so
+# the GPU is free at once. Development stack only, like DIRECT_STORE_CONTAINER.
+RECONSTRUCTOR_CONTAINER_PREFIX = "placeframe-reconstructor-"
+
+
+def _restart_reconstructor_container() -> str | None:
+    """Restart the stack's reconstructor container; returns its name, or None if there is none."""
+    listed = subprocess.run(  # noqa: S603
+        ["docker", "ps", "--filter", f"name={RECONSTRUCTOR_CONTAINER_PREFIX}", "--format", "{{.Names}}"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    names = [n for n in listed.stdout.split() if n.startswith(RECONSTRUCTOR_CONTAINER_PREFIX)]
+    if listed.returncode != 0 or not names:
+        return None
+    subprocess.run(["docker", "restart", names[0]], capture_output=True, check=True)  # noqa: S603
+    return names[0]
+
+
+async def _cancel_reconstruction(
+    reconstruction_id: UUID, stop_worker: bool | None
+) -> tuple[dict[str, Any], str | None]:
+    async with authenticated_api_client() as api:
+        try:
+            before = await api.get_reconstruction(reconstruction_id)
+            reconstruction = await api.cancel_reconstruction(reconstruction_id)
+        except ApiException as exception:
+            _fail(exception)
+    was_running = before.status not in (ReconstructionStatus.QUEUED, *_TERMINAL_STATUSES)
+    restarted = _restart_reconstructor_container() if (was_running if stop_worker is None else stop_worker) else None
+    return _reconstruction_to_dict(reconstruction), restarted
+
+
+@app.command(name="cancel-reconstruction")
+def cancel_reconstruction(
+    reconstruction_id: Annotated[UUID, typer.Argument(help="Queued or running reconstruction to cancel")],
+    stop_worker: Annotated[
+        bool | None,
+        typer.Option(
+            "--stop-worker/--no-stop-worker",
+            help="Restart the development stack's reconstructor container so a running job releases the GPU "
+            "now rather than at its next progress write. Omitted, done exactly when the job was running",
+        ),
+    ] = None,
+    json_output: Annotated[bool, typer.Option("--json", help="Emit JSON instead of text")] = False,
+) -> None:
+    """Cancel a queued or running reconstruction; whatever it computed is discarded."""
+    reconstruction, restarted = run(_cancel_reconstruction(reconstruction_id, stop_worker))
+    if json_output:
+        typer.echo(dumps({**reconstruction, "worker_restarted": restarted}))
+        return
+    typer.echo(f"Cancelled reconstruction {reconstruction_id}")
+    if restarted:
+        typer.echo(f"  restarted {restarted} so the job stops now")
+
+
 @app.command(name="rename-capture")
 def rename_capture(
     capture_id: Annotated[UUID, typer.Argument(help="Capture session to rename")],

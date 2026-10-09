@@ -18,7 +18,12 @@ from placeframe_lease_server_client import (
 from placeframe_lease_server_client import ReconstructionMetrics as ClientReconstructionMetrics
 
 from .metrics_builder import MetricsBuilder
-from .progress_publisher import AsyncProgressFlusher, ReconstructionPublisher
+from .progress_publisher import (
+    is_cancelled_refusal,
+    AsyncProgressFlusher,
+    ReconstructionCancelled,
+    ReconstructionPublisher,
+)
 from .run_reconstruction import load_models, run_reconstruction
 from .settings import get_settings
 
@@ -102,13 +107,25 @@ async def _run_and_report(api: DefaultApi, loop: asyncio.AbstractEventLoop, leas
             reconstruction_id,
             ClientReconstructionMetrics.model_validate(metrics.model_dump()),
         )
+    except ReconstructionCancelled:
+        # The row is already CANCELLED (that is how the worker found out); there is nothing to report.
+        print(f"[{reconstruction_id}] Reconstruction cancelled; abandoned")
+    except ApiException as e:
+        if not is_cancelled_refusal(e):
+            raise
+        print(f"[{reconstruction_id}] Cancelled while finishing; result discarded")
     except Exception as e:
         print(f"[{reconstruction_id}] Reconstruction failed: {e}")
         partial_metrics = ClientReconstructionMetrics.model_validate(metrics_builder.metrics.model_dump())
-        await api.fail_lease(
-            reconstruction_id,
-            FailLeaseRequest(error=str(e), metrics=partial_metrics),
-        )
+        try:
+            await api.fail_lease(
+                reconstruction_id,
+                FailLeaseRequest(error=str(e), metrics=partial_metrics),
+            )
+        except ApiException as refused:
+            if not is_cancelled_refusal(refused):
+                raise
+            print(f"[{reconstruction_id}] Cancelled before the failure was reported; discarded")
 
 
 async def _requeue_and_exit(api: DefaultApi, reconstruction_id: UUID | None) -> NoReturn:

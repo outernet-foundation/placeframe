@@ -273,6 +273,37 @@ async def get_reconstruction_localization_map(session: AsyncSession, id: UUID) -
     return localization_map
 
 
+@put("/{id:uuid}/cancel")
+async def cancel_reconstruction(session: AsyncSession, id: UUID) -> ReconstructionReadWithQueue:
+    """Stop a queued or running reconstruction.
+
+    A queued one is simply never leased. A running one keeps its worker until the worker's next
+    progress write, which the lease server refuses for a cancelled row; the worker then abandons the
+    job, and a result it still reports is refused the same way. Whatever was computed is discarded.
+    """
+    row = await session.get(Reconstruction, id)
+
+    if not row:
+        raise NotFoundException(f"Reconstruction with id {id} not found")
+
+    if row.status in (ReconstructionStatus.SUCCEEDED, ReconstructionStatus.FAILED, ReconstructionStatus.CANCELLED):
+        raise HTTPException(
+            status_code=HTTP_409_CONFLICT,
+            detail=f"Reconstruction with id {id} is in state {row.status.value} and cannot be cancelled",
+        )
+
+    row.status = ReconstructionStatus.CANCELLED
+    row.error = None
+    row.progress_current = None
+    row.progress_total = None
+    row.progress_attempt = None
+
+    await session.flush()
+
+    result = await session.execute(select_reconstructions_with_queue().where(Reconstruction.id == row.id))
+    return to_reconstruction_with_queue(*result.one())
+
+
 @put("/{id:uuid}/retry")
 async def retry_reconstruction(session: AsyncSession, id: UUID) -> ReconstructionReadWithQueue:
     row = await session.get(Reconstruction, id)
@@ -569,6 +600,7 @@ router = Router(
         get_reconstruction,
         get_reconstruction_localization_map,
         retry_reconstruction,
+        cancel_reconstruction,
         get_reconstruction_points,
         get_reconstruction_frame_poses,
         get_reconstruction_metrics,

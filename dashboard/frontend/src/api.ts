@@ -203,6 +203,12 @@ export function deleteReconstruction(reconstructionId: string, cascade = false):
   return deleteRequest(`/api/reconstructions/${reconstructionId}${cascade ? "?cascade=true" : ""}`);
 }
 
+// Stops a queued or running reconstruction. The row turns "cancelled" at once; a running worker
+// abandons the job at its next progress tick, and the CLI restarts it so the GPU frees now.
+export function cancelReconstruction(reconstructionId: string): Promise<Reconstruction> {
+  return request(`/api/reconstructions/${reconstructionId}/cancel`, { method: "POST" });
+}
+
 // Withdraws the map from devices; the reconstruction and its stored artifacts are untouched.
 export function unpublishMap(mapId: string): Promise<void> {
   return deleteRequest(`/api/maps/${mapId}`);

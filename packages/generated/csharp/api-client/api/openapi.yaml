@@ -660,6 +660,36 @@ paths:
       summary: RetryReconstruction
       tags:
       - Default
+  /reconstructions/{id}/cancel:
+    put:
+      deprecated: false
+      operationId: cancel_reconstruction
+      parameters:
+      - deprecated: false
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReconstructionReadWithQueue"
+          description: "Request fulfilled, document follows"
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: CancelReconstruction
+      tags:
+      - Default
   /reconstructions/{id}/points:
     get:
       deprecated: false

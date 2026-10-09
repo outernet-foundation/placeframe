@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
+  cancelReconstruction,
   deleteCapture,
   deleteLocalization,
   deleteReconstruction,
@@ -15,6 +16,7 @@ import {
 } from "./api";
 import {
   ConfirmDeleteDialog,
+  ConfirmDialog,
   ExportDialog,
   ExportViewsDialog,
   ImportDialog,
@@ -45,6 +47,7 @@ type Dialog =
   | { kind: "exportViews"; capture: CaptureSession }
   | { kind: "save"; saveKind: "table" | "images"; runId: string }
   | { kind: "deleteReconstruction"; reconstruction: Reconstruction }
+  | { kind: "cancelReconstruction"; reconstruction: Reconstruction }
   | { kind: "deleteSelection" };
 
 // Selection keys are type-tagged so one set can hold all three kinds of row.
@@ -616,6 +619,9 @@ export function CapturesPage() {
                 />
               </>
             )}
+            {!TERMINAL_STATUSES.has(r.status) && (
+              <button onClick={() => setDialog({ kind: "cancelReconstruction", reconstruction: r })}>Cancel</button>
+            )}
             {DELETABLE_STATUSES.has(r.status) && <button onClick={() => setDialog({ kind: "deleteReconstruction", reconstruction: r })}>Delete</button>}
           </div>
         </div>
@@ -850,6 +856,22 @@ export function CapturesPage() {
           This permanently deletes reconstruction <span className="mono">{dialog.reconstruction.id}</span> and its stored
           data. This cannot be undone.
         </ConfirmDeleteDialog>
+      )}
+      {dialog?.kind === "cancelReconstruction" && (
+        <ConfirmDialog
+          title="Cancel reconstruction?"
+          label="Cancel reconstruction"
+          busyLabel="Cancelling…"
+          onClose={() => setDialog(null)}
+          onConfirm={async () => {
+            await cancelReconstruction(dialog.reconstruction.id);
+            await refreshFast();
+          }}
+        >
+          This stops reconstruction <span className="mono">{dialog.reconstruction.id}</span> and discards whatever it
+          has computed. A running worker is restarted so the GPU is free at once. The reconstruction stays listed as
+          cancelled and can be retried or deleted.
+        </ConfirmDialog>
       )}
       {dialog?.kind === "deleteSelection" && (
         <ConfirmDeleteDialog

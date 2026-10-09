@@ -746,8 +746,10 @@ export function SaveRunDialog({ kind, runId, onClose, onDone }: {
 
 // ── Confirm a deletion ──────────────────────────────────────────────────────
 
-export function ConfirmDeleteDialog({ title, children, onClose, onConfirm }: {
+export function ConfirmDialog({ title, label, busyLabel, children, onClose, onConfirm }: {
   title: string;
+  label: string;
+  busyLabel: string;
   children: ReactNode;
   onClose: () => void;
   onConfirm: () => Promise<void>;
@@ -757,7 +759,20 @@ export function ConfirmDeleteDialog({ title, children, onClose, onConfirm }: {
     <Modal title={title} busy={busy} onClose={onClose}>
       <p style={{ margin: 0 }}>{children}</p>
       {error && <div className="banner banner-error">{error}</div>}
-      <Actions busy={busy} label="Delete" busyLabel="Deleting…" onCancel={onClose} onSubmit={() => void submit()} />
+      <Actions busy={busy} label={label} busyLabel={busyLabel} onCancel={onClose} onSubmit={() => void submit()} />
     </Modal>
+  );
+}
+
+export function ConfirmDeleteDialog({ title, children, onClose, onConfirm }: {
+  title: string;
+  children: ReactNode;
+  onClose: () => void;
+  onConfirm: () => Promise<void>;
+}) {
+  return (
+    <ConfirmDialog title={title} label="Delete" busyLabel="Deleting…" onClose={onClose} onConfirm={onConfirm}>
+      {children}
+    </ConfirmDialog>
   );
 }

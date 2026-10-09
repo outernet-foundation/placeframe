@@ -256,6 +256,12 @@ async def delete_reconstruction(reconstruction_id: str, cascade: bool = False) -
     await _run_howard_test_json_async("delete-reconstruction", reconstruction_id, *(["--cascade"] if cascade else []))
 
 
+@post("/api/reconstructions/{reconstruction_id:str}/cancel")
+async def cancel_reconstruction(reconstruction_id: str) -> dict[str, Any]:
+    # The CLI also restarts the worker container when the job was running, so the GPU frees at once.
+    return await _run_howard_test_json_async("cancel-reconstruction", reconstruction_id)
+
+
 # The maps published to devices. This is the list a capture tool's map picker draws from, so the
 # dashboard showing the same rows is how a mismatch between the two becomes visible instead of
 # mysterious -- which it was, because a succeeded reconstruction is not a published map.
@@ -1104,9 +1110,7 @@ async def get_localization_pair_image(run_id: str, index: int, rank: int) -> Fil
     if not 0 <= rank < len(pairs):
         raise NotFoundException(f"Image {index} of run {run_id} has no pair at rank {rank}")
 
-    reconstruction_id = detail.get("reconstruction_id") or _localization_image_entry(run_id, index)[
-        "reconstruction_id"
-    ]
+    reconstruction_id = detail.get("reconstruction_id") or _localization_image_entry(run_id, index)["reconstruction_id"]
     cache_dir = MAP_IMAGES_DIR / str(reconstruction_id)
     name = pairs[rank]["name"]
     cached = cache_dir / _map_image_cache_name(name)

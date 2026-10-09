@@ -147,6 +147,7 @@ def _poll_verification(
             connection.close()
         count = int(row[0]) if row else 0
         if count != last_emitted:
+            # A cancellation seen here ends the poller only; the parent acts on it at its next tick.
             publisher.on_progress(min(count, total_pairs))
             last_emitted = count
         time.sleep(interval_seconds)
@@ -263,6 +264,7 @@ def run_colmap_reconstruction(
         initial_image_pair_callback=progress.on_initial_image_pair,
         next_image_callback=progress.on_next_image,
     )
+    publisher.raise_if_cancelled()
 
     # Check that at least one reconstruction was created
     if len(reconstructions) == 0:
@@ -500,12 +502,14 @@ class _IncrementalMappingProgress:
         self._registered = 0
         self._attempt = 1
 
+    # These run inside pycolmap's native mapping loop, where a Python exception cannot propagate,
+    # so a cancellation is only noted here and acted on once incremental_mapping returns.
     def on_initial_image_pair(self) -> None:
         if self._registered > 0:
             self._attempt += 1
         self._registered = 2
-        self._publisher.on_progress(self._registered, self._attempt)
+        self._publisher.on_progress(self._registered, self._attempt, raise_if_cancelled=False)
 
     def on_next_image(self) -> None:
         self._registered += 1
-        self._publisher.on_progress(self._registered, self._attempt)
+        self._publisher.on_progress(self._registered, self._attempt, raise_if_cancelled=False)
