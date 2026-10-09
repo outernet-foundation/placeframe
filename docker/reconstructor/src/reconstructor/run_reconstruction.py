@@ -129,7 +129,12 @@ def run_reconstruction(
     }
 
     is_multi_camera_capture = any(rig.is_multi_camera for rig in rigs.values())
-    options = OptionsBuilder(reconstruction_options, is_multi_camera_capture=is_multi_camera_capture)
+    has_rendered_views = any(rig.spherical_expansion is not None for rig in rigs.values())
+    options = OptionsBuilder(
+        reconstruction_options,
+        is_multi_camera_capture=is_multi_camera_capture,
+        has_rendered_views=has_rendered_views,
+    )
 
     for rig in rigs.values():
         ordered_frame_ids = sorted(rig.frame_poses.keys(), key=int)

@@ -14,9 +14,17 @@ class PairVioEssentialMatrixOptions:
 
 
 class OptionsBuilder:
-    def __init__(self, options: ReconstructionOptions, is_multi_camera_capture: bool):
+    def __init__(self, options: ReconstructionOptions, is_multi_camera_capture: bool, has_rendered_views: bool = False):
         self.options = options
         self.is_multi_camera_capture = is_multi_camera_capture
+        # Views rendered from a spherical frame have exact intrinsics by construction (the
+        # projection that produced the pixels is the one COLMAP is told about), so there is
+        # nothing for bundle adjustment to refine. Refining them anyway is not harmless: on
+        # narrow views (the dodecahedron's 80 degrees) the fisheye coefficients are nearly
+        # unobservable, BA drives them towards +-1, and COLMAP then drops every image of a
+        # camera whose parameter passes max_extra_param (1.0) as bogus, which dismantled an
+        # 80-frame model down to nothing and left a 28-frame fragment as the result.
+        self.refine_intrinsics = not has_rendered_views
 
     def two_view_geometry_options(self):
         two_view_geometry_options = TwoViewGeometryOptions()
@@ -74,9 +82,9 @@ class OptionsBuilder:
 
         incremental_pipeline_options.use_prior_position = not self.is_multi_camera_capture
         incremental_pipeline_options.ba_refine_sensor_from_rig = False
-        incremental_pipeline_options.ba_refine_focal_length = True
+        incremental_pipeline_options.ba_refine_focal_length = self.refine_intrinsics
         incremental_pipeline_options.ba_refine_principal_point = False
-        incremental_pipeline_options.ba_refine_extra_params = True
+        incremental_pipeline_options.ba_refine_extra_params = self.refine_intrinsics
         incremental_pipeline_options.ba_global_frames_ratio = self.options.bundle_adjustment_global_frames_ratio
         incremental_pipeline_options.ba_global_max_refinements = 3
         incremental_pipeline_options.ba_global_function_tolerance = (
@@ -95,9 +103,9 @@ class OptionsBuilder:
     def final_bundle_adjustment_options(self):
         bundle_adjustment_options = BundleAdjustmentOptions()
         bundle_adjustment_options.refine_sensor_from_rig = not self.is_multi_camera_capture
-        bundle_adjustment_options.refine_focal_length = True
+        bundle_adjustment_options.refine_focal_length = self.refine_intrinsics
         bundle_adjustment_options.refine_principal_point = False
-        bundle_adjustment_options.refine_extra_params = True
+        bundle_adjustment_options.refine_extra_params = self.refine_intrinsics
         if self.options.deterministic_seed is not None:
             bundle_adjustment_options.ceres.solver_options.num_threads = 1
         return bundle_adjustment_options
