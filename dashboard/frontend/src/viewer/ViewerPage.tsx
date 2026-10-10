@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { fetchPoints, getLocalization, saveScreenshot } from "../api";
+import { fetchPoints, getLocalization, listReconstructions, saveScreenshot } from "../api";
+import type { Reconstruction } from "../types";
 import {
   DEFAULT_POINT_SIZE,
   PointCloudScene,
+  overlayCameraColor,
   type CameraMode,
   type LocCameraMode,
   type PointSize,
@@ -12,22 +14,48 @@ import "./viewer.css";
 
 const POINT_SIZE_LEVELS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
-function reconstructionIdFromUrl(): string {
-  return new URLSearchParams(window.location.search).get("reconstruction") ?? "";
+// One id, or several comma-separated: `?reconstruction=a,b` overlays both in the frame they share.
+function reconstructionIdsFromUrl(): string[] {
+  const raw = new URLSearchParams(window.location.search).get("reconstruction") ?? "";
+  return raw
+    .split(",")
+    .map((id) => id.trim())
+    .filter(Boolean);
 }
 
 function localizationIdFromUrl(): string | null {
   return new URLSearchParams(window.location.search).get("localization");
 }
 
+// What the legend calls a map: its capture, then its label (an aligned copy says what it was
+// aligned to) or the short id.
+function layerName(id: string, reconstructions: Reconstruction[]): string {
+  const r = reconstructions.find((x) => x.id === id);
+  if (!r) return id.slice(0, 8);
+  const capture = r.capture_name ?? "";
+  const label = r.label ?? r.id.slice(0, 8);
+  return capture ? `${capture} · ${label}` : label;
+}
+
+interface Layer {
+  id: string;
+  name: string;
+  points: number;
+  poses: number;
+  showPoints: boolean;
+  showCameras: boolean;
+  cameraColor: string;
+}
+
 export function ViewerPage() {
-  const reconstructionId = reconstructionIdFromUrl();
+  const reconstructionIds = reconstructionIdsFromUrl();
+  const reconstructionKey = reconstructionIds.join(",");
   const localizationId = localizationIdFromUrl();
   const containerRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<PointCloudScene | null>(null);
 
-  const [title, setTitle] = useState(reconstructionId);
-  const [titleDraft, setTitleDraft] = useState(reconstructionId);
+  const [title, setTitle] = useState(reconstructionKey);
+  const [titleDraft, setTitleDraft] = useState(reconstructionKey);
   const [editingTitle, setEditingTitle] = useState(false);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [error, setError] = useState<string | null>(null);
@@ -38,39 +66,70 @@ export function ViewerPage() {
   const [pointSize, setPointSizeState] = useState<PointSize>(DEFAULT_POINT_SIZE);
   const [hasLocalizedPoses, setHasLocalizedPoses] = useState(false);
   const [locCameraMode, setLocCameraModeState] = useState<LocCameraMode>("frustum");
+  const [layers, setLayers] = useState<Layer[]>([]);
 
   useEffect(() => {
-    if (!containerRef.current || !reconstructionId) return;
+    if (!containerRef.current || reconstructionIds.length === 0) return;
     const scene = new PointCloudScene({ container: containerRef.current });
     sceneRef.current = scene;
 
-    fetchPoints(reconstructionId)
-      .then(({ positions, colors, count, posePositions, poseOrientations, poseCount, rigIndices }) => {
-        scene.setPoints(positions, colors, count, posePositions, poseOrientations, poseCount, rigIndices);
+    // The listing only names the layers; the geometry does not wait for it, and a failed listing
+    // leaves the legend on short ids.
+    const names = listReconstructions(false).catch((): Reconstruction[] => []);
+    Promise.all(reconstructionIds.map((id) => fetchPoints(id)))
+      .then(async (clouds) => {
+        scene.setClouds(
+          clouds.map((c, i) => ({
+            id: reconstructionIds[i],
+            positions: c.positions,
+            colors: c.colors,
+            count: c.count,
+            posePositions: c.posePositions,
+            poseOrientations: c.poseOrientations,
+            poseCount: c.poseCount,
+            rigIndices: c.rigIndices,
+          })),
+        );
         setHasCameraPoses(scene.hasCameraPoses());
         setStatus("ready");
-        if (!localizationId) return null;
-        return getLocalization(localizationId).then((result) => {
-          const ok = result.images.filter((img) => img.status === "ok" && img.position && img.quaternion_xyzw);
-          const positionsArray = new Float32Array(ok.length * 3);
-          const orientationsArray = new Float32Array(ok.length * 4);
-          // Label pose i with the image's *original* results.json index, not its position in this
-          // filtered array — those diverge as soon as any image in the run failed to localize.
-          const labels = ok.map((img) => String(img.index));
-          ok.forEach((img, i) => {
-            const p = img.position as { x: number; y: number; z: number };
-            const q = img.quaternion_xyzw as [number, number, number, number];
-            positionsArray[i * 3] = p.x;
-            positionsArray[i * 3 + 1] = p.y;
-            positionsArray[i * 3 + 2] = p.z;
-            orientationsArray[i * 4] = q[0];
-            orientationsArray[i * 4 + 1] = q[1];
-            orientationsArray[i * 4 + 2] = q[2];
-            orientationsArray[i * 4 + 3] = q[3];
-          });
-          scene.setLocalizedPoses(positionsArray, orientationsArray, ok.length, labels);
-          setHasLocalizedPoses(scene.hasLocalizedPoses());
+        const reconstructions = await names;
+        setLayers(
+          clouds.map((c, i) => ({
+            id: reconstructionIds[i],
+            name: layerName(reconstructionIds[i], reconstructions),
+            points: c.count,
+            poses: c.poseCount,
+            showPoints: true,
+            showCameras: true,
+            cameraColor: `#${overlayCameraColor(i).toString(16).padStart(6, "0")}`,
+          })),
+        );
+        if (reconstructionIds.length === 1) {
+          const name = layerName(reconstructionIds[0], reconstructions);
+          setTitle((t) => (t === reconstructionKey ? name : t));
+          setTitleDraft((t) => (t === reconstructionKey ? name : t));
+        }
+        if (!localizationId) return;
+        const result = await getLocalization(localizationId);
+        const ok = result.images.filter((img) => img.status === "ok" && img.position && img.quaternion_xyzw);
+        const positionsArray = new Float32Array(ok.length * 3);
+        const orientationsArray = new Float32Array(ok.length * 4);
+        // Label pose i with the image's *original* results.json index, not its position in this
+        // filtered array — those diverge as soon as any image in the run failed to localize.
+        const labels = ok.map((img) => String(img.index));
+        ok.forEach((img, i) => {
+          const p = img.position as { x: number; y: number; z: number };
+          const q = img.quaternion_xyzw as [number, number, number, number];
+          positionsArray[i * 3] = p.x;
+          positionsArray[i * 3 + 1] = p.y;
+          positionsArray[i * 3 + 2] = p.z;
+          orientationsArray[i * 4] = q[0];
+          orientationsArray[i * 4 + 1] = q[1];
+          orientationsArray[i * 4 + 2] = q[2];
+          orientationsArray[i * 4 + 3] = q[3];
         });
+        scene.setLocalizedPoses(positionsArray, orientationsArray, ok.length, labels);
+        setHasLocalizedPoses(scene.hasLocalizedPoses());
       })
       .catch((err: unknown) => {
         setError(err instanceof Error ? err.message : String(err));
@@ -78,7 +137,8 @@ export function ViewerPage() {
       });
 
     return () => scene.dispose();
-  }, [reconstructionId, localizationId]);
+    // The ids come from the URL; their joined string is the dependency that matters.
+  }, [reconstructionKey, localizationId]);
 
   function handleCameraModeChange(mode: CameraMode): void {
     setCameraModeState(mode);
@@ -93,6 +153,17 @@ export function ViewerPage() {
   function handlePointSizeChange(size: PointSize): void {
     setPointSizeState(size);
     sceneRef.current?.setPointSize(size);
+  }
+
+  function toggleLayer(id: string, what: "points" | "cameras"): void {
+    setLayers((all) =>
+      all.map((layer) => {
+        if (layer.id !== id) return layer;
+        const next = what === "points" ? { ...layer, showPoints: !layer.showPoints } : { ...layer, showCameras: !layer.showCameras };
+        sceneRef.current?.setLayerVisibility(id, { points: next.showPoints, cameras: next.showCameras });
+        return next;
+      }),
+    );
   }
 
   function flashMessage(text: string): void {
@@ -116,12 +187,16 @@ export function ViewerPage() {
   }
 
   function saveTitle(): void {
-    setTitle(titleDraft.trim() || reconstructionId);
+    setTitle(titleDraft.trim() || reconstructionKey);
     setEditingTitle(false);
   }
 
-  if (!reconstructionId) {
-    return <div className="viewer-banner viewer-banner-error">No reconstruction id in URL (expected ?reconstruction=&lt;id&gt;)</div>;
+  if (reconstructionIds.length === 0) {
+    return (
+      <div className="viewer-banner viewer-banner-error">
+        No reconstruction id in URL (expected ?reconstruction=&lt;id&gt; or ?reconstruction=&lt;id&gt;,&lt;id&gt;)
+      </div>
+    );
   }
 
   return (
@@ -182,11 +257,43 @@ export function ViewerPage() {
         </div>
       </header>
 
-      {status === "loading" && <div className="viewer-banner">Loading point cloud…</div>}
+      {status === "loading" && <div className="viewer-banner">Loading point cloud{reconstructionIds.length > 1 ? "s" : ""}…</div>}
       {status === "error" && <div className="viewer-banner viewer-banner-error">{error}</div>}
       {message && <div className="viewer-banner viewer-banner-success">{message}</div>}
 
       <div ref={containerRef} className="viewer-canvas" />
+
+      {/* The legend: one row per overlaid map, with its own switches for the cloud and the
+          camera trail. Shown for a single map too, since the counts are useful there as well. */}
+      {layers.length > 0 && (
+        <div className="viewer-legend">
+          {layers.map((layer, i) => (
+            <div className="viewer-legend-row" key={layer.id}>
+              <span
+                className="viewer-legend-swatch"
+                style={{ background: i === 0 && layer.poses > 0 ? "#ff9500" : layer.cameraColor }}
+                title="Camera trail colour"
+              />
+              <span className="viewer-legend-name" title={layer.id}>
+                {layer.name}
+              </span>
+              <label>
+                <input type="checkbox" checked={layer.showPoints} onChange={() => toggleLayer(layer.id, "points")} />
+                points ({layer.points.toLocaleString()})
+              </label>
+              <label className={layer.poses === 0 ? "viewer-legend-muted" : undefined}>
+                <input
+                  type="checkbox"
+                  checked={layer.showCameras}
+                  disabled={layer.poses === 0}
+                  onChange={() => toggleLayer(layer.id, "cameras")}
+                />
+                cameras ({layer.poses.toLocaleString()})
+              </label>
+            </div>
+          ))}
+        </div>
+      )}
 
       {editingTitle && (
         <div className="dialog-overlay" onClick={() => setEditingTitle(false)}>

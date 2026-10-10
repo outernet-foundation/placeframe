@@ -701,6 +701,10 @@ def _reconstruction_to_dict(reconstruction: ReconstructionReadWithQueue) -> dict
         "map_image_count": metrics.get("map_image_count"),
         "options": options,
         "options_diff": _options_diff(options),
+        # A copy made by transform-reconstruction carries what it was aligned to; the dashboard
+        # shows the label in place of the bare id so the copy and its source can be told apart.
+        "label": reconstruction.manifest.get("label"),
+        "alignment": reconstruction.manifest.get("alignment"),
         "cached_tar_path": str(tar_path) if tar_path.exists() else None,
         "cached_png_path": str(png_path) if png_path.exists() else None,
     }
@@ -1109,6 +1113,60 @@ def import_reconstruction(
         typer.echo(dumps(_reconstruction_to_dict(reconstruction)))
         return
     typer.echo(f"Imported reconstruction {reconstruction.id} (capture session {reconstruction.capture_session_id})")
+
+
+@app.command(name="transform-reconstruction")
+def transform_reconstruction(
+    reconstruction_id: Annotated[UUID, typer.Argument(help="Reconstruction to copy under a similarity transform")],
+    sim3_path: Annotated[
+        Path,
+        typer.Option(
+            "--sim3",
+            help="JSON with the transform X' = scale * R @ X + translation: keys scale (float), R (3x3), "
+            "translation (3); any other keys (yaw_deg, source, ...) are recorded with the copy",
+        ),
+    ],
+    label: Annotated[str, typer.Option("--label", help="Shown in the dashboard in place of the bare id")],
+    aligned_to: Annotated[
+        UUID | None,
+        typer.Option("--aligned-to", help="The reconstruction whose frame the transform maps into, for the record"),
+    ] = None,
+    viewer_only: Annotated[
+        bool,
+        typer.Option(
+            "--viewer-only",
+            help="Keep only what the dashboard viewer reads (the point cloud and camera poses, a few MB) and "
+            "drop the matching artifacts and the COLMAP text model. The copy then cannot be published as a "
+            "localization map, and the dashboard says so. The way past the API's request-body limit for a "
+            "large map (a 5000-keypoint tar runs over 1 GB).",
+        ),
+    ] = False,
+    json_output: Annotated[bool, typer.Option("--json", help="Emit JSON instead of text")] = False,
+) -> None:
+    """Import a transformed copy of a reconstruction, under the same capture, with a fresh id.
+
+    Every pose and point of the model is moved by the transform -- the npz files the viewer reads
+    and the COLMAP text model the localizer reads -- so the copy is a valid model in the target
+    frame. The use: a single-walk Insta360 map has no metric scale, and a Sim(3) fitted against a
+    Zed map (see data/visualizations/usq_quality_compare/icp) puts it in the Zed's frame and metres.
+    """
+    sim3 = loads(sim3_path.read_text())
+    transform = (
+        float(sim3["scale"]),
+        np.asarray(sim3["R"], dtype=np.float64),
+        np.asarray(sim3["translation"], dtype=np.float64),
+    )
+    record = {k: v for k, v in sim3.items() if k != "R"}
+    record["R"] = transform[1].tolist()
+    record["source_reconstruction_id"] = str(reconstruction_id)
+    if aligned_to is not None:
+        record["aligned_to_reconstruction_id"] = str(aligned_to)
+    record["viewer_only"] = viewer_only
+    reconstruction = run(_transform_reconstruction(reconstruction_id, transform, label, record, viewer_only))
+    if json_output:
+        typer.echo(dumps(_reconstruction_to_dict(reconstruction)))
+        return
+    typer.echo(f"Imported transformed copy {reconstruction.id} ({label}) of {reconstruction_id}")
 
 
 @app.command()
@@ -2262,6 +2320,172 @@ def _retag_tar(tar_bytes: bytes, reconstruction_id: UUID) -> bytes:
             member.size = len(payload)
             target.addfile(member, BytesIO(payload))
     return out.getvalue()
+
+
+Sim3 = tuple[float, NDArray[np.float64], NDArray[np.float64]]
+
+
+def _quat_wxyz_to_matrix(qw: float, qx: float, qy: float, qz: float) -> NDArray[np.float64]:
+    return Rotation.from_quat([qx, qy, qz, qw]).as_matrix()
+
+
+def _matrix_to_quat_wxyz(matrix: NDArray[np.float64]) -> list[float]:
+    x, y, z, w = Rotation.from_matrix(matrix).as_quat()
+    return [float(w), float(x), float(y), float(z)]
+
+
+def _transform_colmap_text(name: str, text: str, transform: Sim3) -> str:
+    """The COLMAP text model under X' = s R X + t.
+
+    A world->sensor pose (R_sw, t_sw) becomes (R_sw R^T, s t_sw - R_sw R^T t): the rotation
+    follows the world, the translation scales with it. points3D.txt moves its XYZ; rigs.txt
+    scales its sensor_from_rig translations (zero for a spherical rig, the stereo baseline for a
+    Zed). Comments and everything else are kept verbatim.
+    """
+    s, R, t = transform
+    out: list[str] = []
+    lines = text.split("\n")
+    if name == "sfm_model/images.txt":
+        pose_line = True
+        for line in lines:
+            if line.startswith("#") or not line.strip():
+                out.append(line)
+                continue
+            if pose_line:
+                f = line.split()
+                r_sw = _quat_wxyz_to_matrix(*(float(v) for v in f[1:5]))
+                t_sw = np.asarray([float(v) for v in f[5:8]])
+                r_new = r_sw @ R.T
+                t_new = s * t_sw - r_new @ t
+                out.append(
+                    " ".join([f[0], *map(repr, _matrix_to_quat_wxyz(r_new)), *map(repr, t_new.tolist()), *f[8:]])
+                )
+            else:
+                out.append(line)
+            pose_line = not pose_line
+    elif name == "sfm_model/frames.txt":
+        for line in lines:
+            if line.startswith("#") or not line.strip():
+                out.append(line)
+                continue
+            f = line.split()
+            r_sw = _quat_wxyz_to_matrix(*(float(v) for v in f[2:6]))
+            t_sw = np.asarray([float(v) for v in f[6:9]])
+            r_new = r_sw @ R.T
+            t_new = s * t_sw - r_new @ t
+            out.append(
+                " ".join([f[0], f[1], *map(repr, _matrix_to_quat_wxyz(r_new)), *map(repr, t_new.tolist()), *f[9:]])
+            )
+    elif name == "sfm_model/points3D.txt":
+        for line in lines:
+            if line.startswith("#") or not line.strip():
+                out.append(line)
+                continue
+            f = line.split()
+            xyz = s * (R @ np.asarray([float(v) for v in f[1:4]])) + t
+            out.append(" ".join([f[0], *map(repr, xyz.tolist()), *f[4:]]))
+    elif name == "sfm_model/rigs.txt":
+        for line in lines:
+            if line.startswith("#") or not line.strip():
+                out.append(line)
+                continue
+            f = line.split()
+            # RIG_ID NUM_SENSORS REF_TYPE REF_ID then per sensor: TYPE ID HAS_POSE [QW QX QY QZ TX TY TZ]
+            i = 4
+            while i < len(f):
+                has_pose = f[i + 2] == "1"
+                if has_pose:
+                    for k in (7, 8, 9):
+                        f[i + k] = repr(float(f[i + k]) * s)
+                    i += 10
+                else:
+                    i += 3
+            out.append(" ".join(f))
+    else:
+        return text
+    return "\n".join(out)
+
+
+# What the dashboard viewer reads (plus the small text files that name the cameras and rigs); a
+# --viewer-only copy keeps these and nothing else.
+VIEWER_TAR_MEMBERS = frozenset({
+    TAR_METADATA_MEMBER,
+    POINT_CLOUD_TAR_MEMBER,
+    FRAME_POSES_TAR_MEMBER,
+    "sfm_model/cameras.txt",
+    "sfm_model/frames.txt",
+    "sfm_model/rigs.txt",
+})
+
+
+def _transform_tar(
+    tar_bytes: bytes, transform: Sim3, new_id: UUID, label: str, record: dict[str, Any], viewer_only: bool = False
+) -> bytes:
+    """A copy of a reconstruction tar with every pose and point moved by the transform, retagged
+    with `new_id`, and the label / transform recorded in its manifest."""
+    s, R, t = transform
+    out = BytesIO()
+    with (
+        tarfile.open(fileobj=BytesIO(tar_bytes), mode="r:*") as source,
+        tarfile.open(fileobj=out, mode="w", format=tarfile.GNU_FORMAT) as target,
+    ):
+        for member in source:
+            if viewer_only and member.name not in VIEWER_TAR_MEMBERS:
+                continue
+            handle = source.extractfile(member)
+            if handle is None:
+                target.addfile(member)
+                continue
+            payload: bytes | None = None
+            if member.name == TAR_METADATA_MEMBER:
+                metadata = loads(handle.read())
+                metadata["reconstruction"]["id"] = str(new_id)
+                manifest = metadata["reconstruction"].setdefault("manifest", {})
+                manifest["label"] = label
+                manifest["alignment"] = record
+                payload = dumps(metadata).encode()
+            elif member.name == POINT_CLOUD_TAR_MEMBER:
+                data = np.load(BytesIO(handle.read()))
+                positions = (s * (data["positions"].astype(np.float64) @ R.T) + t).astype(np.float32)
+                buffer = BytesIO()
+                np.savez(buffer, positions=positions, colors=data["colors"])
+                payload = buffer.getvalue()
+            elif member.name == FRAME_POSES_TAR_MEMBER:
+                data = np.load(BytesIO(handle.read()))
+                arrays = {k: data[k] for k in data.files}
+                arrays["positions"] = (s * (data["positions"].astype(np.float64) @ R.T) + t).astype(np.float32)
+                # world_from_rig, xyzw: the world rotates by R, so the rig's orientation does too
+                world_from_rig = Rotation.from_quat(data["orientations"].astype(np.float64))
+                arrays["orientations"] = (Rotation.from_matrix(R) * world_from_rig).as_quat().astype(np.float32)
+                buffer = BytesIO()
+                np.savez(buffer, **arrays)
+                payload = buffer.getvalue()
+            elif member.name.startswith("sfm_model/") and member.name.endswith(".txt"):
+                payload = _transform_colmap_text(member.name, handle.read().decode(), transform).encode()
+            if payload is None:
+                target.addfile(member, handle)
+                continue
+            member.size = len(payload)
+            target.addfile(member, BytesIO(payload))
+    return out.getvalue()
+
+
+async def _transform_reconstruction(
+    reconstruction_id: UUID, transform: Sim3, label: str, record: dict[str, Any], viewer_only: bool = False
+) -> ReconstructionReadWithQueue:
+    new_id = uuid4()
+    async with authenticated_api_client() as api:
+        try:
+            cached = await _ensure_cached_tar(api, reconstruction_id)
+        except ApiException as exception:
+            _fail(exception)
+        tar_bytes = await to_thread(_transform_tar, cached.read_bytes(), transform, new_id, label, record, viewer_only)
+        try:
+            return await api.import_reconstruction_tar(
+                data=(f"{new_id}.tar", tar_bytes), _request_timeout=REQUEST_TIMEOUT
+            )
+        except ApiException as exception:
+            _fail(exception)
 
 
 async def _import_reconstruction(tar_name: str, tar_bytes: bytes, new_id: bool = False) -> ReconstructionReadWithQueue:

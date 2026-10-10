@@ -31,7 +31,7 @@ import { Menu } from "./components/Menu";
 import { RunResults } from "./components/RunResults";
 import { errorText, readStored, store, STORAGE_KEYS } from "./storage";
 import type { CaptureSession, JobProgress, LocalizationSummary, PoselessImageSet, Reconstruction } from "./types";
-import { TERMINAL_STATUSES } from "./types";
+import { TERMINAL_STATUSES, isViewerOnly } from "./types";
 
 // One page, one tree: capture → its reconstructions (one per set of options) → each
 // reconstruction's localization runs. Captures and reconstructions come from the API; runs are the
@@ -104,6 +104,13 @@ function openAligner(reconstructionIds: string[]): void {
 function openViewer(reconstructionId: string, runId?: string): void {
   const query = runId ? `reconstruction=${reconstructionId}&localization=${runId}` : `reconstruction=${reconstructionId}`;
   window.open(`/viewer?${query}`, "_blank", "width=1280,height=900");
+}
+
+// Several maps in one viewer, overlaid in the frame they share (an aligned copy next to what it
+// was aligned to, or submaps of one merge). The viewer draws them as it finds them; it does not
+// align anything.
+function openViewerFor(reconstructionIds: string[]): void {
+  window.open(`/viewer?reconstruction=${reconstructionIds.join(",")}`, "_blank", "width=1280,height=900");
 }
 
 function readExpanded(): Record<string, boolean> {
@@ -568,7 +575,12 @@ export function CapturesPage() {
           {children.length > 0 ? <Toggle open={open} onClick={() => setOpen(r.id, !open)} /> : <span className="toggle-spacer" />}
           <div className="node-main">
             <div className="node-title">
-              <span className="node-name">Reconstruction</span>
+              <span className="node-name">{r.label ?? "Reconstruction"}</span>
+              {isViewerOnly(r) && (
+                <span className="badge" title="A transformed copy holding only the point cloud and camera poses; it cannot be published or localized against">
+                  viewer only
+                </span>
+              )}
               {statusChip(r.status, { position: r.queue_position, depth: r.queue_depth })}
               <span className="node-count">{formatDate(r.created_at)}</span>
               {children.length > 0 && (
@@ -595,7 +607,7 @@ export function CapturesPage() {
             {r.error && <div className="node-error">{r.error}</div>}
           </div>
           <div className="node-actions">
-            {succeeded && (
+            {succeeded && !isViewerOnly(r) && (
               <>
                 <button
                   disabled={publishing === r.id}
@@ -616,6 +628,15 @@ export function CapturesPage() {
                     { label: "Zip archive…", onSelect: () => setDialog({ kind: "export", exportKind: "zip", reconstruction: r }) },
                     { label: "Poses (JSON)…", onSelect: () => setDialog({ kind: "export", exportKind: "poses", reconstruction: r }) },
                   ]}
+                />
+              </>
+            )}
+            {succeeded && isViewerOnly(r) && (
+              <>
+                <button onClick={() => openViewer(r.id)}>Visualize</button>
+                <Menu
+                  label="Export"
+                  items={[{ label: "Poses (JSON)…", onSelect: () => setDialog({ kind: "export", exportKind: "poses", reconstruction: r }) }]}
                 />
               </>
             )}
@@ -689,6 +710,17 @@ export function CapturesPage() {
           {selecting ? (
             <>
               <span className="node-count">{plan.total} selected</span>
+              <button
+                disabled={plan.mergeableIds.length < 1}
+                title={
+                  plan.mergeableIds.length < 1
+                    ? "Select one or more succeeded reconstructions to view together"
+                    : "Open the selected maps overlaid in one viewer, each switchable on and off"
+                }
+                onClick={() => openViewerFor(plan.mergeableIds)}
+              >
+                Visualize{plan.mergeableIds.length >= 2 ? ` ${plan.mergeableIds.length}` : ""}
+              </button>
               <button
                 disabled={plan.mergeableIds.length < 2}
                 title={

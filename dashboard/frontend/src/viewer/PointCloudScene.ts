@@ -152,6 +152,14 @@ function captureColor(rigIndices: Float64Array | null, poseIndex: number): numbe
 // Distinct from the reconstruction's own orange poses and from the RGB axis colors, so a handful
 // of overlaid localized query poses read immediately as "a different dataset."
 const LOCALIZED_POSE_COLOR = 0x9c27b0;
+// Camera colours for the second and later clouds when several reconstructions are overlaid. The
+// first cloud keeps the per-capture palette above; these are chosen away from it (and from the
+// RGB axes) so each map's trail reads as its own at a glance.
+const OVERLAY_CAMERA_COLORS = [0x2962ff, 0x00c853, 0xd50000, 0xaa00ff, 0x00838f, 0x6d4c41];
+
+export function overlayCameraColor(layerIndex: number): number {
+  return layerIndex === 0 ? CAMERA_POSE_COLOR : OVERLAY_CAMERA_COLORS[(layerIndex - 1) % OVERLAY_CAMERA_COLORS.length];
+}
 
 // One wireframe frustum per pose, merged into a single LineSegments geometry (a few hundred poses
 // is trivial either way, but one draw call is simpler than managing per-pose objects). Local
@@ -312,6 +320,9 @@ function buildTrajectory(
   poseCount: number,
   center: THREE.Vector3,
   rigIndices: Float64Array | null,
+  // A fixed colour instead of the per-capture palette (an overlaid second map); the rig indices
+  // still mark where one capture's walk ends and the next begins.
+  color: number | null = null,
 ): THREE.LineSegments {
   const at = (i: number) =>
     new THREE.Vector3(
@@ -329,7 +340,7 @@ function buildTrajectory(
     const a = at(i - 1);
     const b = at(i);
     segments.push(a.x, a.y, a.z, b.x, b.y, b.z);
-    rgb.setHex(captureColor(rigIndices, i));
+    rgb.setHex(color ?? captureColor(rigIndices, i));
     colors.push(rgb.r, rgb.g, rgb.b, rgb.r, rgb.g, rgb.b);
   }
   const geometry = new THREE.BufferGeometry();
@@ -409,6 +420,36 @@ export interface PointCloudSceneOptions {
   container: HTMLElement;
 }
 
+/** One reconstruction's geometry, as fetchPoints returns it, plus an id to address it by. */
+export interface CloudInput {
+  id: string;
+  positions: Float32Array;
+  colors: Uint8Array;
+  count: number;
+  posePositions?: Float32Array;
+  poseOrientations?: Float32Array;
+  poseCount?: number;
+  rigIndices?: Float64Array | null;
+}
+
+export interface LayerVisibility {
+  points?: boolean;
+  cameras?: boolean;
+}
+
+// What the scene holds for one overlaid reconstruction. Everything of a layer is removed and
+// rebuilt together by setClouds; visibility toggles only flip the objects' visible flags.
+interface CloudLayer {
+  id: string;
+  points: THREE.Points;
+  frustums: THREE.LineSegments | null;
+  arrows: THREE.LineSegments | null;
+  trajectory: THREE.LineSegments | null;
+  labels: THREE.Group | null;
+  showPoints: boolean;
+  showCameras: boolean;
+}
+
 /**
  * A CloudCompare-style point cloud viewer. The point cloud, world axes, and rotation gizmo are
  * all fixed in world space (world axes "always shown" and meaningful as an orientation reference);
@@ -434,11 +475,8 @@ export class PointCloudScene {
 
   private axesGroup: THREE.Group | null = null;
   private gizmoGroup: THREE.Group | null = null;
-  private pointsObject: THREE.Points | null = null;
-  private cameraFrustums: THREE.LineSegments | null = null;
-  private cameraArrows: THREE.LineSegments | null = null;
-  private cameraTrajectory: THREE.LineSegments | null = null;
-  private poseLabels: THREE.Group | null = null;
+  // One layer per reconstruction shown. A single-map viewer is the one-layer case.
+  private layers: CloudLayer[] = [];
   private localizedFrustums: THREE.LineSegments | null = null;
   private localizedAxes: THREE.LineSegments | null = null;
   private localizedLabels: THREE.Group | null = null;
@@ -500,53 +538,101 @@ export class PointCloudScene {
     // case every pose is treated as one capture.
     rigIndices: Float64Array | null = null,
   ): void {
-    const xs = new Float32Array(count);
-    const ys = new Float32Array(count);
-    const zs = new Float32Array(count);
-    for (let i = 0; i < count; i++) {
-      xs[i] = rawPositions[i * 3];
-      ys[i] = rawPositions[i * 3 + 1];
-      zs[i] = rawPositions[i * 3 + 2];
-    }
-    const centerX = median(xs);
-    const centerY = median(ys);
-    const centerZ = median(zs);
-    this.recenterOffset.set(centerX, centerY, centerZ);
+    this.setClouds([{ id: "", positions: rawPositions, colors: rawColors, count, posePositions, poseOrientations, poseCount, rigIndices }]);
+  }
 
-    // Recenter at load so the cloud's own visual center of mass sits at the world origin — the
-    // same point the world axes, gizmo, and orbit target are all anchored to.
-    const positions = new Float32Array(rawPositions.length);
-    const distances: number[] = new Array(count);
-    for (let i = 0; i < count; i++) {
+  /**
+   * Shows these reconstructions together, each as its own layer. They must already share a world
+   * frame (an aligned copy, or maps merged from the same alignment); the viewer does not move
+   * them. Recentering and framing use all clouds at once, so overlaid maps keep their relative
+   * placement and the orbit target sits at the combined centre.
+   */
+  setClouds(clouds: CloudInput[]): void {
+    const total = clouds.reduce((n, c) => n + c.count, 0);
+    const xs = new Float32Array(total);
+    const ys = new Float32Array(total);
+    const zs = new Float32Array(total);
+    let k = 0;
+    for (const c of clouds) {
+      for (let i = 0; i < c.count; i++) {
+        xs[k] = c.positions[i * 3];
+        ys[k] = c.positions[i * 3 + 1];
+        zs[k] = c.positions[i * 3 + 2];
+        k++;
+      }
+    }
+    const centerX = total ? median(xs) : 0;
+    const centerY = total ? median(ys) : 0;
+    const centerZ = total ? median(zs) : 0;
+    this.recenterOffset.set(centerX, centerY, centerZ);
+    const center = new THREE.Vector3(centerX, centerY, centerZ);
+
+    // Recenter at load so the clouds' visual center of mass sits at the world origin — the same
+    // point the world axes, gizmo, and orbit target are all anchored to. Median + 90th percentile,
+    // not max: a handful of stray SfM points far from the map body would otherwise blow out the
+    // framing (same rationale as the static PNG renderer).
+    const distances: number[] = new Array(total);
+    for (let i = 0; i < total; i++) {
       const x = xs[i] - centerX;
       const y = ys[i] - centerY;
       const z = zs[i] - centerZ;
-      positions[i * 3] = x;
-      positions[i * 3 + 1] = y;
-      positions[i * 3 + 2] = z;
       distances[i] = Math.sqrt(x * x + y * y + z * z);
     }
-    // Median + 90th percentile, not max: a handful of stray SfM points far from the map body
-    // would otherwise blow out the framing (same rationale as the static PNG renderer).
     this.cloudRadius = percentile(distances, 90) || 1;
     const cloudRadius = this.cloudRadius;
 
-    const colors = new Float32Array(rawColors.length);
-    for (let i = 0; i < rawColors.length; i++) colors[i] = rawColors[i] / 255;
+    for (const layer of this.layers) this.removeLayer(layer);
+    this.layers = [];
+    if (this.localizedFrustums) this.scene.remove(this.localizedFrustums);
+    if (this.localizedAxes) this.scene.remove(this.localizedAxes);
+    if (this.localizedLabels) this.scene.remove(this.localizedLabels);
+    this.localizedFrustums = null;
+    this.localizedAxes = null;
+    this.localizedLabels = null;
 
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-    geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
-    const material = new THREE.PointsMaterial({ vertexColors: true, sizeAttenuation: true });
+    clouds.forEach((c, layerIndex) => {
+      const positions = new Float32Array(c.count * 3);
+      for (let i = 0; i < c.count; i++) {
+        positions[i * 3] = c.positions[i * 3] - centerX;
+        positions[i * 3 + 1] = c.positions[i * 3 + 1] - centerY;
+        positions[i * 3 + 2] = c.positions[i * 3 + 2] - centerZ;
+      }
+      const colors = new Float32Array(c.count * 3);
+      for (let i = 0; i < c.count * 3; i++) colors[i] = c.colors[i] / 255;
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+      geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+      const material = new THREE.PointsMaterial({ vertexColors: true, sizeAttenuation: this.projection === "perspective" });
+      const points = new THREE.Points(geometry, material);
+      this.scene.add(points);
 
-    if (this.pointsObject) {
-      this.scene.remove(this.pointsObject);
-      this.pointsObject.geometry.dispose();
-      (this.pointsObject.material as THREE.Material).dispose();
-    }
-    this.pointsObject = new THREE.Points(geometry, material);
-    this.scene.add(this.pointsObject);
+      const layer: CloudLayer = { id: c.id, points, frustums: null, arrows: null, trajectory: null, labels: null, showPoints: true, showCameras: true };
+      const poseCount = c.poseCount ?? 0;
+      if (poseCount > 0 && c.posePositions && c.poseOrientations) {
+        const markerSize = Math.max(cloudRadius * 0.05, 0.005);
+        const rigIndices = c.rigIndices ?? null;
+        // The first cloud keeps the per-capture palette; every later one gets a single colour of
+        // its own, so the overlaid trails can be told apart.
+        const solid = layerIndex === 0 ? null : overlayCameraColor(layerIndex);
+        layer.frustums = buildCameraFrustums(
+          c.posePositions,
+          c.poseOrientations,
+          poseCount,
+          center,
+          markerSize,
+          solid ?? CAMERA_POSE_COLOR,
+          LABEL_EVERY_N,
+          solid === null ? rigIndices : null,
+        );
+        layer.arrows = buildCameraArrows(c.posePositions, c.poseOrientations, poseCount, center, markerSize);
+        layer.trajectory = buildTrajectory(c.posePositions, poseCount, center, rigIndices, solid);
+        layer.labels = buildPoseLabels(c.posePositions, poseCount, center, markerSize);
+        this.scene.add(layer.frustums, layer.arrows, layer.trajectory, layer.labels);
+      }
+      this.layers.push(layer);
+    });
     this.setPointSize(this.pointSize);
+    this.setCameraMode(this.cameraMode);
 
     if (this.axesGroup) this.scene.remove(this.axesGroup);
     this.axesGroup = buildAxes(cloudRadius * 1.3);
@@ -557,45 +643,30 @@ export class PointCloudScene {
     this.gizmoGroup.visible = false;
     this.scene.add(this.gizmoGroup);
 
-    if (this.cameraFrustums) this.scene.remove(this.cameraFrustums);
-    if (this.cameraArrows) this.scene.remove(this.cameraArrows);
-    if (this.cameraTrajectory) this.scene.remove(this.cameraTrajectory);
-    if (this.poseLabels) this.scene.remove(this.poseLabels);
-    if (this.localizedFrustums) this.scene.remove(this.localizedFrustums);
-    if (this.localizedAxes) this.scene.remove(this.localizedAxes);
-    if (this.localizedLabels) this.scene.remove(this.localizedLabels);
-    this.cameraFrustums = null;
-    this.cameraArrows = null;
-    this.cameraTrajectory = null;
-    this.poseLabels = null;
-    this.localizedFrustums = null;
-    this.localizedAxes = null;
-    this.localizedLabels = null;
-    if (poseCount > 0) {
-      const center = new THREE.Vector3(centerX, centerY, centerZ);
-      const markerSize = Math.max(cloudRadius * 0.05, 0.005);
-      this.cameraFrustums = buildCameraFrustums(
-        posePositions,
-        poseOrientations,
-        poseCount,
-        center,
-        markerSize,
-        CAMERA_POSE_COLOR,
-        LABEL_EVERY_N,
-        rigIndices,
-      );
-      this.cameraArrows = buildCameraArrows(posePositions, poseOrientations, poseCount, center, markerSize);
-      this.cameraTrajectory = buildTrajectory(posePositions, poseCount, center, rigIndices);
-      this.poseLabels = buildPoseLabels(posePositions, poseCount, center, markerSize);
-      this.scene.add(this.cameraFrustums, this.cameraArrows, this.cameraTrajectory, this.poseLabels);
-    }
-    this.setCameraMode(this.cameraMode);
-
     this.distance = cloudRadius * 3;
     this.initialDistance = this.distance;
     this.minDistance = cloudRadius * 0.02;
     this.maxDistance = cloudRadius * 50;
     this.updateCamera();
+  }
+
+  /** Shows or hides one layer's points and/or camera poses; the global modes still apply on top. */
+  setLayerVisibility(id: string, visibility: LayerVisibility): void {
+    const layer = this.layers.find((l) => l.id === id);
+    if (!layer) return;
+    if (visibility.points !== undefined) layer.showPoints = visibility.points;
+    if (visibility.cameras !== undefined) layer.showCameras = visibility.cameras;
+    this.applyPointSize();
+    this.setCameraMode(this.cameraMode);
+  }
+
+  private removeLayer(layer: CloudLayer): void {
+    this.scene.remove(layer.points);
+    layer.points.geometry.dispose();
+    (layer.points.material as THREE.Material).dispose();
+    for (const object of [layer.frustums, layer.arrows, layer.trajectory, layer.labels]) {
+      if (object) this.scene.remove(object);
+    }
   }
 
   recenter(): void {
@@ -612,15 +683,18 @@ export class PointCloudScene {
   }
 
   hasCameraPoses(): boolean {
-    return this.cameraFrustums !== null;
+    return this.layers.some((l) => l.frustums !== null);
   }
 
   setCameraMode(mode: CameraMode): void {
     this.cameraMode = mode;
-    if (this.cameraFrustums) this.cameraFrustums.visible = mode === "frustum";
-    if (this.cameraArrows) this.cameraArrows.visible = mode === "arrows";
-    if (this.cameraTrajectory) this.cameraTrajectory.visible = mode !== "off";
-    if (this.poseLabels) this.poseLabels.visible = mode !== "off";
+    for (const layer of this.layers) {
+      const on = layer.showCameras;
+      if (layer.frustums) layer.frustums.visible = on && mode === "frustum";
+      if (layer.arrows) layer.arrows.visible = on && mode === "arrows";
+      if (layer.trajectory) layer.trajectory.visible = on && mode !== "off";
+      if (layer.labels) layer.labels.visible = on && mode !== "off";
+    }
   }
 
   setPointSize(size: PointSize): void {
@@ -630,16 +704,14 @@ export class PointCloudScene {
 
   /** Sets the material size for the current projection, from the level setPointSize was given. */
   private applyPointSize(): void {
-    if (!this.pointsObject) return;
-    if (this.pointSize === "off") {
-      this.pointsObject.visible = false;
-      return;
+    for (const layer of this.layers) {
+      layer.points.visible = layer.showPoints && this.pointSize !== "off";
     }
-    this.pointsObject.visible = true;
-    const material = this.pointsObject.material as THREE.PointsMaterial;
+    if (this.pointSize === "off") return;
     const world = Math.max(this.cloudRadius * POINT_SIZE_UNIT * this.pointSize, 0.0005);
+    const materials = this.layers.map((l) => l.points.material as THREE.PointsMaterial);
     if (this.projection === "perspective") {
-      material.size = world;
+      for (const material of materials) material.size = world;
       return;
     }
     // sizeAttenuation is a perspective divide, so it is off under orthographic -- which makes
@@ -652,14 +724,14 @@ export class PointCloudScene {
     // degrees) = 2.1x fatter than the same setting drew in perspective. The depth is the orbit
     // distance, so a point at the centre of interest is the size it was before the toggle.
     const height = this.container.clientHeight || 1;
-    material.size = Math.max((world * height) / (2 * this.distance), 1);
+    for (const material of materials) material.size = Math.max((world * height) / (2 * this.distance), 1);
   }
 
   setProjection(projection: Projection): void {
     if (projection === this.projection) return;
     this.projection = projection;
-    if (this.pointsObject) {
-      const material = this.pointsObject.material as THREE.PointsMaterial;
+    for (const layer of this.layers) {
+      const material = layer.points.material as THREE.PointsMaterial;
       material.sizeAttenuation = projection === "perspective";
       material.needsUpdate = true;
     }

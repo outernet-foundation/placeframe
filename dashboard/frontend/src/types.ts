@@ -30,6 +30,13 @@ export interface Reconstruction {
   options?: Record<string, unknown>; // the ReconstructionOptions it was built with
   options_diff?: Record<string, unknown>; // just the options that differ from the server defaults
   localization_map_id?: string | null; // set once published to devices; null means unpublished
+  label?: string | null; // a transformed copy's label (what it was aligned to), shown instead of the bare id
+  alignment?: Record<string, unknown> | null; // the Sim(3) and provenance recorded by transform-reconstruction
+}
+
+/** A transformed copy kept only for the viewer: no artifacts to localize against, so it cannot be published. */
+export function isViewerOnly(r: Reconstruction): boolean {
+  return r.alignment?.viewer_only === true;
 }
 
 // A reconstruction published for devices to localize against. Publishing builds nothing: it records

@@ -517,11 +517,24 @@ async def import_reconstruction_tar(
     import_name = (data.data.filename or str(reconstruction_id)).removesuffix(".tar")
     inserted = False
     try:
-        capture_session_row = capture_session_from_dto(
-            CaptureSessionCreate(name=import_name, device_type=DeviceType.ZED)
+        # A tar exported from this backend -- a --new-id duplicate, a transformed copy -- names a
+        # capture session that is still here. Hang the row off it, next to its source, and skip
+        # the stand-in: the synthesized capture and identity-pose map exist so a foreign import is
+        # selectable in the capture tool, and a copy must not be published behind the user's back
+        # (a viewer-only copy has no artifacts to localize against).
+        existing_capture = (
+            await session.get(CaptureSession, reconstruction.capture_session_id)
+            if reconstruction.capture_session_id is not None
+            else None
         )
-        session.add(capture_session_row)
-        await session.flush()
+        if existing_capture is not None:
+            capture_session_row = existing_capture
+        else:
+            capture_session_row = capture_session_from_dto(
+                CaptureSessionCreate(name=import_name, device_type=DeviceType.ZED)
+            )
+            session.add(capture_session_row)
+            await session.flush()
 
         reconstruction_row = reconstruction_from_dto(ReconstructionCreate(id=reconstruction_id))
         reconstruction_row.status = ReconstructionStatus.SUCCEEDED
@@ -530,6 +543,13 @@ async def import_reconstruction_tar(
         reconstruction_row.manifest_version = reconstruction.manifest_version
         session.add(reconstruction_row)
         await session.flush()
+
+        if existing_capture is not None:
+            inserted = True
+            result = await session.execute(
+                select_reconstructions_with_queue().where(Reconstruction.id == reconstruction_id)
+            )
+            return to_reconstruction_with_queue(*result.one())
 
         map_row = localization_map_from_dto(
             LocalizationMapCreate(
