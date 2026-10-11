@@ -4,7 +4,7 @@ version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [
   "bashrun>=0.1.0",
-  "ci-devkit>=0.1.0",
+  "build-artifact-registry>=0.2.0.dev0",
   "docker-devkit>=0.1.19",
   "unity-devkit>=0.1.18",
   "openapi-client-codegen>=0.1.12",
@@ -19,9 +19,6 @@ dependencies = [
   "sqlalchemy>=2.0.45",
   "typer>=0.17.4",
 ]
-
-[tool.deptry]
-known_first_party = ["build_scripts"]
 
 [tool.deptry.per_rule_ignores]
 DEP002 = ["datamodel-code-generator", "psycopg", "openapi-client-codegen", "python-devkit"]
