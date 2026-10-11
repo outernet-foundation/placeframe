@@ -15,7 +15,7 @@ mirror-images ─→ preflight ─┬→ compile-check-unity ──────�
 
 `mirror-images` is the single first root — provisioning precedes consumption: the repo-specific preflight builds the postgres wrapper image, whose `FROM` is a mirror-prefixed base from `workloads/images.lock`, so the mirror namespace must be populated before `preflight` pulls from it. Everything except `publish-compose` is a `uses:` call into the toolkit; `needs` wires across the local/called boundary freely.
 
-- `preflight` (calling-job permissions `contents: read, packages: read` — the DB battery pulls the mirrored postgres) runs lint-workflows, validate-release-plan, and the repo battery from `scripts/preflight.py` (three calls: `preflight-python`, the repo `preflight`, `generate-clients --check`).
+- `preflight` (calling-job permissions `contents: read, packages: read` — the DB battery pulls the mirrored postgres) runs lint-workflows, validate-release-plan, and the repo battery from `scripts/preflight.py` (the python battery via `preflight-python`, then the repo checks in-process, then `generate-clients --check`).
 - `compile-check-unity` forwards the `UNITY_*` secrets; its legs run on the self-hosted `unity` pool.
 - `build-docker` fans out via docker-devkit's matrix (the cross-compile cohort splits into its own legs; each leg shelves its own digest-manifest shard).
 - `publish-compose` is repo-local forever (one consumer; being redesigned): checkout + setup-uv + `uv run --locked publish-compose --variant` per cuda/rocm leg — the one cache-restoring job with steps in this file.

@@ -51,6 +51,6 @@ Tenant-only RLS; **no orchestrator bypass**. The 5-tuple unique constraint serve
 
 sqlacodegen renders array columns as `mapped_column(ARRAY(Double(...)))`, but this trips basedpyright `reportUnknownArgumentType`: `ARRAY[_T]`'s element type can't be inferred from a `_TypeEngineArgument[_T]` whose inner is itself a generic-without-binding.
 
-The custom generator in `build/src/build_scripts/placeframe/sqlacodegen_generator.py` intercepts `ARRAY` columns in `render_column_type()` and emits `ARRAY[<python_type>](<inner>)` — pyright back-infers the inner type from `ARRAY`'s `_T`. One narrow `cast(TypeEngine[Any], coltype.item_type)` at the seam (item_type is itself typed `TypeEngine[Unknown]`); generated file ships clean. No suppressions added.
+The custom generator in `scripts/src/scripts/sqlacodegen_generator.py` intercepts `ARRAY` columns in `render_column_type()` and emits `ARRAY[<python_type>](<inner>)` — pyright back-infers the inner type from `ARRAY`'s `_T`. One narrow `cast(TypeEngine[Any], coltype.item_type)` at the seam (item_type is itself typed `TypeEngine[Unknown]`); generated file ships clean. No suppressions added.
 
 If a future migration adds another typed-array column, the generator handles it automatically.

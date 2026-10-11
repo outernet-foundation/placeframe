@@ -2,7 +2,9 @@
 
 ## What this is
 
-`scripts/` is a Python workspace member that ships a set of operator-facing CLIs registered as `uv run` commands in `pyproject.toml`'s `[project.scripts]`. The package contains two cohorts: small operational utilities (Unity adb-forward, Docker debug-target listing) and the calibration pipeline (`fit-calibration`, `tune-reconstruction`, the held-out selector registry, the shared auth helper). The Docker-stack lifecycle commands (`up`, `down`, `build`, `generate-clients`, `generate-datamodels`, `lock-python`, `deptry-check`, `preflight`) do not live here — they live in the sibling `build-scripts` package under `build/`. The `install` command (download or build-then-install Unity APKs / linux executables) lives in the standalone [`unity-devkit`](https://github.com/outernet-foundation/unity-devkit) repo so cross-repo consumers can use it. The calibration pipeline is the load-bearing part of this directory and the only piece with tests; the operational utilities are small self-contained shell-out scripts.
+`scripts/` is a Python workspace member that ships the repo's Python CLI surface as `uv run` commands registered in `pyproject.toml`'s `[project.scripts]`. Three cohorts: codegen and repo-CI tooling (`generate-datamodels`, `publish-compose`, the CI sidecar `scripts/preflight.py`), small operational utilities (Unity adb-forward, Docker debug-target listing, Loki query), and the calibration pipeline (`fit-calibration`, `tune-reconstruction`, the held-out selector registry, the shared auth helper). The Docker-stack lifecycle commands (`up`, `down`, `build`) live in the standalone [`docker-devkit`](https://github.com/outernet-foundation/docker-devkit) repo; `lock-python` and `preflight-python` live in [`python-devkit`](https://github.com/outernet-foundation/python-devkit); `install` (download or build-then-install Unity APKs / linux executables) lives in the standalone [`unity-devkit`](https://github.com/outernet-foundation/unity-devkit) repo so cross-repo consumers can use it. The calibration pipeline and `publish-compose`'s config inlining carry the directory's tests; the operational utilities are small self-contained shell-out scripts.
+
+`scripts/preflight.py` is the CI preflight sidecar and must stay at the directory root: github-actions-toolkit's preflight reusable invokes it by that exact path (`uv run --locked scripts/preflight.py`). It runs the python battery (`uv run --locked preflight-python`), then the repo checks in-process (image refs, image version couplings, database setup, datamodel codegen staleness), then the client staleness gate (`uv run --locked generate-clients --config openapi-client-codegen.yaml --check`).
 
 ## Shape
 
@@ -12,6 +14,9 @@ Registered in `scripts/pyproject.toml`:
 
 | `uv run` command | Module | What it does |
 |---|---|---|
+| `generate-clients` | `openapi_client_codegen.cli:app` (alias) | Entry into [`openapi-client-codegen`](https://github.com/outernet-foundation/openapi-client-codegen)'s config-driven orchestrator; `openapi-client-codegen.yaml` at the repo root carries identity and spec commands. Needs Java 11+ on PATH. |
+| `generate-datamodels` | `generate_datamodels.py` | Runs `sqlacodegen` (custom `PlaceframeDeclarativeGenerator` in `sqlacodegen_generator.py`) against the live postgres → `packages/generated/python/datamodels/` (SQLAlchemy + Pydantic DTOs). Requires the stack up; see the generation-pipeline ordering in the root `AGENTS.md`. |
+| `publish-compose` | `publish_compose.py` | CI-only: bakes the compose bundle (var substituted, configs inlined, image refs digest-pinned) and publishes it to ghcr per cuda/rocm variant. Invoked from `integrate.yml`'s local `publish-compose` job; assumes the CI environment (GitHub token, ghcr login). |
 | `forward-unity-android-debug-port` | `forward_unity_android_debug_port.py` | Auto-detects the single adb device, finds the listening Unity debugger port in 56000–56999 via `/proc/net/tcp{,6}`, and `adb forward tcp:56000 tcp:{found}`. |
 | `list-debug-targets` | `list_debug_targets.py` | Enumerates Docker containers with a `service` label that publishes `5678/tcp`. Prints `{host_port}|{service} | {name} {job} {task}` lines for VS Code's attach picker. |
 | `loki-query` | `loki_query.py` | Run a LogQL query against the local Loki via `docker exec placeframe-loki-1 wget`, formatting each entry as `HH:MM:SS LEVEL [logGroup] message` (plus exception chain when present). Flags: `--limit`, `--direction`, `--since`, `--raw`. Use this instead of hand-rolling URL-encoded `wget` invocations — the URL encoding is fragile (`+`/`%7C`/quote-escapes) and easy to get subtly wrong. |
@@ -23,16 +28,21 @@ Registered in `scripts/pyproject.toml`:
 ### Layout
 
     scripts/
-      pyproject.toml                              -- workspace member; declares entry points
+      preflight.py                              -- CI preflight sidecar (toolkit contract: exact path), python battery + repo checks
+      pyproject.toml                            -- workspace member; declares entry points
       src/scripts/
-        api_auth.py                               -- async auth: read .env, POST Keycloak, default-header inject
-        forward_unity_android_debug_port.py       -- adb port forward for Unity debug
-        list_debug_targets.py                     -- enumerate docker containers exposing :5678
-        tune_reconstruction.py                    -- PB sweep over ReconstructionOptions
-        fit_calibration.py                        -- Algorithm 1 calibration pipeline
-        held_out_selection.py                     -- HeldOutFrameSelector Protocol + stride impl
+        generate_datamodels.py                  -- sqlacodegen datamodel generation
+        sqlacodegen_generator.py                -- custom sqlacodegen DeclarativeGenerator (enums, passive deletes, ARRAY binding)
+        publish_compose.py                      -- CI compose-bundle publish per variant
+        api_auth.py                             -- async auth: read .env, POST Keycloak, default-header inject
+        forward_unity_android_debug_port.py     -- adb port forward for Unity debug
+        list_debug_targets.py                   -- enumerate docker containers exposing :5678
+        tune_reconstruction.py                  -- PB sweep over ReconstructionOptions
+        fit_calibration.py                      -- Algorithm 1 calibration pipeline
+        held_out_selection.py                   -- HeldOutFrameSelector Protocol + stride impl
       tests/
-        test_fit_calibration.py                   -- the only test file in the directory
+        test_fit_calibration.py
+        test_publish_compose.py                 -- config inlining (_inline_configs)
 
 ### Calibration pipeline data flow
 
@@ -126,7 +136,7 @@ Deterministic, scales to capture length, gives even temporal spacing → roughly
 
 ## Constraints
 
-**Two packages for "Python scripts registered as `uv run` commands."** `scripts/` and `build/` (the `build-scripts` package) both ship `[project.scripts]` entries. The split is by topic, not by mechanism: `build-scripts` orchestrates the Docker stack lifecycle and the code-generation pipeline (lives next to the `compose.*.yml` and `openapi-client-codegen.yaml` it operates on); `scripts/` is everything else (operator/dev utilities and the calibration pipeline). `scripts/` imports from `build-scripts`, not vice versa. The rationale is one of co-location: the lifecycle commands live next to the configs they read; the operator-CLI bucket lives separately so its dependency surface (numpy/scipy/sklearn/pytransform3d for fit-calibration, plus typer/httpx for the utilities) does not bleed into the lighter codegen-and-compose tooling.
+**One CLI package.** `scripts/` is the repo's single Python CLI package — the former `build-scripts` member under `build/` was dissolved into it (the split's dependency-surface rationale was void: one shared workspace venv, and the python battery syncs `--all-packages`, so both cohorts were always installed together anyway). The codegen/CI cohort keeps its heavier declared deps (`sqlacodegen`, `sqlalchemy`, `psycopg`, `datamodel-code-generator`) in this package's `pyproject.toml`, with deptry DEP002 ignores for the non-imported ones (`psycopg` loads as the SQLAlchemy DSN driver, `datamodel-code-generator` is invoked as a CLI by `generate-datamodels`). `scripts/preflight.py` stays at the directory root by toolkit contract: github-actions-toolkit's preflight reusable invokes it by that exact path.
 
 **Pipeline orchestration over backend IDs, no sidecar store.** `fit-calibration` and `tune-reconstruction` both treat the API as the single source of truth: capture sessions, reconstructions, and evaluations are all addressed by UUID and read/written through generated API methods. No intermediate JSON files, no local SQLite, no harness-side tar shuffling. The corpus *is* the `localization_evaluations` table; the cache key is `(reconstruction_id, frame_timestamp, retrieval_top_k, ransac_threshold, pipeline_version)`.
 
@@ -143,7 +153,6 @@ Deterministic, scales to capture length, gives even temporal spacing → roughly
 ## See also
 
 - [`docker-devkit`](https://github.com/outernet-foundation/docker-devkit) — the standalone package holding the Docker-stack lifecycle (`up`, `down`, `build`) and the SHA/auth helpers, git-referenced from the root `pyproject.toml`. `scripts/` imports from it (`docker_devkit.modes.parse_env_file` in `api_auth.py`); the inverse does not hold.
-- `build/` (the `build-scripts` workspace package) — sibling Python CLI package holding the codegen entry points (`generate-clients`, `generate-datamodels`, `lock-python`, `deptry-check`, `preflight`).
 - [`unity-devkit`'s `AGENTS.md`](https://github.com/outernet-foundation/unity-devkit/blob/main/AGENTS.md) — the standalone Unity build toolkit, which also hosts the `install` command. `scripts/` no longer imports from it; the dependency was dropped when `install.py` moved.
 - `workloads/localizer/AGENTS.md` — defines the `/version` and `/localize` endpoints that `fit-calibration` consumes and the `pipeline_version` baked into the localizer image.
 - `workloads/reconstructor/AGENTS.md` — defines the single-anchor truth-frame alignment and the Procrustes-residual diagnostic metrics that Algorithm 1 step 2 relies on.
