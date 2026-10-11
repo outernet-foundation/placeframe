@@ -1,7 +1,4 @@
-.github/workflows/python.yml
-.gitlab-ci.yml
 .openapi-generator-ignore
-.travis.yml
 README.md
 git_push.sh
 placeframe_localizer_client/__init__.py
