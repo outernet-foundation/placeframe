@@ -29,4 +29,3 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/placeframe_core"]
-include = ["src/placeframe_core/py.typed"]
