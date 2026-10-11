@@ -32,7 +32,6 @@ packages = ["src/build_scripts"]
 
 [project.scripts]
 build-cesium = "build_scripts.cesium.build:app"
-build-docker = "build_scripts.placeframe.ci.build_docker:ci_app"
 codegen-cesium = "build_scripts.cesium.codegen:app"
 combine-cesium = "build_scripts.cesium.combine:app"
 generate-clients = "openapi_client_codegen.cli:app"
