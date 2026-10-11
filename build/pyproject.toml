@@ -31,11 +31,7 @@ build-backend = "hatchling.build"
 packages = ["src/build_scripts"]
 
 [project.scripts]
-build-cesium = "build_scripts.cesium.build:app"
-codegen-cesium = "build_scripts.cesium.codegen:app"
-combine-cesium = "build_scripts.cesium.combine:app"
 generate-clients = "openapi_client_codegen.cli:app"
 generate-datamodels = "build_scripts.placeframe.generate_datamodels:main"
 preflight = "build_scripts.placeframe.ci.preflight:app"
-protect-branches = "build_scripts.placeframe.protect_branches:app"
 publish-compose = "build_scripts.placeframe.ci.publish_compose:ci_app"
