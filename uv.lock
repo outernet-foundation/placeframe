@@ -1783,7 +1783,7 @@ wheels = [
 
 [[package]]
 name = "openapi-client-codegen"
-version = "0.3.0"
+version = "0.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "bashrun" },
@@ -1792,9 +1792,9 @@ dependencies = [
     { name = "strictyaml" },
     { name = "typer" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d7/67/20f6195191c03f3c3633d2b74c85d7b6cf2a08a63bbe2cfaa8da8dcef72d/openapi_client_codegen-0.3.0.tar.gz", hash = "sha256:917f85303b38f431dcf39009bbc89cdd528a1d4e0153511df66abec9b5598087", size = 49470, upload-time = "2026-10-11T05:14:00.526Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/80/8b/eabfed748a45c78d0faa29e2a17c506b924bbefc45c2a7b799394e4fe022/openapi_client_codegen-0.3.1.tar.gz", hash = "sha256:70eb0b6e2386f97ebcab617b3f4830a0ea081ffae1f69eff506e8b9c0729f945", size = 49621, upload-time = "2026-10-11T16:42:45.298Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/16/c8/9f94422c7633d6517a2acdd2a799d02557d05cb5ab141774bf13c95191c7/openapi_client_codegen-0.3.0-py3-none-any.whl", hash = "sha256:bbb9c7eae99e749f0a603d4700e872c96489796d3f81f22634ad3ea58a0750e3", size = 23273, upload-time = "2026-10-11T05:13:59.694Z" },
+    { url = "https://files.pythonhosted.org/packages/12/4d/3a8b6738f4243de60ea3f1621be4820c5f7cc95618fadae1c03241544fa7/openapi_client_codegen-0.3.1-py3-none-any.whl", hash = "sha256:3dfe22ac6898cf429384e7dc90307cbbfcd28fa5192e0c09f5b8b4f0f6bca01d", size = 23458, upload-time = "2026-10-11T16:42:44.33Z" },
 ]
 
 [[package]]
