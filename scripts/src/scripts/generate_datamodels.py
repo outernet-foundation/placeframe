@@ -17,10 +17,10 @@ from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.sql.sqltypes import Enum as SAEnum
 from typer import run
 
-from build_scripts.placeframe.sqlacodegen_generator import PlaceframeDeclarativeGenerator
+from scripts.sqlacodegen_generator import PlaceframeDeclarativeGenerator
 
 DATABASE = "placeframe"
-DATAMODELS_PATH = Path(__file__).parents[4] / "packages" / "generated" / "python" / "datamodels"
+DATAMODELS_PATH = Path(__file__).parents[3] / "packages" / "generated" / "python" / "datamodels"
 
 
 def cli():

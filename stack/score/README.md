@@ -123,8 +123,8 @@ be available locally (`uv run build`) or pullable from `ghcr.io`.
 
 ## CI does not verify the generated artifacts
 
-The staleness gate is disabled: the check and its score-tool fetch sit commented out in
-`build/src/build_scripts/placeframe/ci/preflight.py`. The artifacts embed `tree-<sha>` image
+The staleness gate is disabled: the check and its score-tool fetch were dropped from
+`scripts/preflight.py` when the repo preflight was inlined there. The artifacts embed `tree-<sha>` image
 tags resolved from `compute_service_shas`, so every change inside a service's build context —
 a dependency-lock bump included — re-stales the committed output. Rather than pair every such
 change with a regeneration commit, regeneration is a manual step: follow the order in Generate

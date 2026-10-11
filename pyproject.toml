@@ -6,7 +6,7 @@ dependencies = []
 
 
 [dependency-groups]
-dev = ["build-scripts", "scripts", "basedpyright>=1.39.10", "ruff>=0.14.11", "pytest>=8.0.0", "pytest-asyncio>=0.24.0", "unity-devkit>=0.1.25"]
+dev = ["scripts", "basedpyright>=1.39.10", "ruff>=0.14.11", "pytest>=8.0.0", "pytest-asyncio>=0.24.0", "unity-devkit>=0.1.25"]
 
 [tool.uv.workspace]
 members = [
@@ -27,7 +27,6 @@ members = [
     "packages/generated/python/api-client",
     "packages/generated/python/lease-server-client",
     "packages/generated/python/localizer-client",
-    "build",
     "scripts",
 ]
 
@@ -61,7 +60,6 @@ placeframe-lease-server-client = { workspace = true }
 placeframe-localizer-client = { workspace = true }
 placeframe_api_client = { workspace = true }
 dirtorch = { workspace = true }
-build-scripts = { workspace = true }
 scripts = { workspace = true }
 lightglue = { git = "https://github.com/cvg/LightGlue.git" }
 
@@ -70,8 +68,6 @@ venvPath = "."
 venv = ".venv"
 typeCheckingMode = "strict"
 include = [
-    "build/**/src/**/*.py",
-    "build/**/src/**/*.pyi",
     "workloads/**/src/**/*.py",
     "workloads/**/src/**/*.pyi",
     "packages/**/src/**/*.py",
@@ -79,11 +75,6 @@ include = [
     "scripts/**/src/**/*.py",
     "scripts/**/src/**/*.pyi",
 ]
-# cesium codegen and combine target the pre-0.1.21 unity-devkit license API
-ignore = [
-    "build/src/build_scripts/cesium/codegen.py",
-    "build/src/build_scripts/cesium/combine.py",
-]
 
 [tool.pytest.ini_options]
-testpaths = ["build/tests", "packages/python/common/tests", "scripts/tests", "workloads/s3-initializer/tests"]
+testpaths = ["packages/python/common/tests", "scripts/tests", "workloads/s3-initializer/tests"]
