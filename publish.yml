@@ -1,4 +1,3 @@
-built_images: true
 packages:
   placeframe-api-client:
     path: packages/generated/csharp/api-client/src/PlaceframeApiClient
