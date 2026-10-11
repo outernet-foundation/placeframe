@@ -2,7 +2,7 @@ from pathlib import Path
 
 import yaml
 
-from build_scripts.placeframe.ci.publish_compose import _inline_configs  # noqa: PLC2701 — testing private helper
+from scripts.publish_compose import _inline_configs  # noqa: PLC2701 — testing private helper
 
 
 def test_inline_configs_replaces_file_with_escaped_content(tmp_path, monkeypatch):

@@ -5,7 +5,7 @@ import re
 import shlex
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
 import typer
 import yaml
@@ -49,7 +49,7 @@ ci_app = typer.Typer(add_completion=False, pretty_exceptions_show_locals=False)
 
 
 @ci_app.command()
-def ci_main(variant: Variant = typer.Option(help="Publish variant: cuda or rocm")) -> None:
+def ci_main(variant: Annotated[Variant, typer.Option(help="Publish variant: cuda or rocm")]) -> None:
     settings = Settings.model_validate({})
     print("Login to ghcr")
     bash(

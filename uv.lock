@@ -22,7 +22,6 @@ conflicts = [[
 [manifest]
 members = [
     "auth-initializer",
-    "build-scripts",
     "database-manager",
     "datamodels",
     "dirtorch",
@@ -222,47 +221,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/e3/c5/dd1b222592181f5c0c69eac76401eda5cc6281b0438e91f198f70d53950f/build_artifact_registry-0.2.0.tar.gz", hash = "sha256:9f1dc56637386cbc6cf188ceaf5cf59fcfd8e4573b8ee6c04b5e3f6d232469ad", size = 38123, upload-time = "2026-10-11T03:56:06.461Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/4f/a5/52dd28891340c73dd427b2d7612aa677f089bf8c5a38cc137e1df9ee34f8/build_artifact_registry-0.2.0-py3-none-any.whl", hash = "sha256:cbcd10a6a570983ffce1b2c6a6265c9beac020759b8755c8b2d718129ba43e54", size = 10567, upload-time = "2026-10-11T03:56:05.527Z" },
-]
-
-[[package]]
-name = "build-scripts"
-version = "0.1.0"
-source = { editable = "build" }
-dependencies = [
-    { name = "bashrun" },
-    { name = "build-artifact-registry" },
-    { name = "datamodel-code-generator" },
-    { name = "docker-devkit" },
-    { name = "openapi-client-codegen" },
-    { name = "psycopg", extra = ["binary"] },
-    { name = "pydantic" },
-    { name = "pydantic-settings" },
-    { name = "pyhumps" },
-    { name = "python-devkit" },
-    { name = "pyyaml" },
-    { name = "sqlacodegen" },
-    { name = "sqlalchemy" },
-    { name = "typer" },
-    { name = "unity-devkit" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "bashrun", specifier = ">=0.1.0" },
-    { name = "build-artifact-registry", specifier = ">=0.2.0.dev0" },
-    { name = "datamodel-code-generator", specifier = ">=0.33.0" },
-    { name = "docker-devkit", specifier = ">=0.1.19" },
-    { name = "openapi-client-codegen", specifier = ">=0.1.12" },
-    { name = "psycopg", extras = ["binary"], specifier = ">=3.2.10" },
-    { name = "pydantic", specifier = ">=2.11.7" },
-    { name = "pydantic-settings", specifier = ">=2.9.1" },
-    { name = "pyhumps", specifier = ">=3.8.0" },
-    { name = "python-devkit", specifier = ">=0.1.0" },
-    { name = "pyyaml", specifier = ">=6.0" },
-    { name = "sqlacodegen", specifier = "==3.2.0" },
-    { name = "sqlalchemy", specifier = ">=2.0.45" },
-    { name = "typer", specifier = ">=0.17.4" },
-    { name = "unity-devkit", specifier = ">=0.1.18" },
 ]
 
 [[package]]
@@ -1995,7 +1953,6 @@ source = { virtual = "." }
 [package.dev-dependencies]
 dev = [
     { name = "basedpyright" },
-    { name = "build-scripts" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "ruff" },
@@ -2008,7 +1965,6 @@ dev = [
 [package.metadata.requires-dev]
 dev = [
     { name = "basedpyright", specifier = ">=1.39.10" },
-    { name = "build-scripts", editable = "build" },
     { name = "pytest", specifier = ">=8.0.0" },
     { name = "pytest-asyncio", specifier = ">=0.24.0" },
     { name = "ruff", specifier = ">=0.14.11" },
@@ -2982,30 +2938,48 @@ version = "0.1.0"
 source = { editable = "scripts" }
 dependencies = [
     { name = "bashrun" },
+    { name = "datamodel-code-generator" },
     { name = "docker-devkit" },
     { name = "httpx" },
     { name = "numpy" },
+    { name = "openapi-client-codegen" },
     { name = "placeframe-api-client" },
     { name = "placeframe-core" },
+    { name = "psycopg", extra = ["binary"] },
     { name = "pydantic" },
+    { name = "pydantic-settings" },
+    { name = "pyhumps" },
+    { name = "python-devkit" },
     { name = "pytransform3d" },
+    { name = "pyyaml" },
     { name = "scikit-learn" },
     { name = "scipy" },
+    { name = "sqlacodegen" },
+    { name = "sqlalchemy" },
     { name = "typer" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "bashrun", specifier = ">=0.1.0" },
+    { name = "datamodel-code-generator", specifier = ">=0.33.0" },
     { name = "docker-devkit", specifier = ">=0.1.19" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "numpy", specifier = ">=2.1" },
+    { name = "openapi-client-codegen", specifier = ">=0.1.12" },
     { name = "placeframe-api-client", editable = "packages/generated/python/api-client" },
     { name = "placeframe-core", editable = "packages/python/core" },
+    { name = "psycopg", extras = ["binary"], specifier = ">=3.2.10" },
     { name = "pydantic", specifier = ">=2" },
+    { name = "pydantic-settings", specifier = ">=2.9.1" },
+    { name = "pyhumps", specifier = ">=3.8.0" },
+    { name = "python-devkit", specifier = ">=0.1.0" },
     { name = "pytransform3d", specifier = ">=3.5" },
+    { name = "pyyaml", specifier = ">=6.0" },
     { name = "scikit-learn", specifier = ">=1.5" },
     { name = "scipy", specifier = ">=1.14" },
+    { name = "sqlacodegen", specifier = "==3.2.0" },
+    { name = "sqlalchemy", specifier = ">=2.0.45" },
     { name = "typer", specifier = ">=0.15" },
 ]
 
