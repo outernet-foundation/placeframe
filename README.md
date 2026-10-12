@@ -26,8 +26,6 @@ The lack of a permissive alternative has immeasurably hampered the growth of the
 
 Built by [The Outernet Foundation](https://outernetfoundation.org), and made possible by a generous donation from The Robert Halper Foundation.
 
-Powered by [epjecha](https://github.com/epjecha)'s awesome [Stateful](https://github.com/epjecha/StatefulUnity), [ObserveThing](https://github.com/outernet-foundation/ObserveThing), and [Nessle](https://github.com/outernet-foundation/Nessle) Unity packages, for reactive state management and declarative UI in Unity.
-
 Inspired by (and heavily borrowing from) the extremely useful [Hierarchical-Localization](https://github.com/cvg/Hierarchical-Localization) repo.
 
 # Quick Start
@@ -108,7 +106,7 @@ You can also build support for custom platforms on top of the core Placeframe pa
 |---|---|
 | `org.outernet.placeframe` | [Core](https://www.npmjs.com/package/org.outernet.placeframe) |
 
-Placeframe also ships several utility packages that are use by the [Placeframe Capture Tool](https://github.com/outernet-foundation/placeframe-capture-tool), including a lower level C# typed api client for interacting directly with the backend, and jwt-based auth handler for Unity, and a logging package for Unity that provides a variety of features, including integration with Grafana Loki:
+Placeframe also ships several utility packages that are use by the [Placeframe Capture Tool](https://github.com/outernet-foundation/placeframe-capture-tool), including a C# typed api client for interacting directly with the backend, a jwt-based auth handler for Unity, and a Unity logging package that provides a variety of features, including integration with Grafana Loki:
 
 | Package | npm |
 |---|---|
