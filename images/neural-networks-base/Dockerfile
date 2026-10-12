@@ -26,7 +26,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 RUN uv venv $UV_PROJECT_ENVIRONMENT
 
 ARG TORCH_DEVICE
-COPY workloads/neural-networks-base/pylock.neural-networks-*.toml .
+COPY images/neural-networks-base/pylock.neural-networks-*.toml .
 RUN --mount=type=cache,id=uvcache,sharing=locked,target=/root/.cache/uv \
     UV_HTTP_TIMEOUT=600 UV_HTTP_RETRIES=10 \
     uv pip install -r pylock.neural-networks-${TORCH_DEVICE}.toml

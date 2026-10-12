@@ -1,4 +1,4 @@
-requires: ">=0.4"
+requires: ">=0.4.3"
 lifecycle:
   files:
     - compose.yml

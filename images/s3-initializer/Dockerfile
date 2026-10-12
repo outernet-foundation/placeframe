@@ -2,7 +2,7 @@ ARG UV_BASE_IMAGE
 
 FROM ${UV_BASE_IMAGE} AS dev
 
-WORKDIR /app/workloads/api
+WORKDIR /app/images/s3-initializer
 
 ENV \
     # Don't buffer stdout/stderr (so logs appear immediately)
@@ -23,21 +23,19 @@ ENV \
 RUN uv venv $UV_PROJECT_ENVIRONMENT
 
 # Install dependencies
-COPY workloads/auth-initializer/pylock.toml ./pylock.toml
+COPY images/s3-initializer/pylock.toml ./pylock.toml
 RUN --mount=type=cache,id=uvcache,sharing=locked,target=/root/.cache/uv \
     uv pip install -r pylock.toml
 
 # Install project
-COPY workloads/auth-initializer /app/workloads/auth-initializer
+COPY images/s3-initializer /app/images/s3-initializer
 RUN uv pip install --no-deps --no-sources \
-    /app/workloads/auth-initializer
+    /app/images/s3-initializer
 
 # Verify that all declared dependencies were installed
 RUN uv pip check
 
 # Copy the entrypoint and make it executable
-COPY --chmod=0755 workloads/auth-initializer/entrypoint.sh /usr/local/bin/entrypoint.sh
-
-COPY workloads/auth-initializer/realm-export /templates
+COPY --chmod=0755 images/s3-initializer/entrypoint.sh /usr/local/bin/entrypoint.sh
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

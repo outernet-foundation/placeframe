@@ -393,8 +393,8 @@ services:
 
 configs:
   loki_config:
-    file: workloads/loki/config.yaml
+    file: images/loki/config.yaml
   alloy_config:
-    file: workloads/alloy/config.alloy
+    file: images/alloy/config.alloy
   grafana_datasources:
-    file: workloads/grafana/provisioning/datasources/datasources.yaml
+    file: images/grafana/provisioning/datasources/datasources.yaml

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-cd /app/workloads/localizer
+cd /app/images/localizer
 
 UVICORN_ARGS=( "src.main:app" "--host" "0.0.0.0" "--port" "8000" )
 

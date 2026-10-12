@@ -37,7 +37,7 @@ services:
   initialize-cloudbeaver:
     build:
       context: .
-      dockerfile: workloads/cloudbeaver-initializer/Dockerfile
+      dockerfile: images/cloudbeaver-initializer/Dockerfile
       args: *base-args
       tags:
         - "ghcr.io/outernet-foundation/placeframe/cloudbeaver-initializer:latest"
@@ -46,7 +46,7 @@ services:
   s3-initializer:
     build:
       context: .
-      dockerfile: workloads/s3-initializer/Dockerfile
+      dockerfile: images/s3-initializer/Dockerfile
       args: *base-args
       tags:
         - "ghcr.io/outernet-foundation/placeframe/s3-initializer:latest"
@@ -55,7 +55,7 @@ services:
   create-database:
     build:
       context: .
-      dockerfile: workloads/database-manager/Dockerfile
+      dockerfile: images/database-manager/Dockerfile
       args: *base-args
       tags:
         - "ghcr.io/outernet-foundation/placeframe/database-manager:latest"
@@ -64,7 +64,7 @@ services:
   auth-initializer:
     build:
       context: .
-      dockerfile: workloads/auth-initializer/Dockerfile
+      dockerfile: images/auth-initializer/Dockerfile
       args: *base-args
       tags:
         - "ghcr.io/outernet-foundation/placeframe/auth-initializer:latest"
@@ -73,7 +73,7 @@ services:
   gateway:
     build:
       context: .
-      dockerfile: workloads/gateway/Dockerfile
+      dockerfile: images/gateway/Dockerfile
       args: *base-args
       tags:
         - "ghcr.io/outernet-foundation/placeframe/gateway:latest"
@@ -82,7 +82,7 @@ services:
   rathole-client:
     build:
       context: .
-      dockerfile: workloads/rathole-client/Dockerfile
+      dockerfile: images/rathole-client/Dockerfile
       args: *base-args
       tags:
         - "ghcr.io/outernet-foundation/placeframe/rathole-client:latest"
@@ -91,7 +91,7 @@ services:
   database-migrator:
     build:
       context: .
-      dockerfile: workloads/database-migrator/Dockerfile
+      dockerfile: images/database-migrator/Dockerfile
       args: *base-args
       tags:
         - "ghcr.io/outernet-foundation/placeframe/database-migrator:latest"
@@ -100,7 +100,7 @@ services:
   api:
     build:
       context: .
-      dockerfile: workloads/api/Dockerfile
+      dockerfile: images/api/Dockerfile
       target: dev
       args: *base-args
       tags:
@@ -110,7 +110,7 @@ services:
   lease-server:
     build:
       context: .
-      dockerfile: workloads/lease-server/Dockerfile
+      dockerfile: images/lease-server/Dockerfile
       target: dev
       args: *base-args
       tags:
@@ -120,7 +120,7 @@ services:
   postgres:
     build:
       context: .
-      dockerfile: workloads/postgres/Dockerfile
+      dockerfile: images/postgres/Dockerfile
       args: *base-args
       tags:
         - "ghcr.io/outernet-foundation/placeframe/postgres:latest"
@@ -129,7 +129,7 @@ services:
   seaweedfs:
     build:
       context: .
-      dockerfile: workloads/seaweedfs/Dockerfile
+      dockerfile: images/seaweedfs/Dockerfile
       args: *base-args
       tags:
         - "ghcr.io/outernet-foundation/placeframe/seaweedfs:latest"
@@ -138,7 +138,7 @@ services:
   neural-networks-base-cuda:
     build:
       context: .
-      dockerfile: workloads/neural-networks-base/Dockerfile
+      dockerfile: images/neural-networks-base/Dockerfile
       args:
         <<: *base-args
         TORCH_DEVICE: "cuda"
@@ -149,7 +149,7 @@ services:
   neural-networks-base-rocm:
     build:
       context: .
-      dockerfile: workloads/neural-networks-base/Dockerfile
+      dockerfile: images/neural-networks-base/Dockerfile
       args:
         <<: *base-args
         TORCH_DEVICE: "rocm"
@@ -160,7 +160,7 @@ services:
   reconstructor-cuda:
     build:
       context: .
-      dockerfile: workloads/reconstructor/Dockerfile
+      dockerfile: images/reconstructor/Dockerfile
       args:
         <<: *base-args
         TORCH_DEVICE: "cuda"
@@ -174,7 +174,7 @@ services:
   localizer-cuda:
     build:
       context: .
-      dockerfile: workloads/localizer/Dockerfile
+      dockerfile: images/localizer/Dockerfile
       args:
         <<: *base-args
         TORCH_DEVICE: "cuda"
@@ -188,7 +188,7 @@ services:
   reconstructor-rocm:
     build:
       context: .
-      dockerfile: workloads/reconstructor/Dockerfile
+      dockerfile: images/reconstructor/Dockerfile
       args:
         <<: *base-args
         TORCH_DEVICE: "rocm"
@@ -202,7 +202,7 @@ services:
   localizer-rocm:
     build:
       context: .
-      dockerfile: workloads/localizer/Dockerfile
+      dockerfile: images/localizer/Dockerfile
       args:
         <<: *base-args
         TORCH_DEVICE: "rocm"

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-cd /app/workloads/reconstructor
+cd /app/images/reconstructor
 
 echo "Starting reconstructor"
 

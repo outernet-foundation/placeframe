@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-cd /app/workloads/lease-server
+cd /app/images/api
 
 UVICORN_ARGS=( "src.main:app" "--host" "0.0.0.0" "--port" "8000" )
 
-echo "Starting lease-server"
+echo "Starting API"
 
 if [[ "${RELOAD:-}" == "true" ]]; then
   echo "Reload mode enabled"
-  UVICORN_ARGS+=( "--reload" "--reload-dir" "/app/workloads/lease-server/src" "--reload-dir" "/app/packages/generated/python/datamodels/src" "--reload-dir" "/app/packages/python/common/src" "--reload-dir" "/app/packages/python/core/src" )
+  UVICORN_ARGS+=( "--reload" "--reload-dir" "/app/images/api/src" "--reload-dir" "/app/packages/generated/python/datamodels/src" "--reload-dir" "/app/packages/python/common/src" "--reload-dir" "/app/packages/generated/python/localizer-client" )
 fi
 
 if [[ "${DEBUG:-}" == "true" ]]; then

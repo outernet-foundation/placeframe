@@ -2,7 +2,7 @@ ARG UV_BASE_IMAGE
 
 FROM ${UV_BASE_IMAGE} AS base
 
-WORKDIR /app/workloads/api
+WORKDIR /app/images/lease-server
 
 ENV \
     # Don't buffer stdout/stderr (so logs appear immediately)
@@ -17,10 +17,10 @@ ENV \
     UV_LINK_MODE=copy \
     # Set virtual environment location
     UV_PROJECT_ENVIRONMENT=/opt/uv/venv \
-    VIRTUAL_ENV=/opt/uv/venv \
-    UV_TOOLS_ENVIRONMENT=/opt/uv/tools
+    VIRTUAL_ENV=/opt/uv/venv
 
-RUN uv venv $UV_PROJECT_ENVIRONMENT 
+# Create the virtual environment
+RUN uv venv $UV_PROJECT_ENVIRONMENT
 
 # Git is required to resolve VCS dependencies in the lock file (e.g. logconf)
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
@@ -31,7 +31,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     && rm -rf /var/lib/apt/lists/*
 
 # Install dependencies
-COPY workloads/api/pylock.toml ./pylock.toml
+COPY images/lease-server/pylock.toml ./pylock.toml
 RUN --mount=type=cache,id=uvcache,sharing=locked,target=/root/.cache/uv \
     uv pip install -r pylock.toml
 
@@ -39,11 +39,10 @@ RUN --mount=type=cache,id=uvcache,sharing=locked,target=/root/.cache/uv \
 COPY packages/python/common/ /app/packages/python/common
 COPY packages/python/core/ /app/packages/python/core
 COPY packages/generated/python/datamodels/ /app/packages/generated/python/datamodels
-COPY packages/generated/python/localizer-client/ /app/packages/generated/python/localizer-client
-COPY workloads/api /app/workloads/api/
+COPY images/lease-server /app/images/lease-server/
 
 # Copy the entrypoint and make it executable
-COPY --chmod=0755 workloads/api/entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY --chmod=0755 images/lease-server/entrypoint.sh /usr/local/bin/entrypoint.sh
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 
@@ -54,8 +53,7 @@ RUN uv pip install --no-deps --no-sources \
     -e /app/packages/python/common \
     -e /app/packages/python/core \
     -e /app/packages/generated/python/datamodels \
-    -e /app/packages/generated/python/localizer-client \
-    -e /app/workloads/api
+    -e /app/images/lease-server
 
 # Verify that all declared dependencies were installed
 RUN uv pip check
@@ -67,9 +65,7 @@ RUN uv pip install --no-deps --no-sources \
     /app/packages/python/common \
     /app/packages/python/core \
     /app/packages/generated/python/datamodels \
-    /app/packages/generated/python/localizer-client \
-    /app/workloads/api
+    /app/images/lease-server
 
 # Verify that all declared dependencies were installed
 RUN uv pip check
-

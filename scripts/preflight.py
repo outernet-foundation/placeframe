@@ -14,13 +14,13 @@ VERSION_COUPLINGS = [
     VersionCoupling(
         name="uv",
         pyproject_key="tool.uv.required-version",
-        sites=(VersionSite("uv base tag", "workloads/images.yml", r"uv:([^@]+?)-", "UV_BASE_IMAGE"),),
+        sites=(VersionSite("uv base tag", "images/images.yml", r"uv:([^@]+?)-", "UV_BASE_IMAGE"),),
     ),
     VersionCoupling(
         name="python",
         pyproject_key="project.requires-python",
         sites=(
-            VersionSite("uv base python component", "workloads/images.yml", r"python([0-9][0-9.]*)", "UV_BASE_IMAGE"),
+            VersionSite("uv base python component", "images/images.yml", r"python([0-9][0-9.]*)", "UV_BASE_IMAGE"),
         ),
     ),
 ]
@@ -58,26 +58,26 @@ def main() -> None:
     # without needing a registry push first. --project-directory anchors the manifest's
     # relative paths at the repo root; compose would otherwise resolve them against the
     # manifest's own directory.
-    bash("docker compose --project-directory . -f workloads/images.yml --env-file workloads/images.lock build postgres")
+    bash("docker compose --project-directory . -f images/images.yml --env-file images/images.lock build postgres")
     # Kill any leftover containers to avoid port collisions on shared runners
-    bash("docker compose --env-file workloads/images.lock -f compose.postgres.yml down --volumes --remove-orphans")
-    bash("docker compose --env-file workloads/images.lock -f compose.postgres.yml up -d --wait")
+    bash("docker compose --env-file images/images.lock -f compose.postgres.yml down --volumes --remove-orphans")
+    bash("docker compose --env-file images/images.lock -f compose.postgres.yml up -d --wait")
     gopath = bash_output("go env GOPATH").strip()
     gopath_bin = Path(gopath) / "bin"
     gopath_bin.mkdir(parents=True, exist_ok=True)
     os.environ["PATH"] = f"{gopath_bin}{os.pathsep}{os.environ['PATH']}"
     bash("go install github.com/stripe/pg-schema-diff/cmd/pg-schema-diff@latest")
     bash(
-        "uv run --directory workloads/database-manager python -m src.main --op create --name placeframe"
+        "uv run --directory images/database-manager python -m src.main --op create --name placeframe"
         " --owner-password password"
         " --api-user-password password"
         " --auth-user-password password"
         " --orchestration-user-password password"
     )
-    bash("./workloads/database-migrator/entrypoint.sh")
+    bash("./images/database-migrator/entrypoint.sh")
 
-    # Score staleness gate disabled: generated stack/ output embeds per-service tree-SHA image
-    # tags, so every dependency-lock bump re-stales it (see stack/score/README.md).
+    # Score staleness gate disabled: generated deployfiles/ output embeds per-service tree-SHA image
+    # tags, so every dependency-lock bump re-stales it (see deployfiles/score/README.md).
     _check_generated("datamodels", "uv run generate-datamodels", "packages/generated/python/datamodels/")
 
     bash("uv run --locked generate-clients --config openapi-client-codegen.yaml --check")

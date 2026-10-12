@@ -2,7 +2,7 @@ ARG UV_BASE_IMAGE
 
 FROM ${UV_BASE_IMAGE} AS dev
 
-WORKDIR /app/workloads/database-manager
+WORKDIR /app/images/database-manager
 
 ENV \
     # Don't buffer stdout/stderr (so logs appear immediately)
@@ -31,21 +31,21 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     && rm -rf /var/lib/apt/lists/*
 
 # Install dependencies
-COPY workloads/database-manager/pylock.toml ./pylock.toml
+COPY images/database-manager/pylock.toml ./pylock.toml
 RUN --mount=type=cache,id=uvcache,sharing=locked,target=/root/.cache/uv \
     uv pip install -r pylock.toml
 
 # Install project
 COPY packages/python/common/ /app/packages/python/common
-COPY workloads/database-manager/ /app/workloads/database-manager/
+COPY images/database-manager/ /app/images/database-manager/
 RUN uv pip install --no-deps --no-sources \
     /app/packages/python/common \
-    /app/workloads/database-manager
+    /app/images/database-manager
 
 # Verify that all declared dependencies were installed
 RUN uv pip check
 
 # Copy the entrypoint and make it executable
-COPY --chmod=0755 workloads/database-manager/entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY --chmod=0755 images/database-manager/entrypoint.sh /usr/local/bin/entrypoint.sh
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

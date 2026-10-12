@@ -2,7 +2,7 @@ ARG UV_BASE_IMAGE
 
 FROM ${UV_BASE_IMAGE}
 
-WORKDIR /app/workloads/rathole-client
+WORKDIR /app/images/rathole-client
 
 ENV \
     PYTHONUNBUFFERED=1 \
@@ -28,12 +28,12 @@ RUN apt-get update \
 
 RUN uv venv $UV_PROJECT_ENVIRONMENT
 
-COPY workloads/rathole-client/pylock.toml ./pylock.toml
+COPY images/rathole-client/pylock.toml ./pylock.toml
 RUN --mount=type=cache,id=uvcache,sharing=locked,target=/root/.cache/uv \
     uv pip install -r pylock.toml
 
-COPY workloads/rathole-client /app/workloads/rathole-client
-RUN uv pip install --no-deps --no-sources /app/workloads/rathole-client
+COPY images/rathole-client /app/images/rathole-client
+RUN uv pip install --no-deps --no-sources /app/images/rathole-client
 RUN uv pip check
 RUN test -f /opt/uv/venv/lib/python3.13/site-packages/placeframe_rathole_client/templates/client.toml.j2
 

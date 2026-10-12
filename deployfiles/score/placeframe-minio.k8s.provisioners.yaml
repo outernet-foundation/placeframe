@@ -91,7 +91,7 @@
             - name: bucket
               image: quay.io/minio/mc@sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727
               # Both buckets, not just the resource's own. capturesBucket is the name the api
-              # hardcodes (workloads/api/src/routers/capture_sessions.py) and the reconstructor reads
+              # hardcodes (images/api/src/routers/capture_sessions.py) and the reconstructor reads
               # from, so without it a capture upload fails against a bucket that does not exist.
               command: ["/bin/sh","-c","mc alias set local http://{{ .State.service }}:9000 $(MINIO_ACCESS_KEY) $(MINIO_SECRET_KEY) && mc mb --ignore-existing local/{{ .State.bucket }} && mc mb --ignore-existing local/{{ .State.capturesBucket }}"]
               env:

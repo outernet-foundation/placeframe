@@ -75,7 +75,7 @@ def ci_main(variant: Annotated[Variant, typer.Option(help="Publish variant: cuda
         # too late (after interpolation has already failed).
         substitutions = {
             **compute_service_shas(Path.cwd(), parse_bake(require_manifest(Path.cwd()))),
-            **_load_env_file(Path("workloads/images.lock")),
+            **_load_env_file(Path("images/images.lock")),
         }
 
         def substitute(match: re.Match[str]) -> str:

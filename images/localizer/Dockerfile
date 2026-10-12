@@ -6,25 +6,25 @@ FROM neural-networks-base AS dev
 # virtual memory to grow segments on demand, eliminating that fragmentation class.
 ENV PYTORCH_ALLOC_CONF=expandable_segments:True
 
-WORKDIR /app/workloads/localizer
+WORKDIR /app/images/localizer
 
-COPY workloads/localizer/pylock.toml ./pylock.toml
+COPY images/localizer/pylock.toml ./pylock.toml
 RUN --mount=type=cache,id=uvcache,sharing=locked,target=/root/.cache/uv \
     uv pip install -r pylock.toml
 
 COPY packages/python/core /app/packages/python/core
 COPY packages/python/common /app/packages/python/common
-COPY workloads/localizer /app/workloads/localizer
+COPY images/localizer /app/images/localizer
 RUN uv pip install --no-deps --no-sources \
     /app/packages/python/common \
     /app/packages/python/core \
-    /app/workloads/localizer
+    /app/images/localizer
 
 RUN uv pip check
 
-COPY --chmod=0755 workloads/localizer/entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY --chmod=0755 images/localizer/entrypoint.sh /usr/local/bin/entrypoint.sh
 
-COPY workloads/localizer/calibration/global.json /etc/placeframe/calibration/global.json
+COPY images/localizer/calibration/global.json /etc/placeframe/calibration/global.json
 
 # Stamped late so only the trailing ENV layer invalidates per build; upstream pip-install layers stay cached.
 # LOCALIZER_SHA is the content-addressed hash of this image's build context (computed by docker_devkit.context_sha.compute_service_shas) and is used as the pipeline version in main.py for the calibration gate.

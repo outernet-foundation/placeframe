@@ -10,15 +10,15 @@ dev = ["scripts", "basedpyright>=1.39.10", "ruff>=0.14.11", "pytest>=8.0.0", "py
 
 [tool.uv.workspace]
 members = [
-    "workloads/database-manager",
-    "workloads/s3-initializer",
-    "workloads/api",
-    "workloads/auth-initializer",
-    "workloads/lease-server",
-    "workloads/localizer",
-    "workloads/orchestrator",
-    "workloads/rathole-client",
-    "workloads/reconstructor",
+    "images/database-manager",
+    "images/s3-initializer",
+    "images/api",
+    "images/auth-initializer",
+    "images/lease-server",
+    "images/localizer",
+    "images/orchestrator",
+    "images/rathole-client",
+    "images/reconstructor",
     "packages/python/core",
     "packages/python/common",
     "packages/python/neural-networks",
@@ -42,7 +42,7 @@ config-settings-package.placeframe-localizer-client = { editable_mode = "compat"
 # across members) instead of the member directory. The neural-networks accelerator groups are
 # declared identically by the localizer and reconstructor but consumed only by the
 # neural-networks-base image, which is not a workspace member.
-group-export-dirs = { "neural-networks-*" = "workloads/neural-networks-base" }
+group-export-dirs = { "neural-networks-*" = "images/neural-networks-base" }
 
 [tool.python-devkit.preflight]
 # The battery's sync step needs every workspace member plus the cpu accelerator extra so
@@ -68,8 +68,8 @@ venvPath = "."
 venv = ".venv"
 typeCheckingMode = "strict"
 include = [
-    "workloads/**/src/**/*.py",
-    "workloads/**/src/**/*.pyi",
+    "images/**/src/**/*.py",
+    "images/**/src/**/*.pyi",
     "packages/**/src/**/*.py",
     "packages/**/src/**/*.pyi",
     "scripts/**/src/**/*.py",
@@ -77,4 +77,4 @@ include = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["packages/python/common/tests", "scripts/tests", "workloads/s3-initializer/tests"]
+testpaths = ["packages/python/common/tests", "scripts/tests", "images/s3-initializer/tests"]

@@ -83,7 +83,7 @@ wheels = [
 [[package]]
 name = "auth-initializer"
 version = "0.1.0"
-source = { editable = "workloads/auth-initializer" }
+source = { editable = "images/auth-initializer" }
 dependencies = [
     { name = "cryptography" },
 ]
@@ -448,7 +448,7 @@ wheels = [
 [[package]]
 name = "database-manager"
 version = "0.1.0"
-source = { editable = "workloads/database-manager" }
+source = { editable = "images/database-manager" }
 dependencies = [
     { name = "placeframe-common" },
     { name = "psycopg", extra = ["binary"] },
@@ -1975,7 +1975,7 @@ dev = [
 [[package]]
 name = "placeframe-api"
 version = "0.1.0"
-source = { virtual = "workloads/api" }
+source = { virtual = "images/api" }
 dependencies = [
     { name = "botocore" },
     { name = "cryptography" },
@@ -2115,7 +2115,7 @@ dev = [{ name = "scipy-stubs", specifier = ">=1.16.3.0" }]
 [[package]]
 name = "placeframe-lease-server"
 version = "0.1.0"
-source = { virtual = "workloads/lease-server" }
+source = { virtual = "images/lease-server" }
 dependencies = [
     { name = "datamodels" },
     { name = "debugpy" },
@@ -2165,7 +2165,7 @@ requires-dist = [
 [[package]]
 name = "placeframe-localizer"
 version = "0.1.0"
-source = { editable = "workloads/localizer" }
+source = { editable = "images/localizer" }
 dependencies = [
     { name = "faiss-cpu" },
     { name = "litestar" },
@@ -2244,7 +2244,7 @@ requires-dist = [
 [[package]]
 name = "placeframe-rathole-client"
 version = "0.1.0"
-source = { editable = "workloads/rathole-client" }
+source = { editable = "images/rathole-client" }
 dependencies = [
     { name = "jinja2" },
 ]
@@ -2255,7 +2255,7 @@ requires-dist = [{ name = "jinja2", specifier = ">=3.1.6" }]
 [[package]]
 name = "placeframe-reconstructor"
 version = "0.1.0"
-source = { editable = "workloads/reconstructor" }
+source = { editable = "images/reconstructor" }
 dependencies = [
     { name = "cryptography" },
     { name = "httpx" },
@@ -2795,7 +2795,7 @@ wheels = [
 [[package]]
 name = "s3-initializer"
 version = "0.1.0"
-source = { editable = "workloads/s3-initializer" }
+source = { editable = "images/s3-initializer" }
 dependencies = [
     { name = "boto3" },
     { name = "botocore" },

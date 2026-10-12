@@ -19,10 +19,10 @@
 .act
 .env
 .secrets
-stack/generated/k8s/manifests.local.yaml
-stack/score/.score-compose/
-stack/generated/k8s/.score-k8s/*
-!stack/generated/k8s/.score-k8s/state.yaml
+deployfiles/generated/k8s/manifests.local.yaml
+deployfiles/score/.score-compose/
+deployfiles/generated/k8s/.score-k8s/*
+!deployfiles/generated/k8s/.score-k8s/state.yaml
 metadata.json
 storage/
 tidy-commits.json
