@@ -26,8 +26,6 @@ The lack of a permissive alternative has immeasurably hampered the growth of the
 
 Built by [The Outernet Foundation](https://outernetfoundation.org), and made possible by a generous donation from The Robert Halper Foundation.
 
-Powered by [epjecha](https://github.com/epjecha)'s awesome [Stateful](https://github.com/epjecha/StatefulUnity), [ObserveThing](https://github.com/outernet-foundation/ObserveThing), and [Nessle](https://github.com/outernet-foundation/Nessle) Unity packages, for reactive state management and declarative UI in Unity.
-
 Inspired by (and heavily borrowing from) the extremely useful [Hierarchical-Localization](https://github.com/cvg/Hierarchical-Localization) repo.
 
 # Quick Start
