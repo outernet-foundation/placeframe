@@ -108,7 +108,7 @@ You can also build support for custom platforms on top of the core Placeframe pa
 |---|---|
 | `org.outernet.placeframe` | [Core](https://www.npmjs.com/package/org.outernet.placeframe) |
 
-Placeframe also ships several utility packages that are use by the [Placeframe Capture Tool](https://github.com/outernet-foundation/placeframe-capture-tool), including a lower level C# typed api client for interacting directly with the backend, and jwt-based auth handler for Unity, and a logging package for Unity that provides a variety of features, including integration with Grafana Loki:
+Placeframe also ships several utility packages that are use by the [Placeframe Capture Tool](https://github.com/outernet-foundation/placeframe-capture-tool), including a C# typed api client for interacting directly with the backend, a jwt-based auth handler for Unity, and a Unity logging package that provides a variety of features, including integration with Grafana Loki:
 
 | Package | npm |
 |---|---|
