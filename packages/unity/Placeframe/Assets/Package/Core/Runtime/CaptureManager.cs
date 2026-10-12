@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using ICSharpCode.SharpZipLib.Tar;
+using PlaceframeApiClient.Client;
 using PlaceframeApiClient.Model;
 using R3;
 using UnityEngine;
@@ -40,7 +41,7 @@ namespace Placeframe.Core
             Directory.CreateDirectory(Path.Combine(sessionDirectory, "rig0", "camera0"));
 
             _poseWriter = new StreamWriter(Path.Combine(sessionDirectory, "rig0", "frames.csv")) { AutoFlush = true };
-            _poseWriter.WriteLine("timestamp,tx,ty,tz,qx,qy,qz,qw");
+            _poseWriter.WriteLine("timestamp_ms,tx,ty,tz,qx,qy,qz,qw");
 
             var cameraConfigObservable = _cameraProvider
                 // Get camera configuration asynchronously
@@ -65,16 +66,18 @@ namespace Placeframe.Core
             );
         }
 
-        public static void StopCapture()
+        public static Guid StopCapture()
         {
             if (_subscriptions == null)
                 throw new InvalidOperationException("Capture not running");
 
+            var stoppedId = _sessionId;
+
             UniTask
                 .RunOnThreadPool(() =>
                     System.IO.Compression.ZipFile.CreateFromDirectory(
-                        SessionDir(_sessionId.ToString()),
-                        ZipPath(_sessionId.ToString())
+                        SessionDir(stoppedId.ToString()),
+                        ZipPath(stoppedId.ToString())
                     )
                 )
                 .Forget();
@@ -84,6 +87,8 @@ namespace Placeframe.Core
 
             _poseWriter?.Dispose();
             _poseWriter = null;
+
+            return stoppedId;
         }
 
         public static IEnumerable<LocalCapture> GetCaptures()
@@ -94,7 +99,13 @@ namespace Placeframe.Core
             return new DirectoryInfo(_recordingsRoot)
                 .GetDirectories()
                 .Select(d => Guid.Parse(d.Name))
-                .Select(id => new LocalCapture(id, GetCaptureRecordedAtUtc(id), DeviceType.ARFoundation));
+                .Select(id => new LocalCapture(id, null, GetCaptureRecordedAtUtc(id), DeviceType.ARFoundation, ComputeSessionSizeBytes(id)));
+        }
+
+        private static long ComputeSessionSizeBytes(Guid captureId)
+        {
+            var directory = new DirectoryInfo(SessionDir(captureId.ToString()));
+            return directory.EnumerateFiles("*", SearchOption.AllDirectories).Sum(f => f.Length);
         }
 
         private static DateTime GetCaptureRecordedAtUtc(Guid captureId)
@@ -102,7 +113,7 @@ namespace Placeframe.Core
             return Directory.GetCreationTimeUtc(SessionDir(captureId.ToString()));
         }
 
-        public static async UniTask<Stream> GetCaptureTar(Guid captureId)
+        public static async UniTask<FileParameter> GetCaptureTar(Guid captureId)
         {
             var directoryPath = SessionDir(captureId.ToString());
             if (!Directory.Exists(directoryPath))
@@ -134,7 +145,7 @@ namespace Placeframe.Core
             }
 
             memoryStream.Position = 0;
-            return memoryStream;
+            return new FileParameter($"{captureId}.tar", "application/x-tar", memoryStream);
         }
 
         public static void DeleteCapture(Guid id)

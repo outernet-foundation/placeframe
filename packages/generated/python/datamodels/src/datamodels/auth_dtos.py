@@ -13,7 +13,7 @@ class Model(BaseModel):
 
 
 class TenantCreate(BaseModel):
-    id: UUID | None = Field(None, title="Id")
+    id: UUID | None = Field(default=None, title="Id")
 
 
 class TenantBatchCreate(BaseModel):
@@ -57,24 +57,24 @@ class UserRead(BaseModel):
 class MembershipCreate(BaseModel):
     user_id: UUID = Field(..., title="User Id")
     role: MembershipRole | None = None
-    is_personal: bool | None = Field(None, title="Is Personal")
+    is_personal: bool | None = Field(default=None, title="Is Personal")
 
 
 class MembershipBatchCreate(BaseModel):
     user_id: UUID = Field(..., title="User Id")
     role: MembershipRole | None = None
-    is_personal: bool | None = Field(None, title="Is Personal")
+    is_personal: bool | None = Field(default=None, title="Is Personal")
 
 
 class MembershipUpdate(BaseModel):
     role: MembershipRole | None = None
-    is_personal: bool | None = Field(None, title="Is Personal")
+    is_personal: bool | None = Field(default=None, title="Is Personal")
 
 
 class MembershipBatchUpdate(BaseModel):
     user_id: UUID = Field(..., title="User Id")
     role: MembershipRole | None = None
-    is_personal: bool | None = Field(None, title="Is Personal")
+    is_personal: bool | None = Field(default=None, title="Is Personal")
 
 
 class MembershipRead(BaseModel):

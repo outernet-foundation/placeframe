@@ -1,4 +1,4 @@
-#if MAGIC_LEAP
+#if OUTERNET_MAGIC_LEAP
 #pragma warning disable CS0618
 using System;
 using System.Collections.Generic;

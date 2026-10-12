@@ -61,6 +61,7 @@ namespace PlaceframeApiClient.Model
         /// Initializes a new instance of the <see cref="CaptureSessionUpdate" /> class.
         /// </summary>
         /// <param name="recordedAt">datetime with the constraint that the value must have timezone info.</param>
+        /// <param name="sizeBytes">sizeBytes.</param>
         /// <param name="deviceType">deviceType.</param>
         /// <param name="name">name.</param>
         public CaptureSessionUpdate()
@@ -91,6 +92,30 @@ namespace PlaceframeApiClient.Model
         public bool ShouldSerializeRecordedAt()
         {
             return _flagRecordedAt;
+        }
+        /// <summary>
+        /// Gets or Sets SizeBytes
+        /// </summary>
+        [DataMember(Name = "size_bytes", EmitDefaultValue = true)]
+        public int? SizeBytes
+        {
+            get{ return _SizeBytes;}
+            set
+            {
+                _SizeBytes = value;
+                _flagSizeBytes = true;
+            }
+        }
+        private int? _SizeBytes;
+        private bool _flagSizeBytes;
+
+        /// <summary>
+        /// Returns false as SizeBytes should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeSizeBytes()
+        {
+            return _flagSizeBytes;
         }
         /// <summary>
         /// Gets or Sets Name
@@ -125,6 +150,7 @@ namespace PlaceframeApiClient.Model
             StringBuilder sb = new StringBuilder();
             sb.Append("class CaptureSessionUpdate {\n");
             sb.Append("  RecordedAt: ").Append(RecordedAt).Append("\n");
+            sb.Append("  SizeBytes: ").Append(SizeBytes).Append("\n");
             sb.Append("  DeviceType: ").Append(DeviceType).Append("\n");
             sb.Append("  Name: ").Append(Name).Append("\n");
             sb.Append("}\n");

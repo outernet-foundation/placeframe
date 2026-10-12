@@ -1,4 +1,4 @@
-#if MAGIC_LEAP
+#if OUTERNET_MAGIC_LEAP
 using System;
 using System.Runtime.InteropServices;
 using UnityEngine.XR.MagicLeap;

@@ -438,9 +438,11 @@ namespace PlaceframeApiClient.Client
         private async Task<ApiResponse<T>> ToApiResponse<T>(HttpResponseMessage response, object responseData, Uri uri)
         {
             T result = (T)responseData;
-            string rawContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            string rawContent = typeof(T) == typeof(Stream) || typeof(T) == typeof(FileParameter)
+                ? null
+                : await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
-            var transformed = new ApiResponse<T>(response.StatusCode, new Multimap<string, string>(), result, rawContent)
+            var transformed = new ApiResponse<T>(response.StatusCode, new Multimap<string, string>(StringComparer.OrdinalIgnoreCase), result, rawContent)
             {
                 ErrorText = response.ReasonPhrase,
                 Cookies = new List<Cookie>()
@@ -531,7 +533,7 @@ namespace PlaceframeApiClient.Client
                 {
                     var policy = RetryConfiguration.AsyncRetryPolicy;
                     var policyResult = await policy
-                        .ExecuteAndCaptureAsync(() => _httpClient.SendAsync(req, finalToken))
+                        .ExecuteAndCaptureAsync(() => _httpClient.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, finalToken))
                         .ConfigureAwait(false);
                     response = (policyResult.Outcome == OutcomeType.Successful) ?
                         policyResult.Result : new HttpResponseMessage()
@@ -542,7 +544,7 @@ namespace PlaceframeApiClient.Client
                 }
                 else
                 {
-                    response = await _httpClient.SendAsync(req, finalToken).ConfigureAwait(false);
+                    response = await _httpClient.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, finalToken).ConfigureAwait(false);
                 }
 
                 if (!response.IsSuccessStatusCode)

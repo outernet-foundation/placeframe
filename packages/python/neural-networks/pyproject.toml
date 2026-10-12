@@ -72,4 +72,3 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/neural_networks"]
-include = ["src/neural_networks/py.typed"]

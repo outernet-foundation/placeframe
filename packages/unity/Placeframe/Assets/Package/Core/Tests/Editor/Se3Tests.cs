@@ -77,11 +77,11 @@ namespace Placeframe.Core.Tests
         private static void AssertNearIdentity(double4x4 m, double tol)
         {
             for (int c = 0; c < 4; c++)
-                for (int r = 0; r < 4; r++)
-                {
-                    var expected = c == r ? 1.0 : 0.0;
-                    Assert.That(m[c][r], Is.EqualTo(expected).Within(tol), $"m[{c}][{r}]");
-                }
+            for (int r = 0; r < 4; r++)
+            {
+                var expected = c == r ? 1.0 : 0.0;
+                Assert.That(m[c][r], Is.EqualTo(expected).Within(tol), $"m[{c}][{r}]");
+            }
         }
     }
 }

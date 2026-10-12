@@ -1,0 +1,39 @@
+name: Release
+
+on:
+  push:
+    branches: [main, dev]
+
+concurrency:
+  group: release-${{ github.ref }}
+
+permissions:
+  contents: read
+
+env:
+  NUGET_USER: ${{ secrets.NUGET_USER }}
+
+jobs:
+  prerelease:
+    if: github.ref == 'refs/heads/dev'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      packages: read
+    steps:
+      - uses: outernet-foundation/github-actions-toolkit/.github/actions/release@8e2b3326f63081980bebf844eb62b24dbc1238a4
+        with:
+          channel: dev
+
+  release:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      packages: read
+    steps:
+      - uses: outernet-foundation/github-actions-toolkit/.github/actions/release@8e2b3326f63081980bebf844eb62b24dbc1238a4
+        with:
+          channel: stable
