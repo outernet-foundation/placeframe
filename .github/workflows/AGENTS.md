@@ -13,7 +13,7 @@ mirror-images ─→ preflight ─┬→ compile-check-unity ──────�
                              └→ build-docker → publish-compose ──┴→ update-pr-draft-release
 ```
 
-`mirror-images` is the single first root — provisioning precedes consumption: the repo-specific preflight builds the postgres wrapper image, whose `FROM` is a mirror-prefixed base from `workloads/images.lock`, so the mirror namespace must be populated before `preflight` pulls from it. Everything except `publish-compose` is a `uses:` call into the toolkit; `needs` wires across the local/called boundary freely.
+`mirror-images` is the single first root — provisioning precedes consumption: the repo-specific preflight builds the postgres wrapper image, whose `FROM` is a mirror-prefixed base from `images/images.lock`, so the mirror namespace must be populated before `preflight` pulls from it. Everything except `publish-compose` is a `uses:` call into the toolkit; `needs` wires across the local/called boundary freely.
 
 - `preflight` (calling-job permissions `contents: read, packages: read` — the DB battery pulls the mirrored postgres) runs lint-workflows, validate-release-plan, and the repo battery from `scripts/preflight.py` (the python battery via `preflight-python`, then the repo checks in-process, then `generate-clients --check`).
 - `compile-check-unity` forwards the `UNITY_*` secrets; its legs run on the self-hosted `unity` pool.
@@ -23,6 +23,6 @@ mirror-images ─→ preflight ─┬→ compile-check-unity ──────�
 
 ## Delivery notes
 
-Both delivery jobs carry `contents: write, id-token: write, packages: read` (trusted publishing; the digest-manifest shelf pull for the built-image set, derived from `workloads/images.yml` presence). `NUGET_USER` is mapped once in workflow-level `env` — the composite's NuGet login gates on its presence; the secrets context never crosses into composite-land. `NUGET_USER` is a per-repo secret (never org-level — org secrets are fleet-visible and would switch the login on everywhere). `release.yml` must never be renamed: the npm and nuget trusted publishers are bound to the filename. PyPI/npm/nuget publishers are all environment-less, matching the jobs.
+Both delivery jobs carry `contents: write, id-token: write, packages: read` (trusted publishing; the digest-manifest shelf pull for the built-image set, derived from `images/images.yml` presence). `NUGET_USER` is mapped once in workflow-level `env` — the composite's NuGet login gates on its presence; the secrets context never crosses into composite-land. `NUGET_USER` is a per-repo secret (never org-level — org secrets are fleet-visible and would switch the login on everywhere). `release.yml` must never be renamed: the npm and nuget trusted publishers are bound to the filename. PyPI/npm/nuget publishers are all environment-less, matching the jobs.
 
 The dev channel publishes immutable prereleases of every path-diff-changed package and appends per-SHA sections to the `dev-builds` draft; stable publishes the 2.0 lines (per `publish.yml`), tags `{name}-v{semver}` per package, cuts the CalVer release, and resets `dev-builds`. `placeframe-api-client` is two config entries on one path — `placeframe-api-client` (nuget) and `placeframe-api-client-npm` (npm `org.outernet.placeframe.apiclient`) — the one-package-one-ecosystem law; both lines move together because they share the path.

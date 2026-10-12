@@ -27,12 +27,12 @@ six places, each of which branches on it:
 
 1. `docker-devkit/src/docker_devkit/modes.py:22` — rejects `http://` + keycloak
 2. `docker-devkit/src/docker_devkit/up.py:102` — activates the keycloak compose profile
-3. `workloads/gateway/entrypoint.sh:31` — emits/omits the `/auth/*` reverse-proxy and `/loki/*` `forward_auth` Caddy directives
-4. `workloads/api/src/settings.py:49` — conditionally requires the five `AUTH_*` URL fields
-5. `workloads/api/src/auth.py:51` — `AuthMiddleware` either skips JWT decode and returns the sentinel, or verifies a real token
-6. `workloads/api/src/database.py:78` — `get_session` JIT-creates `SHARED_ANONYMOUS_TENANT` and rewrites `app.tenant_id`
+3. `images/gateway/entrypoint.sh:31` — emits/omits the `/auth/*` reverse-proxy and `/loki/*` `forward_auth` Caddy directives
+4. `images/api/src/settings.py:49` — conditionally requires the five `AUTH_*` URL fields
+5. `images/api/src/auth.py:51` — `AuthMiddleware` either skips JWT decode and returns the sentinel, or verifies a real token
+6. `images/api/src/database.py:78` — `get_session` JIT-creates `SHARED_ANONYMOUS_TENANT` and rewrites `app.tenant_id`
 
-The recorded ruling in `workloads/AGENTS.md` ("`PUBLIC_URL` and `AUTH_MODE` are
+The recorded ruling in `images/AGENTS.md` ("`PUBLIC_URL` and `AUTH_MODE` are
 independent axes") defends keeping them as *two* switches rather than *one*. It
 does not defend runtime-string-branch vs structural composition — that is the
 question here, and the ruling is silent on it.
@@ -50,10 +50,10 @@ Placeframe's auth policy leaked across a repo boundary into a shared tool.
 
 Side findings in the same code path:
 
-- `workloads/AGENTS.md:64` says the guard "lives in the external
+- `images/AGENTS.md:64` says the guard "lives in the external
   `stack-lifecycle`'s `modes.py`," but the code is in `docker-devkit`. Stale
   after a rename; dies entirely once `modes.py` is removed.
-- `workloads/api/src/database.py:66` does `cast(str | None, claims.get("sub"))`,
+- `images/api/src/database.py:66` does `cast(str | None, claims.get("sub"))`,
   which violates the `typing.cast` prohibition in `AGENTS-SHARED.md`. The
   `claims` dict is already typed; this should be a typed access, not a cast. It
   sits in the exact code the auth refactor rewrites.
@@ -138,7 +138,7 @@ presence and the new core compose soft-defaults it, so they must land together.
 
 #### B0 — prose (spec-first, before any code)
 
-1. `workloads/AGENTS.md` — rewrite "Authentication and public URL": delete
+1. `images/AGENTS.md` — rewrite "Authentication and public URL": delete
    `AUTH_MODE` as a switch; describe the edge-artifact choice as structural.
    Replace the "PUBLIC_URL and AUTH_MODE are independent axes" constraint with
    "auth presence is structural: which edge artifact you include." Delete the
@@ -160,36 +160,36 @@ presence and the new core compose soft-defaults it, so they must land together.
 Eliminates `AUTH_MODE` from the API. The signal becomes `auth_issuer_url is
 not None`.
 
-- `workloads/api/src/settings.py` — delete the `auth_mode` field. Keep the five
+- `images/api/src/settings.py` — delete the `auth_mode` field. Keep the five
   `auth_*` URL fields Optional (no default). Rewrite `check_auth_config`: if
   `auth_issuer_url` is set → require the other four; if unset → they must be
   None. Add the moved cleartext-OAuth guard here: if `auth_issuer_url` is set
   and `public_url` scheme is `http` → raise. (This is the `modes.py` guard's
   new home — the API is the thing that would put OAuth creds in cleartext, and
   it already validates its settings at boot.)
-- `workloads/api/src/auth.py` — introduce a backend selected by
+- `images/api/src/auth.py` — introduce a backend selected by
   `settings.auth_issuer_url is not None`. Anonymous backend returns
   `(SHARED_ANONYMOUS_USER, SHARED_ANONYMOUS_TENANT)`; keycloak backend runs the
   existing JWKS flow. `authenticate_request` delegates; the
   `auth_mode == "disabled"` branch dies.
-- `workloads/api/src/database.py` — delete the `auth_disabled` branch
+- `images/api/src/database.py` — delete the `auth_disabled` branch
   (lines 78–89). `get_session` consumes `(user_id, tenant_id)` from the auth
   result uniformly: set `app.user_id` always, set `app.tenant_id` if non-None,
   JIT-create the tenant row when the backend provides one. Fix the `cast`
   violation (line 66) — the backend already produced `user_id` as a typed
   `str`; consume it directly, drop `from typing import cast`. Move
   `SHARED_ANONYMOUS_TENANT` into the anonymous backend.
-- `workloads/api/src/main.py` — line 38: `if settings.auth_mode == "disabled"`
+- `images/api/src/main.py` — line 38: `if settings.auth_mode == "disabled"`
   → `if settings.auth_issuer_url is None`. The keycloak branch references
   `auth_audience`/`auth_url`/`auth_token_url` (valid only when issuer set) —
   same condition guards them.
-- `workloads/api/src/routers/server_info.py` — derive the response `auth_mode`
+- `images/api/src/routers/server_info.py` — derive the response `auth_mode`
   from `settings.auth_issuer_url is not None` (`"keycloak"` if set else
   `"disabled"`). Client contract preserved — the field and its values are
   unchanged, so no client/codegen churn. OIDC URLs included only when set.
-- `workloads/api/src/constants.py` — unchanged (sentinels now owned by the
+- `images/api/src/constants.py` — unchanged (sentinels now owned by the
   anonymous backend).
-- `workloads/api/tests/test_server_info.py` — still passes as-is (asserts both
+- `images/api/tests/test_server_info.py` — still passes as-is (asserts both
   modes); optionally add a case asserting `AUTH_ISSUER_URL` absence → disabled.
 - Grep all tests for `AUTH_MODE` and switch them to set/unset `AUTH_ISSUER_URL`.
 
@@ -198,7 +198,7 @@ The `/server-info` OpenAPI schema is unchanged (the response model keeps
 
 #### B2 — gateway entrypoint refactor (code)
 
-- `workloads/gateway/entrypoint.sh` — delete the `AUTH_MODE` branch (lines 21,
+- `images/gateway/entrypoint.sh` — delete the `AUTH_MODE` branch (lines 21,
   31–47). Keep the `PUBLIC_URL` scheme/port parsing (unrelated to auth).
   Replace `${auth_handler}` with `import /etc/caddy/snippets/site-*.conf;` at
   the top of the site block. Replace `${loki_forward_auth}` with
@@ -298,9 +298,9 @@ artifacts.
 
 ## Out of scope (flagged follow-ups)
 
-- **`stack/score/` parallel tier**: the score-generated k8s/compose tier
-  carries `AUTH_MODE` too (`stack/score/placeframe-config.provisioners.yaml`,
-  `stack/generated/...`). It is a separate deployment surface (k8s) and should
+- **`deployfiles/score/` parallel tier**: the score-generated k8s/compose tier
+  carries `AUTH_MODE` too (`deployfiles/score/placeframe-config.provisioners.yaml`,
+  `deployfiles/generated/...`). It is a separate deployment surface (k8s) and should
   receive the same presence-driven treatment, sequenced after the compose tier
   is green. Not a blocker for the compose/OCI refactor.
 - **docker-devkit `{edge}`/`{tunnel}` template**: generalize the `{gpu}`

@@ -10,8 +10,8 @@ storage.
 
 ## Layout
 
-`stack/score/` is the authored tier (workload files, custom provisioners, the
-`restart-policy.tpl` compose patch). `stack/generated/` is the compiled tier:
+`deployfiles/score/` is the authored tier (workload files, custom provisioners, the
+`restart-policy.tpl` compose patch). `deployfiles/generated/` is the compiled tier:
 `compose/compose.yaml` and `k8s/manifests.yaml` are the committed artifacts, and
 `k8s/.score-k8s/state.yaml` is the committed generation state. Hand compose files at the
 repo root stay authored until full-stack Score coverage ports them.
@@ -23,8 +23,8 @@ deploys nothing.
 
 ```bash
 uv run generate-score                  # both artifacts
-uv run generate-score --target compose # stack/generated/compose/compose.yaml only
-uv run generate-score --target k8s     # stack/generated/k8s/manifests.yaml only
+uv run generate-score --target compose # deployfiles/generated/compose/compose.yaml only
+uv run generate-score --target k8s     # deployfiles/generated/k8s/manifests.yaml only
 ```
 
 Both outputs are committed. Image tags resolve from `compute_service_shas` — the same
@@ -43,11 +43,11 @@ pressure valve, anchored at the repo root:
 
 ```bash
 docker compose --project-directory . \
-  --env-file .env --env-file workloads/images.lock \
-  -f stack/generated/compose/compose.yaml up -d
+  --env-file .env --env-file images/images.lock \
+  -f deployfiles/generated/compose/compose.yaml up -d
 docker compose --project-directory . \
-  --env-file .env --env-file workloads/images.lock \
-  -f stack/generated/compose/compose.yaml down --remove-orphans
+  --env-file .env --env-file images/images.lock \
+  -f deployfiles/generated/compose/compose.yaml down --remove-orphans
 ```
 
 `--project-directory .` is required: compose otherwise anchors relative paths at the
@@ -61,7 +61,7 @@ Reach it at `http://localhost:8443/schema/swagger`.
 ## Deploy: Kubernetes
 
 ```bash
-kubectl apply -f stack/generated/k8s/manifests.yaml
+kubectl apply -f deployfiles/generated/k8s/manifests.yaml
 ```
 
 The cluster is a precondition, not part of the deploy. On the real cluster, Argo CD applies
@@ -99,11 +99,11 @@ kubectl create secret generic placeframe-secrets \
   --from-literal=KEYCLOAK_HOSTNAME=http://localhost:8443/auth
 
 uv run generate-score --local --target k8s
-kubectl apply -f stack/generated/k8s/manifests.local.yaml
+kubectl apply -f deployfiles/generated/k8s/manifests.local.yaml
 ```
 
-`--local` writes to `stack/generated/k8s/manifests.local.yaml`, which is gitignored, and
-leaves the committed `stack/generated/k8s/manifests.yaml` untouched. That separation is
+`--local` writes to `deployfiles/generated/k8s/manifests.local.yaml`, which is gitignored, and
+leaves the committed `deployfiles/generated/k8s/manifests.yaml` untouched. That separation is
 deliberate: `local-path` reaching the real cluster leaves the Postgres and MinIO volumes
 unbindable on the next rebuild.
 
@@ -130,7 +130,7 @@ a dependency-lock bump included — re-stales the committed output. Rather than 
 change with a regeneration commit, regeneration is a manual step: follow the order in Generate
 above (commit the source change, regenerate, commit the artifacts).
 
-Generation remains deterministic. `stack/generated/k8s/.score-k8s/state.yaml` is committed,
+Generation remains deterministic. `deployfiles/generated/k8s/.score-k8s/state.yaml` is committed,
 because `score-k8s` mints a random uid per workload on first sight and emits it as the
 `app.kubernetes.io/instance` label — without the state file a fresh checkout regenerates
 different manifests. And `generate-score` sorts the emitted documents, because `score-k8s`
@@ -148,7 +148,7 @@ compose patch are the source; everything else is generated or tool-managed.
 | `placeframe-postgres.k8s.provisioners.yaml` | authored — custom postgres provisioner (k8s, StatefulSet) | yes |
 | `placeframe-postgres-cnpg.k8s.provisioners.yaml` | authored — alternative postgres provisioner (k8s, CloudNativePG) | yes |
 | `placeframe-s3.provisioners.yaml` | authored — fixed-name MinIO provisioner, overrides the built-in `s3` | yes |
-| `../workloads/postgres-cnpg/Dockerfile` | authored — trusted-PostGIS operand image for CNPG | yes |
+| `../images/postgres-cnpg/Dockerfile` | authored — trusted-PostGIS operand image for CNPG | yes |
 | `restart-policy.tpl` | authored — compose-only patch template | yes |
 | `../generated/compose/compose.yaml`, `../generated/k8s/manifests.yaml` | generated | yes — the reviewed artifacts |
 | `../generated/k8s/.score-k8s/state.yaml` | `init` + `generate` | yes — pins the per-workload uids so generation reproduces |
@@ -191,7 +191,7 @@ way; which one applies is set by whichever provisioner file is registered.
   create Job applies all roles/grants/RLS and the same `database-migrator` Job applies the
   schema. The operator install and the operand-image build are manual steps.
 
-  The operand image (`../workloads/postgres-cnpg/Dockerfile`, tag `14-trusted`) exists because
+  The operand image (`../images/postgres-cnpg/Dockerfile`, tag `14-trusted`) exists because
   CNPG runs its own instance manager, so PostGIS is marked *trusted* at build time (instead
   of via the StatefulSet image's runtime entrypoint) — letting the non-superuser
   `placeframe_owner` create the extension in the temporary databases `pg-schema-diff` uses.
