@@ -48,7 +48,8 @@ Replaces `compaction.md`, `plan-auth-refactor.md`, and `design/compose-artifact-
 - B1 complete on `more-final-polish` (API, compose.yml, .env.sample, score tier, docs;
   Make-it-Sing env sample conformed; OidcAuthBackend named for the protocol, not provider).
 - **Work item 1 parts a–c shipped**: the docker-devkit converter is committed on
-  docker-devkit `release-refactor` @ `10949c0` (awaiting operator push/release); the gateway
+  docker-devkit `release-refactor` @ `eedb561` (awaiting operator push/release; branch squashed
+  from its pre-review shape, backup ref `release-refactor-pre-squash`); the gateway
   entrypoint and score sources are reworked on `more-final-polish` — snippet files in
   `gateway.yaml`, no AUTH_MODE anywhere in the score tier, `.env.sample` conformed.
   Regeneration verified end-to-end locally against the checked-out docker-devkit (compose
