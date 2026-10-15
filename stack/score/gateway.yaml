@@ -6,6 +6,9 @@ containers:
     image: ghcr.io/outernet-foundation/placeframe/gateway:${GATEWAY_SHA}
     variables:
       PUBLIC_URL: ${resources.config.public_url}
+      # auth_mode is retired: the config provisioners no longer emit it, so score generation
+      # fails while this reference remains. It goes away when the gateway derives its auth
+      # shape itself instead of reading AUTH_MODE.
       AUTH_MODE: ${resources.config.auth_mode}
 service:
   ports:

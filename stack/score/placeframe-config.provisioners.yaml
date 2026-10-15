@@ -1,15 +1,15 @@
 # Config provisioner (compose): local counterpart of placeframe-config.k8s.provisioners.yaml.
 # Every output is a literal ${VAR} placeholder rather than a resolved value, so the generated
 # compose.yaml stays hermetic and docker compose resolves it from --env-file at run time. The
-# AUTH_* block mirrors compose.yml's soft passthroughs (empty => unset => anonymous mode);
-# auth_mode survives for the gateway workload, which reads it until its own refactor.
+# AUTH_* block mirrors compose.yml's soft passthroughs (empty => unset => anonymous mode).
+# No auth_mode is emitted; gateway.yaml still references it, so score generation fails while
+# that reference remains — stack/generated/ holds the last successful generation.
 # Register via: score-compose init --provisioners <this file>.
 - uri: template://placeframe/config
   type: placeframe-config
   description: App config resolved from .env at run time, mirroring compose.yml's passthroughs.
   outputs: |
     public_url: ${PUBLIC_URL:?err}
-    auth_mode: ${AUTH_MODE:-keycloak}
     auth_audience: ${AUTH_AUDIENCE:-}
     auth_issuer_url: ${AUTH_ISSUER_URL:-}
     auth_authorization_endpoint: ${AUTH_AUTHORIZATION_ENDPOINT:-}
