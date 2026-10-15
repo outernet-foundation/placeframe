@@ -1,25 +1,39 @@
 ---
+apiVersion: v1
+binaryData:
+  file: aGFuZGxlX3BhdGggL2F1dGgvKiB7CiAgICByZXZlcnNlX3Byb3h5IGtleWNsb2FrOjgwODAgewogICAgICAgIGhlYWRlcl91cCBYLUZvcndhcmRlZC1Qcm90byB7JEZPUldBUkRFRF9QUk9UT30KICAgICAgICBoZWFkZXJfdXAgWC1Gb3J3YXJkZWQtUG9ydCB7JEZPUldBUkRFRF9QT1JUfQogICAgfQp9Cg==
+kind: ConfigMap
+metadata:
+  name: gateway-gateway-file-0a0cef3b6f
+---
+apiVersion: v1
+binaryData:
+  file: Zm9yd2FyZF9hdXRoIGtleWNsb2FrOjgwODAgewogICAgdXJpIC9yZWFsbXMvcGxhY2VmcmFtZS1kZXYvcHJvdG9jb2wvb3BlbmlkLWNvbm5lY3QvdXNlcmluZm8KfQo=
+kind: ConfigMap
+metadata:
+  name: gateway-gateway-file-b8ac556a0a
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   annotations:
     k8s.score.dev/workload-name: api
   labels:
-    app.kubernetes.io/instance: api-7ae5e8b491
+    app.kubernetes.io/instance: api-14c2529eb4
     app.kubernetes.io/managed-by: score-k8s
     app.kubernetes.io/name: api
   name: api
 spec:
   selector:
     matchLabels:
-      app.kubernetes.io/instance: api-7ae5e8b491
+      app.kubernetes.io/instance: api-14c2529eb4
   strategy: {}
   template:
     metadata:
       annotations:
         k8s.score.dev/workload-name: api
       labels:
-        app.kubernetes.io/instance: api-7ae5e8b491
+        app.kubernetes.io/instance: api-14c2529eb4
         app.kubernetes.io/managed-by: score-k8s
         app.kubernetes.io/name: api
     spec:
@@ -100,7 +114,7 @@ spec:
                   name: placeframe-secrets
             - name: RECONSTRUCTIONS_BUCKET
               value: reconstructions
-          image: ghcr.io/outernet-foundation/placeframe/api:tree-b24f5152117047d4a3600265c11660fa6833191b
+          image: ghcr.io/outernet-foundation/placeframe/api:tree-aea36bd68872980063c18dbe94931e3e9e8c4ee4
           livenessProbe:
             httpGet:
               path: /health
@@ -115,39 +129,52 @@ metadata:
   annotations:
     k8s.score.dev/workload-name: gateway
   labels:
-    app.kubernetes.io/instance: gateway-63f43f747f
+    app.kubernetes.io/instance: gateway-4ea5ee68fe
     app.kubernetes.io/managed-by: score-k8s
     app.kubernetes.io/name: gateway
   name: gateway
 spec:
   selector:
     matchLabels:
-      app.kubernetes.io/instance: gateway-63f43f747f
+      app.kubernetes.io/instance: gateway-4ea5ee68fe
   strategy: {}
   template:
     metadata:
       annotations:
         k8s.score.dev/workload-name: gateway
       labels:
-        app.kubernetes.io/instance: gateway-63f43f747f
+        app.kubernetes.io/instance: gateway-4ea5ee68fe
         app.kubernetes.io/managed-by: score-k8s
         app.kubernetes.io/name: gateway
     spec:
       containers:
         - env:
-            - name: AUTH_MODE
-              valueFrom:
-                secretKeyRef:
-                  key: AUTH_MODE
-                  name: placeframe-secrets
             - name: PUBLIC_URL
               valueFrom:
                 secretKeyRef:
                   key: PUBLIC_URL
                   name: placeframe-secrets
-          image: ghcr.io/outernet-foundation/placeframe/gateway:tree-a7a72758e2fda4efe2dc094c5c5a3adccf851c38
+          image: ghcr.io/outernet-foundation/placeframe/gateway:tree-a578c52204084e38d4976930f5ba6117f7365b6b
           name: gateway
           resources: {}
+          volumeMounts:
+            - mountPath: /etc/caddy/snippets/loki
+              name: file-b8ac556a0a
+            - mountPath: /etc/caddy/snippets/site
+              name: file-0a0cef3b6f
+      volumes:
+        - configMap:
+            items:
+              - key: file
+                path: auth-loki.conf
+            name: gateway-gateway-file-b8ac556a0a
+          name: file-b8ac556a0a
+        - configMap:
+            items:
+              - key: file
+                path: auth-site.conf
+            name: gateway-gateway-file-0a0cef3b6f
+          name: file-0a0cef3b6f
 status: {}
 ---
 apiVersion: apps/v1
@@ -156,21 +183,21 @@ metadata:
   annotations:
     k8s.score.dev/workload-name: lease-server
   labels:
-    app.kubernetes.io/instance: lease-server-1ec460ca93
+    app.kubernetes.io/instance: lease-server-0907dc0fb6
     app.kubernetes.io/managed-by: score-k8s
     app.kubernetes.io/name: lease-server
   name: lease-server
 spec:
   selector:
     matchLabels:
-      app.kubernetes.io/instance: lease-server-1ec460ca93
+      app.kubernetes.io/instance: lease-server-0907dc0fb6
   strategy: {}
   template:
     metadata:
       annotations:
         k8s.score.dev/workload-name: lease-server
       labels:
-        app.kubernetes.io/instance: lease-server-1ec460ca93
+        app.kubernetes.io/instance: lease-server-0907dc0fb6
         app.kubernetes.io/managed-by: score-k8s
         app.kubernetes.io/name: lease-server
     spec:
@@ -340,7 +367,7 @@ metadata:
   annotations:
     k8s.score.dev/workload-name: api
   labels:
-    app.kubernetes.io/instance: api-7ae5e8b491
+    app.kubernetes.io/instance: api-14c2529eb4
     app.kubernetes.io/managed-by: score-k8s
     app.kubernetes.io/name: api
   name: api
@@ -351,7 +378,7 @@ spec:
       protocol: TCP
       targetPort: 8000
   selector:
-    app.kubernetes.io/instance: api-7ae5e8b491
+    app.kubernetes.io/instance: api-14c2529eb4
 status:
   loadBalancer: {}
 ---
@@ -361,7 +388,7 @@ metadata:
   annotations:
     k8s.score.dev/workload-name: gateway
   labels:
-    app.kubernetes.io/instance: gateway-63f43f747f
+    app.kubernetes.io/instance: gateway-4ea5ee68fe
     app.kubernetes.io/managed-by: score-k8s
     app.kubernetes.io/name: gateway
   name: gateway
@@ -372,7 +399,7 @@ spec:
       protocol: TCP
       targetPort: 8443
   selector:
-    app.kubernetes.io/instance: gateway-63f43f747f
+    app.kubernetes.io/instance: gateway-4ea5ee68fe
 status:
   loadBalancer: {}
 ---
@@ -393,7 +420,7 @@ metadata:
   annotations:
     k8s.score.dev/workload-name: lease-server
   labels:
-    app.kubernetes.io/instance: lease-server-1ec460ca93
+    app.kubernetes.io/instance: lease-server-0907dc0fb6
     app.kubernetes.io/managed-by: score-k8s
     app.kubernetes.io/name: lease-server
   name: lease-server
@@ -404,7 +431,7 @@ spec:
       protocol: TCP
       targetPort: 8000
   selector:
-    app.kubernetes.io/instance: lease-server-1ec460ca93
+    app.kubernetes.io/instance: lease-server-0907dc0fb6
 status:
   loadBalancer: {}
 ---
