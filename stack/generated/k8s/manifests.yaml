@@ -93,18 +93,6 @@ spec:
               value: http://localhost:8000
             - name: LOKI_URL
               value: http://localhost:3100
-            - name: MINIO_ACCESS_KEY
-              valueFrom:
-                secretKeyRef:
-                  key: MINIO_ACCESS_KEY
-                  name: placeframe-secrets
-            - name: MINIO_ENDPOINT_URL
-              value: http://minio:9000
-            - name: MINIO_SECRET_KEY
-              valueFrom:
-                secretKeyRef:
-                  key: MINIO_SECRET_KEY
-                  name: placeframe-secrets
             - name: POSTGRES_HOST
               value: pf-postgres
             - name: PUBLIC_URL
@@ -114,6 +102,18 @@ spec:
                   name: placeframe-secrets
             - name: RECONSTRUCTIONS_BUCKET
               value: reconstructions
+            - name: S3_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: S3_ACCESS_KEY
+                  name: placeframe-secrets
+            - name: S3_ENDPOINT_URL
+              value: http://seaweedfs:8333
+            - name: S3_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: S3_SECRET_KEY
+                  name: placeframe-secrets
           image: ghcr.io/outernet-foundation/placeframe/api:tree-aea36bd68872980063c18dbe94931e3e9e8c4ee4
           livenessProbe:
             httpGet:
@@ -225,36 +225,34 @@ spec:
           resources: {}
 status: {}
 ---
-apiVersion: batch/v1
-kind: Job
+apiVersion: apps/v1
+kind: Deployment
 metadata:
-  annotations:
-    argocd.argoproj.io/hook: Sync
-    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
-  name: minio-bucket
+  name: seaweedfs-audit
 spec:
-  backoffLimit: 30
+  replicas: 1
+  selector:
+    matchLabels:
+      app: seaweedfs-audit
   template:
+    metadata:
+      labels:
+        app: seaweedfs-audit
     spec:
       containers:
-        - command:
-            - /bin/sh
-            - -c
-            - mc alias set local http://minio:9000 $(MINIO_ACCESS_KEY) $(MINIO_SECRET_KEY) && mc mb --ignore-existing local/reconstructions && mc mb --ignore-existing local/dev-captures
-          env:
-            - name: MINIO_ACCESS_KEY
-              valueFrom:
-                secretKeyRef:
-                  key: MINIO_ACCESS_KEY
-                  name: placeframe-secrets
-            - name: MINIO_SECRET_KEY
-              valueFrom:
-                secretKeyRef:
-                  key: MINIO_SECRET_KEY
-                  name: placeframe-secrets
-          image: quay.io/minio/mc@sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727
-          name: bucket
-      restartPolicy: OnFailure
+        - args:
+            - -i
+            - forward
+            - -p
+            - listen=0.0.0.0
+            - -p
+            - port=24224
+            - -o
+            - stdout
+            - -m
+            - '*'
+          image: ghcr.io/outernet-foundation/mirror/docker.io/fluent/fluent-bit:5.1.2@sha256:d792375ca8e53be72fc25716c28f291f32c6fc6f4f31d12d0d14bc78cefe9226
+          name: audit
 ---
 apiVersion: batch/v1
 kind: Job
@@ -361,6 +359,37 @@ spec:
           name: migrate
       restartPolicy: OnFailure
 ---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+  name: seaweedfs-bucket
+spec:
+  backoffLimit: 30
+  template:
+    spec:
+      containers:
+        - env:
+            - name: S3_ENDPOINT_URL
+              value: http://seaweedfs:8333
+            - name: S3_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: S3_ACCESS_KEY
+                  name: placeframe-secrets
+            - name: S3_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: S3_SECRET_KEY
+                  name: placeframe-secrets
+            - name: S3_BUCKETS
+              value: reconstructions dev-captures loki
+          image: ghcr.io/outernet-foundation/placeframe/s3-initializer:tree-30c5ad25a5cbbff69833786b8641a9886cd30fce
+          name: bucket
+      restartPolicy: OnFailure
+---
 apiVersion: v1
 kind: Service
 metadata:
@@ -438,17 +467,6 @@ status:
 apiVersion: v1
 kind: Service
 metadata:
-  name: minio
-spec:
-  ports:
-    - port: 9000
-      targetPort: 9000
-  selector:
-    app.kubernetes.io/instance: minio
----
-apiVersion: v1
-kind: Service
-metadata:
   name: pf-postgres
 spec:
   ports:
@@ -456,6 +474,28 @@ spec:
       targetPort: 5432
   selector:
     app.kubernetes.io/instance: pf-postgres
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: seaweedfs
+spec:
+  ports:
+    - port: 8333
+      targetPort: 8333
+  selector:
+    app.kubernetes.io/instance: seaweedfs
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: seaweedfs-audit
+spec:
+  ports:
+    - port: 24224
+      targetPort: 24224
+  selector:
+    app: seaweedfs-audit
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -554,58 +594,6 @@ kind: StatefulSet
 metadata:
   annotations:
     argocd.argoproj.io/sync-options: Prune=false
-  name: minio
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app.kubernetes.io/instance: minio
-  serviceName: minio
-  template:
-    metadata:
-      labels:
-        app.kubernetes.io/instance: minio
-    spec:
-      containers:
-        - args:
-            - server
-            - /data
-            - --console-address
-            - :9001
-          env:
-            - name: MINIO_ROOT_USER
-              valueFrom:
-                secretKeyRef:
-                  key: MINIO_ACCESS_KEY
-                  name: placeframe-secrets
-            - name: MINIO_ROOT_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  key: MINIO_SECRET_KEY
-                  name: placeframe-secrets
-          image: quay.io/minio/minio@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
-          name: minio
-          ports:
-            - containerPort: 9000
-          volumeMounts:
-            - mountPath: /data
-              name: data
-  volumeClaimTemplates:
-    - metadata:
-        name: data
-      spec:
-        accessModes:
-          - ReadWriteOnce
-        resources:
-          requests:
-            storage: 50Gi
-        storageClassName: hcloud-volumes
----
-apiVersion: apps/v1
-kind: StatefulSet
-metadata:
-  annotations:
-    argocd.argoproj.io/sync-options: Prune=false
   name: pf-postgres
 spec:
   replicas: 1
@@ -647,4 +635,60 @@ spec:
         resources:
           requests:
             storage: 1Gi
+        storageClassName: hcloud-volumes
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
+  name: seaweedfs
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: seaweedfs
+  serviceName: seaweedfs
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: seaweedfs
+    spec:
+      containers:
+        - args:
+            - server
+            - -filer
+            - -s3
+            - -s3.port=8333
+            - -s3.config=/etc/seaweedfs/s3.json
+            - -s3.auditLogConfig=/etc/seaweedfs/fluent.json
+          command:
+            - /usr/local/bin/entrypoint-wrapper.sh
+          env:
+            - name: S3_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: S3_ACCESS_KEY
+                  name: placeframe-secrets
+            - name: S3_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: S3_SECRET_KEY
+                  name: placeframe-secrets
+          image: ghcr.io/outernet-foundation/placeframe/seaweedfs:tree-e6bb7c3cd10731680167f3b40df65f85167b803d
+          name: seaweedfs
+          ports:
+            - containerPort: 8333
+          volumeMounts:
+            - mountPath: /data
+              name: data
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 50Gi
         storageClassName: hcloud-volumes
