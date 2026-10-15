@@ -32,7 +32,7 @@ The ruff configuration is two files: `ruff.base.toml` is the org-canonical confi
 
 ## Server stack
 
-The server stack (API, localizer, reconstructor, Keycloak, SeaweedFS, Postgres, Loki/Alloy/Grafana) is a set of Docker microservices under `workloads/`. The reconstructor pulls work via API lease endpoints — there is no separate orchestrator service. See `workloads/AGENTS.md` for service inventory, data flow, and authentication model. For debugging — querying Loki, inspecting S3 buckets, hitting Postgres directly — see the Debugging section in `workloads/AGENTS.md`.
+The server stack (API, localizer, reconstructor, Keycloak, SeaweedFS, Postgres, Loki/Alloy/Grafana) is a set of Docker microservices under `workloads/`. The reconstructor pulls work via API lease endpoints — there is no separate orchestrator service. See `workloads/AGENTS.md` for service inventory, data flow, and authentication model. For debugging — querying Loki, inspecting S3 buckets, hitting Postgres directly — see the Debugging section in `workloads/AGENTS.md`. The score tier under `stack/` — one authored source compiled into both the Docker compose and Kubernetes renderings — is documented in `stack/AGENTS.md`.
 
 ## Python Workspace
 
