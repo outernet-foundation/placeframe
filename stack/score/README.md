@@ -93,8 +93,8 @@ kubectl create secret generic placeframe-secrets \
   --from-literal=KEYCLOAK_ADMIN_PASSWORD=$(openssl rand -hex 16) \
   --from-literal=PUBLIC_URL=http://localhost:8443 \
   --from-literal=AUTH_MODE=disabled \
-  --from-literal=AUTH_AUDIENCE=placeframe-api \
-  --from-literal=AUTH_ISSUER_URL= --from-literal=AUTH_URL= --from-literal=AUTH_TOKEN_URL= \
+  --from-literal=AUTH_ISSUER_URL= \
+  --from-literal=AUTH_AUTHORIZATION_ENDPOINT= --from-literal=AUTH_TOKEN_ENDPOINT= \
   --from-literal=DEPLOYMENT_ENVIRONMENT=development \
   --from-literal=KEYCLOAK_HOSTNAME=http://localhost:8443/auth
 
