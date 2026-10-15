@@ -5,16 +5,15 @@ sources here describe each service **once** and generate both a runnable Docker 
 file **and** Kubernetes manifests from that one description — the compose stack and the
 k8s manifests are two renderings of one input, so they cannot drift from each other.
 Coverage is a slice of the stack: **api**, **lease-server**, and the **gateway** (Caddy),
-backed by **postgres** (real `placeframe_*` roles and schema) and **MinIO** object
+backed by **postgres** (real `placeframe_*` roles and schema) and **SeaweedFS** object
 storage.
 
 ## Layout
 
 `stack/score/` is the authored tier (workload files, custom provisioners, the
 `restart-policy.tpl` compose patch). `stack/generated/` is the compiled tier:
-`compose/compose.yaml` and `k8s/manifests.yaml` are the committed artifacts, and
-`k8s/.score-k8s/state.yaml` is the committed generation state. Hand compose files at the
-repo root stay authored until full-stack Score coverage ports them.
+`compose/compose.yaml` and `k8s/manifests.yaml` are the committed artifacts. Hand compose
+files at the repo root stay authored until full-stack Score coverage ports them.
 
 ## Generate
 
@@ -38,8 +37,8 @@ Regeneration is deterministic: with no upstream change, `git status` comes back 
 Regeneration needs a docker-devkit release carrying the bind→`configs.content` converter:
 the gateway's snippet `files:` come out of `score-compose` as binds into its state
 directory, and the converter inlines them so the compose artifact carries zero
-host-filesystem references. Until placeframe's `uv.lock` carries that release, the
-committed artifacts stay at the last generation from before the gateway rework.
+host-filesystem references. placeframe's `uv.lock` carries that release (docker-devkit
+0.4.4), so the committed artifacts are always generated through the converter.
 
 ## Deploy: Docker
 
@@ -94,8 +93,8 @@ kubectl create secret generic placeframe-secrets \
   --from-literal=DATABASE_API_USER_PASSWORD=$(openssl rand -hex 16) \
   --from-literal=DATABASE_AUTH_USER_PASSWORD=$(openssl rand -hex 16) \
   --from-literal=DATABASE_ORCHESTRATION_USER_PASSWORD=$(openssl rand -hex 16) \
-  --from-literal=MINIO_ACCESS_KEY=$(openssl rand -hex 8) \
-  --from-literal=MINIO_SECRET_KEY=$(openssl rand -hex 16) \
+  --from-literal=S3_ACCESS_KEY=$(openssl rand -hex 8) \
+  --from-literal=S3_SECRET_KEY=$(openssl rand -hex 16) \
   --from-literal=KEYCLOAK_ADMIN_PASSWORD=$(openssl rand -hex 16) \
   --from-literal=PUBLIC_URL=http://localhost:8443 \
   --from-literal=AUTH_ISSUER_URL= \
@@ -109,8 +108,8 @@ kubectl apply -f stack/generated/k8s/manifests.local.yaml
 
 `--local` writes to `stack/generated/k8s/manifests.local.yaml`, which is gitignored, and
 leaves the committed `stack/generated/k8s/manifests.yaml` untouched. That separation is
-deliberate: `local-path` reaching the real cluster leaves the Postgres and MinIO volumes
-unbindable on the next rebuild.
+deliberate: `local-path` reaching the real cluster leaves the Postgres and SeaweedFS
+volumes unbindable on the next rebuild.
 
 k3d pulls through Docker Hub, whose unauthenticated rate limit is low enough to fail a cold
 cluster. If pulls fail, preload the image into the node:
@@ -135,11 +134,10 @@ a dependency-lock bump included — re-stales the committed output. Rather than 
 change with a regeneration commit, regeneration is a manual step: follow the order in Generate
 above (commit the source change, regenerate, commit the artifacts).
 
-Generation remains deterministic. `stack/generated/k8s/.score-k8s/state.yaml` is committed,
-because `score-k8s` mints a random uid per workload on first sight and emits it as the
-`app.kubernetes.io/instance` label — without the state file a fresh checkout regenerates
-different manifests. And `generate-score` sorts the emitted documents, because `score-k8s`
-emits workloads in Go map order, which is randomised.
+Generation remains deterministic: `generate-score` sorts the emitted documents (score-k8s
+emits workloads in Go map order, which is randomised), and the tool state dirs are per-run
+temp with the per-workload instance suffixes rewritten to name-derived hashes — a fresh
+checkout regenerates byte-identical artifacts with nothing stateful committed.
 
 ## What's in this directory
 
@@ -152,12 +150,14 @@ compose patch are the source; everything else is generated or tool-managed.
 | `placeframe-postgres.provisioners.yaml` | authored — custom postgres provisioner (Docker) | yes |
 | `placeframe-postgres.k8s.provisioners.yaml` | authored — custom postgres provisioner (k8s, StatefulSet) | yes |
 | `placeframe-postgres-cnpg.k8s.provisioners.yaml` | authored — alternative postgres provisioner (k8s, CloudNativePG) | yes |
-| `placeframe-s3.provisioners.yaml` | authored — fixed-name MinIO provisioner, overrides the built-in `s3` | yes |
+| `oidc-issuer.provisioners.yaml` | authored — OIDC issuer provisioner (Docker; dev keycloak) | yes |
+| `oidc-issuer.k8s.provisioners.yaml` | authored — OIDC issuer provisioner (k8s, keycloak StatefulSet + auth-initializer) | yes |
+| `placeframe-seaweedfs.provisioners.yaml` | authored — SeaweedFS provisioner (Docker), overrides the built-in `s3` | yes |
+| `placeframe-seaweedfs.k8s.provisioners.yaml` | authored — SeaweedFS provisioner (k8s, StatefulSet + audit relay + bucket Job) | yes |
 | `../workloads/postgres-cnpg/Dockerfile` | authored — trusted-PostGIS operand image for CNPG | yes |
 | `restart-policy.tpl` | authored — compose-only patch template | yes |
 | `../generated/compose/compose.yaml`, `../generated/k8s/manifests.yaml` | generated | yes — the reviewed artifacts |
-| `../generated/k8s/.score-k8s/state.yaml` | `init` + `generate` | yes — pins the per-workload uids so generation reproduces |
-| `.score-compose/`, rest of `../generated/k8s/.score-k8s/` | `init` | no — rewritten on every run |
+| `.score-compose/`, `../generated/k8s/.score-k8s/` | tool state | no — per-run temp, torn down after generation |
 
 Generation resolves no secret. The compose provisioners emit `${VAR:?err}` placeholders that
 docker resolves from `--env-file` at run time, exactly as the hand-authored `compose.yml`
@@ -178,8 +178,20 @@ Image tags come from `compute_service_shas` at generation time — the same func
   share one database via a common resource `id`. **Result:** real data operations work,
   not just `/health`.
 - **`bucket` (type `s3`)** — a **custom** provisioner overriding the built-in, which mints
-  random credentials at generation time and uses a random service and bucket name that loki
-  (its config hardcodes `minio:9000` and bucket `loki`) cannot reach.
+  random credentials at generation time and uses a random service and bucket name nothing
+  in the stack can reach. The custom one stands up the real SeaweedFS stack — the `weed
+  server` (master+filer+volume+S3 gate on 8333, S3 identity and fluent audit sink rendered
+  from env by the entrypoint wrapper), the fluent audit relay, and the admin console — and
+  converges the real buckets (`dev-captures`, `dev-reconstructions`, `loki`) with the real
+  `s3-initializer` image. Service names are fixed (`seaweedfs`, `seaweedfs-audit`) because
+  the wrapper's rendered audit sink and loki's config address them by DNS name. The k8s
+  twin is the same shape without the admin console (no host ports to publish through):
+  Service + StatefulSet, audit relay Deployment + Service, bucket Job.
+- **`auth` (type `oidc-issuer`)** — named for the protocol, not the provider: the resource
+  type says what the workloads need (a JWKS URL), the provisioner files say keycloak. A
+  swapped issuer implementation registers a different provisioner for the same type.
+  Compose gets a minimal dev keycloak; k8s gets a keycloak StatefulSet with the realm
+  imported by the auth-initializer initContainer.
 
 ## Postgres backends: StatefulSet or CloudNativePG
 
@@ -212,9 +224,9 @@ for a throwaway PoC, a blocker for real adoption:
   registry-hosted or digest-pinned (the CI token cannot push to the placeframe `ghcr.io`
   namespace).
 
-MinIO is no longer on this list: the built-in `s3` provisioner's untagged
-`quay.io/minio/minio` was replaced by `placeframe-s3.provisioners.yaml`, which is
-digest-pinned.
+MinIO is gone from this tier entirely (SeaweedFS replaced it in both renderings); the
+seaweedfs-path images are pinned — the built images by `tree-<sha>` tags, the audit relay
+by the `SEAWEEDFS_AUDIT_IMAGE` lock hole (compose) and its mirror digest (k8s).
 
 ## See also
 

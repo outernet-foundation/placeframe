@@ -17,8 +17,10 @@ Replaces `compaction.md`, `plan-auth-refactor.md`, and `design/compose-artifact-
   cleartext `http://` PUBLIC_URL is a boot error. `/server-info`'s `auth_mode` wire values
   unchanged.
 - **Object storage is SeaweedFS everywhere.** MinIO is dead in both tiers. The fixed-name
-  MinIO provisioners existed only because loki's config hardcoded `minio:9000` — retarget
-  loki to the SeaweedFS S3 endpoint instead.
+  MinIO provisioners existed only because loki's config once hardcoded `minio:9000`; loki
+  now addresses `seaweedfs:8333` and the score `s3` provisioner stands up SeaweedFS at the
+  fixed names `seaweedfs`/`seaweedfs-audit` (the entrypoint wrapper's rendered fluent sink
+  and loki's config reach them by DNS name).
 - **The hand compose files are dead from work item 1 onward.** No work item spends effort
   keeping them coherent; intermediate breakage is accepted, not repaired (B2's entrypoint,
   for instance, leaves the hand gateway without auth routing, and nobody wires snippets into
@@ -56,6 +58,19 @@ Replaces `compaction.md`, `plan-auth-refactor.md`, and `design/compose-artifact-
   `stack/generated/k8s/.score-k8s/state.yaml` gone from the tier (expected under the new model).
   Known debt riding the release: the inliner and uid-normalisation carry only volume-model
   typing tests in docker-devkit.
+- **Slice A shipped (work item 2)**: `api.yaml` feeds `S3_ENDPOINT_URL`/`S3_ACCESS_KEY`/
+  `S3_SECRET_KEY` from the s3 resource (the MINIO_* defect is gone). Both MinIO
+  provisioners deleted, replaced by `placeframe-seaweedfs.provisioners.yaml` (weed
+  server + admin console + audit relay + s3-initializer, ported from the hand compose
+  corpse; credentials as `${S3_*:?err}` holes) and the k8s twin
+  `placeframe-seaweedfs.k8s.provisioners.yaml` (Service + StatefulSet, audit relay
+  Deployment + Service, s3-initializer bucket Job with `S3_*` secretKeyRefs; no admin
+  console — k8s publishes no host ports). Score resource type `placeframe-keycloak` →
+  `oidc-issuer` (provisioner files renamed `oidc-issuer*.provisioners.yaml`; the api
+  resource id stays `placeframe-keycloak` — an id names the instance, not the
+  implementation). Artifacts regenerated through the released converter: zero minio
+  references, zero binds, deterministic across fresh runs. Loki's config was already on
+  `seaweedfs:8333`; the generated tier now matches it via the provisioner endpoint.
 - Resumption facts: the pinned score tools and the repo-pinned uv 0.12.15 both live in
   `~/.local/bin`, which is not on the sandbox's default PATH
   (`export PATH="$HOME/.local/bin:$PATH"`; the system uv 0.11.14 cannot read the lock).
@@ -63,12 +78,16 @@ Replaces `compaction.md`, `plan-auth-refactor.md`, and `design/compose-artifact-
   across fresh runs; commit sources first, then regenerate, then commit artifacts.
 - **Pulumi follow-up — deferred until the rest of this plan completes** (external):
   `placeframe-secrets` gains `AUTH_ISSUER_URL` + `AUTH_AUTHORIZATION_ENDPOINT`/
-  `AUTH_TOKEN_ENDPOINT`, and drops `AUTH_URL`/`AUTH_TOKEN_URL` and (already safe — the
-  generated manifests no longer reference it) `AUTH_MODE`.
-- **Next: Slice A (work item 2)** — the `MINIO_*`→`S3_*` fix below is its first move.
-- **Load-bearing defect**: `api.yaml` feeds `MINIO_ENDPOINT_URL`/`MINIO_ACCESS_KEY`/
-  `MINIO_SECRET_KEY` but Settings reads `S3_*` — object storage silently unconfigured in
-  both generated renderings, including the k8s manifests the SaaS engineer builds on.
+  `AUTH_TOKEN_ENDPOINT` + `S3_ACCESS_KEY`/`S3_SECRET_KEY`, and drops `AUTH_URL`/
+  `AUTH_TOKEN_URL`, `MINIO_ACCESS_KEY`/`MINIO_SECRET_KEY`, and (already safe — the
+  generated manifests no longer reference it) `AUTH_MODE`. The dev-stack Pulumi config
+  keys feeding `pf-secrets` (e.g. `placeframe:minioSecretKey`) rename to their `s3*`
+  spellings in the same pass — the camelCase→SNAKE mapping in `secrets_exec.py` then
+  yields the S3_* env names the stack now reads. The SaaS engineer sync for Slice A is
+  this secret-key contract plus the storage swap (SeaweedFS StatefulSet + audit relay +
+  bucket Job in the manifests, api env MINIO_*→S3_*) — surfaced here; the manifests
+  themselves are already regenerated.
+- **Next: Slice B (work item 3)** — loki/alloy/grafana as provisioner services.
 - Make-it-Sing still includes the old published bundle by digest; its new env names go live
   only when it re-pins (work item 7).
 
