@@ -2,8 +2,6 @@
 # Every output is a literal ${VAR} placeholder rather than a resolved value, so the generated
 # compose.yaml stays hermetic and docker compose resolves it from --env-file at run time. The
 # AUTH_* block mirrors compose.yml's soft passthroughs (empty => unset => anonymous mode).
-# No auth_mode is emitted; gateway.yaml still references it, so score generation fails while
-# that reference remains — stack/generated/ holds the last successful generation.
 # Register via: score-compose init --provisioners <this file>.
 - uri: template://placeframe/config
   type: placeframe-config

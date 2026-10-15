@@ -6,10 +6,24 @@ containers:
     image: ghcr.io/outernet-foundation/placeframe/gateway:${GATEWAY_SHA}
     variables:
       PUBLIC_URL: ${resources.config.public_url}
-      # auth_mode is retired: the config provisioners no longer emit it, so score generation
-      # fails while this reference remains. It goes away when the gateway derives its auth
-      # shape itself instead of reading AUTH_MODE.
-      AUTH_MODE: ${resources.config.auth_mode}
+    # Auth composition is by file presence: the entrypoint imports these snippet globs
+    # into the Caddyfile, and an anonymous edge simply ships the gateway without them.
+    # One source for both renderings — score-k8s turns these into ConfigMap mounts,
+    # score-compose into binds the generation converter inlines as configs.content.
+    files:
+      /etc/caddy/snippets/site/auth-site.conf:
+        content: |
+          handle_path /auth/* {
+              reverse_proxy keycloak:8080 {
+                  header_up X-Forwarded-Proto {$FORWARDED_PROTO}
+                  header_up X-Forwarded-Port {$FORWARDED_PORT}
+              }
+          }
+      /etc/caddy/snippets/loki/auth-loki.conf:
+        content: |
+          forward_auth keycloak:8080 {
+              uri /realms/placeframe-dev/protocol/openid-connect/userinfo
+          }
 service:
   ports:
     gateway:

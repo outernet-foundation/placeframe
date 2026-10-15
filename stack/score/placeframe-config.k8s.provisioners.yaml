@@ -5,9 +5,7 @@
 # The result is that `score-k8s generate` emits secretKeyRef env with no baked values and no
 # post-processing; the actual values are supplied by the Pulumi infra program when it creates
 # placeframe-secrets. The api selects its auth mode from AUTH_ISSUER_URL presence (empty =>
-# anonymous). No auth_mode is emitted; gateway.yaml still references it, so score generation
-# fails while that reference remains — stack/generated/ holds the last successful generation.
-# Register via: score-k8s init --provisioners <this file>.
+# anonymous). Register via: score-k8s init --provisioners <this file>.
 - uri: template://placeframe/config-k8s
   type: placeframe-config
   description: Environment app config referenced from the externally managed placeframe-secrets Secret.
