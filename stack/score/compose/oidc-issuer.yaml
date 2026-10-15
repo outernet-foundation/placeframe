@@ -2,7 +2,11 @@
 # The type is named for the protocol, not the provider — a swapped issuer implementation
 # registers a different provisioner for the same `oidc-issuer` type. A minimal dev keycloak
 # so the compose stack works standalone; local dev runs auth disabled, so no realm import is
-# performed here. Register via: score-compose init --provisioners <this file>.
+# performed here.
+#
+# certs_url is a soft passthrough, not the keycloak literal: the api treats issuer-unset
+# with any auth endpoint set as a boot error (anonymous mode must receive it empty), and
+# .env carries the keycloak JWKS URL whenever OIDC mode runs.
 - uri: template://placeframe/oidc-issuer
   type: oidc-issuer
   description: Local dev keycloak for the compose stack.
@@ -10,7 +14,7 @@
     service: keycloak
     realm: placeframe-dev
   outputs: |
-    certs_url: http://{{ .State.service }}:8080/realms/{{ .State.realm }}/protocol/openid-connect/certs
+    certs_url: ${AUTH_JWKS_URL:-}
   services: |
     {{ .State.service }}:
       image: ghcr.io/outernet-foundation/mirror/quay.io/keycloak/keycloak:26.3.5@sha256:357829ec7c4693397533035092ad13b0644bcc95ded311f33a3738c4d9e9bdba

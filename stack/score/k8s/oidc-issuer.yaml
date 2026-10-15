@@ -2,10 +2,14 @@
 # for the protocol, not the provider — a swapped issuer implementation registers a
 # different provisioner for the same `oidc-issuer` type. The realm is imported by
 # the auth-initializer initContainer (writes the realm JSON into a shared volume that keycloak
-# reads on --import-realm). Hostname, public URL, and admin password come from the externally
-# managed placeframe-secrets Secret; no values are emitted here. Keycloak can't be a normal
-# Score workload (initContainer + StatefulSet + PVC), so it is provisioned as raw manifests
-# like postgres/seaweedfs. Register via: score-k8s init --provisioners <this file>.
+# reads on --import-realm). Hostname, public URL, JWKS URL, and admin password come from the
+# externally managed placeframe-secrets Secret; no values are emitted here. Keycloak can't
+# be a normal Score workload (initContainer + StatefulSet + PVC), so it is provisioned as
+# raw manifests like postgres/seaweedfs.
+#
+# certs_url references the Secret rather than emitting the keycloak literal because the api
+# treats issuer-unset with any auth endpoint set as a boot error — anonymous mode must read
+# an empty AUTH_JWKS_URL from the Secret, same as its empty AUTH_ISSUER_URL.
 - uri: template://placeframe/oidc-issuer-k8s
   type: oidc-issuer
   description: Keycloak with realm imported by auth-initializer; hostname/credentials from placeframe-secrets.
@@ -13,7 +17,7 @@
     service: keycloak
     realm: placeframe-dev
   outputs: |
-    certs_url: http://{{ .State.service }}:8080/realms/{{ .State.realm }}/protocol/openid-connect/certs
+    certs_url: {{ encodeSecretRef "placeframe-secrets" "AUTH_JWKS_URL" }}
   manifests: |
     - apiVersion: v1
       kind: Service
