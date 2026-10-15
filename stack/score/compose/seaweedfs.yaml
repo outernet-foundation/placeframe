@@ -5,7 +5,6 @@
 # s3-initializer image. Ported from the hand compose stack, which this replaces.
 # Declaring `type: s3` here overrides the built-in, because custom provisioners are
 # matched ahead of the defaults on a first-match policy.
-# Register via: score-compose init --provisioners <this file>.
 #
 # HERMETIC BY CONSTRUCTION: the credentials are literal ${VAR:?err} placeholders, matching
 # how compose.yml writes S3_ACCESS_KEY / S3_SECRET_KEY, so nothing is resolved at
@@ -29,7 +28,6 @@
         server -filer -s3 -s3.port=8333
         -s3.config=/etc/seaweedfs/s3.json
         -s3.auditLogConfig=/etc/seaweedfs/fluent.json
-      restart: always
       environment:
         S3_ACCESS_KEY: "${S3_ACCESS_KEY:?err}"
         S3_SECRET_KEY: "${S3_SECRET_KEY:?err}"
@@ -57,7 +55,6 @@
         seaweedfs:
           condition: service_healthy
       command: ["-i", "forward", "-p", "listen=0.0.0.0", "-p", "port=24224", "-o", "stdout", "-m", "*"]
-      restart: always
     # `weed admin` derives its worker gRPC port as HTTP port + 10000, which overflows the
     # 16-bit port range at 59001 — pass an explicit -port.grpc.
     seaweedfs-admin:
@@ -67,7 +64,6 @@
         seaweedfs:
           condition: service_healthy
       command: admin -ip=0.0.0.0 -port=59001 -port.grpc=59002 -master=seaweedfs:9333 -adminPassword="${S3_SECRET_KEY:?err}"
-      restart: always
       ports:
       - target: 59001
         published: "${SEAWEEDFS_ADMIN_PORT:?err}"
@@ -81,7 +77,6 @@
       depends_on:
         seaweedfs:
           condition: service_healthy
-      restart: "no"
       environment:
         S3_ENDPOINT_URL: "http://seaweedfs:8333"
         S3_ACCESS_KEY: "${S3_ACCESS_KEY:?err}"

@@ -20,8 +20,6 @@ generate-score:
     - compose/config.yaml
     - compose/oidc-issuer.yaml
     - compose/seaweedfs.yaml
-  compose_patch_templates:
-    - restart-policy.tpl
   k8s_provisioners:
     - k8s/postgres.yaml
     - k8s/seaweedfs.yaml

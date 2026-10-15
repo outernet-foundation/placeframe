@@ -1,7 +1,7 @@
 # Custom Score provisioner: a real Placeframe postgres (PostGIS) whose placeframe_*
 # roles and database are created by the actual database-manager image (the same
 # create-database logic the compose stack runs), rather than a vanilla postgres with a
-# single generated role. Registered via: score-compose init --provisioners <this file>.
+# single generated role.
 #
 # HERMETIC BY CONSTRUCTION: this provisioner resolves no secret at generation time. Every
 # credential is emitted as a literal ${VAR:?err} string, exactly as the hand-authored
@@ -35,13 +35,10 @@
   volumes: |
     pf-postgres-data:
       driver: local
-    pf-postgres-efs:
-      driver: local
   services: |
     {{ .State.serviceName }}:
       image: ghcr.io/outernet-foundation/placeframe/postgres:{{ env "POSTGRES_SHA" }}
       entrypoint: /usr/local/bin/entrypoint-wrapper.sh
-      restart: always
       environment:
         POSTGRES_USER: "${POSTGRES_ADMIN_USER:?err}"
         POSTGRES_PASSWORD: "${POSTGRES_ADMIN_PASSWORD:?err}"
@@ -59,15 +56,10 @@
       depends_on:
         {{ .State.serviceName }}:
           condition: service_healthy
-      restart: "no"
       environment:
         POSTGRES_HOST: {{ .State.serviceName }}
         POSTGRES_ADMIN_USER: "${POSTGRES_ADMIN_USER:?err}"
         POSTGRES_ADMIN_PASSWORD: "${POSTGRES_ADMIN_PASSWORD:?err}"
-      volumes:
-      - type: volume
-        source: pf-postgres-efs
-        target: /mnt/efs
       entrypoint: >-
         uv run --no-sync python -m src.main --op create --name {{ .State.dbName }}
         --owner-password ${DATABASE_OWNER_PASSWORD:?err}
@@ -79,7 +71,6 @@
       depends_on:
         {{ .State.serviceName }}-create:
           condition: service_completed_successfully
-      restart: "no"
       environment:
         DB_HOST: {{ .State.serviceName }}
         DB_PORT: "5432"

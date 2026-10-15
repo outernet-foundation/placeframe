@@ -3,7 +3,6 @@
 # generated or emitted here: every password is referenced from the externally
 # managed `placeframe-secrets` Secret (created by the Pulumi infra program), so the
 # generated manifests contain zero secret values and are safe to commit for GitOps.
-# Register via: score-k8s init --provisioners <this file>.
 - uri: template://placeframe/postgres-k8s
   type: placeframe-postgres
   description: Placeframe postgres with placeframe_* roles created by database-manager (Kubernetes).
@@ -127,12 +126,6 @@
                   secretKeyRef:
                     name: placeframe-secrets
                     key: DATABASE_ORCHESTRATION_USER_PASSWORD
-              volumeMounts:
-              - name: efs
-                mountPath: /mnt/efs
-            volumes:
-            - name: efs
-              emptyDir: {}
     - apiVersion: batch/v1
       kind: Job
       metadata:
