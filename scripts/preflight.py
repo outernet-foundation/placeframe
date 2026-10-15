@@ -77,7 +77,7 @@ def main() -> None:
     bash("./workloads/database-migrator/entrypoint.sh")
 
     # Score staleness gate disabled: generated stack/ output embeds per-service tree-SHA image
-    # tags, so every dependency-lock bump re-stales it (see stack/score/README.md).
+    # tags, so every dependency-lock bump re-stales it (see stack/AGENTS.md).
     _check_generated("datamodels", "uv run generate-datamodels", "packages/generated/python/datamodels/")
 
     bash("uv run --locked generate-clients --config openapi-client-codegen.yaml --check")
