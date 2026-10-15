@@ -410,9 +410,9 @@ def estimate_capture_size(video_path: Path, stride: int, max_width: int) -> Capt
     width = min(max_width, info.width) if max_width else info.width
     height = width // 2
     sizes: list[int] = []
-    for frame in sample_frames(video_path, SIZE_SAMPLE_FRAMES):
+    for frame in sample_frames(video_path, SIZE_SAMPLE_FRAMES, width):
         image = Image.fromarray(frame[:, :, ::-1])
-        if width != info.width:
+        if image.width != width:
             image = image.resize((width, height), Image.Resampling.LANCZOS)
         encoded = BytesIO()
         image.save(encoded, format="JPEG", quality=JPEG_QUALITY)
@@ -488,13 +488,13 @@ def build_spherical_capture_tar(
             tar.addfile(info_member, BytesIO(data))
 
         expected = -(-info.frame_count // stride)
-        for index, frame in video_frames(video_path, stride):
+        for index, frame in video_frames(video_path, stride, width):
             if on_frame is not None:
                 on_frame(len(timestamps), expected)
             timestamp_ms = round(index * 1000 / info.fps)
             timestamps.append(timestamp_ms)
             image = Image.fromarray(frame[:, :, ::-1])  # decoded BGR; PIL wants RGB
-            if width != info.width:
+            if image.width != width:  # an .insv is already stitched at `width`
                 image = image.resize((width, height), Image.Resampling.LANCZOS)
             encoded = BytesIO()
             image.save(encoded, format="JPEG", quality=JPEG_QUALITY)
@@ -2556,7 +2556,12 @@ async def _import_spherical(
 
 @app.command(name="import-spherical")
 def import_spherical(
-    video: Annotated[Path, typer.Argument(help="Spherical (360) video; its own metadata must declare the projection")],
+    video: Annotated[
+        Path,
+        typer.Argument(
+            help="Spherical (360) video: an equirectangular mp4 that declares its projection, or an Insta360 .insv"
+        ),
+    ],
     name: Annotated[str, typer.Option("--name", help="Capture session name")],
     stride: Annotated[int, typer.Option("--stride", help="Keep every Nth video frame")] = SPHERICAL_FRAME_STRIDE,
     max_width: Annotated[

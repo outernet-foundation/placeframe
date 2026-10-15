@@ -6,8 +6,15 @@ equirectangular. That is read here rather than guessed from a 2:1 aspect ratio,
 so an ordinary wide video is not mistaken for a panorama (and a cropped or
 padded panorama is not missed).
 
-Decoding needs OpenCV, which is an optional extra of this package: services that
-only render views from already-extracted frames need not carry it.
+Insta360's native .insv is the exception: it declares nothing, because it is not
+a panorama yet -- two fisheye lenses, one video track each. panorama.insv stitches
+it with the camera's own calibration, and inspect / frames / sample_frames below
+present it as the equirectangular video it becomes, so an importer needs no
+special case.
+
+Decoding needs OpenCV (and PyAV for .insv), which are an optional extra of this
+package: services that only render views from already-extracted frames need not
+carry them.
 """
 
 from __future__ import annotations
@@ -107,8 +114,30 @@ def projection_of(path: Path) -> str | None:
     return _PROJECTIONS[found[0]] if found else None
 
 
+def _insv_info(path: Path) -> VideoInfo:
+    """An .insv as the equirectangular video it stitches into. Reads the trailer and the
+    container header only, so it is as cheap as inspecting any other video."""
+    import av
+
+    from . import insv
+
+    lenses, _size, scale, _centres = insv.read_calibration(path)
+    width = insv.equirect_width_for(lenses[0], scale)
+    with av.open(str(path)) as container:
+        stream = container.streams.video[0]
+        fps = float(stream.average_rate)
+        frame_count = int(stream.frames)
+    return VideoInfo(
+        path=path, width=width, height=width // 2, fps=fps, frame_count=frame_count, projection="EQUIRECTANGULAR"
+    )
+
+
 def inspect(path: Path) -> VideoInfo:
     """Size, frame rate, length and declared projection. Needs the `video` extra."""
+    from . import insv
+
+    if insv.is_insv(path):
+        return _insv_info(path)
     import cv2
 
     capture = cv2.VideoCapture(str(path))
@@ -127,7 +156,7 @@ def inspect(path: Path) -> VideoInfo:
         capture.release()
 
 
-def sample_frames(path: Path, count: int) -> Iterator[NDArray[np.uint8]]:
+def sample_frames(path: Path, count: int, width: int | None = None) -> Iterator[NDArray[np.uint8]]:
     """Decode `count` frames spread across the video. Needs the `video` extra.
 
     For measuring a video rather than reconstructing from it -- how large its
@@ -135,7 +164,15 @@ def sample_frames(path: Path, count: int) -> Iterator[NDArray[np.uint8]]:
     nearby keyframe rather than an exact index; that inexactness is the whole
     point of using it here, where any representative frame will do and decoding
     to the middle of a long video would not.
+
+    `width` is a hint: an .insv is stitched straight to it, other videos come back at
+    their own size for the caller to scale.
     """
+    from . import insv
+
+    if insv.is_insv(path):
+        yield from insv.sample_equirect_frames(path, count, width)
+        return
     import cv2
 
     capture = cv2.VideoCapture(str(path))
@@ -152,8 +189,17 @@ def sample_frames(path: Path, count: int) -> Iterator[NDArray[np.uint8]]:
         capture.release()
 
 
-def frames(path: Path, stride: int = 1) -> Iterator[tuple[int, NDArray[np.uint8]]]:
-    """Yield (frame index, BGR frame) for every `stride`-th frame. Needs the `video` extra."""
+def frames(path: Path, stride: int = 1, width: int | None = None) -> Iterator[tuple[int, NDArray[np.uint8]]]:
+    """Yield (frame index, BGR frame) for every `stride`-th frame. Needs the `video` extra.
+
+    `width` is a hint as in `sample_frames`: stitching an .insv at the size wanted is far
+    cheaper than stitching it at full resolution and scaling down.
+    """
+    from . import insv
+
+    if insv.is_insv(path):
+        yield from insv.equirect_frames(path, stride, width)
+        return
     import cv2
 
     capture = cv2.VideoCapture(str(path))

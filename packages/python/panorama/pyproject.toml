@@ -14,7 +14,9 @@ dependencies = [
 # rather than the headless build, to match what lightglue already pulls in --
 # two OpenCV distributions in one environment fight over the cv2 module.
 [project.optional-dependencies]
-video = ["opencv-python>=4.10"]
+# PyAV for Insta360 .insv: its two lenses are two video tracks, and cv2 only
+# ever decodes the first.
+video = ["opencv-python>=4.10", "av>=14"]
 
 [build-system]
 requires = ["hatchling"]
