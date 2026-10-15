@@ -35,11 +35,11 @@ and CI will flag them.
 
 Regeneration is deterministic: with no upstream change, `git status` comes back clean.
 
-Generation currently fails at `score-compose generate`: `gateway.yaml` references the config
-resource's `auth_mode` output, which the config provisioners no longer emit (retired along
-with the issuer-based api auth). The committed artifacts under `stack/generated/` are the
-last successful generation and stay deployable; the gateway rework that removes the
-reference is what unblocks regeneration.
+Regeneration needs a docker-devkit release carrying the bind→`configs.content` converter:
+the gateway's snippet `files:` come out of `score-compose` as binds into its state
+directory, and the converter inlines them so the compose artifact carries zero
+host-filesystem references. Until placeframe's `uv.lock` carries that release, the
+committed artifacts stay at the last generation from before the gateway rework.
 
 ## Deploy: Docker
 
@@ -98,7 +98,6 @@ kubectl create secret generic placeframe-secrets \
   --from-literal=MINIO_SECRET_KEY=$(openssl rand -hex 16) \
   --from-literal=KEYCLOAK_ADMIN_PASSWORD=$(openssl rand -hex 16) \
   --from-literal=PUBLIC_URL=http://localhost:8443 \
-  --from-literal=AUTH_MODE=disabled \
   --from-literal=AUTH_ISSUER_URL= \
   --from-literal=AUTH_AUTHORIZATION_ENDPOINT= --from-literal=AUTH_TOKEN_ENDPOINT= \
   --from-literal=DEPLOYMENT_ENVIRONMENT=development \
