@@ -41,7 +41,7 @@ class AnonymousAuthBackend:
         return AuthenticationResult(user=identity, auth=claims)
 
 
-class KeycloakAuthBackend:
+class OidcAuthBackend:
     def __init__(self) -> None:
         self._time_to_live = 600
         self._failure_cooldown = 5
@@ -145,7 +145,7 @@ class AuthMiddleware(AbstractAuthenticationMiddleware):
         if settings.auth_issuer_url is None:
             self._backend = AnonymousAuthBackend()
         else:
-            self._backend = KeycloakAuthBackend()
+            self._backend = OidcAuthBackend()
 
     async def authenticate_request(self, connection: ASGIConnection[Any, Any, Any, Any]) -> AuthenticationResult:
         return await self._backend.authenticate(connection)

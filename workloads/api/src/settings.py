@@ -71,7 +71,7 @@ class Settings(BaseSettings):
             if value is None
         ]
         if missing:
-            raise ValueError(f"AUTH_ISSUER_URL is set (keycloak mode) and requires: {missing}")
+            raise ValueError(f"AUTH_ISSUER_URL is set (OIDC mode) and requires: {missing}")
 
         if self.public_url.scheme == "http":
             raise ValueError(
