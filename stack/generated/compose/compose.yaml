@@ -11,7 +11,7 @@ services:
       AUTH_AUDIENCE: ${AUTH_AUDIENCE:-}
       AUTH_AUTHORIZATION_ENDPOINT: ${AUTH_AUTHORIZATION_ENDPOINT:-}
       AUTH_ISSUER_URL: ${AUTH_ISSUER_URL:-}
-      AUTH_JWKS_URL: http://keycloak:8080/realms/placeframe-dev/protocol/openid-connect/certs
+      AUTH_JWKS_URL: ${AUTH_JWKS_URL:-}
       AUTH_TOKEN_ENDPOINT: ${AUTH_TOKEN_ENDPOINT:-}
       DATABASE_API_USER: placeframe_api_user
       DATABASE_API_USER_PASSWORD: ${DATABASE_API_USER_PASSWORD:?err}
@@ -34,7 +34,6 @@ services:
     ports:
     - target: 8000
       published: '8000'
-    restart: unless-stopped
   gateway-gateway:
     annotations:
       compose.score.dev/workload-name: gateway
@@ -65,7 +64,6 @@ services:
       S3_ENDPOINT_URL: http://seaweedfs:8333
       S3_SECRET_KEY: ${S3_SECRET_KEY:?err}
     image: ghcr.io/outernet-foundation/placeframe/s3-initializer:tree-30c5ad25a5cbbff69833786b8641a9886cd30fce
-    restart: 'no'
   keycloak:
     command:
     - start-dev
@@ -105,7 +103,6 @@ services:
       interval: 2s
       retries: 30
     image: ghcr.io/outernet-foundation/placeframe/postgres:tree-119f6eb1fdab67e2c093e60a636b4d3d538bf3ac
-    restart: always
     volumes:
     - type: volume
       source: pf-postgres-data
@@ -139,11 +136,6 @@ services:
       POSTGRES_ADMIN_USER: ${POSTGRES_ADMIN_USER:?err}
       POSTGRES_HOST: pf-postgres
     image: ghcr.io/outernet-foundation/placeframe/database-manager:tree-62881ea05f99c50d40b05660448aef8c89a0394a
-    restart: 'no'
-    volumes:
-    - type: volume
-      source: pf-postgres-efs
-      target: /mnt/efs
   pf-postgres-migrate:
     depends_on:
       pf-postgres-create:
@@ -158,7 +150,6 @@ services:
       DB_PORT: '5432'
       DB_USER: placeframe_owner
     image: ghcr.io/outernet-foundation/placeframe/database-migrator:tree-38685287efdfae4f658b728697c72394a4e60814
-    restart: 'no'
   seaweedfs:
     command:
     - server
@@ -180,7 +171,6 @@ services:
       retries: 60
       start_period: 1m30s
     image: ghcr.io/outernet-foundation/placeframe/seaweedfs:tree-e6bb7c3cd10731680167f3b40df65f85167b803d
-    restart: always
     volumes:
     - type: volume
       source: seaweedfs-data
@@ -205,7 +195,6 @@ services:
       target: 59001
       published: ${SEAWEEDFS_ADMIN_PORT:?err}
       protocol: tcp
-    restart: always
   seaweedfs-audit:
     command:
     - -i
@@ -223,7 +212,6 @@ services:
         condition: service_healthy
         required: false
     image: ${SEAWEEDFS_AUDIT_IMAGE:?err}
-    restart: always
   wait-for-resources:
     command:
     - echo
@@ -255,8 +243,6 @@ services:
     image: alpine
 volumes:
   pf-postgres-data:
-    driver: local
-  pf-postgres-efs:
     driver: local
   seaweedfs-data:
     driver: local

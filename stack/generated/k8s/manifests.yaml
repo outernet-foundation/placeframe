@@ -55,7 +55,10 @@ spec:
                   key: AUTH_ISSUER_URL
                   name: placeframe-secrets
             - name: AUTH_JWKS_URL
-              value: http://keycloak:8080/realms/placeframe-dev/protocol/openid-connect/certs
+              valueFrom:
+                secretKeyRef:
+                  key: AUTH_JWKS_URL
+                  name: placeframe-secrets
             - name: AUTH_TOKEN_ENDPOINT
               valueFrom:
                 secretKeyRef:
@@ -317,13 +320,7 @@ spec:
                   name: placeframe-secrets
           image: ghcr.io/outernet-foundation/placeframe/database-manager:tree-62881ea05f99c50d40b05660448aef8c89a0394a
           name: create
-          volumeMounts:
-            - mountPath: /mnt/efs
-              name: efs
       restartPolicy: OnFailure
-      volumes:
-        - emptyDir: {}
-          name: efs
 ---
 apiVersion: batch/v1
 kind: Job
@@ -679,6 +676,14 @@ spec:
           name: seaweedfs
           ports:
             - containerPort: 8333
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - curl -fsS http://127.0.0.1:9333/cluster/status && curl -s -o /dev/null http://127.0.0.1:8333/
+            failureThreshold: 60
+            periodSeconds: 5
           volumeMounts:
             - mountPath: /data
               name: data
