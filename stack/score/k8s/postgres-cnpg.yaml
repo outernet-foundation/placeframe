@@ -74,6 +74,12 @@
       kind: Job
       metadata:
         name: pf-postgres-create
+        # A Job's spec.template is immutable, so Argo CD cannot patch it in place once the
+        # image tag moves; as a Sync hook the previous Job is deleted first. Re-running is
+        # safe: --op create is idempotent.
+        annotations:
+          argocd.argoproj.io/hook: Sync
+          argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
       spec:
         backoffLimit: 30
         template:
@@ -93,16 +99,15 @@
                   secretKeyRef:
                     name: pf-postgres-superuser
                     key: password
-              volumeMounts:
-              - name: efs
-                mountPath: /mnt/efs
-            volumes:
-            - name: efs
-              emptyDir: {}
     - apiVersion: batch/v1
       kind: Job
       metadata:
         name: pf-postgres-migrate
+        # Same immutability constraint as the create Job; this one also re-runs on every
+        # sync by design — pg-schema-diff is a no-op when the live schema already matches.
+        annotations:
+          argocd.argoproj.io/hook: Sync
+          argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
       spec:
         backoffLimit: 30
         template:
