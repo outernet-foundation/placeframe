@@ -47,9 +47,15 @@ Replaces `compaction.md`, `plan-auth-refactor.md`, and `design/compose-artifact-
 
 - B1 complete on `more-final-polish` (API, compose.yml, .env.sample, score tier, docs;
   Make-it-Sing env sample conformed; OidcAuthBackend named for the protocol, not provider).
-- **`generate-score` is red**: `gateway.yaml` still references the config resource's retired
-  `auth_mode` output (deliberate dangle — work item 1 removes it). `stack/generated/` holds
-  the last-good artifacts and stays deployable.
+- **Work item 1 parts a–c shipped**: the docker-devkit converter is committed on
+  docker-devkit `release-refactor` (awaiting operator push/release); the gateway
+  entrypoint and score sources are reworked on `more-final-polish` — snippet files in
+  `gateway.yaml`, no AUTH_MODE anywhere in the score tier, `.env.sample` conformed.
+  Regeneration verified end-to-end locally against the checked-out docker-devkit (compose
+  hermetic: zero binds, snippets inlined as `configs.content`; k8s ConfigMaps native), then
+  the artifacts were restored — **1d (the committed regeneration) waits on the
+  docker-devkit release and placeframe running `uv lock --upgrade-package
+  docker-devkit`**, after which Pulumi can drop `AUTH_MODE` from `placeframe-secrets`.
 - **Pulumi coordination owed** (external): `placeframe-secrets` gains `AUTH_ISSUER_URL` +
   `AUTH_AUTHORIZATION_ENDPOINT`/`AUTH_TOKEN_ENDPOINT` (drops old `AUTH_URL`/
   `AUTH_TOKEN_URL`); keeps `AUTH_MODE` until a post-B2 regeneration rolls out.
@@ -58,9 +64,6 @@ Replaces `compaction.md`, `plan-auth-refactor.md`, and `design/compose-artifact-
   both generated renderings, including the k8s manifests the SaaS engineer builds on.
 - Make-it-Sing still includes the old published bundle by digest; its new env names go live
   only when it re-pins (work item 7).
-- The docker-devkit bind→content converter is not yet written; work item 1's regeneration is
-  blocked on it landing, releasing, and placeframe bumping
-  `uv lock --upgrade-package docker-devkit`.
 
 ## Target: five artifacts
 
