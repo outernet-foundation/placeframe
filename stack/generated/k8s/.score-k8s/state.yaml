@@ -4,18 +4,17 @@ workloads:
       apiVersion: score.dev/v1b1
       containers:
         api:
-          image: ghcr.io/outernet-foundation/placeframe/api:tree-19bcf81e1b2f5fbdfece166877de67f035a51016
+          image: ghcr.io/outernet-foundation/placeframe/api:tree-b24f5152117047d4a3600265c11660fa6833191b
           livenessProbe:
             httpGet:
               path: /health
               port: 8000
           variables:
             AUTH_AUDIENCE: ${resources.config.auth_audience}
-            AUTH_CERTS_URL: ${resources.auth.certs_url}
+            AUTH_AUTHORIZATION_ENDPOINT: ${resources.config.auth_authorization_endpoint}
             AUTH_ISSUER_URL: ${resources.config.auth_issuer_url}
-            AUTH_MODE: ${resources.config.auth_mode}
-            AUTH_TOKEN_URL: ${resources.config.auth_token_url}
-            AUTH_URL: ${resources.config.auth_url}
+            AUTH_JWKS_URL: ${resources.auth.certs_url}
+            AUTH_TOKEN_ENDPOINT: ${resources.config.auth_token_endpoint}
             DATABASE_API_USER: ${resources.db.api_username}
             DATABASE_API_USER_PASSWORD: ${resources.db.api_password}
             DATABASE_AUTH_USER: ${resources.db.auth_username}
@@ -59,7 +58,7 @@ workloads:
       apiVersion: score.dev/v1b1
       containers:
         gateway:
-          image: ghcr.io/outernet-foundation/placeframe/gateway:tree-4714e22b2bbd09351eef51bfe3b3c24bf483a33b
+          image: ghcr.io/outernet-foundation/placeframe/gateway:tree-a7a72758e2fda4efe2dc094c5c5a3adccf851c38
           variables:
             AUTH_MODE: ${resources.config.auth_mode}
             PUBLIC_URL: ${resources.config.public_url}
@@ -81,7 +80,7 @@ workloads:
       apiVersion: score.dev/v1b1
       containers:
         lease-server:
-          image: ghcr.io/outernet-foundation/placeframe/lease-server:tree-7b3d4cec6cf3f2d2d98f578ed3cf112a1158d9a8
+          image: ghcr.io/outernet-foundation/placeframe/lease-server:tree-406167f41997a52c66795e8b08868e1714df51f6
           livenessProbe:
             httpGet:
               path: /health
@@ -118,10 +117,10 @@ resources:
     state: {}
     outputs:
       auth_audience: "\U0001F510\U0001F4ACplaceframe-secrets_AUTH_AUDIENCE\U0001F4AC\U0001F510"
+      auth_authorization_endpoint: "\U0001F510\U0001F4ACplaceframe-secrets_AUTH_AUTHORIZATION_ENDPOINT\U0001F4AC\U0001F510"
       auth_issuer_url: "\U0001F510\U0001F4ACplaceframe-secrets_AUTH_ISSUER_URL\U0001F4AC\U0001F510"
       auth_mode: "\U0001F510\U0001F4ACplaceframe-secrets_AUTH_MODE\U0001F4AC\U0001F510"
-      auth_token_url: "\U0001F510\U0001F4ACplaceframe-secrets_AUTH_TOKEN_URL\U0001F4AC\U0001F510"
-      auth_url: "\U0001F510\U0001F4ACplaceframe-secrets_AUTH_URL\U0001F4AC\U0001F510"
+      auth_token_endpoint: "\U0001F510\U0001F4ACplaceframe-secrets_AUTH_TOKEN_ENDPOINT\U0001F4AC\U0001F510"
       deployment_environment: "\U0001F510\U0001F4ACplaceframe-secrets_DEPLOYMENT_ENVIRONMENT\U0001F4AC\U0001F510"
       public_url: "\U0001F510\U0001F4ACplaceframe-secrets_PUBLIC_URL\U0001F4AC\U0001F510"
   placeframe-keycloak.default#placeframe-keycloak:

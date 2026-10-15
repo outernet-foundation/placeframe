@@ -8,12 +8,11 @@ services:
         condition: service_completed_successfully
         required: true
     environment:
-      AUTH_AUDIENCE: ${AUTH_AUDIENCE:?err}
-      AUTH_CERTS_URL: http://keycloak:8080/realms/placeframe-dev/protocol/openid-connect/certs
-      AUTH_ISSUER_URL: ${PUBLIC_URL:?err}/auth/realms/placeframe-dev
-      AUTH_MODE: ${AUTH_MODE:-keycloak}
-      AUTH_TOKEN_URL: ${PUBLIC_URL:?err}/auth/realms/placeframe-dev/protocol/openid-connect/token
-      AUTH_URL: ${PUBLIC_URL:?err}/auth/realms/placeframe-dev/protocol/openid-connect/auth
+      AUTH_AUDIENCE: ${AUTH_AUDIENCE:-}
+      AUTH_AUTHORIZATION_ENDPOINT: ${AUTH_AUTHORIZATION_ENDPOINT:-}
+      AUTH_ISSUER_URL: ${AUTH_ISSUER_URL:-}
+      AUTH_JWKS_URL: http://keycloak:8080/realms/placeframe-dev/protocol/openid-connect/certs
+      AUTH_TOKEN_ENDPOINT: ${AUTH_TOKEN_ENDPOINT:-}
       DATABASE_API_USER: placeframe_api_user
       DATABASE_API_USER_PASSWORD: ${DATABASE_API_USER_PASSWORD:?err}
       DATABASE_AUTH_USER: placeframe_auth_user
@@ -31,7 +30,7 @@ services:
       PUBLIC_URL: ${PUBLIC_URL:?err}
       RECONSTRUCTIONS_BUCKET: dev-reconstructions
     hostname: api
-    image: ghcr.io/outernet-foundation/placeframe/api:tree-19bcf81e1b2f5fbdfece166877de67f035a51016
+    image: ghcr.io/outernet-foundation/placeframe/api:tree-b24f5152117047d4a3600265c11660fa6833191b
     ports:
       - target: 8000
         published: "8000"
@@ -47,7 +46,7 @@ services:
       AUTH_MODE: ${AUTH_MODE:-keycloak}
       PUBLIC_URL: ${PUBLIC_URL:?err}
     hostname: gateway
-    image: ghcr.io/outernet-foundation/placeframe/gateway:tree-4714e22b2bbd09351eef51bfe3b3c24bf483a33b
+    image: ghcr.io/outernet-foundation/placeframe/gateway:tree-a7a72758e2fda4efe2dc094c5c5a3adccf851c38
     ports:
       - target: 8443
         published: "8443"
@@ -73,7 +72,7 @@ services:
       DEPLOYMENT_ENVIRONMENT: development
       POSTGRES_HOST: pf-postgres
     hostname: lease-server
-    image: ghcr.io/outernet-foundation/placeframe/lease-server:tree-7b3d4cec6cf3f2d2d98f578ed3cf112a1158d9a8
+    image: ghcr.io/outernet-foundation/placeframe/lease-server:tree-406167f41997a52c66795e8b08868e1714df51f6
   minio:
     command:
       - server
@@ -124,7 +123,7 @@ services:
       timeout: 2s
       interval: 2s
       retries: 30
-    image: ghcr.io/outernet-foundation/placeframe/postgres:tree-a725eaecbe5687560986ed32b2768c46e8e8e98f
+    image: ghcr.io/outernet-foundation/placeframe/postgres:tree-119f6eb1fdab67e2c093e60a636b4d3d538bf3ac
     restart: always
     volumes:
       - type: volume
@@ -158,7 +157,7 @@ services:
       POSTGRES_ADMIN_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:?err}
       POSTGRES_ADMIN_USER: ${POSTGRES_ADMIN_USER:?err}
       POSTGRES_HOST: pf-postgres
-    image: ghcr.io/outernet-foundation/placeframe/database-manager:tree-d69c18305f567e658be165e13d45e0caa0bd6669
+    image: ghcr.io/outernet-foundation/placeframe/database-manager:tree-62881ea05f99c50d40b05660448aef8c89a0394a
     restart: "no"
     volumes:
       - type: volume
@@ -177,7 +176,7 @@ services:
       DB_PASSWORD: ${DATABASE_OWNER_PASSWORD:?err}
       DB_PORT: "5432"
       DB_USER: placeframe_owner
-    image: ghcr.io/outernet-foundation/placeframe/database-migrator:tree-82d31655502cfa8eaaaf276755b1eddefd5b9ab5
+    image: ghcr.io/outernet-foundation/placeframe/database-migrator:tree-38685287efdfae4f658b728697c72394a4e60814
     restart: "no"
   wait-for-resources:
     command:

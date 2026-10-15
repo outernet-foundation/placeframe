@@ -30,27 +30,22 @@ spec:
                 secretKeyRef:
                   key: AUTH_AUDIENCE
                   name: placeframe-secrets
-            - name: AUTH_CERTS_URL
-              value: http://keycloak:8080/realms/placeframe-dev/protocol/openid-connect/certs
+            - name: AUTH_AUTHORIZATION_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  key: AUTH_AUTHORIZATION_ENDPOINT
+                  name: placeframe-secrets
             - name: AUTH_ISSUER_URL
               valueFrom:
                 secretKeyRef:
                   key: AUTH_ISSUER_URL
                   name: placeframe-secrets
-            - name: AUTH_MODE
+            - name: AUTH_JWKS_URL
+              value: http://keycloak:8080/realms/placeframe-dev/protocol/openid-connect/certs
+            - name: AUTH_TOKEN_ENDPOINT
               valueFrom:
                 secretKeyRef:
-                  key: AUTH_MODE
-                  name: placeframe-secrets
-            - name: AUTH_TOKEN_URL
-              valueFrom:
-                secretKeyRef:
-                  key: AUTH_TOKEN_URL
-                  name: placeframe-secrets
-            - name: AUTH_URL
-              valueFrom:
-                secretKeyRef:
-                  key: AUTH_URL
+                  key: AUTH_TOKEN_ENDPOINT
                   name: placeframe-secrets
             - name: DATABASE_API_USER
               value: placeframe_api_user
@@ -105,7 +100,7 @@ spec:
                   name: placeframe-secrets
             - name: RECONSTRUCTIONS_BUCKET
               value: reconstructions
-          image: ghcr.io/outernet-foundation/placeframe/api:tree-19bcf81e1b2f5fbdfece166877de67f035a51016
+          image: ghcr.io/outernet-foundation/placeframe/api:tree-b24f5152117047d4a3600265c11660fa6833191b
           livenessProbe:
             httpGet:
               path: /health
@@ -150,7 +145,7 @@ spec:
                 secretKeyRef:
                   key: PUBLIC_URL
                   name: placeframe-secrets
-          image: ghcr.io/outernet-foundation/placeframe/gateway:tree-4714e22b2bbd09351eef51bfe3b3c24bf483a33b
+          image: ghcr.io/outernet-foundation/placeframe/gateway:tree-a7a72758e2fda4efe2dc094c5c5a3adccf851c38
           name: gateway
           resources: {}
 status: {}
@@ -194,7 +189,7 @@ spec:
               value: development
             - name: POSTGRES_HOST
               value: pf-postgres
-          image: ghcr.io/outernet-foundation/placeframe/lease-server:tree-7b3d4cec6cf3f2d2d98f578ed3cf112a1158d9a8
+          image: ghcr.io/outernet-foundation/placeframe/lease-server:tree-406167f41997a52c66795e8b08868e1714df51f6
           livenessProbe:
             httpGet:
               path: /health
@@ -295,7 +290,7 @@ spec:
                 secretKeyRef:
                   key: DATABASE_ORCHESTRATION_USER_PASSWORD
                   name: placeframe-secrets
-          image: ghcr.io/outernet-foundation/placeframe/database-manager:tree-d69c18305f567e658be165e13d45e0caa0bd6669
+          image: ghcr.io/outernet-foundation/placeframe/database-manager:tree-62881ea05f99c50d40b05660448aef8c89a0394a
           name: create
           volumeMounts:
             - mountPath: /mnt/efs
@@ -335,7 +330,7 @@ spec:
               value: database
             - name: ALLOWED_HAZARDS
               value: HAS_UNTRACKABLE_DEPENDENCIES
-          image: ghcr.io/outernet-foundation/placeframe/database-migrator:tree-82d31655502cfa8eaaaf276755b1eddefd5b9ab5
+          image: ghcr.io/outernet-foundation/placeframe/database-migrator:tree-38685287efdfae4f658b728697c72394a4e60814
           name: migrate
       restartPolicy: OnFailure
 ---
@@ -503,7 +498,7 @@ spec:
             - mountPath: /opt/keycloak/data
               name: data
       initContainers:
-        - image: ghcr.io/outernet-foundation/placeframe/auth-initializer:tree-1acc0ab6b5f4d41ea1639366ab80a75cae830b91
+        - image: ghcr.io/outernet-foundation/placeframe/auth-initializer:tree-e53ec750921b2d87314c4a01836007133855bb4e
           name: auth-initializer
           volumeMounts:
             - mountPath: /keycloak_import
@@ -609,7 +604,7 @@ spec:
                 secretKeyRef:
                   key: POSTGRES_ADMIN_PASSWORD
                   name: placeframe-secrets
-          image: ghcr.io/outernet-foundation/placeframe/postgres:tree-a725eaecbe5687560986ed32b2768c46e8e8e98f
+          image: ghcr.io/outernet-foundation/placeframe/postgres:tree-119f6eb1fdab67e2c093e60a636b4d3d538bf3ac
           name: postgres-db
           ports:
             - containerPort: 5432
