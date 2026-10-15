@@ -1,4 +1,4 @@
-# Kubernetes twin of placeframe-postgres.provisioners.yaml. Emits a Service +
+# Kubernetes twin of compose/postgres.yaml. Emits a Service +
 # StatefulSet (real Placeframe postgres) + create/migrate Jobs. Secrets are NOT
 # generated or emitted here: every password is referenced from the externally
 # managed `placeframe-secrets` Secret (created by the Pulumi infra program), so the

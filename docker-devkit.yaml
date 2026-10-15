@@ -16,17 +16,17 @@ generate-score:
   cloud_storage_class: hcloud-volumes
   local_storage_class: local-path
   compose_provisioners:
-    - placeframe-postgres.provisioners.yaml
-    - placeframe-config.provisioners.yaml
-    - oidc-issuer.provisioners.yaml
-    - placeframe-seaweedfs.provisioners.yaml
+    - compose/postgres.yaml
+    - compose/config.yaml
+    - compose/oidc-issuer.yaml
+    - compose/seaweedfs.yaml
   compose_patch_templates:
     - restart-policy.tpl
   k8s_provisioners:
-    - placeframe-postgres.k8s.provisioners.yaml
-    - placeframe-seaweedfs.k8s.provisioners.yaml
-    - placeframe-config.k8s.provisioners.yaml
-    - oidc-issuer.k8s.provisioners.yaml
+    - k8s/postgres.yaml
+    - k8s/seaweedfs.yaml
+    - k8s/config.yaml
+    - k8s/oidc-issuer.yaml
   publishes:
     - "8000:api:8000"
     - "8443:gateway:8443"

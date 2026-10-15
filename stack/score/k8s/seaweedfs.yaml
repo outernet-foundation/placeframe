@@ -1,4 +1,4 @@
-# Kubernetes twin of placeframe-seaweedfs.provisioners.yaml. Emits the weed server as a
+# Kubernetes twin of compose/seaweedfs.yaml. Emits the weed server as a
 # Service + StatefulSet, the fluent audit relay as a Deployment + Service (the entrypoint
 # wrapper renders fluent.json pointing at `seaweedfs-audit`), and an s3-initializer bucket
 # Job. Credentials are NOT generated or emitted here: every secret is referenced from the

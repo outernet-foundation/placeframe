@@ -1,7 +1,7 @@
 # Alternative score-k8s provisioner for the SAME resource type (placeframe-postgres):
 # instead of a raw StatefulSet, it emits a CloudNativePG Cluster that the CNPG operator
 # reconciles into a managed, PostGIS-enabled postgres. Register this INSTEAD of
-# placeframe-postgres.k8s.provisioners.yaml to run postgres via CNPG on Kubernetes; the
+# k8s/postgres.yaml to run postgres via CNPG on Kubernetes; the
 # workloads and the Compose side are unchanged. Requires the CNPG operator installed.
 #
 # Roles, grants, and RLS are NOT declared here. The Cluster only bootstraps the database

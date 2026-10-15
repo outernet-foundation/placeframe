@@ -1,4 +1,4 @@
-# OIDC issuer provisioner (compose): local counterpart of oidc-issuer.k8s.provisioners.yaml.
+# OIDC issuer provisioner (compose): local counterpart of k8s/oidc-issuer.yaml.
 # The type is named for the protocol, not the provider — a swapped issuer implementation
 # registers a different provisioner for the same `oidc-issuer` type. A minimal dev keycloak
 # so the compose stack works standalone; local dev runs auth disabled, so no realm import is

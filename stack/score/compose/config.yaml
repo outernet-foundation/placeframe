@@ -1,4 +1,4 @@
-# Config provisioner (compose): local counterpart of placeframe-config.k8s.provisioners.yaml.
+# Config provisioner (compose): local counterpart of k8s/config.yaml.
 # Every output is a literal ${VAR} placeholder rather than a resolved value, so the generated
 # compose.yaml stays hermetic and docker compose resolves it from --env-file at run time. The
 # AUTH_* block mirrors compose.yml's soft passthroughs (empty => unset => anonymous mode).
