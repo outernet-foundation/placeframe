@@ -148,6 +148,33 @@ SPHERICAL_VIEW_FOV_DEG = 150.0
 # Mirrors ReconstructionOptions.spherical_layout's own default, used only as the fallback when
 # a reconstruction's manifest predates the field.
 SPHERICAL_LAYOUT = "tetrahedron"
+# What a spherical capture is reconstructed with unless the caller says otherwise; a camera capture
+# keeps ReconstructionOptions' own defaults. Twelve narrow views, sequential pairs only between
+# neighbouring views, twice the keypoints, and the pose-consistency checks off (180 degrees),
+# because an imported video's poses are a made-up straight line that never turns. The dashboard's
+# reconstruct dialog (ActionDialogs.tsx) holds the same values.
+SPHERICAL_RECONSTRUCTION_DEFAULTS: dict[str, Any] = {
+    "spherical_layout": "dodecahedron",
+    "spherical_sequential_views": "neighbouring",
+    "max_keypoints_per_image": 5000,
+    "pair_vio_em_max_rotation_disagreement_deg": 180.0,
+    "pair_vio_em_max_translation_direction_deg": 180.0,
+}
+# The field of view each layout gets by default: a little over the narrowest that covers the sphere.
+SPHERICAL_LAYOUT_FOV_DEG: dict[str, float] = {
+    "tetrahedron": 150.0,
+    "hexring": 150.0,
+    "cube": 120.0,
+    "dodecahedron": 80.0,
+}
+
+
+def with_spherical_defaults(overrides: dict[str, Any]) -> dict[str, Any]:
+    """`overrides` filled in with the spherical defaults, the field of view following the layout."""
+    merged = {**SPHERICAL_RECONSTRUCTION_DEFAULTS, **overrides}
+    merged.setdefault("spherical_view_fov_deg", SPHERICAL_LAYOUT_FOV_DEG.get(merged["spherical_layout"], 150.0))
+    return merged
+
 
 # Where a capture goes when it is too large to pass through the API in one request body. The API
 # holds a whole upload in memory, which is what REQUEST_MAX_BODY_SIZE bounds; storage itself has no
@@ -1181,7 +1208,16 @@ def reconstruct(
     ),
     json_output: Annotated[bool, typer.Option("--json", help="Emit JSON instead of text")] = False,
 ) -> None:
-    reconstruction = run(_reconstruct(capture_id, _parse_options(options_json), wait, timeout_s))
+    overrides: dict[str, Any] = loads(options_json) if options_json else {}
+    # Telling a spherical capture apart costs a manifest fetch (several seconds), so it is skipped
+    # when the caller has already chosen every value the defaults would fill, as the dashboard does.
+    if (
+        not SPHERICAL_RECONSTRUCTION_DEFAULTS.keys() <= overrides.keys()
+        and run(_capture_info(capture_id))["is_spherical"]
+    ):
+        overrides = with_spherical_defaults(overrides)
+    options = ReconstructionOptions.model_validate(overrides)
+    reconstruction = run(_reconstruct(capture_id, options, wait, timeout_s))
     _report_reconstruction(reconstruction, json_output)
 
 
@@ -1565,10 +1601,14 @@ def reconstruct_spherical(
             "whose queries are shot level and drops mostly sky; dodecahedron is twelve narrow views that cover "
             "the sphere at 75 degrees, matched at twice the angular resolution of the tetrahedron"
         ),
-    ] = "tetrahedron",
+    ] = str(SPHERICAL_RECONSTRUCTION_DEFAULTS["spherical_layout"]),
     view_fov_deg: Annotated[
-        float, typer.Option(help="Field of view of each rendered view; must stay under 180")
-    ] = SPHERICAL_VIEW_FOV_DEG,
+        float | None,
+        typer.Option(
+            help="Field of view of each rendered view; must stay under 180. Omitted, it is the layout's "
+            "default (150 tetrahedron and hexring, 120 cube, 80 dodecahedron)"
+        ),
+    ] = None,
     view_size: Annotated[int, typer.Option(help="Pixel size of each rendered view")] = SPHERICAL_VIEW_SIZE,
     target_keyframes: Annotated[
         int | None,
@@ -1595,7 +1635,8 @@ def reconstruct_spherical(
     ),
     json_output: Annotated[bool, typer.Option("--json", help="Emit JSON instead of text")] = False,
 ) -> None:
-    resolved_max_width = max_width if max_width is not None else useful_pano_width(view_size, view_fov_deg)
+    fov_deg = view_fov_deg if view_fov_deg is not None else SPHERICAL_LAYOUT_FOV_DEG.get(layout, SPHERICAL_VIEW_FOV_DEG)
+    resolved_max_width = max_width if max_width is not None else useful_pano_width(view_size, fov_deg)
     # Sized before extraction rather than after: the API rejects an oversized body on its
     # Content-Length alone, so building the capture first would spend the whole extraction to
     # learn a number that a few sampled frames already tell us.
@@ -1604,8 +1645,9 @@ def reconstruct_spherical(
     _announce_direct_store(estimate, direct)
     overrides: dict[str, Any] = loads(options_json) if options_json else {}
     overrides.setdefault("spherical_layout", layout)
-    overrides.setdefault("spherical_view_fov_deg", view_fov_deg)
+    overrides.setdefault("spherical_view_fov_deg", fov_deg)
     overrides.setdefault("spherical_view_size", view_size)
+    overrides = with_spherical_defaults(overrides)
     reconstruction = run(
         _reconstruct_spherical(
             video,

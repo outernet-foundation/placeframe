@@ -11,7 +11,7 @@ import {
   startPoselessReconstruct,
   startReconstruct,
 } from "../api";
-import type { CaptureInfo, ImportResult, SphericalOptions, VideoInfo, VideoSettings } from "../api";
+import type { ImportResult, SphericalOptions, VideoInfo, VideoSettings } from "../api";
 import { estimateVideoCapture } from "../api";
 import { errorText, joinPath, parentDir, readStored, store, STORAGE_KEYS } from "../storage";
 import type { CaptureSession, PoselessImageSet, Reconstruction } from "../types";
@@ -137,35 +137,124 @@ export function optionsSummary(r: Reconstruction): string {
 
 // ── Reconstruct a capture ───────────────────────────────────────────────────
 
-// ReconstructionOptions' spherical defaults (core/reconstruction_options.py).
-const SPHERICAL_DEFAULTS: SphericalOptions = {
-  layout: "tetrahedron",
-  viewFovDeg: 150,
-  viewSize: 1600,
-  sequentialViews: "all",
-};
+// Options that differ between a spherical capture and a camera capture. A camera capture keeps
+// ReconstructionOptions' own defaults (core/reconstruction_options.py), the values from before
+// spherical captures existed. A spherical capture gets what its best maps were built with:
+// twelve narrow views, sequential pairs only between neighbouring views, twice the keypoints, and
+// the pose-consistency checks off, because an imported video's poses are a made-up straight line
+// that never turns. howard_test.py's SPHERICAL_RECONSTRUCTION_DEFAULTS is the CLI's copy.
+interface MatchingOptions {
+  maxKeypoints: number;
+  maxRotationDeg: number;
+  maxTranslationDeg: number;
+}
 
-// What the newest reconstruction of this capture was cut into, so reconstructing again starts from
-// the last choice rather than the schema default — the usual reason to reopen this dialog is to
-// change one of these, and the rest should stay put.
-function sphericalFrom(siblings: Reconstruction[]): SphericalOptions {
-  const options = siblings[0]?.options ?? {};
-  const value = (key: string, fallback: number): number =>
-    typeof options[key] === "number" ? (options[key] as number) : fallback;
+interface ViewOptions {
+  layout: string;
+  viewFovDeg: number;
+  pairing: string;
+}
+
+const CAMERA_MATCHING: MatchingOptions = { maxKeypoints: 2500, maxRotationDeg: 25, maxTranslationDeg: 60 };
+const SPHERICAL_MATCHING: MatchingOptions = { maxKeypoints: 5000, maxRotationDeg: 180, maxTranslationDeg: 180 };
+const SPHERICAL_VIEWS: ViewOptions = { layout: "dodecahedron", viewFovDeg: 80, pairing: "neighbouring" };
+
+const LAYOUTS: { value: string; label: string }[] = [
+  { value: "dodecahedron", label: "Dodecahedron — 12 views" },
+  { value: "cube", label: "Cube — 6 views" },
+  { value: "hexring", label: "Hexring — 6 views" },
+  { value: "tetrahedron", label: "Tetrahedron — 4 views" },
+];
+// Each list starts at the narrowest view that still covers the whole sphere; the second value is
+// the one a layout change selects.
+const LAYOUT_FOVS: Record<string, number[]> = {
+  tetrahedron: [141, 150],
+  hexring: [120, 150],
+  cube: [110, 120],
+  dodecahedron: [75, 80],
+};
+const PAIRINGS: { value: string; label: string }[] = [
+  { value: "neighbouring", label: "Neighbouring views" },
+  { value: "all", label: "All views" },
+  { value: "same", label: "Same view only" },
+];
+const KEYPOINT_CHOICES = [2500, 5000, 8000];
+const ROTATION_CHOICES = [25, 45, 90, 180];
+const TRANSLATION_CHOICES = [60, 90, 180];
+
+const degrees = (value: number): string => (value >= 180 ? "180° (off)" : `${value}°`);
+
+// A list of choices that still shows a value it does not offer, so nothing is silently replaced.
+function withValue(choices: number[], value: number): number[] {
+  return choices.includes(value) ? choices : [...choices, value].sort((a, b) => a - b);
+}
+
+function Choice({ label, value, options, disabled, onChange }: {
+  label: string;
+  value: string;
+  options: { value: string; label: string }[];
+  disabled?: boolean;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label style={{ flex: 1 }}>
+      {label}
+      <select value={disabled ? "" : value} disabled={disabled} onChange={(e) => onChange(e.target.value)}>
+        {disabled ? <option value="">—</option> : options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </select>
+    </label>
+  );
+}
+
+function MatchingFields({ matching, onChange }: { matching: MatchingOptions; onChange: (m: MatchingOptions) => void }) {
+  const numbers = (choices: number[], value: number, format: (n: number) => string) =>
+    withValue(choices, value).map((n) => ({ value: String(n), label: format(n) }));
+  return (
+    <>
+      <Choice
+        label="Max keypoints per image"
+        value={String(matching.maxKeypoints)}
+        options={numbers(KEYPOINT_CHOICES, matching.maxKeypoints, String)}
+        onChange={(v) => onChange({ ...matching, maxKeypoints: Number(v) })}
+      />
+      <div style={{ display: "flex", gap: 12 }}>
+        <Choice
+          label="Max rotation disagreement"
+          value={String(matching.maxRotationDeg)}
+          options={numbers(ROTATION_CHOICES, matching.maxRotationDeg, degrees)}
+          onChange={(v) => onChange({ ...matching, maxRotationDeg: Number(v) })}
+        />
+        <Choice
+          label="Max translation direction"
+          value={String(matching.maxTranslationDeg)}
+          options={numbers(TRANSLATION_CHOICES, matching.maxTranslationDeg, degrees)}
+          onChange={(v) => onChange({ ...matching, maxTranslationDeg: Number(v) })}
+        />
+      </div>
+    </>
+  );
+}
+
+function matchingOptions(matching: MatchingOptions): Record<string, unknown> {
   return {
-    layout: typeof options.spherical_layout === "string" ? options.spherical_layout : SPHERICAL_DEFAULTS.layout,
-    viewFovDeg: value("spherical_view_fov_deg", SPHERICAL_DEFAULTS.viewFovDeg),
-    viewSize: value("spherical_view_size", SPHERICAL_DEFAULTS.viewSize),
-    sequentialViews:
-      typeof options.spherical_sequential_views === "string"
-        ? options.spherical_sequential_views
-        : SPHERICAL_DEFAULTS.sequentialViews,
+    max_keypoints_per_image: matching.maxKeypoints,
+    pair_vio_em_max_rotation_disagreement_deg: matching.maxRotationDeg,
+    pair_vio_em_max_translation_direction_deg: matching.maxTranslationDeg,
   };
 }
 
-export function ReconstructDialog({ captureName, captureId, siblings, onClose, onStarted }: {
+// Typed fields first, hand-written JSON over the top: the same precedence the CLI gives
+// --options-json over its own flags, so the textarea stays the way to win an argument.
+function mergedOptions(typed: Record<string, unknown>, optionsJson: string): string {
+  const written = optionsJson.trim() ? (JSON.parse(optionsJson) as Record<string, unknown>) : {};
+  return JSON.stringify({ ...typed, ...written });
+}
+
+export function ReconstructDialog({ captureName, captureId, isSpherical: listedSpherical, siblings, onClose, onStarted }: {
   captureName: string;
   captureId: string;
+  // From the capture listing; null or undefined when it could not tell, and then the dialog asks.
+  isSpherical: boolean | null | undefined;
   siblings: Reconstruction[];
   onClose: () => void;
   onStarted: (jobId: string) => void;
@@ -177,114 +266,71 @@ export function ReconstructDialog({ captureName, captureId, siblings, onClose, o
   const [optionsJson, setOptionsJson] = useState(
     fromImageFolder ? JSON.stringify({ pose_prior_position_sigma_m: POSELESS_PRIOR_SIGMA_M }) : "",
   );
-  // Whether the capture is spherical decides whether the view fields apply at all, and it is only
-  // knowable from its manifest, so it is fetched when the dialog opens. Until it arrives the dialog
-  // is the plain one; a failure leaves it that way rather than blocking a reconstruction.
-  const [info, setInfo] = useState<CaptureInfo | null>(null);
-  const [spherical, setSpherical] = useState<SphericalOptions>(() => sphericalFrom(siblings));
+  // The listing usually knows whether the capture is spherical. When it does not, the manifest
+  // lookup takes several seconds, and Reconstruct waits for it rather than start with the wrong
+  // defaults; a failed lookup falls back to a camera capture.
+  const [spherical, setSpherical] = useState<boolean | null>(typeof listedSpherical === "boolean" ? listedSpherical : null);
+  const [matching, setMatching] = useState<MatchingOptions>(spherical ? SPHERICAL_MATCHING : CAMERA_MATCHING);
+  const [views, setViews] = useState<ViewOptions>(SPHERICAL_VIEWS);
   useEffect(() => {
+    if (typeof listedSpherical === "boolean") return;
     let live = true;
+    const settle = (value: boolean) => {
+      if (!live) return;
+      setSpherical(value);
+      setMatching(value ? SPHERICAL_MATCHING : CAMERA_MATCHING);
+    };
     getCaptureInfo(captureId)
-      .then((result) => live && setInfo(result))
-      .catch(() => undefined);
+      .then((info) => settle(info.is_spherical))
+      .catch(() => settle(false));
     return () => {
       live = false;
     };
-  }, [captureId]);
+  }, [captureId, listedSpherical]);
 
-  const isSpherical = info?.is_spherical ?? false;
   const { busy, error, submit } = useSubmit(
     () => {
-      // Typed fields first, hand-written JSON over the top: the same precedence the CLI gives
-      // --options-json over its own flags, so the textarea stays the way to win an argument.
-      const typed = isSpherical
-        ? {
-            spherical_layout: spherical.layout,
-            spherical_view_fov_deg: spherical.viewFovDeg,
-            spherical_view_size: spherical.viewSize,
-            spherical_sequential_views: spherical.sequentialViews,
-          }
-        : {};
-      const typedJson = optionsJson.trim() ? (JSON.parse(optionsJson) as Record<string, unknown>) : {};
-      const merged = { ...typed, ...typedJson };
-      return startReconstruct(captureId, Object.keys(merged).length ? JSON.stringify(merged) : null);
+      const typed = {
+        ...(spherical
+          ? { spherical_layout: views.layout, spherical_view_fov_deg: views.viewFovDeg, spherical_sequential_views: views.pairing }
+          : {}),
+        ...matchingOptions(matching),
+      };
+      return startReconstruct(captureId, mergedOptions(typed, optionsJson));
     },
     ({ job_id }) => onStarted(job_id),
   );
+  const notSpherical = spherical !== true;
   return (
     <Modal title={`Reconstruct ${captureName}`} busy={busy} onClose={onClose}>
-      {isSpherical && (
-        <>
-          <div style={{ display: "flex", gap: 12 }}>
-            <label style={{ flex: 1 }}>
-              Views rendered from each sphere
-              <select value={spherical.layout} onChange={(e) => setSpherical({ ...spherical, layout: e.target.value })}>
-                <option value="tetrahedron">Tetrahedron — 4 views, covers the sphere at 141°+</option>
-                <option value="hexring">Hexring — 6 level-ish views, better for level queries</option>
-                <option value="dodecahedron">Dodecahedron — 12 narrow views, Zed-like resolution at 75°</option>
-                <option value="cube">Cube — 6 faces, covers the sphere at 110°+</option>
-              </select>
-            </label>
-            <label style={{ width: 110 }}>
-              View field of view
-              <input
-                type="number"
-                min={1}
-                max={179}
-                value={spherical.viewFovDeg}
-                onChange={(e) => setSpherical({ ...spherical, viewFovDeg: Number(e.target.value) })}
-              />
-            </label>
-            <label style={{ width: 110 }}>
-              View size (px)
-              <input
-                type="number"
-                min={64}
-                value={spherical.viewSize}
-                onChange={(e) => setSpherical({ ...spherical, viewSize: Number(e.target.value) })}
-              />
-            </label>
-          </div>
-          <label>
-            Views paired across consecutive panoramas
-            <select
-              value={spherical.sequentialViews}
-              onChange={(e) => setSpherical({ ...spherical, sequentialViews: e.target.value })}
-            >
-              <option value="all">All combinations — every view against every view (16 or 36 pairs per step)</option>
-              <option value="neighbouring">Neighbouring views — each view with itself and its nearest views in the layout</option>
-              <option value="same">Same view only — the cheapest; a turn between panoramas is left to retrieval</option>
-            </select>
-          </label>
-          <div style={{ ...HINT, marginTop: -8 }}>
-            These cut the sphere into the views a reconstructor can model, so changing them is exactly what
-            reconstructing again is for. The pairing choice only trims the sequential matches between consecutive
-            panoramas: on a tetrahedron every view neighbours every other, so it matters for the hexring (36 → 18
-            pairs per step), cube (36 → 30) and dodecahedron (144 → 72), where views facing away from each other
-            shared a tenth as many points as same-view pairs. Full coverage needs 141° for the tetrahedron, 110° for
-            the cube, 150° for the hexring and 75° for the dodecahedron; a narrower view than that drops the
-            worst-covered directions, which for the hexring is mostly sky. Views are matched at 1024 px whatever the
-            view size, so a narrower view is a sharper one: 75° on the dodecahedron is 13.7 px per degree, 150° on
-            the tetrahedron 6.8. Stride and max frame width are not here because they are properties of the capture — its frames were
-            extracted and stored once, at{" "}
-            <span className="mono">
-              {info?.frame_width ?? "?"}x{info?.frame_height ?? "?"}
-            </span>
-            {info?.capture_interval_seconds ? ` every ${(info.capture_interval_seconds * 1000).toFixed(0)} ms` : ""} —
-            so changing either means importing the source video again.
-          </div>
-        </>
-      )}
+      <div style={{ display: "flex", gap: 12 }}>
+        <Choice
+          label="Views rendered"
+          value={views.layout}
+          options={LAYOUTS}
+          disabled={notSpherical}
+          onChange={(layout) => setViews({ ...views, layout, viewFovDeg: LAYOUT_FOVS[layout]?.at(-1) ?? views.viewFovDeg })}
+        />
+        <Choice
+          label="View FoV"
+          value={String(views.viewFovDeg)}
+          options={withValue(LAYOUT_FOVS[views.layout] ?? [], views.viewFovDeg).map((n) => ({ value: String(n), label: `${n}°` }))}
+          disabled={notSpherical}
+          onChange={(v) => setViews({ ...views, viewFovDeg: Number(v) })}
+        />
+      </div>
+      <Choice
+        label="View pairing"
+        value={views.pairing}
+        options={PAIRINGS}
+        disabled={notSpherical}
+        onChange={(pairing) => setViews({ ...views, pairing })}
+      />
+      <MatchingFields matching={matching} onChange={setMatching} />
       <label>
         Options (JSON, optional overrides for ReconstructionOptions)
-        <textarea rows={6} placeholder='{"ransac_max_error": 2.0}' value={optionsJson} onChange={(e) => setOptionsJson(e.target.value)} />
+        <textarea rows={4} placeholder='{"ransac_max_error": 2.0}' value={optionsJson} onChange={(e) => setOptionsJson(e.target.value)} />
       </label>
-      {fromImageFolder && (
-        <div style={HINT}>
-          This capture was uploaded from an image folder, so its poses are synthetic: the pose prior is pre-set to be
-          negligible, as in its earlier reconstructions.
-        </div>
-      )}
       {siblings.length > 0 && (
         <div style={HINT}>
           Existing reconstructions of this capture:
@@ -298,7 +344,14 @@ export function ReconstructDialog({ captureName, captureId, siblings, onClose, o
         </div>
       )}
       {error && <div className="banner banner-error">{error}</div>}
-      <Actions busy={busy} label="Reconstruct" busyLabel="Starting…" onCancel={onClose} onSubmit={() => void submit()} />
+      <Actions
+        busy={busy}
+        disabled={spherical === null}
+        label={spherical === null ? "Checking capture…" : "Reconstruct"}
+        busyLabel="Starting…"
+        onCancel={onClose}
+        onSubmit={() => void submit()}
+      />
     </Modal>
   );
 }
@@ -314,10 +367,11 @@ export function PoselessReconstructDialog({ set, onClose, onStarted }: {
   const [focalLength, setFocalLength] = useState(set.focal_length != null ? String(set.focal_length) : rememberedFocal);
   const [targetKeyframes, setTargetKeyframes] = useState<number | null>(null);
   const [optionsJson, setOptionsJson] = useState("");
+  const [matching, setMatching] = useState<MatchingOptions>(CAMERA_MATCHING);
   const focal = Number(focalLength);
   const reuses = set.capture_session_id != null && set.focal_length === focal;
   const { busy, error, submit } = useSubmit(
-    () => startPoselessReconstruct(set.id, focal, targetKeyframes, optionsJson.trim() || null),
+    () => startPoselessReconstruct(set.id, focal, targetKeyframes, mergedOptions(matchingOptions(matching), optionsJson)),
     ({ job_id }) => onStarted(job_id),
   );
   return (
@@ -344,6 +398,7 @@ export function PoselessReconstructDialog({ set, onClose, onStarted }: {
           <option value="30">Thin to about 30 keyframes</option>
         </select>
       </label>
+      <MatchingFields matching={matching} onChange={setMatching} />
       <label>
         Options (JSON, optional overrides for ReconstructionOptions)
         <textarea rows={4} placeholder='{"ransac_max_error": 2.0}' value={optionsJson} onChange={(e) => setOptionsJson(e.target.value)} />
@@ -636,6 +691,14 @@ export function ExportDialog({ kind, reconstruction, onClose, onDone }: {
 
 // Rendering belongs to the capture: which views exist is decided by the layout and field of view
 // alone, so a reconstruction of it has no say and every reconstruction would render the same images.
+// The views a spherical reconstruction renders by default; view size is ReconstructionOptions' own.
+const EXPORT_VIEWS: SphericalOptions = {
+  layout: SPHERICAL_VIEWS.layout,
+  viewFovDeg: SPHERICAL_VIEWS.viewFovDeg,
+  viewSize: 1600,
+  sequentialViews: SPHERICAL_VIEWS.pairing,
+};
+
 export function ExportViewsDialog({ capture, onClose, onDone }: {
   capture: CaptureSession;
   onClose: () => void;
@@ -643,7 +706,7 @@ export function ExportViewsDialog({ capture, onClose, onDone }: {
 }) {
   const [dir, setDir] = useRemembered(STORAGE_KEYS.exportViewsDir);
   const [folder, setFolder] = useState(`${capture.name}-views`);
-  const [spherical, setSpherical] = useState<SphericalOptions>(SPHERICAL_DEFAULTS);
+  const [spherical, setSpherical] = useState<SphericalOptions>(EXPORT_VIEWS);
   const outputDir = joinPath(dir.trim(), folder.trim());
   const { busy, error, submit } = useSubmit<string>(async () => {
     const result = await exportCaptureViews(capture.id, outputDir, spherical);

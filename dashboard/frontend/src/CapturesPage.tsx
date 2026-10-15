@@ -789,6 +789,7 @@ export function CapturesPage() {
         <ReconstructDialog
           captureName={dialog.capture.name}
           captureId={dialog.capture.id}
+          isSpherical={dialog.capture.is_spherical}
           siblings={tree.byCapture.get(dialog.capture.id) ?? []}
           onClose={() => setDialog(null)}
           onStarted={(jobId) => {
