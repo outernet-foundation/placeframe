@@ -75,7 +75,9 @@ Replaces `compaction.md`, `plan-auth-refactor.md`, and `design/compose-artifact-
   `~/.local/bin`, which is not on the sandbox's default PATH
   (`export PATH="$HOME/.local/bin:$PATH"`; the system uv 0.11.14 cannot read the lock).
   Regeneration is plain `uv run generate-score` from the placeframe root and is deterministic
-  across fresh runs; commit sources first, then regenerate, then commit artifacts.
+  across fresh runs; commit sources first, then regenerate, then commit artifacts. The
+  branch's commits are unpushed until the operator pushes (sandbox has no push scope);
+  hand off branch + HEAD at each session end.
 - **Pulumi follow-up — deferred until the rest of this plan completes** (external):
   `placeframe-secrets` gains `AUTH_ISSUER_URL` + `AUTH_AUTHORIZATION_ENDPOINT`/
   `AUTH_TOKEN_ENDPOINT` + `S3_ACCESS_KEY`/`S3_SECRET_KEY`, and drops `AUTH_URL`/
@@ -87,7 +89,16 @@ Replaces `compaction.md`, `plan-auth-refactor.md`, and `design/compose-artifact-
   this secret-key contract plus the storage swap (SeaweedFS StatefulSet + audit relay +
   bucket Job in the manifests, api env MINIO_*→S3_*) — surfaced here; the manifests
   themselves are already regenerated.
-- **Next: Slice B (work item 3)** — loki/alloy/grafana as provisioner services.
+- **Next: Slice B (work item 3)** — loki/alloy/grafana as provisioner services. The
+  porting exemplar is `placeframe-seaweedfs.provisioners.yaml` (fixed DNS names with the
+  rationale in its header, `${VAR:?err}` holes, healthcheck carried from the corpse).
+  Their configs ride as provisioner-emitted binds of the committed `workloads/*/config.*`
+  paths — the converter inlines them `$`-doubled, so loki's `-config.expand-env=true`
+  still sees `${S3_ACCESS_KEY}` after compose interpolation. initialize-loki chown sidecar
+  per the work item. First move of the next session: smoke-test the generated compose
+  (Slice A was verified by generation + preflight only, never brought up — follow Deploy:
+  Docker in `stack/score/README.md`, then `down --remove-orphans`); fix anything it
+  surfaces before building Slice B on top.
 - Make-it-Sing still includes the old published bundle by digest; its new env names go live
   only when it re-pins (work item 7).
 
