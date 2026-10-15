@@ -14,7 +14,7 @@ from litestar.middleware import AbstractAuthenticationMiddleware, Authentication
 from litestar.types import ASGIApp
 from pydantic import BaseModel, ConfigDict
 
-from .constants import SHARED_ANONYMOUS_USER
+from .constants import SHARED_ANONYMOUS_TENANT, SHARED_ANONYMOUS_USER
 from .settings import get_settings
 
 settings = get_settings()
@@ -34,10 +34,15 @@ class JsonWebKeySet(BaseModel):
     keys: list[JsonWebKey]
 
 
-class AuthMiddleware(AbstractAuthenticationMiddleware):
-    def __init__(self, app: ASGIApp, exclude: list[str]) -> None:
-        super().__init__(app, exclude)
+class AnonymousAuthBackend:
+    async def authenticate(self, connection: ASGIConnection[Any, Any, Any, Any]) -> AuthenticationResult:
+        identity = str(SHARED_ANONYMOUS_USER)
+        claims = {"sub": identity, "tenant_id": str(SHARED_ANONYMOUS_TENANT)}
+        return AuthenticationResult(user=identity, auth=claims)
 
+
+class KeycloakAuthBackend:
+    def __init__(self) -> None:
         self._time_to_live = 600
         self._failure_cooldown = 5
         self._expires_at = 0.0
@@ -47,11 +52,7 @@ class AuthMiddleware(AbstractAuthenticationMiddleware):
         self._keys: dict[str, Any] = {}
         self._background_refresh: Task[None] | None = None
 
-    async def authenticate_request(self, connection: ASGIConnection[Any, Any, Any, Any]) -> AuthenticationResult:
-        if settings.auth_mode == "disabled":
-            identity = str(SHARED_ANONYMOUS_USER)
-            return AuthenticationResult(user=identity, auth={"sub": identity})
-
+    async def authenticate(self, connection: ASGIConnection[Any, Any, Any, Any]) -> AuthenticationResult:
         authorization = connection.headers.get("authorization")
         if not authorization or not authorization.lower().startswith("bearer "):
             raise NotAuthorizedException("Missing bearer token")
@@ -122,7 +123,7 @@ class AuthMiddleware(AbstractAuthenticationMiddleware):
                 return
             try:
                 async with AsyncClient() as client:
-                    response = await client.get(str(settings.auth_certs_url), timeout=2)
+                    response = await client.get(str(settings.auth_jwks_url), timeout=2)
                     response.raise_for_status()
                     json_web_key_set = JsonWebKeySet.model_validate(response.json())
             except Exception as exception:
@@ -135,3 +136,16 @@ class AuthMiddleware(AbstractAuthenticationMiddleware):
             }
             self._expires_at = time() + self._time_to_live
             logger.info("JWKS refreshed: %d keys cached", len(self._keys))
+
+
+class AuthMiddleware(AbstractAuthenticationMiddleware):
+    def __init__(self, app: ASGIApp, exclude: list[str]) -> None:
+        super().__init__(app, exclude)
+
+        if settings.auth_issuer_url is None:
+            self._backend = AnonymousAuthBackend()
+        else:
+            self._backend = KeycloakAuthBackend()
+
+    async def authenticate_request(self, connection: ASGIConnection[Any, Any, Any, Any]) -> AuthenticationResult:
+        return await self._backend.authenticate(connection)

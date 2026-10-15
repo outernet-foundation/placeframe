@@ -1,20 +1,20 @@
 from functools import lru_cache
 from os import environ
-from typing import Literal
 
 from pydantic import AnyHttpUrl, Field, model_validator
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_parse_none_str="")
+
     public_url: AnyHttpUrl = Field()
 
-    auth_mode: Literal["keycloak", "disabled"] = "keycloak"
-    auth_audience: str | None = None
     auth_issuer_url: AnyHttpUrl | None = None
-    auth_url: AnyHttpUrl | None = None
-    auth_token_url: AnyHttpUrl | None = None
-    auth_certs_url: AnyHttpUrl | None = None
+    auth_jwks_url: AnyHttpUrl | None = None
+    auth_authorization_endpoint: AnyHttpUrl | None = None
+    auth_token_endpoint: AnyHttpUrl | None = None
+    auth_audience: str | None = None
 
     postgres_host: str = Field()
     database_name: str = Field()
@@ -46,20 +46,39 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def check_auth_config(self):
-        if self.auth_mode == "keycloak":
-            missing = [
+        if self.auth_issuer_url is None:
+            present = [
                 name
                 for name, value in (
-                    ("auth_audience", self.auth_audience),
-                    ("auth_issuer_url", self.auth_issuer_url),
-                    ("auth_url", self.auth_url),
-                    ("auth_token_url", self.auth_token_url),
-                    ("auth_certs_url", self.auth_certs_url),
+                    ("auth_jwks_url", self.auth_jwks_url),
+                    ("auth_authorization_endpoint", self.auth_authorization_endpoint),
+                    ("auth_token_endpoint", self.auth_token_endpoint),
                 )
-                if value is None
+                if value is not None
             ]
-            if missing:
-                raise ValueError(f"AUTH_MODE=keycloak requires: {missing}")
+            if present:
+                raise ValueError(f"AUTH_ISSUER_URL is unset (anonymous mode) but endpoint URLs are set: {present}")
+
+            return self
+
+        missing = [
+            name
+            for name, value in (
+                ("auth_jwks_url", self.auth_jwks_url),
+                ("auth_authorization_endpoint", self.auth_authorization_endpoint),
+                ("auth_token_endpoint", self.auth_token_endpoint),
+            )
+            if value is None
+        ]
+        if missing:
+            raise ValueError(f"AUTH_ISSUER_URL is set (keycloak mode) and requires: {missing}")
+
+        if self.public_url.scheme == "http":
+            raise ValueError(
+                "AUTH_ISSUER_URL is set but PUBLIC_URL is cleartext http; OAuth must not travel unencrypted."
+            )
+
+        self.auth_audience = self.auth_audience or "placeframe-api"
 
         return self
 
