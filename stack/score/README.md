@@ -35,6 +35,12 @@ and CI will flag them.
 
 Regeneration is deterministic: with no upstream change, `git status` comes back clean.
 
+Generation currently fails at `score-compose generate`: `gateway.yaml` references the config
+resource's `auth_mode` output, which the config provisioners no longer emit (retired along
+with the issuer-based api auth). The committed artifacts under `stack/generated/` are the
+last successful generation and stay deployable; the gateway rework that removes the
+reference is what unblocks regeneration.
+
 ## Deploy: Docker
 
 The generated compose has no declared lifecycle in `docker-devkit.yaml` (the `lifecycle:`
