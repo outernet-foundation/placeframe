@@ -47,28 +47,25 @@ Replaces `compaction.md`, `plan-auth-refactor.md`, and `design/compose-artifact-
 
 - B1 complete on `more-final-polish` (API, compose.yml, .env.sample, score tier, docs;
   Make-it-Sing env sample conformed; OidcAuthBackend named for the protocol, not provider).
-- **Work item 1 parts a–c shipped**: the docker-devkit converter is committed on
-  docker-devkit `release-refactor` @ `8a04a66` (awaiting operator push/release; squashed for
-  review and rebased onto origin/dev, which carries PR #15's per-run state model — state dirs
-  are torn down post-generation and instance suffixes hash-normalised, so the 1d regeneration
-  deletes `stack/generated/k8s/.score-k8s/state.yaml` from the tier and re-suffixes the
-  manifests; verified deterministic across consecutive fresh runs); the gateway
-  entrypoint and score sources are reworked on `more-final-polish` — snippet files in
-  `gateway.yaml`, no AUTH_MODE anywhere in the score tier, `.env.sample` conformed.
-  Regeneration verified end-to-end locally against the checked-out docker-devkit (compose
-  hermetic: zero binds, snippets inlined as `configs.content`; k8s ConfigMaps native), then
-  the artifacts were restored — **1d (the committed regeneration) waits on the
-  docker-devkit release and placeframe running `uv lock --upgrade-package
-  docker-devkit`**, after which Pulumi can drop `AUTH_MODE` from `placeframe-secrets`.
-- Resumption facts: the pinned score tools are fetched to `~/.local/bin`, which is not on
-  the sandbox's default PATH (`export PATH="$HOME/.local/bin:$PATH"`); pre-release
-  verification runs `uv run --project /workspace/docker-devkit generate-score` from the
-  placeframe root (the devkit venv's `0.0.0.dev0` sentinel bypasses the `requires`
-  self-check), and `git checkout -- stack/generated/` afterwards keeps the committed
-  artifacts last-good until 1d lands.
-- **Pulumi coordination owed** (external): `placeframe-secrets` gains `AUTH_ISSUER_URL` +
-  `AUTH_AUTHORIZATION_ENDPOINT`/`AUTH_TOKEN_ENDPOINT` (drops old `AUTH_URL`/
-  `AUTH_TOKEN_URL`); keeps `AUTH_MODE` until a post-B2 regeneration rolls out.
+- **Work item 1 shipped (a–d)**: the converter is released — docker-devkit 0.4.4 (branch merged
+  via PR #16 after review squash + rebase onto origin/dev, which carries PR #15's per-run state
+  model: state dirs torn down post-generation, instance suffixes hash-normalised). placeframe
+  pinned it (`uv lock --upgrade-package docker-devkit`, `requires: ">=0.4"` admits it) and
+  regenerated both artifacts through the released tool — compose hermetic (zero binds, snippets
+  inlined as `configs.content`), k8s ConfigMaps native, no `AUTH_MODE` in either rendering, and
+  `stack/generated/k8s/.score-k8s/state.yaml` gone from the tier (expected under the new model).
+  Known debt riding the release: the inliner and uid-normalisation carry only volume-model
+  typing tests in docker-devkit.
+- Resumption facts: the pinned score tools and the repo-pinned uv 0.12.15 both live in
+  `~/.local/bin`, which is not on the sandbox's default PATH
+  (`export PATH="$HOME/.local/bin:$PATH"`; the system uv 0.11.14 cannot read the lock).
+  Regeneration is plain `uv run generate-score` from the placeframe root and is deterministic
+  across fresh runs; commit sources first, then regenerate, then commit artifacts.
+- **Pulumi follow-up — deferred until the rest of this plan completes** (external):
+  `placeframe-secrets` gains `AUTH_ISSUER_URL` + `AUTH_AUTHORIZATION_ENDPOINT`/
+  `AUTH_TOKEN_ENDPOINT`, and drops `AUTH_URL`/`AUTH_TOKEN_URL` and (already safe — the
+  generated manifests no longer reference it) `AUTH_MODE`.
+- **Next: Slice A (work item 2)** — the `MINIO_*`→`S3_*` fix below is its first move.
 - **Load-bearing defect**: `api.yaml` feeds `MINIO_ENDPOINT_URL`/`MINIO_ACCESS_KEY`/
   `MINIO_SECRET_KEY` but Settings reads `S3_*` — object storage silently unconfigured in
   both generated renderings, including the k8s manifests the SaaS engineer builds on.
