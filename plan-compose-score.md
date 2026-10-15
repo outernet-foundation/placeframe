@@ -60,13 +60,13 @@ Replaces `compaction.md`, `plan-auth-refactor.md`, and `design/compose-artifact-
   typing tests in docker-devkit.
 - **Slice A shipped (work item 2)**: `api.yaml` feeds `S3_ENDPOINT_URL`/`S3_ACCESS_KEY`/
   `S3_SECRET_KEY` from the s3 resource (the MINIO_* defect is gone). Both MinIO
-  provisioners deleted, replaced by `placeframe-seaweedfs.provisioners.yaml` (weed
+  provisioners deleted, replaced by `compose/seaweedfs.yaml` (weed
   server + admin console + audit relay + s3-initializer, ported from the hand compose
   corpse; credentials as `${S3_*:?err}` holes) and the k8s twin
-  `placeframe-seaweedfs.k8s.provisioners.yaml` (Service + StatefulSet, audit relay
+  `k8s/seaweedfs.yaml` (Service + StatefulSet, audit relay
   Deployment + Service, s3-initializer bucket Job with `S3_*` secretKeyRefs; no admin
   console — k8s publishes no host ports). Score resource type `placeframe-keycloak` →
-  `oidc-issuer` (provisioner files renamed `oidc-issuer*.provisioners.yaml`; the api
+  `oidc-issuer` (the api
   resource id stays `placeframe-keycloak` — an id names the instance, not the
   implementation). Artifacts regenerated through the released converter: zero minio
   references, zero binds, deterministic across fresh runs. Loki's config was already on
@@ -78,27 +78,40 @@ Replaces `compaction.md`, `plan-auth-refactor.md`, and `design/compose-artifact-
   across fresh runs; commit sources first, then regenerate, then commit artifacts. The
   branch's commits are unpushed until the operator pushes (sandbox has no push scope);
   hand off branch + HEAD at each session end.
+- **Cleanup pass shipped (between Slices A and B)**: provisioners reorganised into
+  `stack/score/compose/` + `stack/score/k8s/` with truncated names (`compose/seaweedfs.yaml`
+  etc.; registration lists in `docker-devkit.yaml` are the authority — score tooling imposes
+  no file-naming requirements on authored sources). `AUTH_JWKS_URL` fixed from a baked
+  keycloak literal to a passthrough in both renderings (the api's `check_auth_config` boots
+  anonymous mode only when issuer and endpoints are all empty — the baked URL crashed
+  anonymous boots). Vestigial efs mounts and all restart keys dropped; CNPG Jobs got Argo
+  sync hooks; the k8s seaweedfs StatefulSet got a readiness probe mirroring the compose
+  healthcheck; `restart-policy.tpl` deleted. `stack/score/README.md` replaced by
+  `stack/AGENTS.md` + `CLAUDE.md` import. Pending: docker-devkit's `image_globs` went
+  recursive (dev @ 90aad4d, unpushed) so preflight's unpinned-image scan covers the moved
+  files — re-pin (`uv lock --upgrade-package docker-devkit`) once released.
 - **Pulumi follow-up — deferred until the rest of this plan completes** (external):
-  `placeframe-secrets` gains `AUTH_ISSUER_URL` + `AUTH_AUTHORIZATION_ENDPOINT`/
-  `AUTH_TOKEN_ENDPOINT` + `S3_ACCESS_KEY`/`S3_SECRET_KEY`, and drops `AUTH_URL`/
-  `AUTH_TOKEN_URL`, `MINIO_ACCESS_KEY`/`MINIO_SECRET_KEY`, and (already safe — the
-  generated manifests no longer reference it) `AUTH_MODE`. The dev-stack Pulumi config
-  keys feeding `pf-secrets` (e.g. `placeframe:minioSecretKey`) rename to their `s3*`
+  `placeframe-secrets` gains `AUTH_ISSUER_URL` + `AUTH_JWKS_URL` +
+  `AUTH_AUTHORIZATION_ENDPOINT`/`AUTH_TOKEN_ENDPOINT` + `S3_ACCESS_KEY`/`S3_SECRET_KEY`, and
+  drops `AUTH_URL`/`AUTH_TOKEN_URL`, `MINIO_ACCESS_KEY`/`MINIO_SECRET_KEY`, and (already
+  safe — the generated manifests no longer reference it) `AUTH_MODE`. The dev-stack Pulumi
+  config keys feeding `pf-secrets` (e.g. `placeframe:minioSecretKey`) rename to their `s3*`
   spellings in the same pass — the camelCase→SNAKE mapping in `secrets_exec.py` then
   yields the S3_* env names the stack now reads. The SaaS engineer sync for Slice A is
   this secret-key contract plus the storage swap (SeaweedFS StatefulSet + audit relay +
   bucket Job in the manifests, api env MINIO_*→S3_*) — surfaced here; the manifests
   themselves are already regenerated.
 - **Next: Slice B (work item 3)** — loki/alloy/grafana as provisioner services. The
-  porting exemplar is `placeframe-seaweedfs.provisioners.yaml` (fixed DNS names with the
+  porting exemplar is `compose/seaweedfs.yaml` (fixed DNS names with the
   rationale in its header, `${VAR:?err}` holes, healthcheck carried from the corpse).
   Their configs ride as provisioner-emitted binds of the committed `workloads/*/config.*`
   paths — the converter inlines them `$`-doubled, so loki's `-config.expand-env=true`
   still sees `${S3_ACCESS_KEY}` after compose interpolation. initialize-loki chown sidecar
   per the work item. First move of the next session: smoke-test the generated compose
   (Slice A was verified by generation + preflight only, never brought up — follow Deploy:
-  Docker in `stack/score/README.md`, then `down --remove-orphans`); fix anything it
-  surfaces before building Slice B on top.
+  Docker in `stack/AGENTS.md`, then `down --remove-orphans`; smoke both auth modes —
+  anonymous with an empty `AUTH_*` block, OIDC per `.env.sample` — since the JWKS fix is
+  untested at runtime); fix anything it surfaces before building Slice B on top.
 - Make-it-Sing still includes the old published bundle by digest; its new env names go live
   only when it re-pins (work item 7).
 
