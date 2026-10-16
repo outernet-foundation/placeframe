@@ -86,6 +86,7 @@ kubectl create secret generic placeframe-secrets \
   --from-literal=AUTH_ISSUER_URL= \
   --from-literal=AUTH_JWKS_URL= \
   --from-literal=AUTH_AUTHORIZATION_ENDPOINT= --from-literal=AUTH_TOKEN_ENDPOINT= \
+  --from-literal=AUTH_AUDIENCE=placeframe-api \
   --from-literal=DEPLOYMENT_ENVIRONMENT=development \
   --from-literal=KEYCLOAK_HOSTNAME=http://localhost:8443/auth
 ```
