@@ -1,0 +1,158 @@
+# Kubernetes twin of compose/seaweedfs.yaml. Emits the weed server as a
+# Service + StatefulSet, the fluent audit relay as a Deployment + Service (the entrypoint
+# wrapper renders fluent.json pointing at `seaweedfs-audit`), and an s3-initializer bucket
+# Job. Credentials are NOT generated or emitted here: every secret is referenced from the
+# externally managed `placeframe-secrets` Secret (created by the Pulumi infra program)
+# under the same S3_* keys the API reads, so the generated manifests contain zero secret
+# values and are safe to commit for GitOps.
+- uri: template://placeframe/seaweedfs-k8s
+  type: s3
+  description: SeaweedFS object storage with buckets converged by s3-initializer; credentials via placeframe-secrets.
+  state:
+    service: seaweedfs
+    auditService: seaweedfs-audit
+    bucket: reconstructions
+    capturesBucket: dev-captures
+    lokiBucket: loki
+  outputs:
+    endpoint: http://{{ .State.service }}:8333
+    bucket: "{{ .State.bucket }}"
+    access_key_id: '{{ encodeSecretRef "placeframe-secrets" "S3_ACCESS_KEY" }}'
+    secret_key: '{{ encodeSecretRef "placeframe-secrets" "S3_SECRET_KEY" }}'
+  manifests:
+    - apiVersion: v1
+      kind: Service
+      metadata:
+        name: "{{ .State.service }}"
+      spec:
+        selector:
+          app.kubernetes.io/instance: "{{ .State.service }}"
+        ports:
+        - port: 8333
+          targetPort: 8333
+    - apiVersion: apps/v1
+      kind: StatefulSet
+      metadata:
+        name: "{{ .State.service }}"
+        annotations:
+          argocd.argoproj.io/sync-options: Prune=false
+      spec:
+        replicas: 1
+        serviceName: "{{ .State.service }}"
+        selector:
+          matchLabels:
+            app.kubernetes.io/instance: "{{ .State.service }}"
+        template:
+          metadata:
+            labels:
+              app.kubernetes.io/instance: "{{ .State.service }}"
+          spec:
+            containers:
+            - name: seaweedfs
+              image: ghcr.io/outernet-foundation/placeframe/seaweedfs:{{ env "SEAWEEDFS_SHA" }}
+              command: ["/usr/local/bin/entrypoint-wrapper.sh"]
+              args: ["server", "-filer", "-s3", "-s3.port=8333", "-s3.config=/etc/seaweedfs/s3.json", "-s3.auditLogConfig=/etc/seaweedfs/fluent.json"]
+              ports:
+              - containerPort: 8333
+              env:
+              - name: S3_ACCESS_KEY
+                valueFrom:
+                  secretKeyRef:
+                    name: placeframe-secrets
+                    key: S3_ACCESS_KEY
+              - name: S3_SECRET_KEY
+                valueFrom:
+                  secretKeyRef:
+                    name: placeframe-secrets
+                    key: S3_SECRET_KEY
+              # Readiness mirrors the compose healthcheck: weed binds its listeners
+              # staggered, so a master-only probe would pass before S3 on 8333 answers.
+              readinessProbe:
+                exec:
+                  command:
+                  - /bin/sh
+                  - -c
+                  - curl -fsS http://127.0.0.1:9333/cluster/status && curl -s -o /dev/null http://127.0.0.1:8333/
+                periodSeconds: 5
+                failureThreshold: 60
+              volumeMounts:
+              - name: data
+                mountPath: /data
+        volumeClaimTemplates:
+        - metadata:
+            name: data
+          spec:
+            accessModes: [ReadWriteOnce]
+            storageClassName: '{{ env "SCORE_STORAGE_CLASS" }}'
+            resources:
+              requests:
+                storage: 50Gi
+    - apiVersion: v1
+      kind: Service
+      metadata:
+        name: "{{ .State.auditService }}"
+      spec:
+        selector:
+          app: "{{ .State.auditService }}"
+        ports:
+        - port: 24224
+          targetPort: 24224
+    - apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: "{{ .State.auditService }}"
+      spec:
+        replicas: 1
+        selector:
+          matchLabels:
+            app: "{{ .State.auditService }}"
+        template:
+          metadata:
+            labels:
+              app: "{{ .State.auditService }}"
+          spec:
+            containers:
+            - name: audit
+              image:
+                lock: SEAWEEDFS_AUDIT_IMAGE
+              args: ["-i", "forward", "-p", "listen=0.0.0.0", "-p", "port=24224", "-o", "stdout", "-m", "*"]
+    - apiVersion: batch/v1
+      kind: Job
+      metadata:
+        name: "{{ .State.service }}-bucket"
+        # A Job's spec.template is immutable, so Argo CD cannot patch this in place once
+        # the image tag moves; without the hook the sync fails with "field is immutable"
+        # and selfHeal retries forever. As a Sync hook the previous Job is deleted first.
+        # Re-running is safe: the initializer verifies existing buckets and creates only
+        # missing ones, retrying until the S3 endpoint accepts connections.
+        annotations:
+          argocd.argoproj.io/hook: Sync
+          argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+      spec:
+        backoffLimit: 30
+        template:
+          spec:
+            restartPolicy: OnFailure
+            containers:
+            - name: bucket
+              image: ghcr.io/outernet-foundation/placeframe/s3-initializer:{{ env "S3_INITIALIZER_SHA" }}
+              # All buckets, not just the resource's own. capturesBucket is the name the
+              # api hardcodes (workloads/api/src/routers/capture_sessions.py) and the
+              # reconstructor reads from, and lokiBucket is what the loki config
+              # addresses, so without them an upload or log push fails against a bucket
+              # that does not exist.
+              env:
+              - name: S3_ENDPOINT_URL
+                value: http://{{ .State.service }}:8333
+              - name: S3_ACCESS_KEY
+                valueFrom:
+                  secretKeyRef:
+                    name: placeframe-secrets
+                    key: S3_ACCESS_KEY
+              - name: S3_SECRET_KEY
+                valueFrom:
+                  secretKeyRef:
+                    name: placeframe-secrets
+                    key: S3_SECRET_KEY
+              - name: S3_BUCKETS
+                value: "{{ .State.bucket }} {{ .State.capturesBucket }} {{ .State.lokiBucket }}"

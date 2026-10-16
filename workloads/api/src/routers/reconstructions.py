@@ -60,7 +60,6 @@ from ..storage import get_storage
 from itertools import starmap
 
 settings = get_settings()
-BUCKET = "dev-reconstructions"
 logger = getLogger(__name__)
 
 TAR_VERSION = 1

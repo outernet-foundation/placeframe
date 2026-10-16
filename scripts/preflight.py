@@ -5,8 +5,7 @@ from pathlib import Path
 
 from bashrun.bash import bash, bash_output
 
-from docker_devkit.context_sha import compute_service_shas
-from docker_devkit.documents import parse_bake
+from docker_devkit.documents import compute_service_shas, parse_bake
 from docker_devkit.image_refs import VersionCoupling, VersionSite, unpinned_references, version_coupling_violations
 from docker_devkit.lifecycle import require_manifest
 
@@ -77,7 +76,7 @@ def main() -> None:
     bash("./workloads/database-migrator/entrypoint.sh")
 
     # Score staleness gate disabled: generated stack/ output embeds per-service tree-SHA image
-    # tags, so every dependency-lock bump re-stales it (see stack/score/README.md).
+    # tags, so every dependency-lock bump re-stales it (see stack/AGENTS.md).
     _check_generated("datamodels", "uv run generate-datamodels", "packages/generated/python/datamodels/")
 
     bash("uv run --locked generate-clients --config openapi-client-codegen.yaml --check")

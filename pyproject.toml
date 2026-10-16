@@ -77,4 +77,7 @@ include = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["packages/python/common/tests", "scripts/tests", "workloads/s3-initializer/tests"]
+testpaths = ["packages/python/common/tests", "scripts/tests", "workloads/s3-initializer/tests", "workloads/api/tests"]
+# workloads/api runs as the `src` package (python -m src.dump_openapi); its unit tests import
+# `src.*` without an installable package, so the service root rides pytest's sys.path.
+pythonpath = ["workloads/api"]
