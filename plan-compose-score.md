@@ -53,6 +53,10 @@ rendering of the same score sources and ride along.
   `secretKeyRef` wiring, chart probes vs compose healthchecks, host ports (compose only),
   grafana auth modes (anonymous dev vs credentialed k8s), the CNPG alternative twin. These
   are the two renderings differing, not drift — don't re-audit them.
+- **Bucket names carry no environment prefix: `captures`, `reconstructions`, `loki`** in
+  both tiers (decided 2026-10-16; the mixed `dev-` state was the only wrong answer).
+  Environment distinction, when it ever matters, is per-deployment storage, not per-bucket
+  naming.
 - **No drift linting: single-source or nothing.** A drift class inside this repo is closed
   structurally (one declaration; renderings derive from it or validate against it at
   compile) or left alone — never handled by a standing comparator over two hand-maintained
@@ -107,10 +111,9 @@ rendering of the same score sources and ride along.
 
 ## Current state
 
-- **Branches**: placeframe `more-final-polish`, local HEAD `f1848f6f` (three commits atop
-  the pushed `e8421705`: the sources commit, the k8s artifact commit, the stack-doc prose
-  commit — unpushed, ride the next operator hand-off; re-check `git log @{upstream}..HEAD`
-  at session start). PR #143 (`More final polish`) is open against `dev` with a fully green
+- **Branches**: placeframe `more-final-polish`, five commits atop the pushed `e8421705`
+  (sources, k8s artifact, stack doc, plan record, bucket-decision record — unpushed, ride
+  the next operator hand-off; re-check `git log @{upstream}..HEAD` at session start). PR #143 (`More final polish`) is open against `dev` with a fully green
   Integrate run; landing is operator-owned (the `ready-to-merge` label, bors model). The
   GitHub remote is `outernet-foundation/plerion` (repo renamed; redirects cover old URLs).
   docker-devkit `dev` is merged and pushed; 0.4.7 is on PyPI and placeframe is re-pinned
@@ -184,12 +187,16 @@ and auth snippet presence.
 
 ## Work items (ordered, remaining)
 
-1. **Bucket contract** (after the naming decision below; order-flexible against 2). Flow
-   the captures bucket through the s3 resource (`CAPTURES_BUCKET` output → api env),
-   deleting the hardcoded `dev-captures` in `capture_sessions.py` — bucket naming becomes a
-   provisioner-level fact as `reconstructions_bucket` already is. Apply the decision
-   uniformly across both provisioners; record the bucket set in stack/AGENTS.md as
-   load-bearing names beside the DNS list.
+1. **Bucket contract** (decision landed — Settled; order-flexible against 2). Rename to the
+   decided names and flow the captures bucket through the s3 resource
+   (`CAPTURES_BUCKET` output → api env), deleting the hardcoded `dev-captures` in
+   `capture_sessions.py` — bucket naming becomes a provisioner-level fact as
+   `reconstructions_bucket` already is. Touchpoints: compose provisioner
+   (`dev-captures dev-reconstructions loki` → `captures reconstructions loki`, baked in
+   `S3_BUCKETS` + state), k8s provisioner (`capturesBucket: dev-captures` → `captures`),
+   and any other consumer reading a `dev-` bucket name (audit the reconstructor's bucket
+   source); regen both artifacts. Record the bucket set in stack/AGENTS.md as load-bearing
+   names beside the DNS list.
 2. **Slice C — long tail.** cloudbeaver, auth-initializer, ngrok, rathole-client. Keycloak's
    k8s half renders via its official operator (Settled: operator-first for stateful infra).
    Riders from the audit: keycloak session/lifespan constants (`3600`/`2592000`, currently
@@ -241,13 +248,6 @@ and auth snippet presence.
   two-commit dance until cutover — the CI staleness gate stays off because every context
   SHA re-stales artifacts. Leaning for cutover: a CI bot that regenerates and auto-commits
   (canonical-message commits, the codegen-commit pattern).
-- **Bucket naming** (decide before item 1): `dev-` prefix everywhere or nowhere. Today's
-  state is the only wrong answer: k8s applies it to 1 of 3 buckets (`dev-captures` but
-  `reconstructions`), compose to 2 of 3, and the api hardcodes `dev-captures` for both
-  tiers. If dev- everywhere: change k8s seaweedfs state/outputs (`reconstructions` →
-  `dev-reconstructions`) + regen k8s. If nowhere: change the compose provisioner + `.env`
-  defaults + regen compose. Either answer completes the slice — the `CAPTURES_BUCKET` env
-  flow makes whichever string chosen a provisioner-level fact afterward.
 - **docker-devkit publishing** (post-initiative, decision-gated — the plan completes
   regardless; this decides follow-on work). The 2026-10 prior-art survey: parts are
   precedented (Score itself; Flux Mirror, Aug 2026, for org-mirroring; Compose Bridge for
