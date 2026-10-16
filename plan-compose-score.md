@@ -89,18 +89,31 @@ rendering of the same score sources and ride along.
 - **Dedup audit residue** (2026-10): verified single-sourced and closed — gateway snippets,
   audit sink, env-var names, alpine pin. Every structurally correct closure is absorbed into
   the remaining items below; the prior-art survey's verdict lives under Open decisions.
+- **Devkit lock-resolution + secrets contract** (2026-10): both live in the generation
+  pre-passes. Lock markers are single-key mappings resolved against the manifest's `.lock`
+  pair — `lock: NAME` substitutes the full reference (k8s provisioners have no runtime
+  env-file, so the lock is their single digest source), `lock-image: NAME` expands into
+  registry/repository/tag/digest chart fields (`digest_field: sha` for grafana's bare-hex
+  spelling). The secrets contract validates each rendering's consumed keys are a subset of
+  the authored declaration — compose `${ALL_CAPS}` holes with `$`-parity (escaped
+  configs.content doesn't count), k8s `secretKeyRef` entries naming the configured Secret —
+  and writes the mint list artifact from the declaration alone. Committed on devkit `dev`
+  (`13c0505` code, `dbd5c14` docs), 230 tests green through the toolkit battery, validated
+  end-to-end through the dev checkout (compose regen + validation passed; the artifact diff
+  was exactly the three known riders — api tree-sha, keycloak hole, sourced
+  DEPLOYMENT_ENVIRONMENT — so the artifact was restored to its committed stale state).
 
 ## Current state
 
 - **Branches**: placeframe `more-final-polish` — the operator pushed through `90abbf8f`
   (2026-10-15); unpushed at this session's close = the two prior-session plan records
-  plus this session's five (three audit-hardening commits, two plan revisions), eight
-  once this close-out commits (check `git log @{upstream}..HEAD` at session start —
-  counts go stale the moment work lands). docker-devkit `dev` @ `7d974c6` is 4 commits
-  ahead of origin/dev (provisioner authoring format + file inclusion, each code+docs) —
-  **no devkit push until item 1's features join them**; one patch release (0.4.7) carries
-  all four (authoring format, inclusion, lock-resolution, secrets declaration),
-  unblocking the placeframe re-pin (item 3).
+  plus the prior session's five (three audit-hardening commits, two plan revisions) plus
+  this session's plan revision, nine once it commits (check `git log @{upstream}..HEAD`
+  at session start — counts go stale the moment work lands). docker-devkit `dev` @
+  `dbd5c14` is 6 commits ahead of origin/dev (authoring format, inclusion, and
+  lock-resolution + secrets contract, each code+docs) — **all four 0.4.7 features are in;
+  the push is ready whenever the operator moves**, unblocking the placeframe re-pin
+  (item 3).
 - **Working tree, uncommitted by design** (commits at item 3): the 10 registered provisioner
   files migrated to mapping form (zero-diff acceptance passed through the dev checkout);
   `k8s/observability.yaml`'s alloy ConfigMap body → `include:` marker;
@@ -108,7 +121,10 @@ rendering of the same score sources and ride along.
   `compose/oidc-issuer.yaml` keycloak image → `${KEYCLOAK_IMAGE:?err}` (compose side now
   carries zero digests); `| default "hcloud-volumes"` fallbacks dropped from k8s
   postgres/seaweedfs `storageClassName` (generate-score always exports
-  `SCORE_STORAGE_CLASS`; a silent default only masks a misconfigured direct score-k8s run).
+  `SCORE_STORAGE_CLASS`; a silent default only masks a misconfigured direct score-k8s run);
+  `stack/score/secrets.yaml` — the authored secrets declaration (every key both renderings
+  consume; mint-flagged for the placeframe-secrets population, including item 4's grafana
+  admin pair and the KEYCLOAK_IMAGE hole the regen adds).
 - **Audit-hardening mechanical half shipped** (this session, three commits): mint-recipe
   `AUTH_AUDIENCE` fix; dead `BUCKET` constant deleted; lease-server `DEPLOYMENT_ENVIRONMENT`
   sourced from the config resource. These knowingly re-stale the compose artifact's
@@ -173,27 +189,13 @@ and auth snippet presence.
 
 ## Work items (ordered, remaining)
 
-1. **docker-devkit lock-resolution + secrets contract declaration** (designed in one
-   session — both live in the compile step).
-   - Lock-resolution: design the marker shape (e.g. `lock://KEYCLOAK_IMAGE`), implement +
-     test: provisioner manifests and the chart-values pre-pass both resolve authored image
-     references against `workloads/images.lock` at generation (including values
-     `image.sha`/`digest` fields), making the lock the single digest source for both
-     renderings.
-   - Secrets declaration: a tier-neutral contract (e.g. `stack/score/secrets.yaml`)
-     listing every key the stack consumes — the `images.yml` pattern applied to
-     credentials. The compile validates that each rendering's consumed keys (compose
-     `${VAR}` holes, k8s `encodeSecretRef`/`secretKeyRef`) are a subset of it —
-     symmetric, no rendering privileged; subset, not equality, because pair-variance is
-     legitimate (grafana admin creds are k8s-only). The mint list is generated from the
-     declaration (the stack/AGENTS.md k3d recipe stops being a hand copy), and the Pulumi
-     sync becomes "cover the generated list." `.env.sample` is the compose-side twin of
-     the mint recipe — deriving or validating it from the same declaration is the same
-     closure, later. The authored declaration rides the working tree and commits at
-     item 3.
-   - AGENTS.md rows for both; commit on `dev` — folds into the pending 0.4.7 (authoring
-     format + inclusion + lock-resolution + secrets declaration: one push, one release,
-     one re-pin).
+1. **Placeframe secrets wiring** (rides item 3's commit): the `secrets:` section in
+   `docker-devkit.yaml` (`file: stack/score/secrets.yaml`, `k8s_secret:
+   placeframe-secrets`) plus the regenerated `stack/generated/secrets.txt` mint artifact.
+   The devkit half of the original item 1 is shipped (lock-resolution + secrets contract,
+   both committed on devkit `dev`); the wiring is deliberately deferred — under the pinned
+   0.4.6 the section fails `extra="forbid"` and would break `uv run up`/`down`/`build`
+   for the whole interim before the re-pin.
 2. **k8s lock-ref migration + loki single-source** (rides the working tree, commits at
    item 3): the five hand-written k8s digests (keycloak, alloy, fluent-bit, loki values,
    grafana values) → lock refs; `values/loki.yaml` switches to the chart's `loki.config`
