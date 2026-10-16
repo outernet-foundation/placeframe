@@ -13,8 +13,7 @@ from bashrun.bash import bash
 from pydantic import BaseModel, ConfigDict
 from pydantic_settings import BaseSettings
 
-from docker_devkit.context_sha import compute_service_shas
-from docker_devkit.documents import parse_bake
+from docker_devkit.documents import compute_service_shas, parse_bake
 from docker_devkit.image_refs import resolve_remote_digest
 from docker_devkit.lifecycle import require_manifest
 
