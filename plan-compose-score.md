@@ -53,6 +53,15 @@ rendering of the same score sources and ride along.
   `secretKeyRef` wiring, chart probes vs compose healthchecks, host ports (compose only),
   grafana auth modes (anonymous dev vs credentialed k8s), the CNPG alternative twin. These
   are the two renderings differing, not drift — don't re-audit them.
+- **No drift linting: single-source or nothing.** A drift class inside this repo is closed
+  structurally (one declaration; renderings derive from it or validate against it at
+  compile) or left alone — never handled by a standing comparator over two hand-maintained
+  copies. The only standing checks are "generation has not run" gates (codegen staleness;
+  the cutover regen bot). Comparators survive only at true external boundaries, and even
+  there the contract artifact is generated (the Pulumi secret sync reads the generated
+  mint list). The pre-existing version-coupling check in preflight is the same species —
+  eventually generate `images.yml`'s base-tag line from `pyproject.toml` rather than
+  extend the pattern.
 
 ## Shipped
 
@@ -88,8 +97,9 @@ rendering of the same score sources and ride along.
   commits (check `git status` / `git log @{upstream}..HEAD` at session start — this file's
   counts go stale the moment work lands). docker-devkit `dev` @ `7d974c6` is 4 commits
   ahead of origin/dev (provisioner authoring format + file inclusion, each code+docs) —
-  **no devkit push until item 1's lock-resolution joins them**; one patch release (0.4.7)
-  carries all three features, unblocking the placeframe re-pin (item 3).
+  **no devkit push until item 1's features join them**; one patch release (0.4.7) carries
+  all four (authoring format, inclusion, lock-resolution, secrets declaration),
+  unblocking the placeframe re-pin (item 3).
 - **Working tree, uncommitted by design** (commits at item 3): the 10 registered provisioner
   files migrated to mapping form (zero-diff acceptance passed through the dev checkout);
   `k8s/observability.yaml`'s alloy ConfigMap body → `include:` marker;
@@ -101,8 +111,10 @@ rendering of the same score sources and ride along.
 - **Audit-hardening mechanical half shipped** (this session, three commits): mint-recipe
   `AUTH_AUDIENCE` fix; dead `BUCKET` constant deleted; lease-server `DEPLOYMENT_ENVIRONMENT`
   sourced from the config resource. These knowingly re-stale the compose artifact's
-  api/lease-server tree-shas — accepted; regen rides item 3. The two preflight guards are
-  **not** built — halted mid-build, decision under Open decisions.
+   api/lease-server tree-shas — accepted; regen rides item 3. The audit's two preflight
+   guards are dropped under the no-linting law (Settled): the digest-equality guard is
+   obsoleted by item 1's lock-resolution, and the secrets-contract guard is replaced by
+   item 1's secrets declaration.
 - **k8s artifact regeneration gates**: the placeframe push has landed, but as of this
   session the CI mirror job has **not** copied the loki/grafana charts (registry-verified
   absent) — check whether the mirror run succeeded before item 4. Item 3's re-pin is the
@@ -160,27 +172,44 @@ and auth snippet presence.
 
 ## Work items (ordered, remaining)
 
-1. **docker-devkit lock-resolution.** Design the marker shape (e.g. `lock://KEYCLOAK_IMAGE`),
-   implement + test: provisioner manifests and the chart-values pre-pass both resolve
-   authored image references against `workloads/images.lock` at generation (including values
-   `image.sha`/`digest` fields), making the lock the single digest source for both
-   renderings. AGENTS.md row. Commit on `dev` — folds into the pending 0.4.7 (authoring
-   format + inclusion + lock-resolution: one push, one release, one re-pin).
+1. **docker-devkit lock-resolution + secrets contract declaration** (designed in one
+   session — both live in the compile step).
+   - Lock-resolution: design the marker shape (e.g. `lock://KEYCLOAK_IMAGE`), implement +
+     test: provisioner manifests and the chart-values pre-pass both resolve authored image
+     references against `workloads/images.lock` at generation (including values
+     `image.sha`/`digest` fields), making the lock the single digest source for both
+     renderings.
+   - Secrets declaration: a tier-neutral contract (e.g. `stack/score/secrets.yaml`)
+     listing every key the stack consumes — the `images.yml` pattern applied to
+     credentials. The compile validates that each rendering's consumed keys (compose
+     `${VAR}` holes, k8s `encodeSecretRef`/`secretKeyRef`) are a subset of it —
+     symmetric, no rendering privileged; subset, not equality, because pair-variance is
+     legitimate (grafana admin creds are k8s-only). The mint list is generated from the
+     declaration (the stack/AGENTS.md k3d recipe stops being a hand copy), and the Pulumi
+     sync becomes "cover the generated list." `.env.sample` is the compose-side twin of
+     the mint recipe — deriving or validating it from the same declaration is the same
+     closure, later. The authored declaration rides the working tree and commits at
+     item 3.
+   - AGENTS.md rows for both; commit on `dev` — folds into the pending 0.4.7 (authoring
+     format + inclusion + lock-resolution + secrets declaration: one push, one release,
+     one re-pin).
 2. **k8s lock-ref migration + loki single-source** (rides the working tree, commits at
    item 3): the five hand-written k8s digests (keycloak, alloy, fluent-bit, loki values,
    grafana values) → lock refs; `values/loki.yaml` switches to the chart's `loki.config`
    full-override sourcing `workloads/loki/config.yaml` via `include-yaml:`, deleting the
    structured translation (the last large hand-copy). If the full-override cannot compose
-   with singleBinary + the scaffolding toggles: fall back to the structured values and add
-   a semantic-diff preflight guard over the shared block instead.
+   with singleBinary + the scaffolding toggles: fall back to the alloy pattern — hand-write
+   the ConfigMap via `include:` of `workloads/loki/config.yaml` with the chart's config
+   generation disabled — not a standing comparator over a copy (Settled).
 3. **Re-pin + commit the migration.** Once 0.4.7 lands: `uv cache clean docker-devkit`
    then `uv lock --upgrade-package docker-devkit` (a stale cached simple-index once served
    0.4.5 for a 0.4.6 request — clean first; re-run `uv run lock-python` if the workspace
    lock re-stales; per-service pylocks expected unaffected). Re-run
    `uv run generate-score --target compose` against the already-migrated tree and confirm
    zero diff through the released pin. Commit sources + lock — one commit covering the
-   mapping-form migration, the include edits, the lock refs, the loki values switch, and
-   the working-tree rider edits (keycloak lock hole, dropped storage-class defaults); consider `requires: ">=0.4.7"` in the same commit (older devkits fail
+   mapping-form migration, the include edits, the lock refs, the secrets declaration, the
+   loki values switch, and the working-tree rider edits (keycloak lock hole, dropped
+   storage-class defaults); consider `requires: ">=0.4.7"` in the same commit (older devkits fail
    loudly on mapping-form sources, so the loose range is safe but noisy). Then, as its own
    prose commit, stack/AGENTS.md gains the authored-format facts (mapping form is the
    authoring law; string form is compiler output; k8s config content arrives via inclusion,
@@ -247,18 +276,6 @@ and auth snippet presence.
 
 ## Open decisions
 
-- **Preflight guards** (halted mid-build; decide alongside item 4). The 2026-10 audit
-  prescribed two standing guards in `scripts/preflight.py`. The **digest-equality** guard
-  (every literal `mirror/…@sha256:` ref under `stack/score/k8s/**` equals its
-  `images.lock` entry, matched by upstream tag, including values `sha`/`digest` fields) is
-  obsoleted by item 1: lock-resolution makes the lock the single digest source for k8s
-  sources too, leaving no hand-written digest to drift. The **secrets-contract** guard
-  (every `secretKeyRef` key in the k8s sources appears in the stack/AGENTS.md mint recipe)
-  guards a permanent contract with one real prior failure (`AUTH_AUDIENCE` omitted →
-  pod-failing `CreateContainerConfigError`) — but its source of truth is a markdown code
-  block parsed by regex, so landing it makes the recipe load-bearing for CI and that fact
-  must be recorded in stack/AGENTS.md. Options: land the secrets guard alone; land neither;
-  land both as originally written.
 - **Regeneration cadence** once generated compose is load-bearing (item 9): manual
   two-commit dance until cutover — the CI staleness gate stays off because every context
   SHA re-stales artifacts. Leaning for cutover: a CI bot that regenerates and auto-commits
