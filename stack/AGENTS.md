@@ -11,6 +11,7 @@ The score tier: one authored description per service, compiled into two renderin
       api.yaml              workload contracts (tier-neutral), ${SHA} placeholders for image tags
       compose/              provisioners for the compose rendering
       k8s/                  provisioners for the k8s rendering
+      k8s/values/           helm values for the declared charts (k8s rendering only)
     stack/generated/        committed artifacts, never hand-edited
       compose/compose.yaml
       k8s/manifests.yaml
@@ -79,6 +80,8 @@ kubectl create secret generic placeframe-secrets \
   --from-literal=S3_ACCESS_KEY=$(openssl rand -hex 8) \
   --from-literal=S3_SECRET_KEY=$(openssl rand -hex 16) \
   --from-literal=KEYCLOAK_ADMIN_PASSWORD=$(openssl rand -hex 16) \
+  --from-literal=GRAFANA_ADMIN_USER=admin \
+  --from-literal=GRAFANA_ADMIN_PASSWORD=$(openssl rand -hex 16) \
   --from-literal=PUBLIC_URL=http://localhost:8443 \
   --from-literal=AUTH_ISSUER_URL= \
   --from-literal=AUTH_JWKS_URL= \
@@ -125,8 +128,19 @@ ctr -n k8s.io images import -`.
   tools see them.
 - **No `depends_on` across workloads**: score has no such concept. Provisioner services gate
   on each other's health; workloads gate on the auto-emitted `wait-for-resources` service,
-  which itself references unpinned `alpine` (score-compose's default; the one unpinned image
-  in the compose artifact).
+  whose `alpine` default image is redirected through the `${ALPINE_IMAGE:?err}` lock hole by
+  the `compose/wait-for-resources-image.tpl` patch template — the artifact carries no
+  unpinned image.
+- **Third-party k8s stamp-outs are charts where an OCI chart exists** — loki and grafana
+  render from digest-pinned upstream-native OCI refs declared in `docker-devkit.yaml`
+  (`generate-score.charts` + `helm_version`), pulled through the org mirror (the CI mirror
+  job copies chart declarations like image declarations; declaring a chart the mirror job
+  has not copied yet makes k8s generation fail until it runs). Chart values never carry
+  secret values: they reference the existing `placeframe-secrets` Secret (`envValueFrom`/
+  `extraEnvFrom`/`existingSecret`) or `${VAR}` config holes expanded in-container. Alloy has
+  no upstream OCI chart, so `k8s/observability.yaml` hand-writes its Deployment + Service
+  + ConfigMap — the ConfigMap body is a mirror of `workloads/alloy/config.alloy` and must
+  be kept in sync with it by hand.
 - **No restart policies are declared anywhere** — workload services, provisioner services,
   and the deleted patch template all rely on compose's default. The hand stack's posture is
   identical.
