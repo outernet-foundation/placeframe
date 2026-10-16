@@ -10,6 +10,7 @@ containers:
       DATABASE_ORCHESTRATION_USER: ${resources.db.orchestration_username}
       DATABASE_ORCHESTRATION_USER_PASSWORD: ${resources.db.orchestration_password}
       DEPLOYMENT_ENVIRONMENT: development
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${resources.observability.otlp_endpoint}
     livenessProbe:
       httpGet:
         path: /health
@@ -23,3 +24,6 @@ resources:
   db:
     type: placeframe-postgres
     id: placeframe-db
+  observability:
+    type: observability
+    id: placeframe-observability

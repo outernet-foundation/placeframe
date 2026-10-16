@@ -20,11 +20,25 @@ generate-score:
     - compose/config.yaml
     - compose/oidc-issuer.yaml
     - compose/seaweedfs.yaml
+    - compose/observability.yaml
+  compose_patch_templates:
+    - compose/wait-for-resources-image.tpl
   k8s_provisioners:
     - k8s/postgres.yaml
     - k8s/seaweedfs.yaml
     - k8s/config.yaml
     - k8s/oidc-issuer.yaml
+    - k8s/observability.yaml
   publishes:
     - "8000:api:8000"
     - "8443:gateway:8443"
+  charts:
+    - name: loki
+      ref: oci://ghcr.io/grafana/helm-charts/loki@sha256:ba8b6b3ee954c9d6eeee713d148a22e6f73eb440189e11acd3112a06acdfd2f8
+      values:
+        - stack/score/k8s/values/loki.yaml
+    - name: grafana
+      ref: oci://ghcr.io/grafana/helm-charts/grafana@sha256:161aa0727809ebdd41d27aa92e06e0f72623a9c86b7f2a6e2ebdb7cdbdd0764e
+      values:
+        - stack/score/k8s/values/grafana.yaml
+  helm_version: "3.22.1"

@@ -1,0 +1,82 @@
+# Values for the loki chart (ghcr.io/grafana/helm-charts/loki, digest-pinned in
+# docker-devkit.yaml). Mirrors workloads/loki/config.yaml — the compose tier's
+# committed config — in chart form: SeaweedFS-backed S3 storage, tsdb/v13 schema,
+# and the wide backfill windows the phone-relay and ZED-box log drains need.
+# Credentials never carry values: the S3 keys ride the config as ${VAR} holes
+# expanded by -config.expand-env=true, injected from the externally managed
+# placeframe-secrets Secret via extraEnvFrom.
+global:
+  extraEnvFrom:
+    - secretRef:
+        name: placeframe-secrets
+deploymentMode: SingleBinary
+loki:
+  image:
+    registry: ghcr.io/outernet-foundation/mirror/docker.io/grafana
+    repository: loki
+    tag: 3.5.0
+    digest: sha256:4c431d2e6b9b38718694b31c5d56be7c80dc69c513215fde1aeb5b02cd4e2665
+  auth_enabled: false
+  storage:
+    bucketNames:
+      chunks: loki
+      ruler: loki
+      admin: loki
+    type: s3
+    s3:
+      endpoint: seaweedfs:8333
+      accessKeyId: ${S3_ACCESS_KEY}
+      secretAccessKey: ${S3_SECRET_KEY}
+      s3ForcePathStyle: true
+      insecure: true
+  schemaConfig:
+    configs:
+      - from: "2024-01-01"
+        store: tsdb
+        object_store: s3
+        schema: v13
+        index:
+          prefix: index_
+          period: 24h
+  # Loki gates out-of-order writes by max_chunk_age / 2 (the in-memory chunk's
+  # acceptance window). Default 2h → 1h cutoff, which silently drops phone-relay
+  # backfill older than 1h; 720h aligns the cutoff with the reject_old_samples
+  # wall-clock limit below.
+  ingester:
+    max_chunk_age: 720h
+  limits_config:
+    retention_period: 720h
+    # Box logs reach Loki via the phone, which is intermittently connected; a box
+    # may accumulate days of logs between phone visits, and each visit pushes
+    # them at their original wall-clock timestamps. 720h leaves margin over the
+    # 168h default.
+    reject_old_samples: true
+    reject_old_samples_max_age: 720h
+singleBinary:
+  replicas: 1
+  # The single-binary template reads its own extraArgs/extraEnvFrom, not the
+  # global ones the distributed-mode templates merge in.
+  extraArgs:
+    - -config.expand-env=true
+  extraEnvFrom:
+    - secretRef:
+        name: placeframe-secrets
+read:
+  replicas: 0
+backend:
+  replicas: 0
+write:
+  replicas: 0
+lokiCanary:
+  enabled: false
+test:
+  enabled: false
+gateway:
+  enabled: false
+chunksCache:
+  enabled: false
+resultsCache:
+  enabled: false
+sidecar:
+  rules:
+    enabled: false

@@ -1,0 +1,126 @@
+# Custom Score provisioner: the observability trio — loki (log storage, monolithic
+# mode on the shared SeaweedFS), alloy (OTLP relay), grafana (query UI) — plus the
+# initialize-loki chown sidecar. Ported from the hand compose stack, which this
+# replaces. Service names are load-bearing DNS names: the api/lease-server
+# OTEL endpoints address `alloy`, the gateway Caddyfile proxies `loki:3100` and
+# `grafana:3000`, and loki's committed config addresses `seaweedfs:8333`.
+#
+# Configs ride binds of the committed workloads/*/config.* paths — the generation
+# converter rewrites each into a top-level configs.content entry with every `$`
+# doubled, so loki's -config.expand-env=true still sees ${S3_ACCESS_KEY} after
+# compose interpolation. Credentials stay runtime ${VAR:?err} holes resolved from
+# .env / images.lock at up time; nothing resolves at generation.
+- uri: template://placeframe/observability
+  type: observability
+  description: Loki/Alloy/Grafana observability stack with fixed DNS names and .env credentials.
+  outputs: |
+    loki_url: http://loki:3100
+    otlp_endpoint: http://alloy:4317
+  volumes: |
+    loki-data:
+      driver: local
+  services: |
+    # grafana/loki:3.5.0 ships /loki owned 1000:1000 but runs as uid 10001, so on a
+    # freshly-created loki_data volume (which Docker seeds with the image path's
+    # 1000:1000 ownership) loki cannot create its working subdirectories and dies
+    # with "mkdir /loki/compactor: permission denied". Fixing this in the image via
+    # a chown layer is unreliable: buildkit's registry cache does not round-trip a
+    # metadata-only (ownership) layer. This sidecar reassigns the live volume at
+    # runtime instead. Reuses the loki image (busybox chown) so no extra image is pinned.
+    initialize-loki:
+      image: ${LOKI_IMAGE:?err}
+      user: "0:0"
+      restart: "no"
+      volumes:
+      - type: volume
+        source: loki-data
+        target: /loki
+      entrypoint: ["/bin/sh", "-c", "chown -R 10001:10001 /loki"]
+    loki:
+      image: ${LOKI_IMAGE:?err}
+      depends_on:
+        initialize-s3:
+          condition: service_completed_successfully
+        initialize-loki:
+          condition: service_completed_successfully
+      volumes:
+      - type: volume
+        source: loki-data
+        target: /loki
+      - type: bind
+        source: workloads/loki/config.yaml
+        target: /etc/loki/config.yaml
+      command: -config.file=/etc/loki/config.yaml -config.expand-env=true
+      healthcheck:
+        test:
+          [
+            "CMD",
+            "wget",
+            "--quiet",
+            "--tries=1",
+            "--output-document=-",
+            "http://localhost:3100/ready",
+          ]
+        interval: 5s
+        timeout: 5s
+        retries: 20
+        start_period: 10s
+      environment:
+        S3_ACCESS_KEY: "${S3_ACCESS_KEY:?err}"
+        S3_SECRET_KEY: "${S3_SECRET_KEY:?err}"
+    alloy:
+      image: ${ALLOY_IMAGE:?err}
+      depends_on:
+        loki:
+          condition: service_healthy
+      expose:
+      - "4317"
+      environment:
+        LOKI_WRITE_ENDPOINT: "http://loki:3100/loki/api/v1/push"
+      command: run /etc/alloy/config.alloy
+      volumes:
+      - type: bind
+        source: workloads/alloy/config.alloy
+        target: /etc/alloy/config.alloy
+    grafana:
+      image: ${GRAFANA_IMAGE:?err}
+      depends_on:
+        loki:
+          condition: service_healthy
+      ports:
+      - target: 3000
+        published: "${GRAFANA_PORT:?err}"
+        protocol: tcp
+        mode: ingress
+      healthcheck:
+        test:
+          [
+            "CMD",
+            "wget",
+            "--quiet",
+            "--tries=1",
+            "--output-document=-",
+            "http://localhost:3000/grafana/api/health",
+          ]
+        interval: 5s
+        timeout: 5s
+        retries: 20
+        start_period: 10s
+      environment:
+        GF_SERVER_ROOT_URL: "${PUBLIC_URL:?err}/grafana/"
+        GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+        # TODO FIXME: remove anonymous access — only enabled to bypass OAuth over plain HTTP for local dev
+        GF_AUTH_ANONYMOUS_ENABLED: "true"
+        GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+        GF_AUTH_GENERIC_OAUTH_ENABLED: "true"
+        GF_AUTH_GENERIC_OAUTH_NAME: Keycloak
+        GF_AUTH_GENERIC_OAUTH_CLIENT_ID: placeframe-grafana
+        GF_AUTH_GENERIC_OAUTH_SCOPES: openid email profile
+        GF_AUTH_GENERIC_OAUTH_AUTH_URL: "${PUBLIC_URL:?err}/auth/realms/placeframe-dev/protocol/openid-connect/auth"
+        GF_AUTH_GENERIC_OAUTH_TOKEN_URL: "${PUBLIC_URL:?err}/auth/realms/placeframe-dev/protocol/openid-connect/token"
+        GF_AUTH_GENERIC_OAUTH_API_URL: "${PUBLIC_URL:?err}/auth/realms/placeframe-dev/protocol/openid-connect/userinfo"
+        GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_PATH: "'Admin'"
+      volumes:
+      - type: bind
+        source: workloads/grafana/provisioning/datasources/datasources.yaml
+        target: /etc/grafana/provisioning/datasources/datasources.yaml
