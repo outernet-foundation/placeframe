@@ -47,7 +47,7 @@ services:
       S3_ENDPOINT_URL: http://seaweedfs:8333
       S3_SECRET_KEY: ${S3_SECRET_KEY:?err}
     hostname: api
-    image: ghcr.io/outernet-foundation/placeframe/api:tree-aea36bd68872980063c18dbe94931e3e9e8c4ee4
+    image: ghcr.io/outernet-foundation/placeframe/api:tree-4350000ca9d21c9ca4d2e97732a565acdc98a698
     ports:
     - target: 8000
       published: '8000'
@@ -139,7 +139,7 @@ services:
     environment:
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
-    image: ghcr.io/outernet-foundation/mirror/quay.io/keycloak/keycloak:26.3.5@sha256:357829ec7c4693397533035092ad13b0644bcc95ded311f33a3738c4d9e9bdba
+    image: ${KEYCLOAK_IMAGE:?err}
   lease-server-lease-server:
     annotations:
       compose.score.dev/workload-name: lease-server
@@ -151,7 +151,7 @@ services:
       DATABASE_NAME: placeframe
       DATABASE_ORCHESTRATION_USER: placeframe_orchestration_user
       DATABASE_ORCHESTRATION_USER_PASSWORD: ${DATABASE_ORCHESTRATION_USER_PASSWORD:?err}
-      DEPLOYMENT_ENVIRONMENT: development
+      DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-development}
       OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4317
       POSTGRES_HOST: pf-postgres
     hostname: lease-server

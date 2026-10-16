@@ -6,10 +6,9 @@
 # request-derived placeholders so no PUBLIC_URL needs to be composed at
 # generation; the OAuth block joins when the k8s keycloak edge lands.
 image:
-  registry: ghcr.io/outernet-foundation/mirror/docker.io/grafana
-  repository: grafana
-  tag: 11.6.0
-  sha: 62d2b9d20a19714ebfe48d1bb405086081bc602aa053e28cf6d73c7537640dfb
+  lock-image:
+    key: GRAFANA_IMAGE
+    digest_field: sha
 initChownData:
   enabled: false
 testFramework:
@@ -25,10 +24,4 @@ env:
   GF_SERVER_ROOT_URL: "%(protocol)s://%(domain)s:%(http_port)s/grafana/"
 datasources:
   datasources.yaml:
-    apiVersion: 1
-    datasources:
-      - name: Loki
-        type: loki
-        access: proxy
-        url: http://loki:3100
-        isDefault: true
+    include-yaml: workloads/grafana/provisioning/datasources/datasources.yaml

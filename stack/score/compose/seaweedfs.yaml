@@ -12,15 +12,15 @@
 - uri: template://placeframe/seaweedfs
   type: s3
   description: Placeframe SeaweedFS at fixed names with the real buckets, credentials from .env.
-  outputs: |
+  outputs:
     endpoint: http://seaweedfs:8333
     access_key_id: ${S3_ACCESS_KEY:?err}
     secret_key: ${S3_SECRET_KEY:?err}
     bucket: dev-reconstructions
-  volumes: |
+  volumes:
     seaweedfs-data:
       driver: local
-  services: |
+  services:
     seaweedfs:
       image: ghcr.io/outernet-foundation/placeframe/seaweedfs:{{ env "SEAWEEDFS_SHA" }}
       entrypoint: /usr/local/bin/entrypoint-wrapper.sh

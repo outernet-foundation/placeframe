@@ -13,13 +13,13 @@
 - uri: template://placeframe/observability
   type: observability
   description: Loki/Alloy/Grafana observability stack with fixed DNS names and .env credentials.
-  outputs: |
+  outputs:
     loki_url: http://loki:3100
     otlp_endpoint: http://alloy:4317
-  volumes: |
+  volumes:
     loki-data:
       driver: local
-  services: |
+  services:
     # grafana/loki:3.5.0 ships /loki owned 1000:1000 but runs as uid 10001, so on a
     # freshly-created loki_data volume (which Docker seeds with the image path's
     # 1000:1000 ownership) loki cannot create its working subdirectories and dies

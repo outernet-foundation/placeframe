@@ -10,14 +10,14 @@
 - uri: template://placeframe/oidc-issuer
   type: oidc-issuer
   description: Local dev keycloak for the compose stack.
-  state: |
+  state:
     service: keycloak
     realm: placeframe-dev
-  outputs: |
+  outputs:
     certs_url: ${AUTH_JWKS_URL:-}
-  services: |
-    {{ .State.service }}:
-      image: ghcr.io/outernet-foundation/mirror/quay.io/keycloak/keycloak:26.3.5@sha256:357829ec7c4693397533035092ad13b0644bcc95ded311f33a3738c4d9e9bdba
+  services:
+    "{{ .State.service }}":
+      image: ${KEYCLOAK_IMAGE:?err}
       command: ["start-dev", "--health-enabled=true"]
       environment:
         KEYCLOAK_ADMIN: admin

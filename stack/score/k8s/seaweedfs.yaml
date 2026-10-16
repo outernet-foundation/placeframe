@@ -8,44 +8,44 @@
 - uri: template://placeframe/seaweedfs-k8s
   type: s3
   description: SeaweedFS object storage with buckets converged by s3-initializer; credentials via placeframe-secrets.
-  state: |
+  state:
     service: seaweedfs
     auditService: seaweedfs-audit
     bucket: reconstructions
     capturesBucket: dev-captures
     lokiBucket: loki
-  outputs: |
+  outputs:
     endpoint: http://{{ .State.service }}:8333
-    bucket: {{ .State.bucket }}
-    access_key_id: {{ encodeSecretRef "placeframe-secrets" "S3_ACCESS_KEY" }}
-    secret_key: {{ encodeSecretRef "placeframe-secrets" "S3_SECRET_KEY" }}
-  manifests: |
+    bucket: "{{ .State.bucket }}"
+    access_key_id: '{{ encodeSecretRef "placeframe-secrets" "S3_ACCESS_KEY" }}'
+    secret_key: '{{ encodeSecretRef "placeframe-secrets" "S3_SECRET_KEY" }}'
+  manifests:
     - apiVersion: v1
       kind: Service
       metadata:
-        name: {{ .State.service }}
+        name: "{{ .State.service }}"
       spec:
         selector:
-          app.kubernetes.io/instance: {{ .State.service }}
+          app.kubernetes.io/instance: "{{ .State.service }}"
         ports:
         - port: 8333
           targetPort: 8333
     - apiVersion: apps/v1
       kind: StatefulSet
       metadata:
-        name: {{ .State.service }}
+        name: "{{ .State.service }}"
         annotations:
           argocd.argoproj.io/sync-options: Prune=false
       spec:
         replicas: 1
-        serviceName: {{ .State.service }}
+        serviceName: "{{ .State.service }}"
         selector:
           matchLabels:
-            app.kubernetes.io/instance: {{ .State.service }}
+            app.kubernetes.io/instance: "{{ .State.service }}"
         template:
           metadata:
             labels:
-              app.kubernetes.io/instance: {{ .State.service }}
+              app.kubernetes.io/instance: "{{ .State.service }}"
           spec:
             containers:
             - name: seaweedfs
@@ -83,42 +83,43 @@
             name: data
           spec:
             accessModes: [ReadWriteOnce]
-            storageClassName: {{ env "SCORE_STORAGE_CLASS" | default "hcloud-volumes" }}
+            storageClassName: '{{ env "SCORE_STORAGE_CLASS" }}'
             resources:
               requests:
                 storage: 50Gi
     - apiVersion: v1
       kind: Service
       metadata:
-        name: {{ .State.auditService }}
+        name: "{{ .State.auditService }}"
       spec:
         selector:
-          app: {{ .State.auditService }}
+          app: "{{ .State.auditService }}"
         ports:
         - port: 24224
           targetPort: 24224
     - apiVersion: apps/v1
       kind: Deployment
       metadata:
-        name: {{ .State.auditService }}
+        name: "{{ .State.auditService }}"
       spec:
         replicas: 1
         selector:
           matchLabels:
-            app: {{ .State.auditService }}
+            app: "{{ .State.auditService }}"
         template:
           metadata:
             labels:
-              app: {{ .State.auditService }}
+              app: "{{ .State.auditService }}"
           spec:
             containers:
             - name: audit
-              image: ghcr.io/outernet-foundation/mirror/docker.io/fluent/fluent-bit:5.1.2@sha256:d792375ca8e53be72fc25716c28f291f32c6fc6f4f31d12d0d14bc78cefe9226
+              image:
+                lock: SEAWEEDFS_AUDIT_IMAGE
               args: ["-i", "forward", "-p", "listen=0.0.0.0", "-p", "port=24224", "-o", "stdout", "-m", "*"]
     - apiVersion: batch/v1
       kind: Job
       metadata:
-        name: {{ .State.service }}-bucket
+        name: "{{ .State.service }}-bucket"
         # A Job's spec.template is immutable, so Argo CD cannot patch this in place once
         # the image tag moves; without the hook the sync fails with "field is immutable"
         # and selfHeal retries forever. As a Sync hook the previous Job is deleted first.

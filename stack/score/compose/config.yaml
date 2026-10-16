@@ -5,7 +5,7 @@
 - uri: template://placeframe/config
   type: placeframe-config
   description: App config resolved from .env at run time, mirroring compose.yml's passthroughs.
-  outputs: |
+  outputs:
     public_url: ${PUBLIC_URL:?err}
     auth_audience: ${AUTH_AUDIENCE:-}
     auth_issuer_url: ${AUTH_ISSUER_URL:-}

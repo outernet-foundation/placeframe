@@ -2,8 +2,8 @@
 # for the protocol, not the provider — a swapped issuer implementation registers a
 # different provisioner for the same `oidc-issuer` type. The realm is imported by
 # the auth-initializer initContainer (writes the realm JSON into a shared volume that keycloak
-# reads on --import-realm). Hostname, public URL, JWKS URL, and admin password come from the
-# externally managed placeframe-secrets Secret; no values are emitted here. Keycloak can't
+# reads on --import-realm). Hostname, public URL, JWKS URL, and admin password come from
+# the externally managed placeframe-secrets Secret; no values are emitted here. Keycloak can't
 # be a normal Score workload (initContainer + StatefulSet + PVC), so it is provisioned as
 # raw manifests like postgres/seaweedfs.
 #
@@ -13,36 +13,36 @@
 - uri: template://placeframe/oidc-issuer-k8s
   type: oidc-issuer
   description: Keycloak with realm imported by auth-initializer; hostname/credentials from placeframe-secrets.
-  state: |
+  state:
     service: keycloak
     realm: placeframe-dev
-  outputs: |
-    certs_url: {{ encodeSecretRef "placeframe-secrets" "AUTH_JWKS_URL" }}
-  manifests: |
+  outputs:
+    certs_url: '{{ encodeSecretRef "placeframe-secrets" "AUTH_JWKS_URL" }}'
+  manifests:
     - apiVersion: v1
       kind: Service
       metadata:
-        name: {{ .State.service }}
+        name: "{{ .State.service }}"
       spec:
         selector:
-          app: {{ .State.service }}
+          app: "{{ .State.service }}"
         ports:
         - port: 8080
           targetPort: 8080
     - apiVersion: apps/v1
       kind: StatefulSet
       metadata:
-        name: {{ .State.service }}
+        name: "{{ .State.service }}"
       spec:
         replicas: 1
-        serviceName: {{ .State.service }}
+        serviceName: "{{ .State.service }}"
         selector:
           matchLabels:
-            app: {{ .State.service }}
+            app: "{{ .State.service }}"
         template:
           metadata:
             labels:
-              app: {{ .State.service }}
+              app: "{{ .State.service }}"
           spec:
             # The keycloak user (uid 1000) must be able to write the H2 DB onto the mounted data PVC;
             # without fsGroup the volume is root-owned and start-dev fails with AccessDenied.
@@ -58,7 +58,8 @@
                 mountPath: /auth_data
             containers:
             - name: keycloak
-              image: ghcr.io/outernet-foundation/mirror/quay.io/keycloak/keycloak:26.3.5@sha256:357829ec7c4693397533035092ad13b0644bcc95ded311f33a3738c4d9e9bdba
+              image:
+                lock: KEYCLOAK_IMAGE
               args: ["start-dev", "--import-realm", "--health-enabled=true"]
               ports:
               - containerPort: 8080

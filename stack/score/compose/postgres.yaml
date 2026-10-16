@@ -15,28 +15,28 @@
 - uri: template://placeframe/postgres
   type: placeframe-postgres
   description: Placeframe postgres with placeframe_* roles created by database-manager.
-  state: |
+  state:
     dbName: placeframe
     serviceName: pf-postgres
   # Distinct outputs per role, matching what api / lease-server expect. The password
   # outputs are placeholder strings, not values.
-  outputs: |
-    host: {{ .State.serviceName }}
+  outputs:
+    host: "{{ .State.serviceName }}"
     port: 5432
-    name: {{ .State.dbName }}
-    owner_username: {{ .State.dbName }}_owner
+    name: "{{ .State.dbName }}"
+    owner_username: "{{ .State.dbName }}_owner"
     owner_password: ${DATABASE_OWNER_PASSWORD:?err}
-    api_username: {{ .State.dbName }}_api_user
+    api_username: "{{ .State.dbName }}_api_user"
     api_password: ${DATABASE_API_USER_PASSWORD:?err}
-    auth_username: {{ .State.dbName }}_auth_user
+    auth_username: "{{ .State.dbName }}_auth_user"
     auth_password: ${DATABASE_AUTH_USER_PASSWORD:?err}
-    orchestration_username: {{ .State.dbName }}_orchestration_user
+    orchestration_username: "{{ .State.dbName }}_orchestration_user"
     orchestration_password: ${DATABASE_ORCHESTRATION_USER_PASSWORD:?err}
-  volumes: |
+  volumes:
     pf-postgres-data:
       driver: local
-  services: |
-    {{ .State.serviceName }}:
+  services:
+    "{{ .State.serviceName }}":
       image: ghcr.io/outernet-foundation/placeframe/postgres:{{ env "POSTGRES_SHA" }}
       entrypoint: /usr/local/bin/entrypoint-wrapper.sh
       environment:
@@ -51,13 +51,13 @@
         interval: 2s
         timeout: 2s
         retries: 30
-    {{ .State.serviceName }}-create:
+    "{{ .State.serviceName }}-create":
       image: ghcr.io/outernet-foundation/placeframe/database-manager:{{ env "DATABASE_MANAGER_SHA" }}
       depends_on:
-        {{ .State.serviceName }}:
+        "{{ .State.serviceName }}":
           condition: service_healthy
       environment:
-        POSTGRES_HOST: {{ .State.serviceName }}
+        POSTGRES_HOST: "{{ .State.serviceName }}"
         POSTGRES_ADMIN_USER: "${POSTGRES_ADMIN_USER:?err}"
         POSTGRES_ADMIN_PASSWORD: "${POSTGRES_ADMIN_PASSWORD:?err}"
       entrypoint: >-
@@ -66,16 +66,16 @@
         --api-user-password ${DATABASE_API_USER_PASSWORD:?err}
         --auth-user-password ${DATABASE_AUTH_USER_PASSWORD:?err}
         --orchestration-user-password ${DATABASE_ORCHESTRATION_USER_PASSWORD:?err}
-    {{ .State.serviceName }}-migrate:
+    "{{ .State.serviceName }}-migrate":
       image: ghcr.io/outernet-foundation/placeframe/database-migrator:{{ env "DATABASE_MIGRATOR_SHA" }}
       depends_on:
-        {{ .State.serviceName }}-create:
+        "{{ .State.serviceName }}-create":
           condition: service_completed_successfully
       environment:
-        DB_HOST: {{ .State.serviceName }}
+        DB_HOST: "{{ .State.serviceName }}"
         DB_PORT: "5432"
-        DB_NAME: {{ .State.dbName }}
-        DB_USER: {{ .State.dbName }}_owner
+        DB_NAME: "{{ .State.dbName }}"
+        DB_USER: "{{ .State.dbName }}_owner"
         DB_PASSWORD: "${DATABASE_OWNER_PASSWORD:?err}"
         DATABASE_SCHEMA_DIR: database
         ALLOWED_HAZARDS: HAS_UNTRACKABLE_DEPENDENCIES
