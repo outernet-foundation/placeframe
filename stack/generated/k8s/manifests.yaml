@@ -1,4 +1,116 @@
 ---
+# Source: grafana/templates/clusterrole.yaml
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  labels:
+    helm.sh/chart: grafana-10.5.14
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/instance: grafana
+    app.kubernetes.io/version: "11.6.0"
+  name: grafana-clusterrole
+rules: []
+---
+# Source: loki/templates/backend/clusterrole.yaml
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  labels:
+    helm.sh/chart: loki-7.3.0
+    app.kubernetes.io/name: loki
+    app.kubernetes.io/instance: loki
+    app.kubernetes.io/version: "3.5.0"
+  name: loki-clusterrole
+rules: []
+---
+# Source: grafana/templates/clusterrolebinding.yaml
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: grafana-clusterrolebinding
+  labels:
+    helm.sh/chart: grafana-10.5.14
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/instance: grafana
+    app.kubernetes.io/version: "11.6.0"
+subjects:
+  - kind: ServiceAccount
+    name: grafana
+    namespace: default
+roleRef:
+  kind: ClusterRole
+  name: grafana-clusterrole
+  apiGroup: rbac.authorization.k8s.io
+---
+# Source: loki/templates/backend/clusterrolebinding.yaml
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: loki-clusterrolebinding
+  labels:
+    helm.sh/chart: loki-7.3.0
+    app.kubernetes.io/name: loki
+    app.kubernetes.io/instance: loki
+    app.kubernetes.io/version: "3.5.0"
+subjects:
+  - kind: ServiceAccount
+    name: loki
+    namespace: default
+roleRef:
+  kind: ClusterRole
+  name: loki-clusterrole
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: v1
+data:
+  config.alloy: |
+    // OTLP/gRPC receiver → attributes processor (label-cardinality policy) → Loki
+    // exporter → loki.write. Producers ship OTel log records with full SemConv
+    // resource attributes (service.name, service.namespace, service.instance.id,
+    // service.version, deployment.environment.name, container.name). Only the
+    // low-cardinality subset becomes Loki indexed labels; everything else rides
+    // as Loki structured metadata. Write endpoint is env-driven so this single
+    // config serves both the main backend stack (writes to loki:3100) and the
+    // ZED box stack (writes to 127.0.0.1:3100).
+
+    otelcol.receiver.otlp "default" {
+      grpc {
+        endpoint = "0.0.0.0:4317"
+      }
+
+      output {
+        logs = [otelcol.processor.attributes.label_promotion.input]
+      }
+    }
+
+    // The Loki exporter promotes resource attributes named in the
+    // `loki.resource.labels` record attribute to indexed Loki labels. Everything
+    // else stays as structured metadata. Severity is promoted automatically.
+    otelcol.processor.attributes "label_promotion" {
+      action {
+        key    = "loki.resource.labels"
+        value  = "service.name,deployment.environment.name"
+        action = "insert"
+      }
+
+      output {
+        logs = [otelcol.exporter.loki.default.input]
+      }
+    }
+
+    otelcol.exporter.loki "default" {
+      forward_to = [loki.write.default.receiver]
+    }
+
+    loki.write "default" {
+      endpoint {
+        url = sys.env("LOKI_WRITE_ENDPOINT")
+      }
+    }
+kind: ConfigMap
+metadata:
+  name: alloy-config
+---
 apiVersion: v1
 binaryData:
   file: aGFuZGxlX3BhdGggL2F1dGgvKiB7CiAgICByZXZlcnNlX3Byb3h5IGtleWNsb2FrOjgwODAgewogICAgICAgIGhlYWRlcl91cCBYLUZvcndhcmRlZC1Qcm90byB7JEZPUldBUkRFRF9QUk9UT30KICAgICAgICBoZWFkZXJfdXAgWC1Gb3J3YXJkZWQtUG9ydCB7JEZPUldBUkRFRF9QT1JUfQogICAgfQp9Cg==
@@ -12,6 +124,141 @@ binaryData:
 kind: ConfigMap
 metadata:
   name: gateway-gateway-file-b8ac556a0a
+---
+# Source: grafana/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana
+  namespace: default
+  labels:
+    helm.sh/chart: grafana-10.5.14
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/instance: grafana
+    app.kubernetes.io/version: "11.6.0"
+data:
+  
+  grafana.ini: |
+    [analytics]
+    check_for_updates = true
+    [log]
+    mode = console
+    [paths]
+    data = /var/lib/grafana/
+    logs = /var/log/grafana
+    plugins = /var/lib/grafana/plugins
+    provisioning = /etc/grafana/provisioning
+    [server]
+    domain = ''
+    [unified_storage]
+    index_path = /var/lib/grafana-search/bleve
+  datasources.yaml: |
+    apiVersion: 1
+    datasources:
+    - access: proxy
+      isDefault: true
+      name: Loki
+      type: loki
+      url: http://loki:3100
+---
+# Source: loki/templates/config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: loki
+  namespace: default
+  labels:
+    helm.sh/chart: loki-7.3.0
+    app.kubernetes.io/name: loki
+    app.kubernetes.io/instance: loki
+    app.kubernetes.io/version: "3.5.0"
+data:
+  config.yaml: |
+    
+    auth_enabled: false
+    common:
+      path_prefix: /loki
+      ring:
+        instance_addr: 127.0.0.1
+        kvstore:
+          store: inmemory
+        replication_factor: 1
+    ingester:
+      lifecycler:
+        ring:
+          replication_factor: 1
+      max_chunk_age: 720h
+    limits_config:
+      reject_old_samples: true
+      reject_old_samples_max_age: 720h
+      retention_period: 720h
+    schema_config:
+      configs:
+      - from: "2024-01-01"
+        index:
+          period: 24h
+          prefix: index_
+        object_store: s3
+        schema: v13
+        store: tsdb
+    server:
+      http_listen_port: 3100
+    storage_config:
+      aws:
+        access_key_id: ${S3_ACCESS_KEY}
+        bucketnames: loki
+        endpoint: seaweedfs:8333
+        insecure: true
+        s3forcepathstyle: true
+        secret_access_key: ${S3_SECRET_KEY}
+---
+# Source: loki/templates/runtime-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: loki-runtime
+  namespace: default
+  labels:
+    helm.sh/chart: loki-7.3.0
+    app.kubernetes.io/name: loki
+    app.kubernetes.io/instance: loki
+    app.kubernetes.io/version: "3.5.0"
+data:
+  runtime-config.yaml: |
+    {}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alloy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: alloy
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: alloy
+    spec:
+      containers:
+        - args:
+            - run
+            - /etc/alloy/config.alloy
+          env:
+            - name: LOKI_WRITE_ENDPOINT
+              value: http://loki:3100/loki/api/v1/push
+          image: ghcr.io/outernet-foundation/mirror/docker.io/grafana/alloy:v1.9.0@sha256:32bc0ba6bad75ca24bdf4a6d2dd793a564dff06b6446927699c08d9f9c749c6e
+          name: alloy
+          ports:
+            - containerPort: 4317
+          volumeMounts:
+            - mountPath: /etc/alloy
+              name: config
+      volumes:
+        - configMap:
+            name: alloy-config
+          name: config
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -95,7 +342,9 @@ spec:
             - name: LOCALIZER_CONTAINER_URL
               value: http://localhost:8000
             - name: LOKI_URL
-              value: http://localhost:3100
+              value: http://loki:3100
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: http://alloy:4317
             - name: POSTGRES_HOST
               value: pf-postgres
             - name: PUBLIC_URL
@@ -117,7 +366,7 @@ spec:
                 secretKeyRef:
                   key: S3_SECRET_KEY
                   name: placeframe-secrets
-          image: ghcr.io/outernet-foundation/placeframe/api:tree-aea36bd68872980063c18dbe94931e3e9e8c4ee4
+          image: ghcr.io/outernet-foundation/placeframe/api:tree-4350000ca9d21c9ca4d2e97732a565acdc98a698
           livenessProbe:
             httpGet:
               path: /health
@@ -216,7 +465,12 @@ spec:
                   key: DATABASE_ORCHESTRATION_USER_PASSWORD
                   name: placeframe-secrets
             - name: DEPLOYMENT_ENVIRONMENT
-              value: development
+              valueFrom:
+                secretKeyRef:
+                  key: DEPLOYMENT_ENVIRONMENT
+                  name: placeframe-secrets
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: http://alloy:4317
             - name: POSTGRES_HOST
               value: pf-postgres
           image: ghcr.io/outernet-foundation/placeframe/lease-server:tree-406167f41997a52c66795e8b08868e1714df51f6
@@ -256,6 +510,133 @@ spec:
             - '*'
           image: ghcr.io/outernet-foundation/mirror/docker.io/fluent/fluent-bit:5.1.2@sha256:d792375ca8e53be72fc25716c28f291f32c6fc6f4f31d12d0d14bc78cefe9226
           name: audit
+---
+# Source: grafana/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: default
+  labels:
+    helm.sh/chart: grafana-10.5.14
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/instance: grafana
+    app.kubernetes.io/version: "11.6.0"
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: grafana
+      app.kubernetes.io/instance: grafana
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        helm.sh/chart: grafana-10.5.14
+        app.kubernetes.io/name: grafana
+        app.kubernetes.io/instance: grafana
+        app.kubernetes.io/version: "11.6.0"
+      annotations:
+        checksum/config: 605efb751c3b28e0e0ac495b63887f7c1a6077c51928466ccefd2c5575a374f5
+        checksum/sc-dashboard-provider-config: e70bf6a851099d385178a76de9757bb0bef8299da6d8443602590e44f05fdf24
+        kubectl.kubernetes.io/default-container: grafana
+    spec:
+      
+      serviceAccountName: grafana
+      automountServiceAccountToken: true
+      shareProcessNamespace: false
+      securityContext:
+        fsGroup: 472
+        runAsGroup: 472
+        runAsNonRoot: true
+        runAsUser: 472
+      enableServiceLinks: true
+      containers:
+        - name: grafana
+          image: "ghcr.io/outernet-foundation/mirror/docker.io/grafana/grafana:11.6.0@sha256:62d2b9d20a19714ebfe48d1bb405086081bc602aa053e28cf6d73c7537640dfb"
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            privileged: false
+            seccompProfile:
+              type: RuntimeDefault
+          volumeMounts:
+            - name: config
+              mountPath: "/etc/grafana/grafana.ini"
+              subPath: grafana.ini
+            - name: storage
+              mountPath: "/var/lib/grafana"
+            - name: search
+              mountPath: "/var/lib/grafana-search"
+            - name: config
+              mountPath: "/etc/grafana/provisioning/datasources/datasources.yaml"
+              subPath: "datasources.yaml"
+          ports:
+            - name: grafana
+              containerPort: 3000
+              protocol: TCP
+            - name: gossip-tcp
+              containerPort: 9094
+              protocol: TCP
+            - name: gossip-udp
+              containerPort: 9094
+              protocol: UDP
+            - name: profiling
+              containerPort: 6060
+              protocol: TCP
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: GF_SECURITY_ADMIN_USER
+              valueFrom:
+                secretKeyRef:
+                  name: placeframe-secrets
+                  key: GRAFANA_ADMIN_USER
+            - name: GF_SECURITY_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: placeframe-secrets
+                  key: GRAFANA_ADMIN_PASSWORD
+            - name: GF_PATHS_DATA
+              value: /var/lib/grafana/
+            - name: GF_PATHS_LOGS
+              value: /var/log/grafana
+            - name: GF_PATHS_PLUGINS
+              value: /var/lib/grafana/plugins
+            - name: GF_PATHS_PROVISIONING
+              value: /etc/grafana/provisioning
+            - name: GF_UNIFIED_STORAGE_INDEX_PATH
+              value: /var/lib/grafana-search/bleve
+            - name: "GF_SERVER_ROOT_URL"
+              value: "%(protocol)s://%(domain)s:%(http_port)s/grafana/"
+            - name: "GF_SERVER_SERVE_FROM_SUB_PATH"
+              value: "true"
+          livenessProbe:
+            failureThreshold: 10
+            httpGet:
+              path: /api/health
+              port: grafana
+            initialDelaySeconds: 60
+            timeoutSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: grafana
+      volumes:
+        - name: config
+          configMap:
+            name: grafana
+        - name: storage
+          emptyDir: {}
+        - name: search
+          emptyDir: {}
 ---
 apiVersion: batch/v1
 kind: Job
@@ -387,6 +768,50 @@ spec:
           name: bucket
       restartPolicy: OnFailure
 ---
+# Source: grafana/templates/role.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: grafana
+  namespace: default
+  labels:
+    helm.sh/chart: grafana-10.5.14
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/instance: grafana
+    app.kubernetes.io/version: "11.6.0"
+rules: []
+---
+# Source: grafana/templates/rolebinding.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: grafana
+  namespace: default
+  labels:
+    helm.sh/chart: grafana-10.5.14
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/instance: grafana
+    app.kubernetes.io/version: "11.6.0"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: grafana
+subjects:
+- kind: ServiceAccount
+  name: grafana
+  namespace: default
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: alloy
+spec:
+  ports:
+    - port: 4317
+      targetPort: 4317
+  selector:
+    app.kubernetes.io/instance: alloy
+---
 apiVersion: v1
 kind: Service
 metadata:
@@ -493,6 +918,132 @@ spec:
       targetPort: 24224
   selector:
     app: seaweedfs-audit
+---
+# Source: grafana/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: default
+  labels:
+    helm.sh/chart: grafana-10.5.14
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/instance: grafana
+    app.kubernetes.io/version: "11.6.0"
+spec:
+  type: ClusterIP
+  ports:
+    - name: service
+      port: 3000
+      protocol: TCP
+      targetPort: grafana
+  selector:
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/instance: grafana
+---
+# Source: loki/templates/single-binary/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: loki
+  namespace: default
+  labels:
+    helm.sh/chart: loki-7.3.0
+    app.kubernetes.io/name: loki
+    app.kubernetes.io/instance: loki
+    app.kubernetes.io/version: "3.5.0"
+  annotations:
+spec:
+  type: ClusterIP
+  ports:
+    - name: http-metrics
+      port: 3100
+      targetPort: http-metrics
+      protocol: TCP
+    - name: grpc
+      port: 9095
+      targetPort: grpc
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: loki
+    app.kubernetes.io/instance: loki
+    app.kubernetes.io/component: single-binary
+---
+# Source: loki/templates/single-binary/service-headless.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: loki-headless
+  namespace: default
+  labels:
+    helm.sh/chart: loki-7.3.0
+    app.kubernetes.io/name: loki
+    app.kubernetes.io/instance: loki
+    app.kubernetes.io/version: "3.5.0"
+    variant: headless
+    prometheus.io/service-monitor: "false"
+  annotations:
+spec:
+  clusterIP: None
+  ports:
+    - name: http-metrics
+      port: 3100
+      targetPort: http-metrics
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: loki
+    app.kubernetes.io/instance: loki
+---
+# Source: loki/templates/service-memberlist.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: loki-memberlist
+  namespace: default
+  labels:
+    helm.sh/chart: loki-7.3.0
+    app.kubernetes.io/name: loki
+    app.kubernetes.io/instance: loki
+    app.kubernetes.io/version: "3.5.0"
+  annotations:
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - name: tcp
+      port: 7946
+      targetPort: http-memberlist
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: loki
+    app.kubernetes.io/instance: loki
+    app.kubernetes.io/part-of: memberlist
+---
+# Source: grafana/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+automountServiceAccountToken: false
+metadata:
+  labels:
+    helm.sh/chart: grafana-10.5.14
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/instance: grafana
+    app.kubernetes.io/version: "11.6.0"
+  name: grafana
+  namespace: default
+---
+# Source: loki/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: loki
+  namespace: default
+  labels:
+    helm.sh/chart: loki-7.3.0
+    app.kubernetes.io/name: loki
+    app.kubernetes.io/instance: loki
+    app.kubernetes.io/version: "3.5.0"
+automountServiceAccountToken: true
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -697,3 +1248,136 @@ spec:
           requests:
             storage: 50Gi
         storageClassName: hcloud-volumes
+---
+# Source: loki/templates/single-binary/statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: loki
+  namespace: default
+  labels:
+    helm.sh/chart: loki-7.3.0
+    app.kubernetes.io/name: loki
+    app.kubernetes.io/instance: loki
+    app.kubernetes.io/version: "3.5.0"
+    app.kubernetes.io/component: single-binary
+    app.kubernetes.io/part-of: memberlist
+spec:
+  replicas: 1
+  podManagementPolicy: Parallel
+  updateStrategy:
+    rollingUpdate:
+      partition: 0
+  serviceName: loki-headless
+  revisionHistoryLimit: 10
+  
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: Delete
+    whenScaled: Delete
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: loki
+      app.kubernetes.io/instance: loki
+      app.kubernetes.io/component: single-binary
+  template:
+    metadata:
+      annotations:
+        checksum/config: 02b9b15701f991c2a22f58950167c7513cb431248178db0b4062a8ac7cf741ca
+        storage/size: "10Gi"
+        kubectl.kubernetes.io/default-container: "loki"
+      labels:
+        app.kubernetes.io/name: loki
+        app.kubernetes.io/instance: loki
+        app.kubernetes.io/component: single-binary
+        app.kubernetes.io/part-of: memberlist
+    spec:
+      serviceAccountName: loki
+      automountServiceAccountToken: true
+      enableServiceLinks: true
+      
+      securityContext:
+        fsGroup: 10001
+        fsGroupChangePolicy: OnRootMismatch
+        runAsGroup: 10001
+        runAsNonRoot: true
+        runAsUser: 10001
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: loki
+          image: ghcr.io/outernet-foundation/mirror/docker.io/grafana/loki@sha256:4c431d2e6b9b38718694b31c5d56be7c80dc69c513215fde1aeb5b02cd4e2665
+          imagePullPolicy: IfNotPresent
+          args:
+            - -config.file=/etc/loki/config/config.yaml
+            - -target=all
+            - -config.expand-env=true
+          ports:
+            - name: http-metrics
+              containerPort: 3100
+              protocol: TCP
+            - name: grpc
+              containerPort: 9095
+              protocol: TCP
+            - name: http-memberlist
+              containerPort: 7946
+              protocol: TCP
+          envFrom:
+            - secretRef:
+                name: placeframe-secrets
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /ready
+              port: http-metrics
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: config
+              mountPath: /etc/loki/config
+            - name: runtime-config
+              mountPath: /etc/loki/runtime-config
+            - name: storage
+              mountPath: /var/loki
+          resources:
+            {}
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app.kubernetes.io/component: single-binary
+                app.kubernetes.io/instance: 'loki'
+                app.kubernetes.io/name: 'loki'
+            topologyKey: kubernetes.io/hostname
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: config
+          configMap:
+            name: loki
+            items:
+              - key: "config.yaml"
+                path: "config.yaml"
+        - name: runtime-config
+          configMap:
+            name: loki-runtime
+  volumeClaimTemplates:
+    - apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: storage
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: "10Gi"
