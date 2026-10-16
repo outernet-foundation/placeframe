@@ -9,7 +9,7 @@ containers:
       DATABASE_NAME: ${resources.db.name}
       DATABASE_ORCHESTRATION_USER: ${resources.db.orchestration_username}
       DATABASE_ORCHESTRATION_USER_PASSWORD: ${resources.db.orchestration_password}
-      DEPLOYMENT_ENVIRONMENT: development
+      DEPLOYMENT_ENVIRONMENT: ${resources.config.deployment_environment}
       OTEL_EXPORTER_OTLP_ENDPOINT: ${resources.observability.otlp_endpoint}
     livenessProbe:
       httpGet:
@@ -24,6 +24,9 @@ resources:
   db:
     type: placeframe-postgres
     id: placeframe-db
+  config:
+    type: placeframe-config
+    id: placeframe-config
   observability:
     type: observability
     id: placeframe-observability
