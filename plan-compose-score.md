@@ -134,13 +134,16 @@ Replaces `compaction.md`, `plan-auth-refactor.md`, and `design/compose-artifact-
   across fresh runs; commit sources first, then regenerate, then commit artifacts. The
   branch's commits are unpushed until the operator pushes (sandbox has no push scope);
   hand off branch + HEAD at each session end. At this session's close: placeframe
-  `more-final-polish` is 11 commits ahead of origin (the prior 9 plus the
-  authoring-format plan record and the inclusion resequencing; the working tree also
-  holds the uncommitted provisioner migration). Operator pushes needed at close:
-  placeframe `more-final-polish` (unblocks the CI mirror job for the two charts → k8s
-  regen — push this now, it gates nothing else). docker-devkit `dev` + the patch
-  release wait until the inclusion step lands its commits (already-recorded authoring
-  format + inclusion ship together as 0.4.7).   The sandbox cannot fetch docker-devkit over its SSH remote —
+  `more-final-polish` is 13 commits ahead of origin once this close-out record commits
+  (the 10 inherited from the prior session plus this session's three plan records:
+  the authoring-format build, the inclusion resequencing, and this close-out; the
+  working tree also holds the uncommitted provisioner migration). Operator pushes
+  needed at close: placeframe `more-final-polish` (unblocks the CI mirror job for the
+  two charts → k8s regen — push this now, it gates nothing else). docker-devkit `dev`
+  + the patch release wait until the inclusion step lands its commits
+  (already-recorded authoring format + inclusion ship together as 0.4.7).
+
+  The sandbox cannot fetch docker-devkit over its SSH remote —
   the bind-mounted checkout's refs are the truth (currently at `ea8b55f`, 2 commits
   ahead of origin/dev: the authoring-format code + docs; the inclusion step adds its
   commits on top before any push, and one patch release carries both).
@@ -282,8 +285,9 @@ Replaces `compaction.md`, `plan-auth-refactor.md`, and `design/compose-artifact-
   `ComposeDumper` moved there, imported back by the artifact dump; ~215 lines + ~250
   lines tests in `tests/test_provisioners.py`) and `ea8b55f` (AGENTS.md rows). Both
   renderings wrap init+generate in the compile; ruff + basedpyright strict + 165 tests
-  green. Release handoff: operator pushes `dev` (now 2 ahead of origin/dev) and cuts
-  **0.4.7** (additive). Placeframe's 10 registered provisioner files are **migrated to
+  green. The release does not ship alone: the file-inclusion step (next session's item 2)
+  adds its commits on top of these before any push, and one patch release (0.4.7) carries
+  both features — one placeframe re-pin covers them. Placeframe's 10 registered provisioner files are **migrated to
   mapping form in the working tree, uncommitted** — running
   `uv run --with 'docker-devkit @ file:///workspace/docker-devkit' generate-score
   --target compose` through them reproduced the committed compose artifact with **zero
