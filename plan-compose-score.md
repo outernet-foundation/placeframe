@@ -135,37 +135,66 @@ Replaces `compaction.md`, `plan-auth-refactor.md`, and `design/compose-artifact-
   branch's commits are unpushed until the operator pushes (sandbox has no push scope);
   hand off branch + HEAD at each session end. At this session's close: placeframe
   `more-final-polish` is 11 commits ahead of origin (the prior 9 plus the
-  authoring-format plan record and this update; the working tree also holds the
-  uncommitted provisioner migration). Operator pushes needed at close: placeframe
-  `more-final-polish` (unblocks the CI mirror job for the two charts → k8s regen) and
-  docker-devkit `dev` + the 0.4.7 patch release (the authoring-format code is already on
-  `dev`, validated — see the record above).   The sandbox cannot fetch docker-devkit over its SSH remote —
-  the bind-mounted checkout's refs are the truth (currently synced at `ea8b55f`, 2 commits
-  ahead of origin/dev: the authoring-format code + docs, awaiting push + 0.4.7 release).
+  authoring-format plan record and the inclusion resequencing; the working tree also
+  holds the uncommitted provisioner migration). Operator pushes needed at close:
+  placeframe `more-final-polish` (unblocks the CI mirror job for the two charts → k8s
+  regen — push this now, it gates nothing else). docker-devkit `dev` + the patch
+  release wait until the inclusion step lands its commits (already-recorded authoring
+  format + inclusion ship together as 0.4.7).   The sandbox cannot fetch docker-devkit over its SSH remote —
+  the bind-mounted checkout's refs are the truth (currently at `ea8b55f`, 2 commits
+  ahead of origin/dev: the authoring-format code + docs; the inclusion step adds its
+  commits on top before any push, and one patch release carries both).
   Placeframe's working tree additionally holds the 10 migrated provisioner files
   (uncommitted by design — see the authoring-format record; they commit with the 0.4.7
   re-pin).
 
 - **Next session, in order**:
-  1. ~~docker-devkit provisioner authoring format~~ **done** (see the record above; `dev`
-     is 2 commits ahead, hand off for push + the 0.4.7 release).
-  2. **Re-pin + commit the migration**: once 0.4.7 lands, `uv cache clean docker-devkit`
-     then `uv lock --upgrade-package docker-devkit` (per-service pylocks expected
+  1. ~~docker-devkit provisioner authoring format~~ **done** (see the record above; its release
+     rides the pending devkit push together with the inclusion step below — one patch
+     release, one placeframe re-pin).
+  2. **docker-devkit file inclusion** (the verbatim-content mechanism; the alloy ConfigMap
+     and grafana datasources are its consumers). One shared resolver, two consumers: the
+     provisioner compile pre-pass (alloy's ConfigMap body sources
+     `workloads/alloy/config.alloy` instead of hand-mirroring it) and a chart-values
+     pre-pass that writes include-resolved values files into the per-run tempdir and
+     points `helm template --values` at them (`values/grafana.yaml`'s `datasources:` block
+     sources `workloads/grafana/provisioning/datasources/datasources.yaml`). Design laws:
+     verbatim only — no substitution, no variables (templating belongs to score's Go
+     templates and `${VAR}` holes); the `$` contract is per-consumer — the compose
+     converter doubles `$` against compose interpolation, but k8s-side inclusion passes
+     content through untouched (`${S3_*}` holes must survive into ConfigMaps and values
+     as-is); the include marker must be plain-YAML-parseable (`yaml.safe_load` rejects
+     custom tags, which would defeat the authoring format's lintability goal); paths
+     anchor at the repo root (matching how binds reference `workloads/…`), missing file
+     is a loud compile error. Validation before handoff: `--with file://` run reproduces
+     the compose artifact zero-diff still (compose provisioners use no includes — binds
+     carry their content there). Placeframe-side authored changes (alloy ConfigMap,
+     values/grafana.yaml) ride the same working-tree migration as the provisioner files,
+     committing with the re-pin. **Out of scope**: the loki `loki.config` full-override
+     (switching values/loki.yaml off its structured translation) — a separate
+     consumer-side decision gated on verifying the chart's full-override path composes
+     with singleBinary + the scaffolding toggles; inclusion support in values files is
+     built now, the switch itself is deliberate and later.
+  3. **Re-pin + commit the migration**: once the release lands (0.4.7 carries the
+     authoring format + inclusion), `uv cache clean docker-devkit` then
+     `uv lock --upgrade-package docker-devkit` (per-service pylocks expected
      unaffected), re-run `uv run generate-score --target compose` against the already
      migrated working tree (confirm zero diff again through the released pin), then
      commit sources + lock. Consider whether `requires` should move to `>=0.4.7` in the
-     same commit (0.4.6 fails loudly on mapping-form sources, so the loose range is safe
-     but noisy). stack/AGENTS.md gains the authored-format facts (mapping form is the
-     authoring law; string form is compiler output) with that commit.
-  3. **Regenerate the k8s artifact** (needs the operator's placeframe push from the prior
+     same commit (older devkits fail loudly on mapping-form sources, so the loose range
+     is safe but noisy). stack/AGENTS.md gains the authored-format facts (mapping form is
+     the authoring law; string form is compiler output; k8s config content arrives via
+     inclusion, not hand mirrors — delete the alloy drift-risk note) with that commit.
+  4. **Regenerate the k8s artifact** (needs the operator's placeframe push from the prior
      session's close + the mirror job having copied the two charts). `uv run
      generate-score --target k8s`, inspect the merged manifests (chart docs sorted beside
      the score docs; alloy twin present; no unpinned/unmirrored images), commit. This is
-     also the first full exercise of the k8s authored provisioners (compose byte-identity
-     is proven; k8s has compile round-trips only). Riding the 0.4.7 pin means one devkit
-     version in play; pre-existing k8s content (postgres/seaweedfs/gateway/api) should
-     reproduce identically, with the chart + observability additions on top.
-  4. **Slice C (work item 4, long tail)**: cloudbeaver, auth-initializer, ngrok,
+     also the first full exercise of the k8s authored provisioners and of inclusion's k8s
+     output — assert the rendered alloy ConfigMap content equals
+     `workloads/alloy/config.alloy` and grafana's datasources ConfigMap equals the
+     committed datasources file. Pre-existing k8s content (postgres/seaweedfs/gateway/
+     api) should reproduce identically, with the chart + observability additions on top.
+  5. **Slice C (work item 4, long tail)**: cloudbeaver, auth-initializer, ngrok,
       rathole-client.
 - **Cleanup pass shipped (between Slices A and B)**: provisioners reorganised into
   `stack/score/compose/` + `stack/score/k8s/` with truncated names (`compose/seaweedfs.yaml`
