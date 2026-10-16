@@ -12,9 +12,11 @@ The score tier: one authored description per service, compiled into two renderin
       compose/              provisioners for the compose rendering
       k8s/                  provisioners for the k8s rendering
       k8s/values/           helm values for the declared charts (k8s rendering only)
+      secrets.yaml          tier-neutral secrets/env declaration (both renderings)
     stack/generated/        committed artifacts, never hand-edited
       compose/compose.yaml
       k8s/manifests.yaml
+      secrets.txt           mint list generated from the secrets declaration
 
 ## Generate
 
@@ -66,30 +68,12 @@ reach the gateway with `kubectl port-forward deploy/gateway 8443:8443`.
 Against a local cluster (k3d), generate with `--local`: it selects the `local-path` storage
 class and writes to the gitignored `stack/generated/k8s/manifests.local.yaml`, leaving the
 committed artifact untouched — `local-path` reaching the real cluster leaves the Postgres and
-SeaweedFS volumes unbindable on the next rebuild. With no Pulumi locally, mint the Secret
-first (every key below is referenced by the manifests):
-
-```bash
-k3d cluster create score-poc --no-lb --k3s-arg "--disable=traefik@server:0"
-kubectl create secret generic placeframe-secrets \
-  --from-literal=POSTGRES_ADMIN_PASSWORD=$(openssl rand -hex 16) \
-  --from-literal=DATABASE_OWNER_PASSWORD=$(openssl rand -hex 16) \
-  --from-literal=DATABASE_API_USER_PASSWORD=$(openssl rand -hex 16) \
-  --from-literal=DATABASE_AUTH_USER_PASSWORD=$(openssl rand -hex 16) \
-  --from-literal=DATABASE_ORCHESTRATION_USER_PASSWORD=$(openssl rand -hex 16) \
-  --from-literal=S3_ACCESS_KEY=$(openssl rand -hex 8) \
-  --from-literal=S3_SECRET_KEY=$(openssl rand -hex 16) \
-  --from-literal=KEYCLOAK_ADMIN_PASSWORD=$(openssl rand -hex 16) \
-  --from-literal=GRAFANA_ADMIN_USER=admin \
-  --from-literal=GRAFANA_ADMIN_PASSWORD=$(openssl rand -hex 16) \
-  --from-literal=PUBLIC_URL=http://localhost:8443 \
-  --from-literal=AUTH_ISSUER_URL= \
-  --from-literal=AUTH_JWKS_URL= \
-  --from-literal=AUTH_AUTHORIZATION_ENDPOINT= --from-literal=AUTH_TOKEN_ENDPOINT= \
-  --from-literal=AUTH_AUDIENCE=placeframe-api \
-  --from-literal=DEPLOYMENT_ENVIRONMENT=development \
-  --from-literal=KEYCLOAK_HOSTNAME=http://localhost:8443/auth
-```
+SeaweedFS volumes unbindable on the next rebuild. Create the cluster with
+`k3d cluster create score-poc --no-lb --k3s-arg "--disable=traefik@server:0"`. With no
+Pulumi locally, mint the Secret
+first: every key in the generated mint list `stack/generated/secrets.txt` must exist on the
+`placeframe-secrets` Secret (random hex for the credentials, real values or empty strings
+for the passthroughs like `PUBLIC_URL` and the `AUTH_*` block).
 
 k3d pulls through Docker Hub, whose unauthenticated rate limit is low enough to fail a cold
 cluster; preload slow images with `docker save <image> | docker exec -i k3d-score-poc-server-0
@@ -97,6 +81,29 @@ ctr -n k8s.io images import -`.
 
 ## Constraints
 
+- **Provisioner sources are authored in mapping form; string form is compiler output.**
+  `state`/`outputs`/`volumes`/`services`/`manifests` are authored as real YAML mappings and
+  lists, compiled to score's YAML-in-a-string form in a per-run tempdir at generation —
+  compiled output never goes back into a source. Single-key authoring markers ride in
+  provisioner manifests and chart values alike: `include:`/`include-yaml: <repo-root-relative
+  path>` inserts a file's bytes verbatim / parsed structure, and `lock: NAME`/
+  `lock-image: NAME` substitutes an `images.lock` entry — the full digest reference for
+  provisioner `image:` fields, or the registry/repository/tag/digest fields chart values
+  want (`digest_field: sha` for grafana's bare-hex spelling). The lock is the k8s
+  provisioners' single digest source: they have no runtime env-file, so no compose-style
+  `${VAR}` hole is available there.
+- **K8s config content arrives by inclusion, never hand mirrors.** The alloy ConfigMap
+  body is `include: workloads/alloy/config.alloy`; the loki chart's entire config is the
+  committed `workloads/loki/config.yaml` through the `structuredConfig` full-override in
+  `values/loki.yaml` (the chart's templated config is blanked; the chart validator still
+  demands a structured `schema_config`, which is why the override rides `structuredConfig`
+  rather than the `loki.config` string); grafana's datasources ride `include-yaml:`. One
+  committed file feeds both renderings — no standing copy to keep in sync.
+- **The secrets declaration is the consumed-key contract.** `stack/score/secrets.yaml`
+  declares every `ALL_CAPS` key either rendering consumes; generate-score validates each
+  generated artifact's consumed keys (compose `${VAR}` holes; k8s `secretKeyRef`s into
+  `placeframe-secrets`) are a subset of it, and writes `stack/generated/secrets.txt` — the
+  mint list of Secret-resident keys — from the declaration alone.
 - **Compose artifacts are hermetic: zero host-filesystem references.** score-compose
   materializes workload `files:` as binds into its state dir; the docker-devkit post-pass
   rewrites every bind into a top-level `configs.content` entry with each `$` doubled (compose
@@ -140,8 +147,7 @@ ctr -n k8s.io images import -`.
   secret values: they reference the existing `placeframe-secrets` Secret (`envValueFrom`/
   `extraEnvFrom`/`existingSecret`) or `${VAR}` config holes expanded in-container. Alloy has
   no upstream OCI chart, so `k8s/observability.yaml` hand-writes its Deployment + Service
-  + ConfigMap — the ConfigMap body is a mirror of `workloads/alloy/config.alloy` and must
-  be kept in sync with it by hand.
+  + ConfigMap (config body by inclusion; see above).
 - **No restart policies are declared anywhere** — workload services, provisioner services,
   and the deleted patch template all rely on compose's default. The hand stack's posture is
   identical.
