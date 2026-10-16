@@ -8,10 +8,6 @@ This file is placeframe-specific guidance: what the project is and how to operat
 
 The capture tier (phone CaptureTool app + ZED-box appliance) lived here until 2026-09; it now lives in the [placeframe-capture-tool](https://github.com/outernet-foundation/placeframe-capture-tool) repo. The two repos join via registry pins (PyPI `placeframe-common`/`placeframe-core`, npm/nuget clients); see `design/repo-extraction.md` for the boundary.
 
-## Linear
-
-The `linear` CLI (from the [`linear-cli`](https://github.com/outernet-foundation/linear-cli) repo, installed globally via `uv tool install`) is placeframe's Linear write path; see `AGENTS-SHARED.md` (Trackable work) for the workflow. **Before creating or editing any Linear ticket or project, read [linear-cli's `AGENTS.md`](https://github.com/outernet-foundation/linear-cli/blob/main/AGENTS.md)** — it holds the team/label taxonomy (team PLE; the `repo` and `type` label groups) and the ticket-authoring conventions (declarative outcome-tickets, imperative titles, `blocks`-for-sequence, just-in-time sub-issues, no file lists in tickets).
-
 ## Commands
 
 Top-level commands are `uv run <name>` from the repo root. See [`docker-devkit's `AGENTS.md`](https://github.com/outernet-foundation/docker-devkit/blob/main/AGENTS.md) for the stack-lifecycle catalog (`up`, `down`, `build`), `scripts/AGENTS.md` for the codegen and operator-utility catalog (`generate-clients`, `generate-datamodels`, `publish-compose`, `fit-calibration`, debug-attach helpers, …), and [`unity-devkit's `AGENTS.md`](https://github.com/outernet-foundation/unity-devkit/blob/main/AGENTS.md) for the Unity catalog (`compile-unity`, `lock-unity`, `test-unity`, …), including per-command flags. Every command accepts `--help`.

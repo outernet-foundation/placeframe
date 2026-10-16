@@ -207,4 +207,3 @@ and auth snippet presence.
   fix upstream.
 - Pin `alpine` (wait-for-resources gate) + the CNPG operand image before the tier is
   load-bearing.
-- Linear ticket linkage for this plan (`linear` CLI unavailable in this sandbox).
