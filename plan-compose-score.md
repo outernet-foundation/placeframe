@@ -65,12 +65,11 @@ rendering of the same score sources and ride along.
 
 ## Shipped
 
-- **B1 auth-structural** (see Settled) and **B2**: the converter release (docker-devkit 0.4.4,
-  re-pinned through 0.4.6), gateway entrypoint by file presence, auth snippets as workload
-  `files:`, `AUTH_MODE` extinct in both renderings.
-- **Slice A**: SeaweedFS both tiers (compose provisioner + k8s twin, both MinIO provisioners
-  deleted), S3 resource outputs feeding `S3_*` api env, score resource type renamed
-  `oidc-issuer`.
+- **B1 auth-structural** (see Settled) and **B2**: the converter release, gateway entrypoint
+  by file presence, auth snippets as workload `files:`, `AUTH_MODE` extinct in both
+  renderings.
+- **Slice A**: SeaweedFS both tiers, S3 resource outputs feeding `S3_*` api env, score
+  resource type renamed `oidc-issuer`.
 - **Slice B**: compose observability (loki/alloy/grafana + chown sidecar, lock-hole images)
   and all k8s observability authoring — loki + grafana via digest-pinned OCI charts, alloy
   hand-written k8s twin (no upstream OCI chart exists). Chart pins: loki 7.3.0; grafana
@@ -78,86 +77,76 @@ rendering of the same score sources and ride along.
   `values/loki.yaml` itself (singleBinary reads its own `extraArgs`/`extraEnvFrom`,
   expand-env S3 holes, SimpleScalable targets zeroed). Alpine pin via the
   `wait-for-resources-image.tpl` patch template.
-- **Cleanup pass**: provisioners reorganised under `stack/score/{compose,k8s}/` with
-  truncated names; `AUTH_JWKS_URL` passthrough fix; vestigial mounts and restart keys
-  dropped; `stack/AGENTS.md` + `CLAUDE.md` replaced the tier README. The recursive
-  image-glob scan (devkit PR #17) shipped in the 0.4.6 pin — nothing pending there.
 - **Generated-compose smoke test** passed in both auth modes (anonymous boots `disabled`,
   OIDC boots `keycloak` with unauthenticated 401s; gateway proxies api + `/auth/*`; all
   one-shots exit 0). The token flow stays unexercisable until Slice C's auth-initializer
   (no realm exists yet).
-- **Dedup audit residue** (2026-10): verified single-sourced and closed — gateway snippets,
-  audit sink, env-var names, alpine pin. Every structurally correct closure is absorbed into
-  the remaining items below; the prior-art survey's verdict lives under Open decisions.
-- **Devkit lock-resolution + secrets contract** (2026-10): both live in the generation
-  pre-passes. Lock markers are single-key mappings resolved against the manifest's `.lock`
-  pair — `lock: NAME` substitutes the full reference (k8s provisioners have no runtime
-  env-file, so the lock is their single digest source), `lock-image: NAME` expands into
-  registry/repository/tag/digest chart fields (`digest_field: sha` for grafana's bare-hex
-  spelling). The secrets contract validates each rendering's consumed keys are a subset of
-  the authored declaration — compose `${ALL_CAPS}` holes with `$`-parity (escaped
-  configs.content doesn't count), k8s `secretKeyRef` entries naming the configured Secret —
-  and writes the mint list artifact from the declaration alone. Committed on devkit `dev`
-  (`13c0505` code, `dbd5c14` docs), 230 tests green through the toolkit battery, validated
-  end-to-end through the dev checkout (compose regen + validation passed; the artifact diff
-  was exactly the three known riders — api tree-sha, keycloak hole, sourced
-  DEPLOYMENT_ENVIRONMENT — so the artifact was restored to its committed stale state).
+- **Dedup audit (2026-10)**: gateway snippets, audit sink, env-var names, alpine pin —
+  verified single-sourced and closed. The prior-art survey's verdict lives under Open
+  decisions.
+- **Devkit 0.4.7** (PR #19 merged, released to PyPI, placeframe re-pinned in `c268b181`):
+  authored mapping-form sources, `include:`/`include-yaml:` file inclusion, lock
+  resolution, and the secrets contract — the mechanisms these rely on are described under
+  Current state and exercised by items 1–3.
 
 ## Current state
 
-- **Branches**: placeframe `more-final-polish` @ `d7675c36` — the operator pushed through
-  `90abbf8f` (2026-10-15); unpushed at this session's close = 10 (the prior session's
-  eight — three audit-hardening commits and five plan records — plus this session's two
-  plan records; check `git log @{upstream}..HEAD` at session start — counts go stale the
-  moment work lands). docker-devkit `dev` @ `dbd5c14` is 6 commits ahead of origin/dev
-  (authoring format, inclusion, and lock-resolution + secrets contract, each code+docs) —
-  **all four 0.4.7 features are in; the push is ready whenever the operator moves**,
-  unblocking the placeframe re-pin (item 3).
+- **Branches**: placeframe `more-final-polish` @ `89e68531`, fully pushed (re-check
+  `git log @{upstream}..HEAD` at session start — counts go stale the moment work lands).
+  The GitHub remote is `outernet-foundation/plerion` (repo renamed; redirects cover old
+  URLs). docker-devkit `dev` is merged and pushed; 0.4.7 is on PyPI and placeframe is
+  re-pinned to it.
 - **Working tree, uncommitted by design** (commits at item 3): the 10 registered provisioner
-  files migrated to mapping form (zero-diff acceptance passed through the dev checkout);
-  `k8s/observability.yaml`'s alloy ConfigMap body → `include:` marker;
-  `k8s/values/grafana.yaml`'s datasources → `include-yaml:` marker;
-  `compose/oidc-issuer.yaml` keycloak image → `${KEYCLOAK_IMAGE:?err}` (compose side now
-  carries zero digests); `| default "hcloud-volumes"` fallbacks dropped from k8s
-  postgres/seaweedfs `storageClassName` (generate-score always exports
+  files migrated to mapping form (zero-diff acceptance passed); `k8s/observability.yaml`'s
+  alloy ConfigMap body → `include:` marker; `k8s/values/grafana.yaml`'s datasources →
+  `include-yaml:` marker; `compose/oidc-issuer.yaml` keycloak image → `${KEYCLOAK_IMAGE:?err}`
+  (compose side now carries zero digests); `| default "hcloud-volumes"` fallbacks dropped
+  from k8s postgres/seaweedfs `storageClassName` (generate-score always exports
   `SCORE_STORAGE_CLASS`; a silent default only masks a misconfigured direct score-k8s run);
   `stack/score/secrets.yaml` — the authored secrets declaration (every key both renderings
   consume; mint-flagged for the placeframe-secrets population, including item 4's grafana
   admin pair and the KEYCLOAK_IMAGE hole the regen adds).
-- **Audit-hardening mechanical half shipped** (prior session, three commits): mint-recipe
-  `AUTH_AUDIENCE` fix; dead `BUCKET` constant deleted; lease-server `DEPLOYMENT_ENVIRONMENT`
-  sourced from the config resource. These knowingly re-stale the compose artifact's
-   api/lease-server tree-shas — accepted; regen rides item 3. The audit's two preflight
-   guards are dropped under the no-linting law (Settled): the digest-equality guard is
-   obsoleted by the devkit's lock-resolution, and the secrets-contract guard is replaced
-   by the secrets declaration — both shipped on devkit `dev` this session.
-- **k8s artifact regeneration gates**: the placeframe push has landed, but as of this
-  session the CI mirror job has **not** copied the loki/grafana charts (registry-verified
-  absent) — check whether the mirror run succeeded before item 4. Item 3's re-pin is the
-  other gate (k8s sources will carry lock refs). The k8s artifact is stale in the interim
-  (expected mid-initiative).
-- **docker-devkit file inclusion + authored format** (rides 0.4.7, implemented + validated):
-  markers are single-key plain-YAML mappings (lintability law): `include: <repo-root-relative
+- **Authoring format (0.4.7, the pinned devkit)**: sources are mapping-form YAML; markers
+  are single-key plain-YAML mappings (lintability law): `include: <repo-root-relative
   path>` inserts file bytes verbatim; `include-yaml: <path>` parses and inserts structure
   (grafana's chart renders datasources through `tpl (toYaml $value)` and mangles strings;
-  alloy's river config and loki's eventual full-override need bytes). Neither mode transforms
-  content (`${S3_*}` holes survive; `$` handling stays per-consumer). Consumers: the compile
-  pre-pass (mapping-form sources compile to score's string form in a per-run tempdir) and
-  the chart-values pre-pass (marker-bearing values resolve to a tempdir copy for
-  `helm template`). Known devkit debt: the inliner and uid-normalisation carry only
-  volume-model typing tests.
-- **Resumption mechanics**: the pinned score tools, helm, and the repo-pinned uv 0.12.15
-  live in `~/.local/bin`, not on the sandbox's default PATH (`export
-  PATH="$HOME/.local/bin:$PATH"`; system uv can't read the lock). Until item 3's re-pin,
-  the migrated tree only compiles through the dev checkout: run generation as
-  `uv run --project /workspace/docker-devkit generate-score` from the placeframe root
-  (the dev devkit's env, cwd preserved); the pinned `uv run generate-score` resumes after
-  the re-pin. The pinned 0.4.6's lifecycle verbs (`uv run up`/`down`/`build`) keep working
-  through the interim precisely because the `secrets:` section is deferred (item 1).
-  Regeneration is deterministic across fresh runs; the order is commit sources →
-  regenerate → commit artifacts. The sandbox has no push scope — hand off branch + HEAD at
-  session end. docker-devkit is read via the `/workspace` bind mount (fetching its SSH
-  remote fails).
+  alloy's river config and loki's eventual full-override need bytes). Neither mode
+  transforms content (`${S3_*}` holes survive; `$` handling stays per-consumer). Lock
+  markers are single-key mappings resolved against the manifest's `.lock` pair — `lock:
+  NAME` substitutes the full reference (k8s provisioners have no runtime env-file, so the
+  lock is their single digest source), `lock-image: NAME` expands into
+  registry/repository/tag/digest chart fields (`digest_field: sha` for grafana's bare-hex
+  spelling). The secrets contract validates each rendering's consumed keys are a subset of
+  the authored declaration — compose `${ALL_CAPS}` holes with `$`-parity (escaped
+  configs.content doesn't count), k8s `secretKeyRef` entries naming the configured Secret —
+  and writes the mint list artifact from the declaration alone.
+- **Artifact staleness is expected mid-initiative**: the audit-hardening commits (mint-recipe
+  `AUTH_AUDIENCE` fix; dead `BUCKET` constant deleted; lease-server `DEPLOYMENT_ENVIRONMENT`
+  sourced from the config resource) knowingly re-stale the compose artifact's
+  api/lease-server tree-shas — regen rides item 3. The audit's two preflight guards were
+  dropped under the no-linting law (Settled): the digest-equality guard is obsoleted by the
+  devkit's lock-resolution, and the secrets-contract guard is replaced by the secrets
+  declaration.
+- **k8s artifact regeneration gates**: the re-pin gate is done (item 3's remaining half is
+  the commit). The chart-mirror gate is **closed** — registry-verified 2026-10-16: both
+  `ghcr.io/outernet-foundation/mirror/ghcr.io/grafana/helm-charts/{loki,grafana}` digests
+  return `manifest unknown` (a known-mirrored image errors differently, so the check is
+  sound). Mechanism: the mirror runs only inside Integrate (`uv run mirror`), which
+  triggers on PRs to `dev` — a bare branch push never runs it, and the chart declarations
+  landed in `9ded017f` (2026-10-15) after the last Integrate run (PR #142, 2026-10-12). The
+  gate opens when a PR to `dev` first carries the chart entries. Re-verify with
+  `docker manifest inspect` before item 4.
+- **Resumption mechanics**: the pinned score tools, helm, and the repo-pinned uv live in
+  `~/.local/bin`, not on the sandbox's default PATH (`export PATH="$HOME/.local/bin:$PATH"`;
+  system uv can't read the lock). Post-re-pin, generation runs natively from the repo root:
+  `uv run generate-score --target compose|k8s` — the interim dev-checkout invocation
+  (`--project /workspace/docker-devkit`) is obsolete. The lifecycle verbs (`uv run
+  up`/`down`/`build`) work through the interim precisely because the `secrets:` section is
+  deferred (item 1). Regeneration is deterministic across fresh runs; the order is commit
+  sources → regenerate → commit artifacts. (uv once served a stale cached simple-index on a
+  re-pin — `uv cache clean docker-devkit` before any future `uv lock --upgrade-package`.)
+  The sandbox has no push scope — commit locally and hand off branch + HEAD at session end.
+  docker-devkit is read via the `/workspace` bind mount (fetching its SSH remote fails).
 - **Pulumi follow-up — deferred until this plan completes** (external, with the SaaS
   engineer): conform `placeframe-secrets` to the mint-recipe key list in stack/AGENTS.md
   (the recipe is the documented contract; drops are `AUTH_MODE`, `AUTH_URL`/`AUTH_TOKEN_URL`,
@@ -196,10 +185,10 @@ and auth snippet presence.
 1. **Placeframe secrets wiring** (rides item 3's commit): the `secrets:` section in
    `docker-devkit.yaml` (`file: stack/score/secrets.yaml`, `k8s_secret:
    placeframe-secrets`) plus the regenerated `stack/generated/secrets.txt` mint artifact.
-   The devkit half of the original item 1 is shipped (lock-resolution + secrets contract,
-   both committed on devkit `dev`); the wiring is deliberately deferred — under the pinned
-   0.4.6 the section fails `extra="forbid"` and would break `uv run up`/`down`/`build`
-   for the whole interim before the re-pin.
+   The devkit half is shipped (0.4.7); the wiring is deliberately deferred until item 3's
+   commit — under a devkit without secrets support the section fails `extra="forbid"` and
+   would break `uv run up`/`down`/`build` (the pin is now 0.4.7, but the working tree is
+   committed as one unit, so the wiring lands with it).
 2. **k8s lock-ref migration + loki single-source** (rides the working tree, commits at
    item 3): the five hand-written k8s digests (keycloak, alloy, fluent-bit, loki values,
    grafana values) → the shipped markers — `{lock: NAME}` for provisioner `image:` fields,
@@ -209,12 +198,9 @@ and auth snippet presence.
    structured translation (the last large hand-copy). If the full-override cannot compose
    with singleBinary + the scaffolding toggles: fall back to the alloy pattern — hand-write
    the ConfigMap via `include:` of `workloads/loki/config.yaml` with the chart's config
-   generation disabled — not a standing comparator over a copy (Settled). Acceptance rides
-   the dev-checkout invocation (see Resumption mechanics).
-3. **Re-pin + commit the migration.** Once 0.4.7 lands: `uv cache clean docker-devkit`
-   then `uv lock --upgrade-package docker-devkit` (a stale cached simple-index once served
-   0.4.5 for a 0.4.6 request — clean first; re-run `uv run lock-python` if the workspace
-   lock re-stales; per-service pylocks expected unaffected). Re-run
+   generation disabled — not a standing comparator over a copy (Settled). Acceptance: the
+   native `uv run generate-score --target k8s` run (post-re-pin).
+3. **Commit the migration** (re-pin already done in `c268b181`). Re-run
    `uv run generate-score --target compose` against the already-migrated tree and confirm
    it reproduces the dev-checkout output — the reference diff against the committed
    artifact is exactly the three known riders (api tree-sha re-stale, keycloak
@@ -225,21 +211,22 @@ and auth snippet presence.
    mapping-form migration, the include edits, the lock refs, the secrets declaration plus
    its `secrets:` section and mint artifact, the loki values switch, and the working-tree
    rider edits (keycloak lock hole, dropped storage-class defaults); consider
-   `requires: ">=0.4.7"` in the same commit (older devkits fail loudly on mapping-form
-   sources, so the loose range is safe but noisy). Then, as its own prose commit,
-   stack/AGENTS.md gains the authored-format facts (mapping form is the authoring law;
-   string form is compiler output; k8s config content arrives via inclusion, not hand
-   mirrors — delete the alloy drift-risk note) and its k3d hand mint recipe is replaced
-   by a pointer to the generated `stack/generated/secrets.txt`.
-4. **Regenerate the k8s artifact** (needs the CI mirror job having copied the two charts —
-   verify before starting — plus item 3). `uv run generate-score --target k8s`, inspect the
-   merged manifests, commit. Assertions: chart docs sorted beside the score docs; the
-   rendered alloy ConfigMap equals `workloads/alloy/config.alloy`; grafana's datasources
-   ConfigMap equals the committed datasources file; the rendered loki config semantically
-   equals `workloads/loki/config.yaml` (full-override composed with singleBinary — else
-   item 2's fallback); every lock-resolved digest equals its `images.lock` entry;
-   pre-existing k8s content (postgres/seaweedfs/gateway/api) reproduces identically, with
-   the chart + observability additions on top; no unpinned/unmirrored images.
+   `requires: ">=0.4.7"` in the same commit (current value `>=0.4`; older devkits fail
+   loudly on mapping-form sources, so the loose range is safe but noisy). Then, as its own
+   prose commit, stack/AGENTS.md gains the authored-format facts (mapping form is the
+   authoring law; string form is compiler output; k8s config content arrives via
+   inclusion, not hand mirrors — delete the alloy drift-risk note) and its k3d hand mint
+   recipe is replaced by a pointer to the generated `stack/generated/secrets.txt`.
+4. **Regenerate the k8s artifact** (gates: item 3, plus the chart mirror — still closed as
+   of 2026-10-16, see Current state for what opens it). `uv run generate-score --target
+   k8s`, inspect the merged manifests, commit. Assertions: chart docs sorted beside the
+   score docs; the rendered alloy ConfigMap equals `workloads/alloy/config.alloy`; grafana's
+   datasources ConfigMap equals the committed datasources file; the rendered loki config
+   semantically equals `workloads/loki/config.yaml` (full-override composed with
+   singleBinary — else item 2's fallback); every lock-resolved digest equals its
+   `images.lock` entry; pre-existing k8s content (postgres/seaweedfs/gateway/api)
+   reproduces identically, with the chart + observability additions on top; no
+   unpinned/unmirrored images.
 5. **Bucket contract** (after the naming decision below; order-flexible against 6). Flow
    the captures bucket through the s3 resource (`CAPTURES_BUCKET` output → api env),
    deleting the hardcoded `dev-captures` in `capture_sessions.py` — bucket naming becomes a
