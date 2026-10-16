@@ -94,7 +94,11 @@ Replaces `compaction.md`, `plan-auth-refactor.md`, and `design/compose-artifact-
   Regeneration is plain `uv run generate-score` from the placeframe root and is deterministic
   across fresh runs; commit sources first, then regenerate, then commit artifacts. The
   branch's commits are unpushed until the operator pushes (sandbox has no push scope);
-  hand off branch + HEAD at each session end.
+  hand off branch + HEAD at each session end. At this session's close: placeframe
+  `more-final-polish` is 4 commits ahead of origin (stack/AGENTS.md smoke fixes, smoke
+  record, chart-render handoff, this re-sequencing); docker-devkit `dev` is 3 ahead
+  (code + docs + operator's `plan-image-identity.md`) — both need the operator's push,
+  docker-devkit's before anything here can re-pin.
 - **Cleanup pass shipped (between Slices A and B)**: provisioners reorganised into
   `stack/score/compose/` + `stack/score/k8s/` with truncated names (`compose/seaweedfs.yaml`
   etc.; registration lists in `docker-devkit.yaml` are the authority — score tooling imposes
@@ -150,26 +154,40 @@ Replaces `compaction.md`, `plan-auth-refactor.md`, and `design/compose-artifact-
   per-chart values files + optional namespace) and `helm_version` (required with
   charts); `generate-score --target k8s` runs `helm template` against the
   **org-mirrored** form of each ref (mirror section required — no mirror, no charts)
-  and merges the blocks into the same kind/namespace/name-sorted `manifests.yaml`;
-  `ensure_score_tools` fetches pinned helm beside the score tools (nested
-  `linux-amd64/` member, strip-components); the `mirror` verb now copies chart
-  declarations too (crane copies OCI charts byte-identically — the CI mirror job
-  populates them, single-writer law intact). Smoke-verified end-to-end with helm
-  v3.22.1: digest-pinned `oci://ghcr.io/grafana/helm-charts/loki@sha256:ba8b6b3e…`
+  and merges the blocks into the same kind/namespace/name-sorted `manifests.yaml`.
+  Tool pinning flows through one shared policy: `tool_requirements(config, target)`
+  (public, `ToolRequirement` descriptors carrying binary/version/release/archive/
+  extract) feeds both the loud PATH gate inlined at the top of the `generate-score`
+  CLI and `ensure_score_tools(config, bin_dir, target="both")` (fetches pinned
+  helm beside the score tools; nested `linux-amd64/` member, strip-components).
+  The `mirror` verb now copies chart declarations too (crane copies OCI charts
+  byte-identically — the CI mirror job populates them, single-writer law intact).
+  Smoke-verified end-to-end with helm v3.22.1: digest-pinned
+  `oci://ghcr.io/grafana/helm-charts/loki@sha256:ba8b6b3ee954c9d6eeee713d148a22e6f73eb440189e11acd3112a06acdfd2f8`
   (tag 7.3.0) templates cleanly into `---\n# Source:` blocks, missing chart values
   (loki demands `storage.bucketNames` + schema config) fail loudly at generation.
-  Helm current lines:   v3.22.1 (v3 terminal) / v4.3.1 (v4 current) — Slice B pins
+  Helm current lines: v3.22.1 (v3 terminal) / v4.3.1 (v4 current) — Slice B pins
   explicitly; v3.22.1 is the smoke-verified one. Release handoff: operator pushes
-  `dev` (carries merged PR #17's recursive `image_globs` fix + these two commits),
-  cuts the release, then `uv lock --upgrade-package docker-devkit` here (also
-  closes preflight's scan gap over the moved provisioner files; re-run
-  `uv run lock-python` if the workspace lock re-stales).
+  `dev` — now three commits ahead of origin/dev (code + docs + the operator's own
+  `plan-image-identity.md` tree-tag audit, whose Part 1 defect is exactly the
+  missing-`tree-<sha>`-tags failure the smoke test hit) — cuts the release, then
+  `uv lock --upgrade-package docker-devkit` here (also closes preflight's scan gap
+  over the moved provisioner files; re-run `uv run lock-python` if the workspace
+  lock re-stales).
 - **Next session, in order**:
-  1. Re-pin docker-devkit once the release lands (`uv lock --upgrade-package
-     docker-devkit`, then `uv run lock-python` if the workspace lock re-stales);
-     verify `uv run generate-score` still reproduces both artifacts byte-identical
-     through the released tool.
-   2. **Slice B (work item 3, reshaped below)**.
+  1. Re-pin docker-devkit once the release lands (operator: push `dev`, then the
+     release flow to a stable PyPI version; the chart-render change is additive so
+     the patch flow carries it). Here: `uv lock --upgrade-package docker-devkit`
+     (+ `uv run lock-python` if the workspace lock re-stales), then regenerate and
+     confirm both artifacts reproduce byte-identical through the released pin —
+     expected, since the charts path stays unexercised until Slice B declares any.
+  2. **Slice B (work item 3, reshaped below)**. Entry facts: pin `helm_version`
+     v3.22.1; loki chart digest above; declare charts in `docker-devkit.yaml`
+     *before* generation and let the CI mirror job copy them first (declare →
+     mirror job → generate pulls the mirror); loki values must set
+     `storage.bucketNames` (chunks/ruler/admin) + schema config (or
+     `useTestSchema` for a throwaway), target `http://seaweedfs:8333`, and
+     reference Secrets — values never carry them.
 - Make-it-Sing still includes the old published bundle by digest; its new env names go live
   only when it re-pins (work item 7).
 
