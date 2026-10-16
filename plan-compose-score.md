@@ -134,30 +134,39 @@ Replaces `compaction.md`, `plan-auth-refactor.md`, and `design/compose-artifact-
   across fresh runs; commit sources first, then regenerate, then commit artifacts. The
   branch's commits are unpushed until the operator pushes (sandbox has no push scope);
   hand off branch + HEAD at each session end. At this session's close: placeframe
-  `more-final-polish` is 9 commits ahead of origin (the prior 4 plus: docker-devkit
-  re-pin, Slice B sources, regenerated compose artifact, stack doc sync, this record).
-  Operator pushes needed at close: placeframe `more-final-polish` (unblocks the CI mirror
-  job for the two charts → k8s regen) and, after next session's devkit work, docker-devkit
-  `dev` + the patch release. The sandbox cannot fetch docker-devkit over its SSH remote —
-  the bind-mounted checkout's refs are the truth (currently synced at `dcf6dd6`).
+  `more-final-polish` is 11 commits ahead of origin (the prior 9 plus the
+  authoring-format plan record and this update; the working tree also holds the
+  uncommitted provisioner migration). Operator pushes needed at close: placeframe
+  `more-final-polish` (unblocks the CI mirror job for the two charts → k8s regen) and
+  docker-devkit `dev` + the 0.4.7 patch release (the authoring-format code is already on
+  `dev`, validated — see the record above).   The sandbox cannot fetch docker-devkit over its SSH remote —
+  the bind-mounted checkout's refs are the truth (currently synced at `ea8b55f`, 2 commits
+  ahead of origin/dev: the authoring-format code + docs, awaiting push + 0.4.7 release).
+  Placeframe's working tree additionally holds the 10 migrated provisioner files
+  (uncommitted by design — see the authoring-format record; they commit with the 0.4.7
+  re-pin).
 
 - **Next session, in order**:
-  1. **docker-devkit provisioner authoring format** (design above; no blockers — start
-     here). Implement + test on `dev`, validate placeframe's compose byte-identity via
-     the `--with file://` run, hand off for push/release.
-  2. **Re-pin + migrate**: once 0.4.7 lands, `uv cache clean docker-devkit` then
-     `uv lock --upgrade-package docker-devkit` (per-service pylocks expected unaffected),
-     convert the 10 provisioner files to mapping form, regenerate `--target compose`,
-     confirm zero diff, commit.
-  3. **Regenerate the k8s artifact** (needs the operator's placeframe push from this
+  1. ~~docker-devkit provisioner authoring format~~ **done** (see the record above; `dev`
+     is 2 commits ahead, hand off for push + the 0.4.7 release).
+  2. **Re-pin + commit the migration**: once 0.4.7 lands, `uv cache clean docker-devkit`
+     then `uv lock --upgrade-package docker-devkit` (per-service pylocks expected
+     unaffected), re-run `uv run generate-score --target compose` against the already
+     migrated working tree (confirm zero diff again through the released pin), then
+     commit sources + lock. Consider whether `requires` should move to `>=0.4.7` in the
+     same commit (0.4.6 fails loudly on mapping-form sources, so the loose range is safe
+     but noisy). stack/AGENTS.md gains the authored-format facts (mapping form is the
+     authoring law; string form is compiler output) with that commit.
+  3. **Regenerate the k8s artifact** (needs the operator's placeframe push from the prior
      session's close + the mirror job having copied the two charts). `uv run
      generate-score --target k8s`, inspect the merged manifests (chart docs sorted beside
-     the score docs; alloy twin present; no unpinned/unmirrored images), commit. Riding
-     the new pin from step 2 means one devkit version in play; pre-existing k8s content
-     (postgres/seaweedfs/gateway/api) should reproduce identically, with the chart +
-     observability additions on top.
+     the score docs; alloy twin present; no unpinned/unmirrored images), commit. This is
+     also the first full exercise of the k8s authored provisioners (compose byte-identity
+     is proven; k8s has compile round-trips only). Riding the 0.4.7 pin means one devkit
+     version in play; pre-existing k8s content (postgres/seaweedfs/gateway/api) should
+     reproduce identically, with the chart + observability additions on top.
   4. **Slice C (work item 4, long tail)**: cloudbeaver, auth-initializer, ngrok,
-     rathole-client.
+      rathole-client.
 - **Cleanup pass shipped (between Slices A and B)**: provisioners reorganised into
   `stack/score/compose/` + `stack/score/k8s/` with truncated names (`compose/seaweedfs.yaml`
   etc.; registration lists in `docker-devkit.yaml` are the authority — score tooling imposes
@@ -234,31 +243,29 @@ Replaces `compaction.md`, `plan-auth-refactor.md`, and `design/compose-artifact-
   `uv lock --upgrade-package docker-devkit` here (also closes preflight's scan gap
   over the moved provisioner files; re-run `uv run lock-python` if the workspace
   lock re-stales).
-- **Provisioner authoring format — designed, not yet built** (next session's first task,
-  prompted by the authored sources being unreadable in editors: `services:`/`manifests:`
-  are giant block scalars — YAML-in-a-string that score parses after Go-template
-  evaluation — so nothing highlights or lints them). The settled design: docker-devkit's
-  `generate-score` gains a compile pre-pass — provisioners are authored with
-  `state`/`outputs`/`volumes`/`services` as real mappings (`manifests` as a real list;
-  pydantic `AuthoredProvisioner`, `extra="forbid"`), and compiled to score's string form
-  at generation into a per-run tempdir that `_init_state` points `--provisioners` at; the
-  compiled form is ephemeral and never committed. One format law: a local provisioner
-  already in string form is a loud error. Reuse `ComposeDumper` + `sort_keys=False` (key
-  order in the authored file controls dump order). `${VAR:?err}` holes and `{{ env }}`/
-  `{{ .State }}` templates survive as inline string values. Patch templates stay as-is;
-  the alloy ConfigMap's `config.alloy:` content stays a string (k8s ConfigMap semantics,
-  not the provisioner format). Acceptance: after migrating placeframe's 10 provisioner
-  files (compose: postgres, config, oidc-issuer, seaweedfs, observability; k8s: the same
-  five), `generate-score --target compose` reproduces the committed compose artifact with
-  **zero diff**. Validate before release with
-  `uv run --with 'docker-devkit @ file:///workspace/docker-devkit' generate-score` in
-  placeframe — the dev-sentinel `0.0.0.dev0` bypasses the `requires` self-check without
-  touching the lock. Lift: ~200 lines converter+wiring, ~250 lines tests in
-  `tests/test_score_generate.py` (or a `test_provisioners.py`), AGENTS.md row updates;
-  placeframe migration is mechanical. docker-devkit `dev` is clean and synced at
-  `dcf6dd6` (PR #18 = the chart-render release now pinned here as 0.4.6); commit code and
-  docs as separate commits on `dev` and hand off for push + patch release (additive →
-  0.4.7).
+- **Provisioner authoring format — implemented on docker-devkit `dev`, migration validated
+  in-tree** (designed prior session; built this session). docker-devkit `dev` carries two
+  unpushed commits — `e11a790` (code: `provisioners.py` with `AuthoredProvisioner`,
+  `extra="forbid"`, `state`/`outputs`/`volumes`/`services` as mappings, `manifests` as a
+  list; the string-form law fires as per-field `mode="before"` validators, so pydantic
+  wraps it into a loud `ValidationError`; `compiled_provisioners()` compiles into a
+  per-run tempdir *under `score_dir`*, keeping `--provisioners` paths repo-relative;
+  `ComposeDumper` moved there, imported back by the artifact dump; ~215 lines + ~250
+  lines tests in `tests/test_provisioners.py`) and `ea8b55f` (AGENTS.md rows). Both
+  renderings wrap init+generate in the compile; ruff + basedpyright strict + 165 tests
+  green. Release handoff: operator pushes `dev` (now 2 ahead of origin/dev) and cuts
+  **0.4.7** (additive). Placeframe's 10 registered provisioner files are **migrated to
+  mapping form in the working tree, uncommitted** — running
+  `uv run --with 'docker-devkit @ file:///workspace/docker-devkit' generate-score
+  --target compose` through them reproduced the committed compose artifact with **zero
+  diff** (the acceptance test), and no tempdir residue remains. They stay uncommitted
+  until the 0.4.7 re-pin: committing them against the 0.4.6 lock would leave the branch
+  unable to regenerate its own sources (0.4.6 has no compile step and fails loudly on
+  mapping form). `k8s/postgres-cnpg.yaml` is deliberately left in string form — it is
+  unregistered and carries an `init:` block, a field the authored format intentionally
+  does not model; registering it would hit the loud format law and force that decision.
+  The k8s authored files compile (round-trip verified) but get their first full exercise
+  at the k8s regen (step 3 below).
 - Make-it-Sing still includes the old published bundle by digest; its new env names go live
   only when it re-pins (work item 7).
 
