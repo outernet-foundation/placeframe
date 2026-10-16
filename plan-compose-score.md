@@ -40,10 +40,27 @@ Replaces `compaction.md`, `plan-auth-refactor.md`, and `design/compose-artifact-
   one source for both renderings: score-k8s emits ConfigMap+mounts natively; score-compose's
   bind output feeds the generation converter.
 - Score tools pinned: score-compose 0.42.0, score-k8s 0.15.0 (output differs across
-  versions). Fetch release binaries onto PATH — docker-devkit's `ensure_score_tools` is
-  dead code, nothing auto-fetches them.
+  versions). `ensure_score_tools` (revived, extended to fetch a pinned helm) makes the
+  tools appear on a fresh machine/CI runner; until its release they are hand-fetched onto
+  PATH.
 - Generation resolves image SHAs from the **committed** tree: commit sources, regenerate,
   commit artifacts.
+- **Infra authoring layers by category** (decided post-cleanup, gates Slice B): score
+  stays the workload tier; stateful infra goes operator-first (postgres via CNPG at
+  promotion time, keycloak via its official operator at the edge work item); third-party
+  stamp-outs go Helm charts rendered by `helm template` inside docker-devkit's
+  generate-score — helm is a renderer, never a deployer. Everything renders at generation
+  into the committed deterministic `manifests.yaml`; Argo never knows helm exists.
+  Operators are cluster preconditions installed by the Pulumi/infra layer (same class as
+  the Hetzner CSI driver); their CRs are ordinary manifest content. Kustomize is
+  permanently out — variation is already handled by generation (env holes, `--local`,
+  storage classes). Charts follow the image laws: digest-pinned, mirrored to the org
+  namespace. Chart values never carry secrets — charts reference existing Secrets
+  (`placeframe-secrets` pattern).
+- **GPU shape: per-variant generated core.** The service stays `reconstructor`; each
+  variant generation substitutes the variant image + device patch, producing
+  `placeframe-core-cuda` / `placeframe-core-rocm`. Accelerator choice is which artifact a
+  consumer includes — never a runtime switch (same model as the edge pair).
 
 ## Current state
 
@@ -100,18 +117,35 @@ Replaces `compaction.md`, `plan-auth-refactor.md`, and `design/compose-artifact-
   yields the S3_* env names the stack now reads. The SaaS engineer sync for Slice A is
   this secret-key contract plus the storage swap (SeaweedFS StatefulSet + audit relay +
   bucket Job in the manifests, api env MINIO_*→S3_*) — surfaced here; the manifests
-  themselves are already regenerated.
-- **Next: Slice B (work item 3)** — loki/alloy/grafana as provisioner services. The
-  porting exemplar is `compose/seaweedfs.yaml` (fixed DNS names with the
-  rationale in its header, `${VAR:?err}` holes, healthcheck carried from the corpse).
-  Their configs ride as provisioner-emitted binds of the committed `workloads/*/config.*`
-  paths — the converter inlines them `$`-doubled, so loki's `-config.expand-env=true`
-  still sees `${S3_ACCESS_KEY}` after compose interpolation. initialize-loki chown sidecar
-  per the work item. First move of the next session: smoke-test the generated compose
-  (Slice A was verified by generation + preflight only, never brought up — follow Deploy:
-  Docker in `stack/AGENTS.md`, then `down --remove-orphans`; smoke both auth modes —
-  anonymous with an empty `AUTH_*` block, OIDC per `.env.sample` — since the JWKS fix is
-  untested at runtime); fix anything it surfaces before building Slice B on top.
+  themselves are already regenerated. Findings from his `placeframe-pulumi` branch
+  (checked 2026-10, may be stale): his `placeframe-secrets` block predates Slice A
+  entirely (still MINIO_*/AUTH_MODE/AUTH_URL); his Argo Application points at
+  `score/deploy` on placeframe `main` — a path that exists nowhere (his "score-split"
+  hasn't landed; this branch carries `stack/generated/k8s/manifests.yaml`) — so the Argo
+  source path needs reconciling at merge; his `reconstructor.py` hardcodes the
+  StatefulSet DNS name `pf-postgres`. **k8s postgres stays the StatefulSet provisioner
+  until the CNPG package is agreed with him.** CNPG promotion prerequisites when that
+  happens: slim `k8s/postgres-cnpg.yaml` (its minted passwords break determinism and
+  commit secret values into emitted manifests — latent while unregistered), host +
+  digest-pin the `14-trusted` operand image (operator action; CI token cannot push to
+  the placeframe ghcr namespace), operator install in Pulumi, `pf-postgres` →
+  `pf-postgres-rw` DNS sync in `reconstructor.py`, and a PG-14-vs-compose-tier
+  major-skew check.
+- **Next session, in order**:
+  1. **Smoke-test the generated compose** (first runtime validation ever — Slice A and the
+     cleanup pass were verified by generation + preflight only). Follow Deploy: Docker in
+     `stack/AGENTS.md`, then `down --remove-orphans`. Smoke **both auth modes** — anonymous
+     (empty `AUTH_*` block) and OIDC (per `.env.sample`) — the JWKS fix is untested at
+     runtime. Fix anything it surfaces before building on top.
+  2. **docker-devkit: chart-render step in generate-score** — the one new mechanism: a
+     `ScoreConfig` section naming digest-pinned, org-mirrored charts plus committed values
+     files; `helm template` at generation; output concatenated and sorted into
+     `manifests.yaml`. Revive `ensure_score_tools` to fetch pinned helm alongside the score
+     tools. Release handoff carries all three docker-devkit changes together (recursive
+     `image_globs` fix already on `dev` @ 90aad4d, unpushed): push, release, then
+     `uv lock --upgrade-package docker-devkit` here (which also closes preflight's
+     temporary scan gap over the moved provisioner files).
+  3. **Slice B (work item 3, reshaped below)**.
 - Make-it-Sing still includes the old published bundle by digest; its new env names go live
   only when it re-pins (work item 7).
 
@@ -158,18 +192,22 @@ and auth snippet presence.
    write the SeaweedFS k8s twin (StatefulSet + services, postgres-provisioner pattern); loki
    config retargets off `minio:9000`. Rename score resource type `placeframe-keycloak` →
    `oidc-issuer`. Sync the SaaS engineer (env contract + storage swap).
-3. **Slice B — observability.** loki/alloy/grafana as provisioner services; configs
-   bind-mounted from committed paths and inlined to `configs.content` at generation by the
-   B2 converter — no publish-time conversion exists or is needed. Workload `files:` with
-   `source:` is unusable here (generate-score renders workloads into a tempdir, so source
-   paths dangle); committed-path configs ride as provisioner-emitted binds. initialize-loki
-   chown sidecar.
+3. **Slice B — observability.** Compose twins hand-written as provisioner services
+   (loki/alloy/grafana — the `compose/seaweedfs.yaml` pattern: fixed DNS names,
+   `${VAR:?err}` holes, healthchecks; configs as provisioner-emitted binds of the
+   committed `workloads/*/config.*` paths, inlined `$`-doubled by the converter so loki's
+   `-config.expand-env=true` still sees `${S3_ACCESS_KEY}` after compose interpolation;
+   initialize-loki chown sidecar). The k8s half is the **first consumer of the
+   docker-devkit chart-render step**: loki/alloy/grafana via the official Grafana charts,
+   digest-pinned and mirrored; chart values reference existing Secrets, never carry them.
+   Ride this regeneration with the alpine pin: a patch template sets the
+   wait-for-resources gate image to a mirror digest, with `alpine` declared in
+   `workloads/images.yml` so the mirror job picks it up.
 4. **Slice C — long tail.** cloudbeaver, auth-initializer, ngrok, rathole-client.
 5. **Slice D — GPU services.** reconstructor + localizer workload files; `gpus: all`,
    healthchecks, localizer network alias via patch templates; `service-port` resources for
-   lease-server/localizer wiring. The GPU-shape decision lands here (recommendation:
-   per-variant generated core — the service stays `reconstructor`, only image + device
-   patch differ per variant).
+   lease-server/localizer wiring. GPU shape settled (see Settled): per-variant generated
+   core — the service stays `reconstructor`, only image + device patch differ per variant.
 6. **Seam generation + multi-artifact publish (B3+B4).** `generate-score` emits one compose
    per seam (subsetted workload lists per artifact); `publish-compose` publishes the five
    artifacts. Edge-anonymous is the gateway workload with its `files:` overridden out (a
@@ -199,11 +237,7 @@ and auth snippet presence.
 
 ## Open decisions
 
-- GPU shape (per-variant generated core recommended).
-- Regeneration cadence once generated compose is load-bearing (manual two-commit dance vs
-  CI gate; the gate was disabled because every context SHA re-stales artifacts).
-- docker-devkit coordination beyond the 1a converter: layout adoption (`deployfiles/`
-  rename on its `rename-folders` branch), and pushing the `ensure_score_tools` dead-code
-  fix upstream.
-- Pin `alpine` (wait-for-resources gate) + the CNPG operand image before the tier is
-  load-bearing.
+- Regeneration cadence once generated compose is load-bearing (work item 7): manual
+  two-commit dance until cutover — the CI staleness gate stays off because every context
+  SHA re-stales artifacts. Leaning for cutover: a CI bot that regenerates and
+  auto-commits (canonical-message commits, the codegen-commit pattern).
