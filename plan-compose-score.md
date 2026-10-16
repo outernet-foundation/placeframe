@@ -93,8 +93,9 @@ rendering of the same score sources and ride along.
 ## Current state
 
 - **Branches**: placeframe `more-final-polish` — the operator pushed through `90abbf8f`
-  (2026-10-15); unpushed = the two prior-session plan records plus this session's audit
-  commits (check `git status` / `git log @{upstream}..HEAD` at session start — this file's
+  (2026-10-15); unpushed at this session's close = the two prior-session plan records
+  plus this session's five (three audit-hardening commits, two plan revisions), eight
+  once this close-out commits (check `git log @{upstream}..HEAD` at session start —
   counts go stale the moment work lands). docker-devkit `dev` @ `7d974c6` is 4 commits
   ahead of origin/dev (provisioner authoring format + file inclusion, each code+docs) —
   **no devkit push until item 1's features join them**; one patch release (0.4.7) carries
