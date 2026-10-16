@@ -134,14 +134,15 @@ Replaces `compaction.md`, `plan-auth-refactor.md`, and `design/compose-artifact-
   across fresh runs; commit sources first, then regenerate, then commit artifacts. The
   branch's commits are unpushed until the operator pushes (sandbox has no push scope);
   hand off branch + HEAD at each session end. At this session's close: placeframe
-  `more-final-polish` is 14 commits ahead of origin once this close-out record commits
-  (the 13 inherited from the prior session plus this session's one plan record; the
-  working tree also holds the uncommitted provisioner migration). Operator pushes
+  `more-final-polish` is 15 commits ahead of origin once this close-out record commits
+  (the 13 inherited from the prior session plus this session's two plan records: the
+  inclusion build and the audit absorption; the audit itself changed nothing outside
+  the plan file — the working-tree inventory is unchanged). Operator pushes
   needed at close: placeframe `more-final-polish` (unblocks the CI mirror job for the
   two charts → k8s regen — push this now, it gates nothing else). docker-devkit `dev`
-  is now 4 commits ahead of origin (authoring format + inclusion, each code+docs) — the
-  operator push + patch release (0.4.7 carries both features) unblock the placeframe
-  re-pin.
+  is 4 commits ahead of origin (authoring format + inclusion, each code+docs) — the
+  next session's lock-resolution code joins them BEFORE any push, and one patch
+  release (0.4.7) carries all of it, unblocking the placeframe re-pin.
 
   The sandbox cannot fetch docker-devkit over its SSH remote —
   the bind-mounted checkout's refs are the truth (currently at `7d974c6`, 4 commits
@@ -177,34 +178,79 @@ Replaces `compaction.md`, `plan-auth-refactor.md`, and `design/compose-artifact-
   and grafana's datasources ConfigMap equals the committed datasources file (already
   noted in the regen step).
 
+- **Dedup audit + prior-art survey (research session; nothing outside this plan file
+  changed)**: two read-only audits ran after the inclusion build. The dedup audit
+  found two **live** drifts (stack/AGENTS.md's k3d mint recipe omits `AUTH_AUDIENCE` —
+  pod-failing `CreateContainerConfigError`; the bucket set already diverged —
+  `dev-reconstructions` compose vs `reconstructions` k8s, with `dev-captures`
+  hardcoded in api source for both tiers), one large remaining hand-copy
+  (`values/loki.yaml` mirrors `workloads/loki/config.yaml` near-verbatim — the alloy
+  failure mode; closable via the chart's `loki.config` full-override), and a
+  digest-duplication class (five hand-written mirror digests in k8s sources + a
+  keycloak literal on the compose side; no cross-file checker exists today). Verified
+  single-sourced and closed: gateway snippets, audit sink, env-var names, alpine pin.
+  Catalogued as deliberate pair-variance (not closable by design): `${VAR:?err}` vs
+  `secretKeyRef` wiring, chart probes vs compose healthchecks, host ports, grafana
+  auth modes, the CNPG twin. Every structurally correct closure the audit surfaced is
+  absorbed into the work items — mechanical fixes + preflight guards + devkit
+  lock-resolution + source migrations (item 4), bucket contract (item 5), Slice C
+  riders (item 6), Slice D riders (item 7) — with the two genuine decisions
+  (bucket naming, devkit publishing) branched under Open decisions. The prior-art
+  survey's verdict feeds the publishing decision: parts precedented, the integrated
+  whole not — the differentiators worth leading with are the deterministic committed
+  dual artifacts, hermetic zero-host-ref compose, and lock-coupled fail-closed mirror
+  governance.
 - **Next session, in order**:
-  1. ~~docker-devkit provisioner authoring format~~ **done** (see the record above; its release
-     rides the pending devkit push together with the inclusion step below — one patch
-     release, one placeframe re-pin).
-  2. ~~docker-devkit file inclusion~~ **done** (see the record above; same release story).
-  3. **Re-pin + commit the migration**: once the release lands (0.4.7 carries the
-      authoring format + inclusion), `uv cache clean docker-devkit` then
-      `uv lock --upgrade-package docker-devkit` (per-service pylocks expected
-      unaffected), re-run `uv run generate-score --target compose` against the already
-      migrated working tree (confirm zero diff again through the released pin), then
-      commit sources + lock — the commit now covers the 10 migrated provisioner files
-      *and* the two include-migration edits. Consider whether `requires` should move to
-      `>=0.4.7` in the same commit (older devkits fail loudly on mapping-form sources, so
-      the loose range is safe but noisy). stack/AGENTS.md gains the authored-format facts
-      (mapping form is the authoring law; string form is compiler output; k8s config
-      content arrives via inclusion, not hand mirrors — delete the alloy drift-risk note)
-      with that commit.
-  4. **Regenerate the k8s artifact** (needs the operator's placeframe push from the prior
-     session's close + the mirror job having copied the two charts). `uv run
-     generate-score --target k8s`, inspect the merged manifests (chart docs sorted beside
-     the score docs; alloy twin present; no unpinned/unmirrored images), commit. This is
-     also the first full exercise of the k8s authored provisioners and of inclusion's k8s
-     output — assert the rendered alloy ConfigMap content equals
-     `workloads/alloy/config.alloy` and grafana's datasources ConfigMap equals the
-     committed datasources file. Pre-existing k8s content (postgres/seaweedfs/gateway/
-     api) should reproduce identically, with the chart + observability additions on top.
-  5. **Slice C (work item 4, long tail)**: cloudbeaver, auth-initializer, ngrok,
-      rathole-client.
+  1. ~~docker-devkit provisioner authoring format~~ **done** (rides the pending 0.4.7).
+  2. ~~docker-devkit file inclusion~~ **done** (same release).
+  3. **Audit-hardening batch, mechanical half (work item 4a)**: the stack/AGENTS.md
+     `AUTH_AUDIENCE` fix lands as its own prose commit immediately; the dead
+     `BUCKET` constant deletion and the lease-server `DEPLOYMENT_ENVIRONMENT` fix
+     land as code commits (both re-stale the compose artifact's api/lease-server
+     tree-shas — accepted; regen rides the re-pin); the keycloak lock-hole edit and
+     the `| default` drops ride their already-dirty wait-set files. Add the two
+     preflight guards to `scripts/preflight.py` (digest-equality; secrets-contract)
+     — both pass on the current tree; verify with `uv run --locked
+     scripts/preflight.py`.
+  4. **docker-devkit lock-resolution (work item 4b)**: design the marker shape,
+     implement + test (provisioner manifests and the chart-values pre-pass both
+     resolve against `workloads/images.lock`), AGENTS.md row, commit on `dev` —
+     folds into the pending 0.4.7, which now carries three features and still waits
+     on this before the operator push.
+  5. **Migrate k8s sources to lock refs + loki single-source attempt (work item 4c)**:
+     replace the five hand-written digests with lock refs; switch `values/loki.yaml`
+     to the `loki.config` full-override include — both ride the working tree, all
+     committing with the re-pin.
+  6. **Re-pin + commit the migration**: once 0.4.7 lands (now authoring format +
+     inclusion + lock-resolution), `uv cache clean docker-devkit` then
+     `uv lock --upgrade-package docker-devkit` (per-service pylocks expected
+     unaffected), re-run `uv run generate-score --target compose` against the already
+     migrated working tree (confirm zero diff again through the released pin), then
+     commit sources + lock — the commit covers the 10 migrated provisioner files,
+     the two include edits, the lock-ref migration, the loki values switch, and 4a's
+     wait-set edits. Consider whether `requires` should move to `>=0.4.7` in the
+     same commit (older devkits fail loudly on mapping-form sources, so the loose
+     range is safe but noisy). stack/AGENTS.md gains the authored-format facts
+     (mapping form is the authoring law; string form is compiler output; k8s config
+     content arrives via inclusion, not hand mirrors — delete the alloy drift-risk
+     note) with that commit.
+  7. **Regenerate the k8s artifact** (needs the operator's placeframe push + the
+     mirror job having copied the two charts — and the 0.4.7 re-pin, since the k8s
+     sources now carry lock refs). `uv run generate-score --target k8s`, inspect the
+     merged manifests (chart docs sorted beside the score docs; alloy twin present;
+     no unpinned/unmirrored images), commit. Assertion list, in full: the rendered
+     alloy ConfigMap equals `workloads/alloy/config.alloy`; grafana's datasources
+     ConfigMap equals the committed datasources file; the rendered loki config
+     semantically equals `workloads/loki/config.yaml` (the full-override composed
+     with singleBinary — if the chart mangles it, revert to the structured values
+     and add the semantic-diff preflight guard instead); every lock-resolved digest
+     equals its `images.lock` entry (the preflight guard already checks this
+     mechanically); pre-existing k8s content (postgres/seaweedfs/gateway/api)
+     reproduces identically, with the chart + observability additions on top.
+  8. **Bucket contract (work item 5)** — after the naming decision under Open
+     decisions is made; small slice, order-flexible against 9.
+  9. **Slice C (work item 6, with its audit riders)**, then Slice D (7), seam
+     generation + publish (8), cutover (9).
 - **Cleanup pass shipped (between Slices A and B)**: provisioners reorganised into
   `stack/score/compose/` + `stack/score/k8s/` with truncated names (`compose/seaweedfs.yaml`
   etc.; registration lists in `docker-devkit.yaml` are the authority — score tooling imposes
@@ -304,7 +350,7 @@ Replaces `compaction.md`, `plan-auth-refactor.md`, and `design/compose-artifact-
   unregistered and carries an `init:` block, a field the authored format intentionally
   does not model; registering it would hit the loud format law and force that decision.
   The k8s authored files compile (round-trip verified) but get their first full exercise
-  at the k8s regen (step 3 below).
+  at the k8s regen (the regen step below).
 - Make-it-Sing still includes the old published bundle by digest; its new env names go live
   only when it re-pins (work item 7).
 
@@ -362,23 +408,81 @@ and auth snippet presence.
    Ride this regeneration with the alpine pin: a patch template sets the
    wait-for-resources gate image to a mirror digest, with `alpine` declared in
    `workloads/images.yml` so the mirror job picks it up.
-4. **Slice C — long tail.** cloudbeaver, auth-initializer, ngrok, rathole-client.
-5. **Slice D — GPU services.** reconstructor + localizer workload files; `gpus: all`,
+4. **Audit hardening — drift-class closures (from the 2026-10 dedup audit; everything
+   structurally correct the audit surfaced lives here or in 5–7).** Three parts,
+   order-flexible except as the next-session list sequences them:
+   a. **Mechanical fixes + preflight guards.** `AUTH_AUDIENCE` added to the k3d mint
+      recipe in stack/AGENTS.md (the recipe as written fails pod start —
+      `CreateContainerConfigError`); `compose/oidc-issuer.yaml` keycloak image →
+      `${KEYCLOAK_IMAGE:?err}` (restores "compose side carries zero digests"; key
+      already declared/locked); delete the dead `BUCKET` constant in
+      `workloads/api/src/routers/reconstructions.py` (unused, a trap); lease-server's
+      `DEPLOYMENT_ENVIRONMENT` sourced from the config resource as api.yaml already
+      does (currently ignored on both renderings); drop the
+      `| default "hcloud-volumes"` fallbacks in `k8s/postgres.yaml` +
+      `k8s/seaweedfs.yaml` (generate-score always exports `SCORE_STORAGE_CLASS`; a
+      silent default only masks a misconfigured direct score-k8s run). Preflight
+      gains two standing guards in `scripts/preflight.py`: image-digest equality
+      (every literal `mirror/…@sha256:` ref under `stack/score/k8s/**`, including
+      values `sha`/`digest` fields, equals its `images.lock` entry, matched by
+      upstream tag) and the secrets-contract check (every `secretKeyRef` key in the
+      k8s sources appears in the documented mint list). The guards stay after (b) —
+      they also catch chart-value drift the lock cannot see.
+   b. **docker-devkit lock-resolution.** `generate-score --target k8s` resolves
+      authored image references against `workloads/images.lock` at generation (exact
+      marker shape — e.g. `lock://KEYCLOAK_IMAGE` — designed in-session; must also
+      flow through the chart-values pre-pass for `image.sha`/`digest` fields), making
+      the lock the single digest source for both renderings and deleting the five
+      hand-written digest copies as a class (keycloak, alloy, fluent-bit, loki values,
+      grafana values). Ships folded into the pending 0.4.7 (authoring format +
+      inclusion + lock-resolution: one push, one release, one re-pin).
+   c. **Source migrations riding the re-pin commit.** The five hand-written k8s
+      digests → lock refs; `values/loki.yaml` switches to the chart's `loki.config`
+      full-override sourcing `workloads/loki/config.yaml` via `include-yaml:`,
+      deleting the structured translation — single-sources the last large hand-copy
+      (the 720h/schema/S3 block duplicated near-verbatim today). Verified at the k8s
+      regen; if the chart's full-override path cannot compose with singleBinary +
+      the scaffolding toggles, fall back to the structured values and add a
+      semantic-diff preflight guard over the shared block instead.
+5. **Bucket contract.** Flow the captures bucket through the s3 resource
+   (`CAPTURES_BUCKET` output → api env), deleting the hardcoded `dev-captures` in
+   `capture_sessions.py` — bucket naming becomes a provisioner-level fact as
+   `reconstructions_bucket` already is, instead of a compiled-in constant. Make the
+   naming decision (Open decision below) and apply it uniformly across both
+   provisioners; record the bucket set in stack/AGENTS.md as load-bearing names
+   beside the DNS list.
+6. **Slice C — long tail.** cloudbeaver, auth-initializer, ngrok, rathole-client.
+   Riders from the audit: keycloak session/lifespan constants (`3600`/`2592000`,
+   currently k8s-hardcoded and mirrored in `.env.sample` + the realm export) route
+   through the config provisioner / `placeframe-secrets` — no third copy; both oidc
+   provisioners use `{{ .State.realm }}` where the literal `placeframe-dev` appears,
+   and the realm joins the load-bearing constants in stack/AGENTS.md.
+7. **Slice D — GPU services.** reconstructor + localizer workload files; `gpus: all`,
    healthchecks, localizer network alias via patch templates; `service-port` resources for
    lease-server/localizer wiring. GPU shape settled (see Settled): per-variant generated
    core — the service stays `reconstructor`, only image + device patch differ per variant.
-6. **Seam generation + multi-artifact publish (B3+B4).** `generate-score` emits one compose
+   Riders from the audit: build the healthcheck patch-template class for workload
+   services — the plan's stated mechanism ("score-compose validates probes and ignores
+   them → patch templates emit healthchecks") is currently unimplemented and the
+   generated compose gates nothing on workload health today (score-compose silently
+   drops the api/lease-server livenessProbes); `SERVICE_VERSION` envs carrying the
+   tree-sha tags (OTel `service.version` vanishes in the generated stack today);
+   `LOCALIZER_CONTAINER_URL` baked `localhost:8000` → `localizer:8000` once the
+   alias exists.
+8. **Seam generation + multi-artifact publish (B3+B4).** `generate-score` emits one compose
    per seam (subsetted workload lists per artifact); `publish-compose` publishes the five
    artifacts. Edge-anonymous is the gateway workload with its `files:` overridden out (a
    per-seam override file) plus no keycloak provisioner — that override *is* the "auth
    snippet presence" difference between the edges. `publish-compose` loses its config
    inlining (artifacts are born hermetic); env-stubbing, digest-pinning, and the publish
    call survive.
-7. **Cutover.** `lifecycle.files` → generated files; delete the hand compose files;
+9. **Cutover.** `lifecycle.files` → generated files; delete the hand compose files;
    Make-it-Sing re-pins to `core-cuda` + `edge-keycloak` + `tunnel-rathole`;
    `.env.sample` drops `COMPOSE_PROFILES`; `uv run up` UX unchanged; re-think preflight's
    `compose.postgres.yml` role. `compose.dev.yml` survives as the hand overlay on generated
-   files, never published.
+   files, never published. The audit's hand-corpse notes die here with the corpse
+   (`SERVICE_VERSION` and healthchecks are carried by Slice D instead; preflight's
+   duplicated database contracts shrink to the generated stack's copies).
 
 ## Mechanics that shape execution
 
@@ -396,7 +500,30 @@ and auth snippet presence.
 
 ## Open decisions
 
-- Regeneration cadence once generated compose is load-bearing (work item 7): manual
+- Regeneration cadence once generated compose is load-bearing (work item 9): manual
   two-commit dance until cutover — the CI staleness gate stays off because every context
   SHA re-stales artifacts. Leaning for cutover: a CI bot that regenerates and
   auto-commits (canonical-message commits, the codegen-commit pattern).
+- **Bucket naming** (decide before work item 5): `dev-` prefix everywhere or nowhere.
+  Today's state is the only wrong answer: k8s applies it to 1 of 3 buckets
+  (`dev-captures` but `reconstructions`), compose to 2 of 3, and the api hardcodes
+  `dev-captures` for both tiers. If dev- everywhere: change k8s seaweedfs
+  state/outputs (`reconstructions` → `dev-reconstructions`) + regen k8s. If nowhere:
+  change the compose provisioner + `.env` defaults + regen compose. Either answer
+  completes the slice — the `CAPTURES_BUCKET` env flow makes whichever string chosen a
+  provisioner-level fact afterward.
+- **docker-devkit publishing** (post-initiative, decision-gated — the plan completes
+  regardless; this decides follow-on work). The 2026-10 prior-art survey: parts are
+  precedented (Score itself; Flux Mirror, Aug 2026, for org-mirroring; Compose Bridge
+  for one-shot compose→k8s), but the integrated whole — committed, deterministic,
+  hermetic dual compose+k8s rendering with lock-coupled mirror governance and
+  fail-closed lifecycle — was found nowhere. If yes: de-org-ify first (config knobs
+  for the placeframe-shaped paths and defaults; soft deps on
+  bashrun/strictyaml/build-artifact-registry), frame it as "the determinism +
+  governance layer for Score" (the spec community's active drift discussion is the
+  entry point for proposing the determinism suite upstream), and put
+  cosign/referrers mirror verification on the roadmap before Flux Mirror grows a
+  consumer-side lifecycle. Known risks: Docker's first-party convergence
+  (Compose Bridge/Kanvas, `--lock-image-digests`) eroding the value prop from below;
+  the permanent treadmill of tracking score-compose/score-k8s output changes; niche
+  ceiling (dual-runtime-from-one-source is a philosophy, not a majority practice).
