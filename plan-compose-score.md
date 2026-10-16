@@ -91,11 +91,13 @@ rendering of the same score sources and ride along.
 
 ## Current state
 
-- **Branches**: placeframe `more-final-polish` @ `89e68531`, fully pushed (re-check
-  `git log @{upstream}..HEAD` at session start — counts go stale the moment work lands).
-  The GitHub remote is `outernet-foundation/plerion` (repo renamed; redirects cover old
-  URLs). docker-devkit `dev` is merged and pushed; 0.4.7 is on PyPI and placeframe is
-  re-pinned to it.
+- **Branches**: placeframe `more-final-polish`, local HEAD `4caf7a62` (plan record atop
+  `89e68531`, unpushed — rides the next operator hand-off; re-check
+  `git log @{upstream}..HEAD` at session start). PR #143 (`More final polish`) is open
+  against `dev` with a fully green Integrate run; landing is operator-owned (the
+  `ready-to-merge` label, bors model). The GitHub remote is `outernet-foundation/plerion`
+  (repo renamed; redirects cover old URLs). docker-devkit `dev` is merged and pushed;
+  0.4.7 is on PyPI and placeframe is re-pinned to it.
 - **Working tree, uncommitted by design** (commits at item 3): the 10 registered provisioner
   files migrated to mapping form (zero-diff acceptance passed); `k8s/observability.yaml`'s
   alloy ConfigMap body → `include:` marker; `k8s/values/grafana.yaml`'s datasources →
@@ -127,15 +129,13 @@ rendering of the same score sources and ride along.
   dropped under the no-linting law (Settled): the digest-equality guard is obsoleted by the
   devkit's lock-resolution, and the secrets-contract guard is replaced by the secrets
   declaration.
-- **k8s artifact regeneration gates**: the re-pin gate is done (item 3's remaining half is
-  the commit). The chart-mirror gate is **closed** — registry-verified 2026-10-16: both
-  `ghcr.io/outernet-foundation/mirror/ghcr.io/grafana/helm-charts/{loki,grafana}` digests
-  return `manifest unknown` (a known-mirrored image errors differently, so the check is
-  sound). Mechanism: the mirror runs only inside Integrate (`uv run mirror`), which
-  triggers on PRs to `dev` — a bare branch push never runs it, and the chart declarations
-  landed in `9ded017f` (2026-10-15) after the last Integrate run (PR #142, 2026-10-12). The
-  gate opens when a PR to `dev` first carries the chart entries. Re-verify with
-  `docker manifest inspect` before item 4.
+- **k8s artifact regeneration gates**: both open. The re-pin gate is done (item 3's
+  remaining half is the commit). The chart-mirror gate opened with PR #143's Integrate
+  run — `mirror-images` copied both charts; registry-verified 2026-10-16
+  (`docker manifest inspect` exits 0 on both digests under
+  `ghcr.io/outernet-foundation/mirror/ghcr.io/grafana/helm-charts/`). Standing gotcha:
+  the mirror runs only inside Integrate, which triggers on PRs to `dev` — a bare branch
+  push never runs it, so a newly declared mirror waits for the next PR.
 - **Resumption mechanics**: the pinned score tools, helm, and the repo-pinned uv live in
   `~/.local/bin`, not on the sandbox's default PATH (`export PATH="$HOME/.local/bin:$PATH"`;
   system uv can't read the lock). Post-re-pin, generation runs natively from the repo root:
@@ -217,9 +217,9 @@ and auth snippet presence.
    authoring law; string form is compiler output; k8s config content arrives via
    inclusion, not hand mirrors — delete the alloy drift-risk note) and its k3d hand mint
    recipe is replaced by a pointer to the generated `stack/generated/secrets.txt`.
-4. **Regenerate the k8s artifact** (gates: item 3, plus the chart mirror — still closed as
-   of 2026-10-16, see Current state for what opens it). `uv run generate-score --target
-   k8s`, inspect the merged manifests, commit. Assertions: chart docs sorted beside the
+4. **Regenerate the k8s artifact** (gate: item 3 only — the chart mirror landed with PR
+   #143's Integrate run, registry-verified). `uv run generate-score --target k8s`, inspect
+   the merged manifests, commit. Assertions: chart docs sorted beside the
    score docs; the rendered alloy ConfigMap equals `workloads/alloy/config.alloy`; grafana's
    datasources ConfigMap equals the committed datasources file; the rendered loki config
    semantically equals `workloads/loki/config.yaml` (full-override composed with
