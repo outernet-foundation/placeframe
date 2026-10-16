@@ -134,60 +134,66 @@ Replaces `compaction.md`, `plan-auth-refactor.md`, and `design/compose-artifact-
   across fresh runs; commit sources first, then regenerate, then commit artifacts. The
   branch's commits are unpushed until the operator pushes (sandbox has no push scope);
   hand off branch + HEAD at each session end. At this session's close: placeframe
-  `more-final-polish` is 13 commits ahead of origin once this close-out record commits
-  (the 10 inherited from the prior session plus this session's three plan records:
-  the authoring-format build, the inclusion resequencing, and this close-out; the
+  `more-final-polish` is 14 commits ahead of origin once this close-out record commits
+  (the 13 inherited from the prior session plus this session's one plan record; the
   working tree also holds the uncommitted provisioner migration). Operator pushes
   needed at close: placeframe `more-final-polish` (unblocks the CI mirror job for the
   two charts → k8s regen — push this now, it gates nothing else). docker-devkit `dev`
-  + the patch release wait until the inclusion step lands its commits
-  (already-recorded authoring format + inclusion ship together as 0.4.7).
+  is now 4 commits ahead of origin (authoring format + inclusion, each code+docs) — the
+  operator push + patch release (0.4.7 carries both features) unblock the placeframe
+  re-pin.
 
   The sandbox cannot fetch docker-devkit over its SSH remote —
-  the bind-mounted checkout's refs are the truth (currently at `ea8b55f`, 2 commits
-  ahead of origin/dev: the authoring-format code + docs; the inclusion step adds its
-  commits on top before any push, and one patch release carries both).
-  Placeframe's working tree additionally holds the 10 migrated provisioner files
-  (uncommitted by design — see the authoring-format record; they commit with the 0.4.7
-  re-pin).
+  the bind-mounted checkout's refs are the truth (currently at `7d974c6`, 4 commits
+  ahead of origin/dev: the authoring-format code + docs and the inclusion code + docs;
+  one patch release carries all four). Placeframe's working tree holds the 10 migrated
+  provisioner files plus the two include-migration edits (`k8s/observability.yaml`'s
+  alloy ConfigMap body is now an `include:` marker; `k8s/values/grafana.yaml`'s
+  datasources block an `include-yaml:` marker) — all uncommitted by design; they commit
+  with the 0.4.7 re-pin.
+
+- **docker-devkit file inclusion — implemented on `dev`, migration validated in-tree**:
+  one shared resolver (`includes.py`), two consumers. The marker is a single-key plain-
+  YAML mapping (lintability law): `include: <repo-root-relative path>` inserts file bytes
+  verbatim as a string scalar; `include-yaml: <path>` parses the file and inserts the
+  structure — two modes because grafana's chart renders datasources through
+  `tpl (toYaml $value)` and mangles string values, while alloy's river config and the
+  eventual loki full-override need bytes. Neither mode transforms content (`${S3_*}`
+  holes survive untouched; `$` handling stays per-consumer). Repo-root anchoring with
+  absolute/`..` rejection; missing files, non-string marker values, invalid/empty YAML
+  includes, and cycles are loud errors; `include-yaml` trees resolve recursively with
+  cycle detection, text content is never scanned. Consumer 1: the compile pre-pass
+  resolves markers before validation (`compile_provisioner_document` gained a `root`
+  param, as did `compiled_provisioners`). Consumer 2: `resolved_values_path` passes a
+  marker-free values file through as the committed path and otherwise writes an
+  include-resolved copy into the per-run tempdir (subpath preserved, so same-named files
+  cannot collide) for `helm template --values`. 187 devkit tests green (+22), ruff +
+  basedpyright strict clean. Acceptance: `--with file://` compose regeneration
+  reproduced the committed artifact **zero-diff** with the resolver in the pipeline
+  (compose provisioners carry no markers — binds carry their content, as designed).
+  Placeframe-side authored changes rode the working tree (see resumption facts). The
+  k8s rendering gets its first full exercise of inclusion at the post-mirror regen:
+  assert there that the rendered alloy ConfigMap equals `workloads/alloy/config.alloy`
+  and grafana's datasources ConfigMap equals the committed datasources file (already
+  noted in the regen step).
 
 - **Next session, in order**:
   1. ~~docker-devkit provisioner authoring format~~ **done** (see the record above; its release
      rides the pending devkit push together with the inclusion step below — one patch
      release, one placeframe re-pin).
-  2. **docker-devkit file inclusion** (the verbatim-content mechanism; the alloy ConfigMap
-     and grafana datasources are its consumers). One shared resolver, two consumers: the
-     provisioner compile pre-pass (alloy's ConfigMap body sources
-     `workloads/alloy/config.alloy` instead of hand-mirroring it) and a chart-values
-     pre-pass that writes include-resolved values files into the per-run tempdir and
-     points `helm template --values` at them (`values/grafana.yaml`'s `datasources:` block
-     sources `workloads/grafana/provisioning/datasources/datasources.yaml`). Design laws:
-     verbatim only — no substitution, no variables (templating belongs to score's Go
-     templates and `${VAR}` holes); the `$` contract is per-consumer — the compose
-     converter doubles `$` against compose interpolation, but k8s-side inclusion passes
-     content through untouched (`${S3_*}` holes must survive into ConfigMaps and values
-     as-is); the include marker must be plain-YAML-parseable (`yaml.safe_load` rejects
-     custom tags, which would defeat the authoring format's lintability goal); paths
-     anchor at the repo root (matching how binds reference `workloads/…`), missing file
-     is a loud compile error. Validation before handoff: `--with file://` run reproduces
-     the compose artifact zero-diff still (compose provisioners use no includes — binds
-     carry their content there). Placeframe-side authored changes (alloy ConfigMap,
-     values/grafana.yaml) ride the same working-tree migration as the provisioner files,
-     committing with the re-pin. **Out of scope**: the loki `loki.config` full-override
-     (switching values/loki.yaml off its structured translation) — a separate
-     consumer-side decision gated on verifying the chart's full-override path composes
-     with singleBinary + the scaffolding toggles; inclusion support in values files is
-     built now, the switch itself is deliberate and later.
+  2. ~~docker-devkit file inclusion~~ **done** (see the record above; same release story).
   3. **Re-pin + commit the migration**: once the release lands (0.4.7 carries the
-     authoring format + inclusion), `uv cache clean docker-devkit` then
-     `uv lock --upgrade-package docker-devkit` (per-service pylocks expected
-     unaffected), re-run `uv run generate-score --target compose` against the already
-     migrated working tree (confirm zero diff again through the released pin), then
-     commit sources + lock. Consider whether `requires` should move to `>=0.4.7` in the
-     same commit (older devkits fail loudly on mapping-form sources, so the loose range
-     is safe but noisy). stack/AGENTS.md gains the authored-format facts (mapping form is
-     the authoring law; string form is compiler output; k8s config content arrives via
-     inclusion, not hand mirrors — delete the alloy drift-risk note) with that commit.
+      authoring format + inclusion), `uv cache clean docker-devkit` then
+      `uv lock --upgrade-package docker-devkit` (per-service pylocks expected
+      unaffected), re-run `uv run generate-score --target compose` against the already
+      migrated working tree (confirm zero diff again through the released pin), then
+      commit sources + lock — the commit now covers the 10 migrated provisioner files
+      *and* the two include-migration edits. Consider whether `requires` should move to
+      `>=0.4.7` in the same commit (older devkits fail loudly on mapping-form sources, so
+      the loose range is safe but noisy). stack/AGENTS.md gains the authored-format facts
+      (mapping form is the authoring law; string form is compiler output; k8s config
+      content arrives via inclusion, not hand mirrors — delete the alloy drift-risk note)
+      with that commit.
   4. **Regenerate the k8s artifact** (needs the operator's placeframe push from the prior
      session's close + the mirror job having copied the two charts). `uv run
      generate-score --target k8s`, inspect the merged manifests (chart docs sorted beside
