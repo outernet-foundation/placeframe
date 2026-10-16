@@ -144,15 +144,31 @@ Replaces `compaction.md`, `plan-auth-refactor.md`, and `design/compose-artifact-
   the hand `compose.postgres.yml` postgres (shared project name `placeframe`; its data
   volume survives). Keycloak admin/admin creds in the compose provisioner match the hand
   stack's posture — not a defect.
+- **docker-devkit chart-render step implemented (next item 1 done, awaiting release)**: `dev`
+  @ `01b0565` (code `8a77a61` + AGENTS.md docs), unpushed. `ScoreConfig` gains `charts:`
+  (digest-pinned upstream-native OCI refs, parse-time validated; unique names;
+  per-chart values files + optional namespace) and `helm_version` (required with
+  charts); `generate-score --target k8s` runs `helm template` against the
+  **org-mirrored** form of each ref (mirror section required — no mirror, no charts)
+  and merges the blocks into the same kind/namespace/name-sorted `manifests.yaml`;
+  `ensure_score_tools` fetches pinned helm beside the score tools (nested
+  `linux-amd64/` member, strip-components); the `mirror` verb now copies chart
+  declarations too (crane copies OCI charts byte-identically — the CI mirror job
+  populates them, single-writer law intact). Smoke-verified end-to-end with helm
+  v3.22.1: digest-pinned `oci://ghcr.io/grafana/helm-charts/loki@sha256:ba8b6b3e…`
+  (tag 7.3.0) templates cleanly into `---\n# Source:` blocks, missing chart values
+  (loki demands `storage.bucketNames` + schema config) fail loudly at generation.
+  Helm current lines:   v3.22.1 (v3 terminal) / v4.3.1 (v4 current) — Slice B pins
+  explicitly; v3.22.1 is the smoke-verified one. Release handoff: operator pushes
+  `dev` (carries merged PR #17's recursive `image_globs` fix + these two commits),
+  cuts the release, then `uv lock --upgrade-package docker-devkit` here (also
+  closes preflight's scan gap over the moved provisioner files; re-run
+  `uv run lock-python` if the workspace lock re-stales).
 - **Next session, in order**:
-  1. **docker-devkit: chart-render step in generate-score** — the one new mechanism: a
-     `ScoreConfig` section naming digest-pinned, org-mirrored charts plus committed values
-     files; `helm template` at generation; output concatenated and sorted into
-     `manifests.yaml`. Revive `ensure_score_tools` to fetch pinned helm alongside the score
-     tools. Release handoff carries all three docker-devkit changes together (recursive
-     `image_globs` fix already on `dev` @ 90aad4d, unpushed): push, release, then
-     `uv lock --upgrade-package docker-devkit` here (which also closes preflight's
-     temporary scan gap over the moved provisioner files).
+  1. Re-pin docker-devkit once the release lands (`uv lock --upgrade-package
+     docker-devkit`, then `uv run lock-python` if the workspace lock re-stales);
+     verify `uv run generate-score` still reproduces both artifacts byte-identical
+     through the released tool.
    2. **Slice B (work item 3, reshaped below)**.
 - Make-it-Sing still includes the old published bundle by digest; its new env names go live
   only when it re-pins (work item 7).
