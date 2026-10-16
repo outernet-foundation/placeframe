@@ -131,13 +131,21 @@ Replaces `compaction.md`, `plan-auth-refactor.md`, and `design/compose-artifact-
   the placeframe ghcr namespace), operator install in Pulumi, `pf-postgres` →
   `pf-postgres-rw` DNS sync in `reconstructor.py`, and a PG-14-vs-compose-tier
   major-skew check.
+- **Generated-compose smoke test passed (both auth modes, first runtime validation)**:
+  anonymous boots `auth_mode:"disabled"`, OIDC boots `auth_mode:"keycloak"` with
+  unauthenticated `/capture_sessions` → 401 (the `AUTH_JWKS_URL` passthrough holds at
+  runtime); gateway proxies the api (`/schema` 200) and `/auth/*` → keycloak (302); all
+  one-shots (create/migrate/initialize-s3/wait-for-resources) exit 0. The token flow is
+  unexercisable — auth-initializer (realm import) is Slice C, so keycloak has no
+  `placeframe-dev` realm. Smoke fixes shipped: stack/AGENTS.md swagger URL corrected
+  (`/schema`, not `/schema/swagger`) and the image prerequisite documented (fresh
+  `tree-<sha>` tags must exist before `up` — api/gateway were unbuilt; `uv run build -t
+  api -t gateway --gpu none`). Teardown side effect: `down --remove-orphans` also removes
+  the hand `compose.postgres.yml` postgres (shared project name `placeframe`; its data
+  volume survives). Keycloak admin/admin creds in the compose provisioner match the hand
+  stack's posture — not a defect.
 - **Next session, in order**:
-  1. **Smoke-test the generated compose** (first runtime validation ever — Slice A and the
-     cleanup pass were verified by generation + preflight only). Follow Deploy: Docker in
-     `stack/AGENTS.md`, then `down --remove-orphans`. Smoke **both auth modes** — anonymous
-     (empty `AUTH_*` block) and OIDC (per `.env.sample`) — the JWKS fix is untested at
-     runtime. Fix anything it surfaces before building on top.
-  2. **docker-devkit: chart-render step in generate-score** — the one new mechanism: a
+  1. **docker-devkit: chart-render step in generate-score** — the one new mechanism: a
      `ScoreConfig` section naming digest-pinned, org-mirrored charts plus committed values
      files; `helm template` at generation; output concatenated and sorted into
      `manifests.yaml`. Revive `ensure_score_tools` to fetch pinned helm alongside the score
@@ -145,7 +153,7 @@ Replaces `compaction.md`, `plan-auth-refactor.md`, and `design/compose-artifact-
      `image_globs` fix already on `dev` @ 90aad4d, unpushed): push, release, then
      `uv lock --upgrade-package docker-devkit` here (which also closes preflight's
      temporary scan gap over the moved provisioner files).
-  3. **Slice B (work item 3, reshaped below)**.
+   2. **Slice B (work item 3, reshaped below)**.
 - Make-it-Sing still includes the old published bundle by digest; its new env names go live
   only when it re-pins (work item 7).
 
