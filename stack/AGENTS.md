@@ -44,7 +44,12 @@ docker compose --project-directory . \
 # teardown: same command with `down --remove-orphans`
 ```
 
-It reads the same `.env` as the hand stack. Reach it at `http://localhost:8443/schema/swagger`.
+The `tree-<sha>` image tags the generated compose references must exist before `up` — a
+regeneration can reference tags that have never been built or pushed, and the pull fails
+with `not found`. Build the missing services first (`uv run build -t api -t gateway
+--gpu none`).
+
+It reads the same `.env` as the hand stack. Reach it at `http://localhost:8443/schema`.
 
 ## Deploy: Kubernetes
 
