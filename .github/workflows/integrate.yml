@@ -17,21 +17,21 @@ jobs:
     permissions:
       contents: read
       packages: write
-    uses: outernet-foundation/github-actions-toolkit/.github/workflows/mirror.yml@8e2b3326f63081980bebf844eb62b24dbc1238a4
+    uses: outernet-foundation/github-actions-toolkit/.github/workflows/mirror.yml@c6221cf68594e2d6bf4445da02beea0b8ee58440
 
   preflight:
     needs: [mirror-images]
     permissions:
       contents: read
       packages: read
-    uses: outernet-foundation/github-actions-toolkit/.github/workflows/preflight.yml@8e2b3326f63081980bebf844eb62b24dbc1238a4
+    uses: outernet-foundation/github-actions-toolkit/.github/workflows/preflight.yml@c6221cf68594e2d6bf4445da02beea0b8ee58440
 
   compile-check-unity:
     needs: [preflight]
     permissions:
       contents: read
       packages: write
-    uses: outernet-foundation/github-actions-toolkit/.github/workflows/compile-check-unity.yml@8e2b3326f63081980bebf844eb62b24dbc1238a4
+    uses: outernet-foundation/github-actions-toolkit/.github/workflows/compile-check-unity.yml@c6221cf68594e2d6bf4445da02beea0b8ee58440
     secrets:
       unity-email: ${{ secrets.UNITY_EMAIL }}
       unity-password: ${{ secrets.UNITY_PASSWORD }}
@@ -42,7 +42,7 @@ jobs:
     permissions:
       contents: read
       packages: write
-    uses: outernet-foundation/github-actions-toolkit/.github/workflows/build-docker.yml@8e2b3326f63081980bebf844eb62b24dbc1238a4
+    uses: outernet-foundation/github-actions-toolkit/.github/workflows/build-docker.yml@c6221cf68594e2d6bf4445da02beea0b8ee58440
 
   publish-compose:
     needs: [build-docker]
@@ -69,9 +69,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
 
-  update-pr-draft-release:
+  release-pr-builds:
     needs: [publish-compose, compile-check-unity]
     permissions:
       contents: write
       packages: read
-    uses: outernet-foundation/github-actions-toolkit/.github/workflows/update-pr-draft-release.yml@8e2b3326f63081980bebf844eb62b24dbc1238a4
+    uses: outernet-foundation/github-actions-toolkit/.github/workflows/release-pr-builds.yml@c6221cf68594e2d6bf4445da02beea0b8ee58440
