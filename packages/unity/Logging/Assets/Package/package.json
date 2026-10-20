@@ -16,6 +16,8 @@
   },
   "dependencies": {
     "com.cysharp.unitask": "2.5.10",
-    "com.cysharp.r3": "1.2.9"
+    "com.cysharp.r3": "1.2.9",
+    "org.nuget.serilog": "4.4.0",
+    "org.nuget.microsoft.extensions.logging": "10.0.13"
   }
 }
