@@ -50,7 +50,13 @@ namespace Placeframe.Core
 
     public sealed class ProgressTrackingHandler : DelegatingHandler
     {
-        protected override Task<HttpResponseMessage> SendAsync(
+        // The transport is handed a fully-buffered body instead of the live content the
+        // generated client built: incremental body streaming through HttpClientHandler
+        // stalls on IL2CPP Android builds (the write stops after the first multipart
+        // part and the request never completes). A buffered body goes out through the
+        // plain known-size array write path, which behaves on every runtime. Cost: one
+        // full copy of the request body held for the duration of the send.
+        protected override async Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request,
             CancellationToken cancellationToken
         )
@@ -58,9 +64,20 @@ namespace Placeframe.Core
             var progress = HttpProgressContext.Current;
             if (progress != null && request.Content != null)
             {
-                request.Content = new ProgressWritingContent(request.Content, progress);
+                var buffered = await BufferContent(request.Content).ConfigureAwait(false);
+                request.Content = new ProgressWritingContent(buffered, progress);
             }
-            return base.SendAsync(request, cancellationToken);
+            return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        }
+
+        private static async Task<ByteArrayContent> BufferContent(HttpContent content)
+        {
+            var bytes = await content.ReadAsByteArrayAsync().ConfigureAwait(false);
+            var buffered = new ByteArrayContent(bytes);
+            foreach (var header in content.Headers)
+                buffered.Headers.TryAddWithoutValidation(header.Key, header.Value);
+            content.Dispose();
+            return buffered;
         }
     }
 
@@ -79,10 +96,6 @@ namespace Placeframe.Core
                 Headers.TryAddWithoutValidation(header.Key, header.Value);
         }
 
-        // CopyToAsync routes through SerializeToStreamAsync against the target stream directly.
-        // ReadAsStreamAsync would instead trigger Mono's HttpContent.LoadIntoBufferAsync — for
-        // MultipartFormDataContent in particular this fully materializes every part before
-        // yielding, collapsing a streaming passthrough into a phone-side download-then-upload.
         protected override async Task SerializeToStreamAsync(Stream target, TransportContext context)
         {
             _progress.Report(new UploadProgress(
