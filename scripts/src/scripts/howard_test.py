@@ -31,6 +31,7 @@ from panorama.projection import LAYOUTS, ViewMap as ViewMapT, camera_params
 from panorama.projection import layout as panorama_layout
 from panorama.projection import render as panorama_render
 from panorama.projection import view_map as panorama_view_map
+from panorama import insv
 from panorama.video import frames as video_frames
 from panorama.video import sample_frames
 from panorama.video import inspect as inspect_video
@@ -459,6 +460,7 @@ def build_spherical_capture_tar(
     stride: int,
     max_width: int,
     on_frame: Callable[[int, int], None] | None = None,
+    insv_width: int | None = None,
 ) -> tuple[bytes, int, str]:
     """Package a spherical video as a capture: one equirectangular frame per instant.
 
@@ -478,6 +480,12 @@ def build_spherical_capture_tar(
 
     frame_interval_ms = 1000.0 * stride / info.fps
     width = min(max_width, info.width) if max_width else info.width
+    if insv_width:
+        # An .insv is stitched here, sampling each lens once at whatever width is asked for, so
+        # unlike a decoded mp4 it can be made wider than its native width without a second resample.
+        if not insv.is_insv(video_path):
+            raise ValueError(f"--insv-width applies only to an Insta360 .insv; {video_path.name} is not one")
+        width = insv_width
     height = width // 2
 
     manifest = {
@@ -2567,7 +2575,12 @@ async def _reconstruct(
 
 
 async def _import_spherical(
-    video_path: Path, name: str, stride: int, max_width: int, direct: bool | None = None
+    video_path: Path,
+    name: str,
+    stride: int,
+    max_width: int,
+    direct: bool | None = None,
+    insv_width: int | None = None,
 ) -> dict[str, Any]:
     """Build a capture from a spherical video and upload it, stopping there.
 
@@ -2581,6 +2594,7 @@ async def _import_spherical(
         stride,
         max_width,
         lambda current, total: emit_progress("extracting", current, total),
+        insv_width,
     )
     typer.echo(f"{video_path.name}: {summary}; capture is {_format_size(len(tar_bytes))}", err=True)
     use_direct = direct_store_wanted(direct, len(tar_bytes))
@@ -2623,6 +2637,14 @@ def import_spherical(
             "would not fit through the API",
         ),
     ] = None,
+    insv_width: Annotated[
+        int | None,
+        typer.Option(
+            "--insv-width",
+            help="Stitch an .insv at exactly this equirectangular width (even above its native width), "
+            "in place of --max-width",
+        ),
+    ] = None,
     json_output: Annotated[bool, typer.Option("--json", help="Emit JSON instead of text")] = False,
 ) -> None:
     """Import a spherical video as a capture, without reconstructing it."""
@@ -2632,7 +2654,7 @@ def import_spherical(
     estimate = estimate_capture_size(video, stride, resolved_max_width)
     typer.echo(f"{video.name}: {estimate.describe()}", err=True)
     _announce_direct_store(estimate, direct)
-    result = run(_import_spherical(video, name, stride, resolved_max_width, direct))
+    result = run(_import_spherical(video, name, stride, resolved_max_width, direct, insv_width))
     if json_output:
         typer.echo(dumps(result))
         return
