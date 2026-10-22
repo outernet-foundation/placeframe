@@ -1236,6 +1236,7 @@ app = Litestar(
         list_captures,
         list_reconstructions,
         delete_reconstruction,
+        cancel_reconstruction,
         list_maps,
         publish_map,
         unpublish_map,
