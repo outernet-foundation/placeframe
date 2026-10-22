@@ -21,15 +21,18 @@ generate-score:
     - compose/oidc-issuer.yaml
     - compose/seaweedfs.yaml
     - compose/observability.yaml
+    - compose/tunnel.yaml
   compose_patch_templates:
     - compose/wait-for-resources-image.tpl
     - compose/workload-healthchecks.tpl
+    - compose/tunnel-gate-exclusion.tpl
   k8s_provisioners:
     - k8s/postgres.yaml
     - k8s/seaweedfs.yaml
     - k8s/config.yaml
     - k8s/oidc-issuer.yaml
     - k8s/observability.yaml
+    - k8s/tunnel.yaml
   publishes:
     - "8000:api:8000"
     - "8443:gateway:8443"

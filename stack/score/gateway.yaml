@@ -39,3 +39,6 @@ resources:
   auth:
     type: oidc-issuer
     id: placeframe-keycloak
+  tunnel:
+    type: tunnel
+    id: placeframe-tunnel

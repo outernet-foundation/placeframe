@@ -1,0 +1,44 @@
+# Tunnel provisioner (compose): the two supported public-URL relays, profile-gated so
+# the operator picks at most one via COMPOSE_PROFILES (tunnel-ngrok / tunnel-rathole).
+# Every tunnel hole is a soft `:-`, never `:?err`: docker compose interpolates every
+# service's env regardless of profile, so a hard hole would break whichever relay the
+# operator did not choose. Both relays forward the gateway's cleartext h2c listener by
+# its workload hostname (`gateway`); restart: on-failure is load-bearing here — the
+# relays are long-lived agents whose control endpoints flap, not one-shot jobs.
+# The k8s twin emits nothing: public ingress on the cluster is the load balancer's
+# job, not a relay's.
+- uri: template://placeframe/tunnel
+  type: tunnel
+  description: Profile-gated public relays (ngrok / rathole) forwarding the gateway.
+  state:
+    gatewayHost: gateway
+    ngrokService: ngrok
+    ratholeService: rathole-client
+  services:
+    "{{ .State.ngrokService }}":
+      image: ${NGROK_IMAGE:?err}
+      profiles: [tunnel-ngrok]
+      restart: on-failure
+      ports:
+      - target: 4040
+        published: "4040"
+        protocol: tcp
+        mode: ingress
+      entrypoint:
+      - ngrok
+      - http
+      - --domain=${NGROK_DOMAIN:-}
+      - --upstream-protocol=http2
+      - --log=stdout
+      - http://{{ .State.gatewayHost }}:8443
+      environment:
+        NGROK_AUTHTOKEN: "${NGROK_AUTHTOKEN:-}"
+    "{{ .State.ratholeService }}":
+      image: ghcr.io/outernet-foundation/placeframe/rathole-client:{{ env "RATHOLE_CLIENT_SHA" }}
+      profiles: [tunnel-rathole]
+      restart: on-failure
+      environment:
+        ENGINEER_NAME: "${ENGINEER_NAME:-}"
+        TUNNEL_CONTROL_ENDPOINT: "${TUNNEL_CONTROL_ENDPOINT:-}"
+        TUNNEL_TOKEN: "${TUNNEL_TOKEN:-}"
+        RATHOLE_SERVICES: "{{ .State.gatewayHost }}:tcp:{{ .State.gatewayHost }}:8443"
