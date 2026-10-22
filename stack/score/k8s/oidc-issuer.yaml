@@ -1,122 +1,122 @@
-# OIDC issuer provisioner (Kubernetes): emits a Service + StatefulSet. The type is named
-# for the protocol, not the provider — a swapped issuer implementation registers a
-# different provisioner for the same `oidc-issuer` type. The realm is imported by
-# the auth-initializer initContainer (writes the realm JSON into a shared volume that keycloak
-# reads on --import-realm). Hostname, public URL, JWKS URL, and admin password come from
-# the externally managed placeframe-secrets Secret; no values are emitted here. Keycloak can't
-# be a normal Score workload (initContainer + StatefulSet + PVC), so it is provisioned as
-# raw manifests like postgres/seaweedfs.
+# OIDC issuer provisioner (Kubernetes): local counterpart of compose/oidc-issuer.yaml.
+# Keycloak is operator-first on this tier: the official keycloak-operator chart (declared
+# under generate-score.charts) renders the operator Deployment plus CRDs, and this
+# provisioner emits the Keycloak CR the operator reconciles into a StatefulSet and a
+# Service named `<cr>-service` (keycloak-service). The ExternalName Service keeps the
+# `keycloak` DNS name load-bearing for the gateway auth snippets — one snippet source,
+# both renderings. The realm is converged post-boot by the configurator Job over the
+# admin API: operator-managed pods carry no initContainers, and KeycloakRealmImport
+# cannot resolve holes (no secretKeyRef in CRs, no generation-time secrets).
 #
-# certs_url references the Secret rather than emitting the keycloak literal because the api
-# treats issuer-unset with any auth endpoint set as a boot error — anonymous mode must read
-# an empty AUTH_JWKS_URL from the Secret, same as its empty AUTH_ISSUER_URL.
+# Hostname, admin password, lifespans, and the public URL come from the externally
+# managed placeframe-secrets Secret; no values are emitted here. Keycloak state is
+# ephemeral H2 until a db spec lands — realm (re)configuration is idempotent and users
+# are dev-tier. certs_url references the Secret rather than emitting the keycloak
+# literal because the api treats issuer-unset with any auth endpoint set as a boot
+# error — anonymous mode must read an empty AUTH_JWKS_URL from the Secret.
 - uri: template://placeframe/oidc-issuer-k8s
   type: oidc-issuer
-  description: Keycloak with realm imported by auth-initializer; hostname/credentials from placeframe-secrets.
+  description: Operator-managed keycloak with the realm converged by the admin-API configurator.
   state:
-    service: keycloak
+    instance: keycloak
     realm: placeframe-dev
   outputs:
     certs_url: '{{ encodeSecretRef "placeframe-secrets" "AUTH_JWKS_URL" }}'
     realm: "{{ .State.realm }}"
   manifests:
+    - apiVersion: k8s.keycloak.org/v1
+      kind: Keycloak
+      metadata:
+        name: "{{ .State.instance }}"
+      spec:
+        instances: 1
+        # The mirrored image is not build-time augmented, so the operator must not
+        # assume --optimized applies.
+        startOptimized: false
+        image:
+          lock: KEYCLOAK_IMAGE
+        http:
+          httpEnabled: true
+          httpPort: 8080
+          serviceHttpPort: 8080
+        proxy:
+          headers: xforwarded
+        env:
+        - name: KC_BOOTSTRAP_ADMIN_USERNAME
+          value: admin
+        - name: KC_BOOTSTRAP_ADMIN_PASSWORD
+          secret:
+            name: placeframe-secrets
+            key: KEYCLOAK_ADMIN_PASSWORD
+        - name: KC_HOSTNAME
+          secret:
+            name: placeframe-secrets
+            key: KEYCLOAK_HOSTNAME
+        - name: KC_HOSTNAME_ADMIN
+          secret:
+            name: placeframe-secrets
+            key: KEYCLOAK_HOSTNAME
+        - name: KC_HOSTNAME_STRICT_HTTPS
+          value: "true"
     - apiVersion: v1
       kind: Service
       metadata:
-        name: "{{ .State.service }}"
+        name: "{{ .State.instance }}"
       spec:
-        selector:
-          app: "{{ .State.service }}"
-        ports:
-        - port: 8080
-          targetPort: 8080
-    - apiVersion: apps/v1
-      kind: StatefulSet
+        type: ExternalName
+        externalName: "{{ .State.instance }}-service"
+    - apiVersion: batch/v1
+      kind: Job
       metadata:
-        name: "{{ .State.service }}"
+        name: "{{ .State.instance }}-realm"
+        # Same Sync-hook shape as the create/bucket Jobs (immutable spec.template under
+        # Argo). The configurator polls readiness itself, so no hook weight could make
+        # this wait on the operator-managed StatefulSet anyway — poll-retry absorbs the
+        # ordering, including the operator's own startup delay on a cold cluster.
+        annotations:
+          argocd.argoproj.io/hook: Sync
+          argocd.argoproj.io/hook-weight: "10"
+          argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
       spec:
-        replicas: 1
-        serviceName: "{{ .State.service }}"
-        selector:
-          matchLabels:
-            app: "{{ .State.service }}"
+        backoffLimit: 30
         template:
-          metadata:
-            labels:
-              app: "{{ .State.service }}"
           spec:
-            # The keycloak user (uid 1000) must be able to write the H2 DB onto the mounted data PVC;
-            # without fsGroup the volume is root-owned and start-dev fails with AccessDenied.
-            securityContext:
-              fsGroup: 1000
-            initContainers:
-            - name: auth-initializer
-              image: ghcr.io/outernet-foundation/placeframe/auth-initializer:{{ env "AUTH_INITIALIZER_SHA" }}
-              volumeMounts:
-              - name: import
-                mountPath: /keycloak_import
-              - name: auth-data
-                mountPath: /auth_data
+            restartPolicy: OnFailure
             containers:
-            - name: keycloak
-              image:
-                lock: KEYCLOAK_IMAGE
-              args: ["start-dev", "--import-realm", "--health-enabled=true"]
-              ports:
-              - containerPort: 8080
+            - name: configurator
+              image: ghcr.io/outernet-foundation/placeframe/auth-initializer:{{ env "AUTH_INITIALIZER_SHA" }}
               env:
+              - name: KEYCLOAK_URL
+                value: http://{{ .State.instance }}-service:8080
+              - name: KC_BOOTSTRAP_ADMIN_USERNAME
+                value: admin
+              - name: KC_BOOTSTRAP_ADMIN_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: placeframe-secrets
+                    key: KEYCLOAK_ADMIN_PASSWORD
               - name: PUBLIC_URL
                 valueFrom:
                   secretKeyRef:
                     name: placeframe-secrets
                     key: PUBLIC_URL
-              - name: KC_HOSTNAME
-                valueFrom:
-                  secretKeyRef:
-                    name: placeframe-secrets
-                    key: KEYCLOAK_HOSTNAME
-              - name: KC_HOSTNAME_ADMIN
-                valueFrom:
-                  secretKeyRef:
-                    name: placeframe-secrets
-                    key: KEYCLOAK_HOSTNAME
-              - name: KC_PROXY_HEADERS
-                value: xforwarded
-              - name: KC_HOSTNAME_STRICT_HTTPS
-                value: "true"
               - name: KEYCLOAK_ACCESS_TOKEN_LIFESPAN
-                value: "3600"
-              - name: KEYCLOAK_SSO_SESSION_IDLE_TIMEOUT
-                value: "2592000"
-              - name: KEYCLOAK_SSO_SESSION_MAX_LIFESPAN
-                value: "2592000"
-              - name: KEYCLOAK_ADMIN
-                value: admin
-              - name: KEYCLOAK_ADMIN_PASSWORD
                 valueFrom:
                   secretKeyRef:
                     name: placeframe-secrets
-                    key: KEYCLOAK_ADMIN_PASSWORD
-              readinessProbe:
-                httpGet:
-                  path: /health/ready
-                  port: 9000
-              volumeMounts:
-              - name: import
-                mountPath: /opt/keycloak/data/import
-                readOnly: true
-              - name: data
-                mountPath: /opt/keycloak/data
-            volumes:
-            - name: import
-              emptyDir: {}
-            - name: auth-data
-              emptyDir: {}
-        volumeClaimTemplates:
-        - metadata:
-            name: data
-          spec:
-            accessModes: [ReadWriteOnce]
-            resources:
-              requests:
-                storage: 1Gi
+                    key: KEYCLOAK_ACCESS_TOKEN_LIFESPAN
+              - name: KEYCLOAK_SSO_SESSION_IDLE_TIMEOUT
+                valueFrom:
+                  secretKeyRef:
+                    name: placeframe-secrets
+                    key: KEYCLOAK_SSO_SESSION_IDLE_TIMEOUT
+              - name: KEYCLOAK_SSO_SESSION_MAX_LIFESPAN
+                valueFrom:
+                  secretKeyRef:
+                    name: placeframe-secrets
+                    key: KEYCLOAK_SSO_SESSION_MAX_LIFESPAN
+              - name: SEED_TEST_USERS
+                valueFrom:
+                  secretKeyRef:
+                    name: placeframe-secrets
+                    key: SEED_TEST_USERS

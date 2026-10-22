@@ -44,7 +44,7 @@ from litestar import Request, Router, delete, get, post, put
 from litestar.datastructures import UploadFile
 from litestar.di import Provide
 from litestar.enums import RequestEncodingType
-from litestar.exceptions import ClientException, HTTPException, NotFoundException, PermissionDeniedException
+from litestar.exceptions import ClientException, HTTPException, NotFoundException
 from litestar.params import Body, KwargDefinition, Parameter
 from litestar.response import Stream
 from litestar.status_codes import HTTP_409_CONFLICT, HTTP_422_UNPROCESSABLE_ENTITY
@@ -427,13 +427,8 @@ async def export_reconstruction_tar(
 @post("/tar", operation_class=MultipartRequestOperation)
 async def import_reconstruction_tar(
     session: AsyncSession,
-    request: Request[str, dict[str, Any], Any],
     data: Annotated[ReconstructionTarUploadRequest, Body(media_type=RequestEncodingType.MULTI_PART)],
 ) -> ReconstructionReadWithQueue:
-    # Worker tokens route to the orchestration session with no tenant, so current_tenant() raises on insert.
-    if request.auth and request.auth.get("azp") == "placeframe-worker":
-        raise PermissionDeniedException("Reconstruction import requires a user identity, not a worker token")
-
     fileobj = cast(BinaryIO, data.data.file)
     fileobj.seek(0)
     metadata_bytes = next(

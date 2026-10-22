@@ -57,11 +57,6 @@ else:
     async def get_session(request: Request[str, dict[str, Any], Any]) -> AsyncGenerator[AsyncSession]:
         claims = request.auth
 
-        if claims and claims.get("azp") == "placeframe-worker":
-            async with OrchestrationSessionLocal() as session, session.begin():
-                yield session
-            return
-
         user_id = claims.get("sub") if claims else None
 
         if not isinstance(user_id, str) or not user_id:

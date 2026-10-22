@@ -42,6 +42,10 @@ generate-score:
       ref: oci://ghcr.io/grafana/helm-charts/grafana@sha256:161aa0727809ebdd41d27aa92e06e0f72623a9c86b7f2a6e2ebdb7cdbdd0764e
       values:
         - stack/score/k8s/values/grafana.yaml
+    - name: keycloak-operator
+      ref: oci://quay.io/keycloak/keycloak-operator-helm@sha256:daac469fec00157ff6dc29af1e41b06980673ee22706a093caf08afa373b8578
+      values:
+        - stack/score/k8s/values/keycloak-operator.yaml
   helm_version: "3.22.1"
   secrets:
     file: stack/score/secrets.yaml
