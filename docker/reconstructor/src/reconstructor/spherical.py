@@ -16,6 +16,7 @@ Only the kept keyframes are rendered, so this runs after keyframe selection.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
 
 from numpy import asarray, uint8
@@ -39,11 +40,20 @@ def inside_image_circle(keypoints: Tensor, width: int) -> Tensor:
     return radius <= width / 2 - IMAGE_CIRCLE_MARGIN_PX
 
 
-def render_spherical_views(rig: Rig, capture_session_directory: Path) -> int:
+def spherical_frame_count(rig: Rig) -> int:
+    """How many frames render_spherical_views will render for this rig: its kept keyframes, or none."""
+    return len(rig.frame_poses) if rig.spherical_expansion is not None else 0
+
+
+def render_spherical_views(
+    rig: Rig, capture_session_directory: Path, on_frame: Callable[[], None] | None = None
+) -> int:
     """Write every view of every kept frame of this rig's spherical camera.
 
     Returns the number of view images written; zero for a rig that has no
-    spherical camera, which is every capture from a phone or a ZED.
+    spherical camera, which is every capture from a phone or a ZED. `on_frame`
+    is called after each frame's views are written, so a long render reports
+    progress (and can be cancelled) like the per-image work that follows it.
     """
     expansion = rig.spherical_expansion
     if expansion is None:
@@ -76,7 +86,9 @@ def render_spherical_views(rig: Rig, capture_session_directory: Path) -> int:
             rendered: NDArray[uint8] = render(frame, maps[view.name])
             PILImage.fromarray(rendered).save(view_directory / f"{frame_id}.jpg", quality=95)
             written += 1
+        if on_frame is not None:
+            on_frame()
     return written
 
 
-__all__ = ["IMAGE_CIRCLE_MARGIN_PX", "inside_image_circle", "render_spherical_views"]
+__all__ = ["IMAGE_CIRCLE_MARGIN_PX", "inside_image_circle", "render_spherical_views", "spherical_frame_count"]

@@ -13,7 +13,7 @@ from core.transform import Float3, Float4
 from panorama import projection
 from PIL import Image as PILImage
 from reconstructor.rig import Rig
-from reconstructor.spherical import inside_image_circle, render_spherical_views
+from reconstructor.spherical import inside_image_circle, render_spherical_views, spherical_frame_count
 from torch import tensor
 
 FRAMES_CSV = (
@@ -214,3 +214,14 @@ def test_keypoints_on_the_image_circle_edge_are_dropped() -> None:
         [50.0, 99.0],  # on the rim
     ])
     assert inside_image_circle(keypoints, width).tolist() == [True, True, False, False]
+
+
+def test_rendering_reports_each_frame(tmp_path: Path) -> None:
+    rig = build(spherical_rig(), spherical_view_size=32)
+    source = tmp_path / "rig0" / "camera0"
+    source.mkdir(parents=True)
+    for frame_id in rig.frame_poses:
+        PILImage.fromarray(np.zeros((64, 128, 3), dtype=np.uint8)).save(source / f"{frame_id}.jpg")
+    ticks: list[int] = []
+    render_spherical_views(rig, tmp_path, lambda: ticks.append(1))
+    assert len(ticks) == spherical_frame_count(rig) == len(rig.frame_poses)

@@ -40,7 +40,7 @@ from .options_builder import OptionsBuilder
 from .pairs import generate_image_pairs, write_pairs, write_pairs_with_source
 from .progress_publisher import ReconstructionPublisher
 from .rig import Rig
-from .spherical import inside_image_circle, render_spherical_views
+from .spherical import inside_image_circle, render_spherical_views, spherical_frame_count
 from .settings import get_settings
 
 DEVICE = "cuda" if cuda.is_available() else "cpu"
@@ -176,12 +176,23 @@ def run_reconstruction(
     ]
     # A spherical capture holds whole spheres, which no camera model represents;
     # render the views its rig was expanded into before anything reads an image.
-    for rig in rigs.values():
-        render_spherical_views(rig, CAPTURE_SESSION_DIRECTORY)
+    # Rendering is counted as part of feature extraction, one tick per sphere,
+    # because on a large capture it takes as long as the extraction itself and
+    # the phase would otherwise sit with no count at all.
+    render_total = sum(spherical_frame_count(rig) for rig in rigs.values())
+    publisher.set_phase(ReconstructionStatus.EXTRACTING_FEATURES, total=render_total + len(image_list))
+    rendered = 0
 
-    publisher.set_phase(ReconstructionStatus.EXTRACTING_FEATURES, total=len(image_list))
+    def on_rendered_frame() -> None:
+        nonlocal rendered
+        rendered += 1
+        publisher.on_progress(rendered)
+
+    for rig in rigs.values():
+        render_spherical_views(rig, CAPTURE_SESSION_DIRECTORY, on_rendered_frame)
+
     for index, (image_name, camera_config) in enumerate(image_list):
-        publisher.on_progress(index + 1)
+        publisher.on_progress(render_total + index + 1)
 
         image_path = CAPTURE_SESSION_DIRECTORY / image_name
         image = canonicalize_image(image_path.read_bytes(), camera_config.orientation)
