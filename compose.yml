@@ -3,7 +3,6 @@ name: placeframe
 volumes:
   uv_cache:
   seaweedfs_data:
-  cloudbeaver_data:
   auth_data:
   keycloak_import:
   keycloak_data:
@@ -75,58 +74,15 @@ services:
       S3_SECRET_KEY: "${S3_SECRET_KEY:?err}"
       S3_BUCKETS: "dev-captures dev-reconstructions loki"
 
-  initialize-cloudbeaver:
-    image: "ghcr.io/outernet-foundation/placeframe/cloudbeaver-initializer:${CLOUDBEAVER_INITIALIZER_SHA:?err}"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    restart: "no"
-    volumes:
-      - cloudbeaver_data:/opt/cloudbeaver/workspace
-    environment:
-      POSTGRES_HOST: "${POSTGRES_HOST:?err}"
-      POSTGRES_ADMIN_USER: "${POSTGRES_ADMIN_USER:?err}"
-      POSTGRES_ADMIN_PASSWORD: "${POSTGRES_ADMIN_PASSWORD:?err}"
-      CB_ADMIN_NAME: "${CLOUDBEAVER_ADMIN_USER:?err}"
-      CB_ADMIN_PASSWORD: "${CLOUDBEAVER_ADMIN_PASSWORD:?err}"
-
-  cloudbeaver:
-    # Pinned: releases after 25.1.4 write to a non-writable $HOME/.local/share/DBeaverData and crash on startup (exit 13).
-    image: "${CLOUDBEAVER_IMAGE:?err}"
-    depends_on:
-      create-database:
-        condition: service_completed_successfully
-    ports:
-      - target: 8978
-        published: "${CLOUDBEAVER_PORT:?err}"
-        protocol: tcp
-        mode: ingress
-    volumes:
-      - cloudbeaver_data:/opt/cloudbeaver/workspace
-    environment:
-      CLOUDBEAVER_ROOT_URI: "/cloudbeaver"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8978/cloudbeaver/" ]
-      interval: 1s
-      timeout: 1s
-      retries: 90
-
   create-database:
     image: "ghcr.io/outernet-foundation/placeframe/database-manager:${DATABASE_MANAGER_SHA:?err}"
     depends_on:
       postgres:
         condition: service_healthy
-      initialize-cloudbeaver:
-        condition: service_completed_successfully
     restart: "no"
-    volumes:
-      - cloudbeaver_data:/mnt/efs
     entrypoint: >-
       uv run --no-sync python -m src.main --op create --name "${DATABASE_NAME:?err}" --owner-password "${DATABASE_OWNER_PASSWORD:?err}" --api-user-password "${DATABASE_API_USER_PASSWORD:?err}" --auth-user-password "${DATABASE_AUTH_USER_PASSWORD:?err}" --orchestration-user-password "${DATABASE_ORCHESTRATION_USER_PASSWORD:?err}"
     environment:
-      CLOUDBEAVER_SERVICE_ID: placeframe-cloudbeaver-1
       POSTGRES_HOST: "${POSTGRES_HOST:?err}"
       POSTGRES_ADMIN_USER: "${POSTGRES_ADMIN_USER:?err}"
       POSTGRES_ADMIN_PASSWORD: "${POSTGRES_ADMIN_PASSWORD:?err}"

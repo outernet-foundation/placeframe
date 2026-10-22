@@ -13,7 +13,6 @@ x-base-images:
   POSTGIS_IMAGE: "docker.io/postgis/postgis:16-3.4-alpine"
   POSTGRES_CNPG_IMAGE: "ghcr.io/cloudnative-pg/postgis:14@sha256:8e05fbc908ffbdb34aaaf594ea8d108450266f686500fc6e6d78dd007f32c568"
   SEAWEEDFS_IMAGE: "docker.io/chrislusf/seaweedfs:4.47"
-  CLOUDBEAVER_IMAGE: "docker.io/dbeaver/cloudbeaver:25.1.4"
   KEYCLOAK_IMAGE: "quay.io/keycloak/keycloak:26.3.5"
   NGROK_IMAGE: "docker.io/ngrok/ngrok:alpine"
   SEAWEEDFS_AUDIT_IMAGE: "docker.io/fluent/fluent-bit:5.1.2"
@@ -34,15 +33,6 @@ x-base-args: &base-args
 x-registry-cache: ghcr.io/outernet-foundation/placeframe/build-cache
 
 services:
-  initialize-cloudbeaver:
-    build:
-      context: .
-      dockerfile: workloads/cloudbeaver-initializer/Dockerfile
-      args: *base-args
-      tags:
-        - "ghcr.io/outernet-foundation/placeframe/cloudbeaver-initializer:latest"
-        - "ghcr.io/outernet-foundation/placeframe/cloudbeaver-initializer:${CLOUDBEAVER_INITIALIZER_SHA}"
-
   s3-initializer:
     build:
       context: .

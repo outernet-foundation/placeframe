@@ -1,7 +1,6 @@
 ALLOY_IMAGE=ghcr.io/outernet-foundation/mirror/docker.io/grafana/alloy:v1.9.0@sha256:32bc0ba6bad75ca24bdf4a6d2dd793a564dff06b6446927699c08d9f9c749c6e
 ALPINE_IMAGE=ghcr.io/outernet-foundation/mirror/docker.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
 CADDY_IMAGE=ghcr.io/outernet-foundation/mirror/docker.io/library/caddy:2.8.4-alpine@sha256:af32e97399febea808609119bb21544d0265c58a02836576e32a2d082c262c17
-CLOUDBEAVER_IMAGE=ghcr.io/outernet-foundation/mirror/docker.io/dbeaver/cloudbeaver:25.1.4@sha256:a904a0c11f92ae4244793fcf5a6f00b9ec1d112a076415f18d4879e54d3f4dfc
 GOLANG_IMAGE=ghcr.io/outernet-foundation/mirror/docker.io/library/golang:1.22-alpine@sha256:1699c10032ca2582ec89a24a1312d986a3f094aed3d5c1147b19880afe40e052
 GRAFANA_IMAGE=ghcr.io/outernet-foundation/mirror/docker.io/grafana/grafana:11.6.0@sha256:62d2b9d20a19714ebfe48d1bb405086081bc602aa053e28cf6d73c7537640dfb
 INITIALIZE_S3_IMAGE=ghcr.io/outernet-foundation/mirror/docker.io/amazon/aws-cli:2.36.9@sha256:00dee8ccaf669721f8163944ea9e6ac13183851b23d5b7a9868a608bc932cfdb

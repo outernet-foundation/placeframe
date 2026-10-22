@@ -12,7 +12,6 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env")
 
     backend: Literal["aws", "docker"] = Field(default="docker")
-    cloudbeaver_service_id: str | None = Field(default=None)
     ecs_cluster_arn: str | None = Field(default=None)
 
     postgres_host: str
@@ -26,7 +25,7 @@ class Settings(BaseSettings):
             if not self.postgres_admin_password_secret_arn:
                 raise ValueError("POSTGRES_ADMIN_PASSWORD_SECRET_ARN must be set when backend='aws'.")
             if not self.ecs_cluster_arn:
-                raise ValueError("ecs_cluster_arn and cloudbeaver_service_id must be set when backend='aws'.")
+                raise ValueError("ecs_cluster_arn must be set when backend='aws'.")
 
         if self.backend == "docker":
             if not self.postgres_admin_password_plaintext:
