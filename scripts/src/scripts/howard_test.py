@@ -60,6 +60,7 @@ from placeframe_api_client import (
     ReconstructionStatus,
 )
 
+from . import icp_align
 from .api_auth import authenticated_api_client
 
 app = typer.Typer(add_completion=False, no_args_is_help=True)
@@ -187,6 +188,10 @@ def with_spherical_defaults(overrides: dict[str, Any]) -> dict[str, Any]:
 # BUCKET (docker/api/src/routers/capture_sessions.py) and the reconstructor's CAPTURES_BUCKET.
 DIRECT_STORE_CONTAINER = "placeframe-minio-logger-1"
 DIRECT_STORE_BUCKET = "dev-captures"
+DIRECT_STORE_RECONSTRUCTIONS_BUCKET = "dev-reconstructions"
+# What a multipart body adds around the tar: boundaries and part headers, a few hundred bytes, with
+# room to spare. A tar within this of the limit goes around the API rather than risk a 413.
+MULTIPART_OVERHEAD_BYTES = 1024 * 1024
 # The API's MIN_TEMPORAL_COVERAGE, applied here because a direct store skips the API's checks.
 MIN_TEMPORAL_COVERAGE = 0.5
 
@@ -316,6 +321,72 @@ def store_capture_directly(tar_bytes: bytes, capture_id: UUID) -> None:
 
 def remove_directly_stored_capture(capture_id: UUID) -> None:
     _direct_store_client("rm", f"local/{DIRECT_STORE_BUCKET}/{capture_id}.tar")
+
+
+def store_reconstruction_directly(tar_bytes: bytes, reconstruction_id: UUID) -> int:
+    """Stream every artifact of a reconstruction tar into the reconstructions bucket, where the API
+    would have put it (`<id>/<member name>`), around the API's request body. Returns how many."""
+    with tarfile.open(fileobj=BytesIO(tar_bytes), mode="r:*") as tar:
+        members = [m for m in tar.getmembers() if m.isfile() and m.name != TAR_METADATA_MEMBER]
+        for index, member in enumerate(members):
+            emit_progress("uploading", index, len(members), member.name)
+            handle = tar.extractfile(member)
+            if handle is None:
+                continue
+            _direct_store_client(
+                "pipe",
+                f"local/{DIRECT_STORE_RECONSTRUCTIONS_BUCKET}/{reconstruction_id}/{member.name}",
+                stdin=handle.read(),
+            )
+        emit_progress("uploading", len(members), len(members))
+    return len(members)
+
+
+def remove_directly_stored_reconstruction(reconstruction_id: UUID) -> None:
+    _direct_store_client(
+        "rm", "--recursive", "--force", f"local/{DIRECT_STORE_RECONSTRUCTIONS_BUCKET}/{reconstruction_id}/"
+    )
+
+
+def metadata_only_tar(tar_bytes: bytes) -> bytes:
+    """The tar's metadata.json alone: an import of it inserts the rows and uploads nothing."""
+    out = BytesIO()
+    with (
+        tarfile.open(fileobj=BytesIO(tar_bytes), mode="r:*") as source,
+        tarfile.open(fileobj=out, mode="w", format=tarfile.GNU_FORMAT) as target,
+    ):
+        member = source.getmember(TAR_METADATA_MEMBER)
+        target.addfile(member, source.extractfile(member))
+    return out.getvalue()
+
+
+async def submit_reconstruction_tar(api: DefaultApi, tar_name: str, tar_bytes: bytes) -> ReconstructionReadWithQueue:
+    """Import a reconstruction tar: through the API when it fits, around it when it does not.
+
+    A large map does not fit: the COLMAP text model of a 12-view spherical map with 5000 keypoints a
+    view runs to a gigabyte on its own. The direct path stores the artifacts first and then imports
+    a tar holding only metadata.json, which the API turns into the same rows without reading any
+    artifact for a copy of a reconstruction here (and only frame_poses.npz, by then stored, for a
+    foreign one). A failure between the two removes what was stored before the error propagates.
+    """
+    if len(tar_bytes) + MULTIPART_OVERHEAD_BYTES <= REQUEST_MAX_BODY_SIZE:
+        return await api.import_reconstruction_tar(data=(tar_name, tar_bytes), _request_timeout=REQUEST_TIMEOUT)
+    reconstruction_id = _tar_metadata_id(tar_bytes)
+    if reconstruction_id is None:
+        raise ValueError(f"{tar_name} has no readable {TAR_METADATA_MEMBER}")
+    typer.echo(
+        f"{tar_name} is {_format_size(len(tar_bytes))}, over the {_format_size(REQUEST_MAX_BODY_SIZE)} upload limit; "
+        "storing its artifacts directly (development stack only)",
+        err=True,
+    )
+    await to_thread(store_reconstruction_directly, tar_bytes, reconstruction_id)
+    try:
+        return await api.import_reconstruction_tar(
+            data=(tar_name, metadata_only_tar(tar_bytes)), _request_timeout=REQUEST_TIMEOUT
+        )
+    except Exception:
+        await to_thread(remove_directly_stored_reconstruction, reconstruction_id)
+        raise
 
 
 def direct_store_wanted(direct: bool | None, size_bytes: int) -> bool:
@@ -1204,6 +1275,98 @@ def transform_reconstruction(
     typer.echo(f"Imported transformed copy {reconstruction.id} ({label}) of {reconstruction_id}")
 
 
+@app.command(name="icp-align")
+def icp_align_command(
+    candidate_id: Annotated[UUID, typer.Argument(help="Reconstruction to move onto the reference")],
+    reference_id: Annotated[UUID, typer.Option("--reference", help="Reconstruction whose frame the copy lands in")],
+    placement_json: Annotated[
+        str,
+        typer.Option(
+            "--placement",
+            help="Starting placement of the candidate, as the align page saves it: JSON with yaw_deg, "
+            "translation [x, y, z] and scale, meaning p' = yaw(scale * p) + translation",
+        ),
+    ],
+    fit_scale: Annotated[
+        bool,
+        typer.Option(
+            "--fit-scale/--fixed-scale",
+            help="Let ICP adjust the scale (a map with no metric scale, e.g. an Insta360 one), or keep the "
+            "placement's (a stereo map, metric already)",
+        ),
+    ] = True,
+    label: Annotated[str | None, typer.Option(help="Shown in the dashboard in place of the bare id")] = None,
+    json_output: Annotated[bool, typer.Option("--json", help="Emit JSON instead of text")] = False,
+) -> None:
+    """Refine a placement by ICP and import the candidate, so moved, as a new reconstruction.
+
+    The copy lands in the reference's frame and units, under the candidate's capture, with the
+    transform and how well it fits recorded in its manifest. The candidate itself is untouched.
+    """
+    placement = loads(placement_json)
+    initial: Sim3 = (
+        float(placement["scale"]),
+        icp_align.yaw_matrix(float(placement["yaw_deg"])),
+        np.asarray(placement["translation"], dtype=np.float64),
+    )
+    reconstruction, record = run(_icp_align(candidate_id, reference_id, initial, fit_scale, label, placement))
+    if json_output:
+        typer.echo(dumps({**_reconstruction_to_dict(reconstruction), "icp": record}))
+        return
+    typer.echo(
+        f"ICP-aligned copy {reconstruction.id} of {candidate_id} onto {reference_id}: scale {record['scale']:.4f}, "
+        f"yaw {record['yaw_deg']:.2f} deg, tilt {record['tilt_deg']:.2f} deg"
+    )
+
+
+async def _icp_align(
+    candidate_id: UUID,
+    reference_id: UUID,
+    initial: Sim3,
+    fit_scale: bool,
+    label: str | None,
+    placement: dict[str, Any],
+) -> tuple[ReconstructionReadWithQueue, dict[str, Any]]:
+    async with authenticated_api_client() as api:
+        try:
+            tars: dict[UUID, Path] = {}
+            for role, reconstruction_id in (("reference", reference_id), ("candidate", candidate_id)):
+                emit_progress("downloading", detail=f"{role} map")
+                tars[reconstruction_id] = await _ensure_cached_tar(api, reconstruction_id)
+            names = {s.id: s.name for s in await api.get_capture_sessions(_request_timeout=REQUEST_TIMEOUT)}
+            reference = await api.get_reconstruction(id=reference_id)
+        except ApiException as exception:
+            _fail(exception)
+    emit_progress("fitting", 0, icp_align.steps_total())
+    candidate_cloud = await to_thread(icp_align.read_cloud, tars[candidate_id])
+    reference_cloud = await to_thread(icp_align.read_cloud, tars[reference_id])
+    result = await to_thread(
+        icp_align.icp_align,
+        candidate_cloud,
+        reference_cloud,
+        initial,
+        fit_scale,
+        lambda done, total: emit_progress("fitting", done, total),
+    )
+    record = result.record()
+    record["source"] = "align page placement refined by ICP" + ("" if fit_scale else " (scale held)")
+    record["placement"] = placement
+    reference_name = names.get(reference.capture_session_id) if reference.capture_session_id else None
+    name = label or f"ICP match to {reference_name or str(reference_id)[:8]}"
+    reconstruction = await _transform_reconstruction(
+        candidate_id,
+        result.transform,
+        name,
+        {
+            **record,
+            "source_reconstruction_id": str(candidate_id),
+            "aligned_to_reconstruction_id": str(reference_id),
+            "viewer_only": False,
+        },
+    )
+    return reconstruction, record
+
+
 @app.command()
 def reconstruct(
     capture_id: Annotated[UUID, typer.Argument(help="Capture session to reconstruct")],
@@ -1495,7 +1658,8 @@ async def _merge_aligned(
             # Rigs are numbered across the whole merge, not per capture: a capture that is itself a
             # merge brings several, and they all have to end up with ids of their own.
             next_rig = 0
-            for entry, capture_id in captures:
+            for index, (entry, capture_id) in enumerate(captures):
+                emit_progress("downloading", index, len(captures), "captures")
                 tar_bytes = await api.download_capture_session_tar(id=capture_id, _request_timeout=REQUEST_TIMEOUT)
                 with tarfile.open(fileobj=BytesIO(tar_bytes)) as tar:
                     manifest = loads(tar.extractfile("manifest.json").read())  # pyright: ignore[reportOptionalMemberAccess]
@@ -1572,6 +1736,7 @@ async def _merge_aligned(
                     f"or merge fewer captures."
                 )
 
+            emit_progress("uploading", detail=_format_size(len(tar_bytes)))
             capture = await upload_capture_session(api, f"{name}.tar", tar_bytes, DeviceType.ZED, name)
             out: dict[str, Any] = {
                 "capture_session_id": str(capture.id),
@@ -1580,6 +1745,7 @@ async def _merge_aligned(
                 "stride_raised_from": requested_stride if stride > requested_stride else None,
             }
             if reconstruct:
+                emit_progress("starting reconstruction")
                 options = ReconstructionOptions(cross_rig_pair_distance_m=pair_distance_m)
                 reconstruction = await create_reconstruction(api, capture.id, options, False, RECONSTRUCTION_TIMEOUT_S)
                 out["reconstruction_id"] = str(reconstruction.id)
@@ -2529,11 +2695,10 @@ async def _transform_reconstruction(
             cached = await _ensure_cached_tar(api, reconstruction_id)
         except ApiException as exception:
             _fail(exception)
+        emit_progress("transforming")
         tar_bytes = await to_thread(_transform_tar, cached.read_bytes(), transform, new_id, label, record, viewer_only)
         try:
-            return await api.import_reconstruction_tar(
-                data=(f"{new_id}.tar", tar_bytes), _request_timeout=REQUEST_TIMEOUT
-            )
+            return await submit_reconstruction_tar(api, f"{new_id}.tar", tar_bytes)
         except ApiException as exception:
             _fail(exception)
 
@@ -2559,7 +2724,7 @@ async def _import_reconstruction(tar_name: str, tar_bytes: bytes, new_id: bool =
                 )
                 raise typer.Exit(1)
         try:
-            return await api.import_reconstruction_tar(data=(tar_name, tar_bytes), _request_timeout=REQUEST_TIMEOUT)
+            return await submit_reconstruction_tar(api, tar_name, tar_bytes)
         except ApiException as exception:
             _fail(exception)
 

@@ -99,3 +99,16 @@ def test_direct_is_automatic_only_past_the_limit() -> None:
 def test_an_explicit_choice_wins() -> None:
     assert direct_store_wanted(True, 1) is True
     assert direct_store_wanted(False, REQUEST_MAX_BODY_SIZE + 1) is False
+
+
+def test_a_metadata_only_tar_keeps_just_the_metadata() -> None:
+    """A reconstruction too large for the API goes in as its artifacts, stored directly, plus this:
+    the import inserts the rows from metadata.json and has nothing else to upload."""
+    from scripts.howard_test import metadata_only_tar
+
+    metadata = dumps({"reconstruction": {"id": "0b1f6c1e-0000-4000-8000-000000000000"}}).encode()
+    source = _tar({"metadata.json": metadata, "features.h5": b"x" * 4096, "sfm_model/images.txt": b"1 0 0 0\n"})
+    with tarfile.open(fileobj=BytesIO(metadata_only_tar(source))) as tar:
+        assert tar.getnames() == ["metadata.json"]
+        handle = tar.extractfile("metadata.json")
+        assert handle is not None and handle.read() == metadata
