@@ -23,7 +23,7 @@ from collections.abc import Callable
 from functools import partial
 import time
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Literal, NoReturn
@@ -61,7 +61,10 @@ _HOWARD_TEST_ENV = {k: v for k, v in os.environ.items() if k != "VIRTUAL_ENV"}
 RECONSTRUCT_POLL_TIMEOUT_S = 1800.0
 RECONSTRUCT_POLL_INTERVAL_S = 3.0
 
-JobKind = Literal["reconstruct", "visualize", "localize", "import"]
+JobKind = Literal["reconstruct", "visualize", "localize", "import", "icp", "merge"]
+# Started from the align page, which the operator may close at once: the captures page lists these
+# and shows each as a row until the reconstruction it makes is in the tree.
+ALIGN_JOB_KINDS: frozenset[str] = frozenset({"icp", "merge"})
 JobStatus = Literal["running", "succeeded", "failed"]
 
 
@@ -76,6 +79,12 @@ class Job:
     error: str | None = None
     # Where a long step has got to, e.g. {"phase": "extracting", "current": 120, "total": 416}.
     progress: dict[str, Any] | None = None
+    # For a row of its own on the captures page: what it is making, and under which capture.
+    label: str | None = None
+    capture_session_id: str | None = None
+    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    # Something the operator should hear about once it is done, e.g. a merge that had to be thinned.
+    notice: str | None = None
 
 
 JOBS: dict[str, Job] = {}
@@ -446,27 +455,117 @@ async def save_alignment(data: AlignmentRequest) -> dict[str, Any]:
     await asyncio.to_thread(_write_alignment, alignment_id, payload)
     if not data.reconstruct:
         return payload
-    job = Job(id=str(uuid.uuid4()), kind="reconstruct")
+    # The operator's name when they gave one: a merge is a capture they will go looking for later,
+    # and "aligned 3f7c1a02" says nothing about which walks went into it.
+    name = data.name or f"aligned {alignment_id[:8]}"
+    job = Job(id=str(uuid.uuid4()), kind="merge", label=f"Merge: {name}")
     JOBS[job.id] = job
-    _spawn(_run_aligned_merge_job(job, alignment_id, data.name))
+    _spawn(_run_aligned_merge_job(job, alignment_id, name))
     return {**payload, "job_id": job.id}
 
 
-async def _run_aligned_merge_job(job: Job, alignment_id: str, name: str | None) -> None:
+async def _run_aligned_merge_job(job: Job, alignment_id: str, name: str) -> None:
+    def on_progress(progress: dict[str, Any]) -> None:
+        job.progress = progress
+
     try:
-        created = await _run_howard_test_json_async(
-            # The operator's name when they gave one: a merge is a capture they will go looking for
-            # later, and "aligned 3f7c1a02" says nothing about which walks went into it.
-            "merge-aligned",
-            str(ALIGNMENTS_DIR / f"{alignment_id}.json"),
-            "--name",
-            name or f"aligned {alignment_id[:8]}",
+        created = await asyncio.to_thread(
+            partial(
+                _run_howard_test_json_streaming,
+                "merge-aligned",
+                str(ALIGNMENTS_DIR / f"{alignment_id}.json"),
+                "--name",
+                name,
+                on_progress=on_progress,
+            )
         )
         job.result = created
+        job.capture_session_id = created.get("capture_session_id")
+        if created.get("stride_raised_from"):
+            job.notice = (
+                f"{name}: the captures were too large to upload whole, so every {created['stride']}th frame was kept. "
+                "The reconstructor drops frames closer together than keyframe_min_distance_m anyway, so the frames "
+                "lost first are ones it would not have used."
+            )
         if created.get("reconstruction_id"):
             await _poll_reconstruction_until_terminal(job, {"id": created["reconstruction_id"]})
         else:
             job.status = "succeeded"
+    except Exception as exc:
+        job.status = "failed"
+        job.error = str(exc)
+
+
+@dataclass
+class IcpMatchRequest:
+    reference_id: str
+    candidate_id: str
+    # The align page's placement of the candidate, ICP's starting point: p' = yaw(scale * p) + translation.
+    yaw_deg: float
+    translation: list[float]
+    scale: float
+    # False for a candidate that is metric already (a stereo map), whose scale ICP must not touch.
+    fit_scale: bool = True
+    # For the row the captures page shows while it runs: the copy lands under the candidate's capture.
+    candidate_capture_session_id: str | None = None
+    candidate_label: str | None = None
+    reference_label: str | None = None
+
+
+# ICP refines the placement against the reference's point cloud and imports the candidate, moved,
+# as a new reconstruction under its own capture. The placement goes to ALIGNMENTS_DIR first, as a
+# saved placement would, so what ICP started from stays inspectable.
+@post("/api/icp-matches")
+async def start_icp_match(data: IcpMatchRequest) -> dict[str, Any]:
+    if data.reference_id == data.candidate_id:
+        raise ValidationException("The candidate map is the reference; pick another reference")
+    alignment_id = str(uuid.uuid4())
+    placement = {"yaw_deg": data.yaw_deg, "translation": list(data.translation), "scale": data.scale}
+    payload = {
+        "id": alignment_id,
+        "name": None,
+        "kind": "icp",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "reference_id": data.reference_id,
+        "convention": "a point p in a map's own frame lands at yaw(scale * p) + translation",
+        "maps": [
+            {"reconstruction_id": data.candidate_id, **placement},
+            {"reconstruction_id": data.reference_id, "yaw_deg": 0.0, "translation": [0.0, 0.0, 0.0], "scale": 1.0},
+        ],
+    }
+    await asyncio.to_thread(_write_alignment, alignment_id, payload)
+    reference = data.reference_label or data.reference_id[:8]
+    job = Job(
+        id=str(uuid.uuid4()),
+        kind="icp",
+        label=f"ICP match to {reference}",
+        capture_session_id=data.candidate_capture_session_id,
+    )
+    JOBS[job.id] = job
+    args = [
+        "icp-align",
+        data.candidate_id,
+        "--reference",
+        data.reference_id,
+        "--placement",
+        json.dumps(placement),
+        "--fit-scale" if data.fit_scale else "--fixed-scale",
+        "--label",
+        f"ICP match to {reference}",
+    ]
+    _spawn(_run_icp_job(job, args))
+    return {"job_id": job.id, "alignment_id": alignment_id}
+
+
+async def _run_icp_job(job: Job, args: list[str]) -> None:
+    def on_progress(progress: dict[str, Any]) -> None:
+        job.progress = progress
+
+    try:
+        created = await asyncio.to_thread(partial(_run_howard_test_json_streaming, *args, on_progress=on_progress))
+        job.result = created
+        job.reconstruction_id = created["id"]
+        job.status = "succeeded"
     except Exception as exc:
         job.status = "failed"
         job.error = str(exc)
@@ -988,11 +1087,7 @@ async def _run_localize_job(job: Job, data: LocalizeRequest, run_id: str) -> Non
         job.error = str(exc)
 
 
-@get("/api/jobs/{job_id:str}")
-async def get_job(job_id: str) -> dict[str, Any]:
-    job = JOBS.get(job_id)
-    if job is None:
-        raise NotFoundException(f"No job {job_id}")
+def _job_to_dict(job: Job) -> dict[str, Any]:
     return {
         "id": job.id,
         "kind": job.kind,
@@ -1002,7 +1097,39 @@ async def get_job(job_id: str) -> dict[str, Any]:
         "result": job.result,
         "error": job.error,
         "progress": job.progress,
+        "label": job.label,
+        "capture_session_id": job.capture_session_id,
+        "created_at": job.created_at,
+        "notice": job.notice,
     }
+
+
+@get("/api/jobs/{job_id:str}")
+async def get_job(job_id: str) -> dict[str, Any]:
+    job = JOBS.get(job_id)
+    if job is None:
+        raise NotFoundException(f"No job {job_id}")
+    return _job_to_dict(job)
+
+
+# The align page's jobs, for the captures page to show as rows. Jobs live in this process only, so a
+# backend restart forgets them -- and stops any that were running, as it stops every job.
+@get("/api/jobs")
+async def list_align_jobs() -> list[dict[str, Any]]:
+    jobs = sorted((j for j in JOBS.values() if j.kind in ALIGN_JOB_KINDS), key=lambda j: j.created_at, reverse=True)
+    return [_job_to_dict(j) for j in jobs]
+
+
+# A finished job's row goes once the operator has seen it: a failure stays until dismissed, so it
+# cannot vanish unread.
+@delete("/api/jobs/{job_id:str}")
+async def dismiss_job(job_id: str) -> None:
+    job = JOBS.get(job_id)
+    if job is None:
+        raise NotFoundException(f"No job {job_id}")
+    if job.status == "running":
+        raise ValidationException("The job is still running")
+    del JOBS[job_id]
 
 
 @get("/api/reconstructions/{reconstruction_id:str}/png")
@@ -1237,6 +1364,9 @@ app = Litestar(
         list_reconstructions,
         delete_reconstruction,
         cancel_reconstruction,
+        start_icp_match,
+        list_align_jobs,
+        dismiss_job,
         list_maps,
         publish_map,
         unpublish_map,

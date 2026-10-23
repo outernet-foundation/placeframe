@@ -54,7 +54,7 @@ export interface LocalizationMap {
   created_at: string | null;
 }
 
-export type JobKind = "reconstruct" | "visualize" | "localize";
+export type JobKind = "reconstruct" | "visualize" | "localize" | "icp" | "merge";
 export type JobStatus = "running" | "succeeded" | "failed";
 
 export interface Job<TResult = unknown> {
@@ -66,6 +66,11 @@ export interface Job<TResult = unknown> {
   result: TResult | null;
   error: string | null;
   progress: JobProgress | null;
+  // Set on the align page's jobs (ICP matches and merges), which the captures page shows as rows.
+  label?: string | null;
+  capture_session_id?: string | null;
+  created_at?: string;
+  notice?: string | null;
 }
 
 /** Where a long step of a job has got to, while it is still running. */

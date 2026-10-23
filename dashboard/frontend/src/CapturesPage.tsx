@@ -13,6 +13,8 @@ import {
   renameCapture,
   renamePoselessSet,
   unpublishMap,
+  dismissJob,
+  listAlignJobs,
 } from "./api";
 import {
   ConfirmDeleteDialog,
@@ -30,7 +32,7 @@ import {
 import { Menu } from "./components/Menu";
 import { RunResults } from "./components/RunResults";
 import { errorText, readStored, store, STORAGE_KEYS } from "./storage";
-import type { CaptureSession, JobProgress, LocalizationSummary, PoselessImageSet, Reconstruction } from "./types";
+import type { CaptureSession, Job, JobProgress, LocalizationSummary, PoselessImageSet, Reconstruction } from "./types";
 import { TERMINAL_STATUSES, isViewerOnly } from "./types";
 
 // One page, one tree: capture → its reconstructions (one per set of options) → each
@@ -88,6 +90,9 @@ function describeProgress(progress: JobProgress | null): string | null {
     extracting: "Extracting frames",
     uploading: "Uploading capture",
     queueing: "Queueing reconstruction",
+    downloading: "Downloading",
+    fitting: "Fitting by ICP",
+    transforming: "Transforming the map",
   };
   const name = label[progress.phase] ?? progress.phase;
   if (progress.total) return `${name}: ${progress.current ?? 0} of ${progress.total}`;
@@ -181,6 +186,8 @@ export function CapturesPage() {
   const [publishing, setPublishing] = useState<string | null>(null);
   const [pendingJobs, setPendingJobs] = useState(0);
   const [jobProgress, setJobProgress] = useState<string | null>(null);
+  // ICP matches and merges started from the align page, which may already be closed.
+  const [alignJobs, setAlignJobs] = useState<Job[]>([]);
 
   const [dialog, setDialog] = useState<Dialog | null>(null);
   const [notices, setNotices] = useState<Notice[]>([]);
@@ -255,13 +262,62 @@ export function CapturesPage() {
   }, [refreshAll]);
 
   const active =
-    pendingJobs > 0 || reconstructions.some((r) => !TERMINAL_STATUSES.has(r.status)) || runs.some((r) => r.status === "running");
+    pendingJobs > 0 ||
+    alignJobs.some((j) => j.status === "running") || reconstructions.some((r) => !TERMINAL_STATUSES.has(r.status)) || runs.some((r) => r.status === "running");
 
   useEffect(() => {
     if (!active) return;
     const timer = window.setTimeout(() => void refreshFast().catch(() => undefined), POLL_MS);
     return () => window.clearTimeout(timer);
   }, [active, reconstructions, runs, refreshFast]);
+
+  // The align page's jobs are polled all the time, not only while something here is active: they
+  // are started in another tab, so nothing on this page knows when one begins. The listing is the
+  // backend's in-memory job table, so it is cheap.
+  const jobStatuses = useRef<Record<string, string>>({});
+  const noticed = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    let stopped = false;
+    const poll = async (): Promise<void> => {
+      try {
+        const jobs = await listAlignJobs();
+        if (stopped) return;
+        setAlignJobs(jobs);
+        // A job that just finished, or just made its reconstruction, changes the tree.
+        const changed = jobs.some((j) => {
+          const before = jobStatuses.current[j.id];
+          return before !== undefined && before !== `${j.status}:${j.reconstruction_id ?? ""}:${j.capture_session_id ?? ""}`;
+        });
+        jobStatuses.current = Object.fromEntries(
+          jobs.map((j) => [j.id, `${j.status}:${j.reconstruction_id ?? ""}:${j.capture_session_id ?? ""}`]),
+        );
+        for (const j of jobs) {
+          if (j.notice && !noticed.current.has(j.id)) {
+            noticed.current.add(j.id);
+            notify("success", j.notice);
+          }
+        }
+        if (changed) void refreshFast().catch(() => undefined);
+      } catch {
+        // The rows stay as they were; the next poll tries again.
+      }
+    };
+    void poll();
+    const timer = window.setInterval(() => void poll(), POLL_MS);
+    return () => {
+      stopped = true;
+      window.clearInterval(timer);
+    };
+  }, [refreshFast]);
+
+  async function dismiss(jobId: string): Promise<void> {
+    try {
+      await dismissJob(jobId);
+      setAlignJobs((jobs) => jobs.filter((j) => j.id !== jobId));
+    } catch (err) {
+      notify("error", errorText(err));
+    }
+  }
 
   // A reconstruction that just succeeded has a new frame count to fetch.
   const lastStatuses = useRef<Record<string, string>>({});
@@ -321,8 +377,19 @@ export function CapturesPage() {
       } else orphanRuns.push(run);
     }
     const sortedCaptures = [...captures].sort((a, b) => b.recorded_at.localeCompare(a.recorded_at));
-    return { sortedCaptures, setByCapture, pendingSets, byCapture, orphanReconstructions, byReconstruction, orphanRuns };
-  }, [captures, reconstructions, runs, sets]);
+    // An align job is a row until the reconstruction it makes is in the tree, which then takes
+    // over. It sits under its capture once there is one (an ICP copy's is the candidate's; a merge's
+    // exists once uploaded), and at the top before that.
+    const jobsByCapture = new Map<string, Job[]>();
+    const topJobs: Job[] = [];
+    for (const job of alignJobs) {
+      if (job.reconstruction_id && reconstructionIds.has(job.reconstruction_id)) continue;
+      if (job.capture_session_id && captureIds.has(job.capture_session_id)) {
+        jobsByCapture.set(job.capture_session_id, [...(jobsByCapture.get(job.capture_session_id) ?? []), job]);
+      } else topJobs.push(job);
+    }
+    return { sortedCaptures, setByCapture, pendingSets, byCapture, orphanReconstructions, byReconstruction, orphanRuns, jobsByCapture, topJobs };
+  }, [captures, reconstructions, runs, sets, alignJobs]);
 
   function isOpen(id: string, byDefault: boolean): boolean {
     return expanded[id] ?? byDefault;
@@ -450,8 +517,10 @@ export function CapturesPage() {
   function captureNode(c: CaptureSession): ReactNode {
     const set = tree.setByCapture.get(c.id);
     const children = tree.byCapture.get(c.id) ?? [];
+    const jobs = tree.jobsByCapture.get(c.id) ?? [];
     const imported = c.size_bytes === 0 && !set;
-    const open = isOpen(c.id, children.length > 0);
+    // A running job opens its capture even if the operator closed it: the row is the whole point.
+    const open = jobs.length > 0 || isOpen(c.id, children.length > 0);
     return (
       <div className="node node-capture" key={c.id}>
         <div className="node-row">
@@ -494,8 +563,9 @@ export function CapturesPage() {
         </div>
         {open && (
           <div className="node-children">
+            {jobs.map(alignJobNode)}
             {children.map(reconstructionNode)}
-            {children.length === 0 && <div className="node-empty">Not reconstructed yet.</div>}
+            {children.length === 0 && jobs.length === 0 && <div className="node-empty">Not reconstructed yet.</div>}
           </div>
         )}
       </div>
@@ -548,6 +618,38 @@ export function CapturesPage() {
         <span>
           {current}/{total} {unit}
         </span>
+      </div>
+    );
+  }
+
+  function alignJobNode(job: Job): ReactNode {
+    const running = job.status === "running";
+    const progress = job.progress;
+    return (
+      <div className="node node-reconstruction" key={job.id}>
+        <div className="node-row">
+          <span className="toggle-spacer" />
+          <div className="node-main">
+            <div className="node-title">
+              <span className="node-name">{job.label ?? (job.kind === "icp" ? "ICP match" : "Merge")}</span>
+              {statusChip(running ? "running" : job.status)}
+              {job.created_at && <span className="node-count">{formatDate(job.created_at)}</span>}
+            </div>
+            <div className="node-meta">
+              {running
+                ? (describeProgress(progress) ?? "Starting")
+                : job.status === "succeeded"
+                  ? "Done; the reconstruction appears here on the next refresh"
+                  : "Failed"}
+              <span className="mono"> · job {job.id.slice(0, 8)}</span>
+            </div>
+            {running && progressBar(progress?.current, progress?.total, progress?.phase === "fitting" ? "ICP steps" : "")}
+            {job.error && <div className="node-error">{job.error}</div>}
+          </div>
+          <div className="node-actions">
+            {!running && <button onClick={() => void dismiss(job.id)}>Dismiss</button>}
+          </div>
+        </div>
       </div>
     );
   }
@@ -725,12 +827,12 @@ export function CapturesPage() {
                 disabled={plan.mergeableIds.length < 2}
                 title={
                   plan.mergeableIds.length < 2
-                    ? "Select two or more succeeded reconstructions to merge"
-                    : "Place these maps relative to each other, then reconstruct from all of them at once"
+                    ? "Select two or more succeeded reconstructions to align"
+                    : "Place these maps relative to each other, then ICP-match one to the other or merge them"
                 }
                 onClick={() => openAligner(plan.mergeableIds)}
               >
-                Merge{plan.mergeableIds.length >= 2 ? ` ${plan.mergeableIds.length}…` : ""}
+                Align{plan.mergeableIds.length >= 2 ? ` ${plan.mergeableIds.length}…` : ""}
               </button>
               <button disabled={plan.total === 0} onClick={() => setDialog({ kind: "deleteSelection" })}>
                 Delete…
@@ -764,6 +866,7 @@ export function CapturesPage() {
       {empty && <div className="node-empty">No captures yet. Add an image folder, import a reconstruction, or upload a capture with howard-test.</div>}
 
       <div className="tree">
+        {tree.topJobs.map(alignJobNode)}
         {tree.pendingSets.map(pendingSetNode)}
         {tree.sortedCaptures.map(captureNode)}
       </div>

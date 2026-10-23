@@ -84,6 +84,11 @@
 
 .align-actions {
   display: flex;
-  gap: 8px;
+  flex-direction: column;
+  align-items: flex-start;
   margin-top: 8px;
+}
+
+.align-actions .align-hint {
+  margin: 4px 0 14px;
 }

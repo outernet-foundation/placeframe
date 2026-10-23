@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { fetchPoints, getJob, listReconstructions, saveAlignment, type AlignedMap, type PointCloud } from "../api";
+import { fetchPoints, listReconstructions, saveAlignment, startIcpMatch, type AlignedMap, type PointCloud } from "../api";
 import { errorText } from "../storage";
 import type { Reconstruction } from "../types";
 import "./align.css";
@@ -24,6 +24,8 @@ const MAX_POINTS_DRAWN = 60_000;
 interface MapState {
   id: string;
   label: string;
+  // The capture a transformed copy lands under, which is where its row appears on the captures page.
+  captureSessionId: string | null;
   color: string;
   cloud: PointCloud | null;
   error: string | null;
@@ -35,10 +37,16 @@ interface MapState {
   ty: number;
   tz: number;
   scale: number;
-  // A stereo baseline already fixes metric scale, so scale is locked unless the map has no metric
-  // anchor of its own. A free scale on a metric map can only move it away from correct.
-  scaleLocked: boolean;
+  // Whether the map looks metric already, which only warns: scale stays editable on every map
+  // but the reference. The page cannot tell reliably -- a spherical map's 12 views are a
+  // multi-camera rig, whose priors stay out of bundle adjustment, yet it carries the default
+  // prior sigma, and is_stereo is null in the stats-free listing this page reads -- and a lock
+  // that guesses wrong leaves no way to scale an Insta360 map onto a Zed one.
+  looksMetric: boolean;
 }
+
+// What a confirmation dialog is asking about: both actions start work that outlives this tab.
+type Confirm = { kind: "merge"; name: string } | { kind: "icp"; fitScale: Record<string, boolean> };
 
 function place(m: MapState, x: number, z: number): [number, number] {
   const a = (m.yawDeg * Math.PI) / 180;
@@ -65,13 +73,13 @@ export function AlignPage() {
   const [maps, setMaps] = useState<MapState[]>([]);
   const [referenceId, setReferenceId] = useState<string>("");
   const [status, setStatus] = useState<string | null>(null);
-  const [saved, setSaved] = useState<string | null>(null);
-  // One merge at a time: pressing again uploads another copy of the same merged capture and
-  // queues a second reconstruction behind the first, with nothing to say it happened.
+  // What was started from here, said once it is under way. The work runs in the backend, so this
+  // tab may be closed; the captures page shows its progress.
+  const [started, setStarted] = useState<string | null>(null);
+  // One start at a time, and none after: pressing again would queue a second copy of the same job
+  // with nothing to say it happened.
   const [busy, setBusy] = useState(false);
-  // The merged capture is named before it is built, not after: it is a capture the operator will
-  // go looking for later, and nothing downstream offers a chance to rename it.
-  const [mergeName, setMergeName] = useState<string | null>(null);
+  const [confirm, setConfirm] = useState<Confirm | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const thinned = useRef<Map<string, Float32Array>>(new Map());
   const view = useRef({ scale: 4, ox: 0, oz: 0 });
@@ -103,13 +111,13 @@ export function AlignPage() {
         return [
         ...prev,
         {
-          id: r.id, label, color, cloud: null, error: null,
+          id: r.id, label, captureSessionId: r.capture_session_id, color, cloud: null, error: null,
           showPoints: true, showPoses: true, pointSize: 1,
           yawDeg: 0, tx: 0, ty: 0, tz: 0, scale: 1,
           // A stereo baseline fixes metric scale, and so does a position prior that bundle
           // adjustment actually used. A poseless capture has neither -- its trajectory is
-          // synthetic and the prior deliberately neutralised -- so only that case is scale-free.
-          scaleLocked: r.is_stereo === true || priorSigma(r) < 100,
+          // synthetic and the prior deliberately neutralised.
+          looksMetric: r.is_stereo === true || priorSigma(r) < 100,
         },
         ];
       });
@@ -276,36 +284,11 @@ export function AlignPage() {
 
   const [selectedId, setSelectedId] = useState<string>("");
 
-  // Following the job matters more than it looks: the request returns as soon as the merge is
-  // spawned, so without this the page says "merging" and never says anything again -- a merge that
-  // died on a bad placement would look exactly like one that worked.
-  const follow = useCallback(async (jobId: string) => {
-    for (let i = 0; i < 2400; i++) {
-      const job = await getJob<{ reconstruction_id?: string }>(jobId);
-      if (job.status === "failed") {
-        setStatus(`Merge failed: ${job.error ?? "unknown error"}`);
-        setSaved(null);
-        return;
-      }
-      if (job.reconstruction_id) {
-        // A merge too big to upload in one body is thinned rather than refused, which is not what
-        // was asked for, so say it happened rather than let the frame count quietly differ.
-        const result = job.result as { stride?: number; stride_raised_from?: number | null } | undefined;
-        if (result?.stride_raised_from != null && result.stride) {
-          setStatus(
-            `These captures were too large to upload whole, so every ${result.stride}th frame was kept. ` +
-              `The reconstructor drops frames closer together than keyframe_min_distance_m anyway, so the ` +
-              `frames lost first are ones it would not have used.`,
-          );
-        }
-        setSaved(`Merged and reconstructing as ${job.reconstruction_id.slice(0, 8)} — follow it in the captures tree.`);
-        return;
-      }
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-    }
-  }, []);
+  const reference = maps.find((m) => m.id === referenceId);
+  const candidates = maps.filter((m) => m.id !== referenceId && m.cloud);
+  const ready = !busy && !started && maps.length >= 2 && !!reference?.cloud && candidates.length > 0;
 
-  const submit = (reconstruct: boolean, mergeName: string | null = null) => {
+  const startMerge = (name: string) => {
     const payload: AlignedMap[] = maps.map((m) => ({
       reconstruction_id: m.id,
       yaw_deg: m.yawDeg,
@@ -314,15 +297,44 @@ export function AlignPage() {
     }));
     setStatus(null);
     setBusy(true);
-    saveAlignment(payload, referenceId, mergeName, reconstruct)
-      .then(async (r) => {
-        if (!reconstruct || !r.job_id) {
-          setSaved(`Placement saved as ${r.id}.`);
-          return;
-        }
-        setSaved("Merging the captures — this takes several minutes.");
-        await follow(r.job_id);
-      })
+    saveAlignment(payload, referenceId, name, true)
+      .then(() =>
+        setStarted(
+          `Merging "${name}" has started. You can close this tab: progress shows as a new row at the top of the ` +
+            `main Placeframe window, and the merged capture and its reconstruction appear there when they exist.`,
+        ),
+      )
+      .catch((err: unknown) => setStatus(errorText(err)))
+      .finally(() => setBusy(false));
+  };
+
+  // One job per candidate, each against the reference: a placement of several maps is several
+  // independent fits, and each copy lands under its own capture.
+  const startIcp = (fitScale: Record<string, boolean>) => {
+    if (!reference) return;
+    setStatus(null);
+    setBusy(true);
+    Promise.all(
+      candidates.map((m) =>
+        startIcpMatch({
+          reference_id: reference.id,
+          candidate_id: m.id,
+          yaw_deg: m.yawDeg,
+          translation: [m.tx, m.ty, m.tz],
+          scale: m.scale,
+          fit_scale: fitScale[m.id] ?? true,
+          candidate_capture_session_id: m.captureSessionId,
+          candidate_label: m.label,
+          reference_label: reference.label,
+        }),
+      ),
+    )
+      .then(() =>
+        setStarted(
+          `ICP matching has started. You can close this tab: progress shows in the main Placeframe window, as a new ` +
+            `row under ${candidates.map((m) => m.label).join(", ")}, which becomes the transformed reconstruction when it is done.`,
+        ),
+      )
       .catch((err: unknown) => setStatus(errorText(err)))
       .finally(() => setBusy(false));
   };
@@ -332,7 +344,7 @@ export function AlignPage() {
       <div className="align-side">
         <h2>Align maps</h2>
         {status && <div className="banner banner-error">{status}</div>}
-        {saved && <div className="banner banner-success">Alignment saved as {saved}.</div>}
+        {started && <div className="banner banner-success">{started}</div>}
 
         {/* The maps to place are chosen in the captures tree and arrive in the URL, so there is no
             picker here: this page does one thing, and changing the selection means going back. */}
@@ -368,8 +380,12 @@ export function AlignPage() {
                 <td>
                   <input
                     type="number" step={0.01} value={round(m.scale)}
-                    disabled={m.scaleLocked || m.id === referenceId}
-                    title={m.scaleLocked ? "Metric already: a stereo baseline fixes this map's scale" : undefined}
+                    disabled={m.id === referenceId}
+                    title={
+                      m.looksMetric && m.id !== referenceId
+                        ? "This map looks metric already (stereo, or position priors); change its scale only if it has none, e.g. a spherical capture"
+                        : undefined
+                    }
                     onChange={(e) => update(m.id, { scale: Number(e.target.value) })}
                   />
                 </td>
@@ -388,66 +404,123 @@ export function AlignPage() {
           map that never touches the reference can still be perfectly placed against its neighbour.
         </div>
 
+        {/* One action per row, each with what it does next to it, and leaving last: the two start
+            different jobs, and reading both before choosing is the point. */}
         <div className="align-actions">
-          <button disabled={busy} onClick={cancel}>
-            Cancel
-          </button>
-          <button disabled={busy || maps.length < 2 || !referenceId} onClick={() => submit(false)}>
-            Save placement
-          </button>
           <button
             className="primary"
-            disabled={busy || maps.length < 2 || !referenceId}
-            onClick={() => setMergeName(maps.map((m) => m.label).join(" + "))}
+            disabled={!ready || maps.length !== 2}
+            title={maps.length !== 2 ? "ICP matches one map to the reference: open exactly two maps" : undefined}
+            onClick={() =>
+              setConfirm({ kind: "icp", fitScale: Object.fromEntries(candidates.map((m) => [m.id, !m.looksMetric])) })
+            }
           >
-            {busy ? "Merging…" : "Merge and reconstruct"}
+            ICP match…
+          </button>
+          <div className="align-hint">
+            For two maps of the same place: refines the placement shown against the reference's point
+            cloud (scale too, for a map with no metric scale of its own) and makes a transformed copy of
+            the other map, in the reference's frame and units. The original is untouched.
+          </div>
+          <button
+            disabled={!ready}
+            onClick={() => setConfirm({ kind: "merge", name: maps.map((m) => m.label).join(" + ") })}
+          >
+            {busy ? "Starting…" : "Merge and reconstruct…"}
+          </button>
+          <div className="align-hint">
+            Restates every capture's poses in this frame and reconstructs from all of them at once,
+            pairing frames of different captures that the placement puts within 15 m. That proximity is
+            the whole point of placing them: it is evidence retrieval does not have, and without it two
+            walks through the same corner can share almost nothing.
+          </div>
+          <button disabled={busy} onClick={cancel}>
+            {started ? "Back to captures" : "Cancel"}
           </button>
         </div>
-        <div className="align-hint">
-          Merging restates every capture's poses in this frame and reconstructs from all of them at
-          once, pairing frames of different captures that the placement puts within 15 m. That
-          proximity is the whole point of placing them: it is evidence retrieval does not have, and
-          without it two walks through the same corner can share almost nothing.
-        </div>
       </div>
-      {mergeName !== null && (
-        <div className="dialog-overlay" onClick={() => setMergeName(null)}>
+      {confirm?.kind === "merge" && (
+        <div className="dialog-overlay" onClick={() => setConfirm(null)}>
           <div className="dialog" onClick={(e) => e.stopPropagation()}>
-            <h3>Name the merged capture</h3>
+            <h3>Merge and reconstruct</h3>
             <div className="align-hint">
-              The merge becomes a capture of its own, holding every placed capture as a rig, and the
-              reconstruction built from it takes the same name. Naming it for the walks that went in is
-              what makes it findable later.
+              The captures behind {maps.map((m) => m.label).join(", ")} will be merged into one new capture, each
+              placed as shown here, and reconstructed from all of them at once. Frames of different captures that
+              the placement puts within 15 m of each other are paired. This takes a while; the originals are
+              untouched.
+            </div>
+            <div className="align-hint">
+              The merge becomes a capture of its own, and the reconstruction built from it takes the same name.
+              Naming it for the walks that went in is what makes it findable later.
             </div>
             <label>
               Name
               <input
                 autoFocus
                 type="text"
-                value={mergeName}
-                onChange={(e) => setMergeName(e.target.value)}
+                value={confirm.name}
+                onChange={(e) => setConfirm({ kind: "merge", name: e.target.value })}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" && mergeName.trim()) {
-                    const chosen = mergeName.trim();
-                    setMergeName(null);
-                    submit(true, chosen);
+                  if (e.key === "Enter" && confirm.name.trim()) {
+                    setConfirm(null);
+                    startMerge(confirm.name.trim());
                   }
-                  if (e.key === "Escape") setMergeName(null);
+                  if (e.key === "Escape") setConfirm(null);
                 }}
               />
             </label>
             <div className="dialog-actions">
-              <button onClick={() => setMergeName(null)}>Cancel</button>
+              <button onClick={() => setConfirm(null)}>Cancel</button>
               <button
                 className="primary"
-                disabled={!mergeName.trim()}
+                disabled={!confirm.name.trim()}
                 onClick={() => {
-                  const chosen = mergeName.trim();
-                  setMergeName(null);
-                  submit(true, chosen);
+                  const chosen = confirm.name.trim();
+                  setConfirm(null);
+                  startMerge(chosen);
                 }}
               >
                 Merge and reconstruct
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {confirm?.kind === "icp" && reference && (
+        <div className="dialog-overlay" onClick={() => setConfirm(null)}>
+          <div className="dialog" onClick={(e) => e.stopPropagation()}>
+            <h3>ICP match</h3>
+            {candidates.map((m) => (
+              <div key={m.id} className="align-hint">
+                <b>{m.label}</b> will be transformed to match the reference <b>{reference.label}</b> using ICP,
+                starting from the placement shown. The result is a new reconstruction under {m.label}&apos;s capture,
+                in {reference.label}&apos;s frame and units; {m.label} itself is untouched.
+                <label style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 6 }}>
+                  <input
+                    type="checkbox"
+                    checked={confirm.fitScale[m.id] ?? true}
+                    onChange={(e) => setConfirm({ kind: "icp", fitScale: { ...confirm.fitScale, [m.id]: e.target.checked } })}
+                  />
+                  Let ICP adjust the scale
+                  {m.looksMetric && " (this map looks metric already, e.g. stereo)"}
+                </label>
+              </div>
+            ))}
+            <div className="align-hint">
+              ICP needs the maps roughly in place already: within a couple of metres and a few degrees.
+            </div>
+            <div className="dialog-actions">
+              <button onClick={() => setConfirm(null)}>Cancel</button>
+              <button
+                className="primary"
+                autoFocus
+                onClick={() => {
+                  const fitScale = confirm.fitScale;
+                  setConfirm(null);
+                  startIcp(fitScale);
+                }}
+              >
+                Start ICP match
               </button>
             </div>
           </div>

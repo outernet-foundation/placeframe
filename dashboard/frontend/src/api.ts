@@ -270,6 +270,16 @@ export function getJob<TResult = unknown>(jobId: string): Promise<Job<TResult>> 
   return request(`/api/jobs/${jobId}`);
 }
 
+// The align page's jobs. They start in that tab, which the operator may close at once, so the
+// captures page lists them itself to show each one's progress.
+export function listAlignJobs(): Promise<Job[]> {
+  return request("/api/jobs");
+}
+
+export function dismissJob(jobId: string): Promise<void> {
+  return deleteRequest(`/api/jobs/${jobId}`);
+}
+
 export function startLocalize(
   reconstructionId: string,
   imageDir: string,
@@ -454,6 +464,24 @@ export function saveAlignment(
     method: "POST",
     body: JSON.stringify({ maps, reference_id: referenceId, name, reconstruct }),
   });
+}
+
+export interface IcpMatchRequest {
+  reference_id: string;
+  candidate_id: string;
+  yaw_deg: number;
+  translation: [number, number, number];
+  scale: number;
+  fit_scale: boolean;
+  candidate_capture_session_id: string | null;
+  candidate_label: string;
+  reference_label: string;
+}
+
+// Refines the candidate's placement against the reference by ICP and imports the candidate, moved,
+// as a new reconstruction. Returns at once; the job carries on in the backend.
+export function startIcpMatch(body: IcpMatchRequest): Promise<{ job_id: string; alignment_id: string }> {
+  return request("/api/icp-matches", { method: "POST", body: JSON.stringify(body) });
 }
 
 export interface ScreenshotResult {
