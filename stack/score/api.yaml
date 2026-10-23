@@ -20,7 +20,7 @@ containers:
       DATABASE_AUTH_USER_PASSWORD: ${resources.db.auth_password}
       DATABASE_ORCHESTRATION_USER: ${resources.db.orchestration_username}
       DATABASE_ORCHESTRATION_USER_PASSWORD: ${resources.db.orchestration_password}
-      LOCALIZER_CONTAINER_URL: http://localhost:8000
+      LOCALIZER_CONTAINER_URL: http://${resources.localizer.hostname}:${resources.localizer.port}
       LOKI_URL: ${resources.observability.loki_url}
       OTEL_EXPORTER_OTLP_ENDPOINT: ${resources.observability.otlp_endpoint}
       SERVICE_VERSION: ${API_SHA}
@@ -45,6 +45,12 @@ resources:
   bucket:
     type: s3
     id: placeframe-bucket
+  localizer:
+    type: service-port
+    id: localizer-http
+    params:
+      workload: localizer
+      port: http
   config:
     type: placeframe-config
     id: placeframe-config

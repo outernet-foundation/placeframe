@@ -1,4 +1,4 @@
-requires: ">=0.4.7"
+requires: ">=0.4.9"
 lifecycle:
   files:
     - compose.yml
@@ -12,9 +12,16 @@ generate-score:
     - api.yaml
     - lease-server.yaml
     - gateway.yaml
+    - reconstructor.yaml
+    - localizer.yaml
   project_name: placeframe
   cloud_storage_class: hcloud-volumes
   local_storage_class: local-path
+  compose_output: stack/generated/compose/compose.{gpu}.yaml
+  gpu_variants:
+    - cuda
+    - rocm
+  k8s_gpu_variant: cuda
   compose_provisioners:
     - compose/postgres.yaml
     - compose/config.yaml
@@ -22,10 +29,12 @@ generate-score:
     - compose/seaweedfs.yaml
     - compose/observability.yaml
     - compose/tunnel.yaml
+    - compose/keda-scaled-object.yaml
   compose_patch_templates:
     - compose/wait-for-resources-image.tpl
     - compose/workload-healthchecks.tpl
     - compose/tunnel-gate-exclusion.tpl
+    - compose/gpu-{gpu}.tpl
   k8s_provisioners:
     - k8s/postgres.yaml
     - k8s/seaweedfs.yaml
@@ -33,6 +42,10 @@ generate-score:
     - k8s/oidc-issuer.yaml
     - k8s/observability.yaml
     - k8s/tunnel.yaml
+    - k8s/keda-scaled-object.yaml
+  k8s_patch_templates:
+    - k8s/gpu-pod.tpl
+    - k8s/scale-to-zero.tpl
   publishes:
     - "8000:api:8000"
     - "8443:gateway:8443"

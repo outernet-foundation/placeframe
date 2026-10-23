@@ -1,0 +1,41 @@
+apiVersion: score.dev/v1b1
+metadata:
+  name: reconstructor
+  annotations:
+    # The GPU marker the compose device patch templates and the k8s gpu-pod patch
+    # template key on; accelerator plumbing is generated, never hand-declared.
+    placeframe.io/gpu: "true"
+containers:
+  reconstructor:
+    image: ghcr.io/outernet-foundation/placeframe/reconstructor-${GPU_VARIANT}:${RECONSTRUCTOR_SHA}
+    variables:
+      LEASE_SERVER_URL: http://${resources.lease-server.hostname}:${resources.lease-server.port}
+      S3_ENDPOINT_URL: ${resources.bucket.endpoint}
+      S3_ACCESS_KEY: ${resources.bucket.access_key_id}
+      S3_SECRET_KEY: ${resources.bucket.secret_key}
+      CAPTURES_BUCKET: ${resources.bucket.captures_bucket}
+      RECONSTRUCTIONS_BUCKET: ${resources.bucket.bucket}
+      DEPLOYMENT_ENVIRONMENT: ${resources.config.deployment_environment}
+      SERVICE_VERSION: ${RECONSTRUCTOR_SHA}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${resources.observability.otlp_endpoint}
+resources:
+  lease-server:
+    type: service-port
+    id: lease-server-http
+    params:
+      workload: lease-server
+      port: http
+  bucket:
+    type: s3
+    id: placeframe-bucket
+  config:
+    type: placeframe-config
+    id: placeframe-config
+  observability:
+    type: observability
+    id: placeframe-observability
+  autoscaling:
+    # Queue-driven scale-to-zero is a workload fact: the k8s provisioner renders the
+    # KEDA ScaledObject + TriggerAuthentication, the compose twin is the always-on no-op.
+    type: keda-scaled-object
+    id: reconstructor-queued-depth

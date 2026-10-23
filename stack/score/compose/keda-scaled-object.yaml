@@ -1,0 +1,6 @@
+# Compose twin of k8s/keda-scaled-object.yaml. KEDA scale-to-zero exists only on k8s
+# (BY-DESIGN: compose runs the reconstructor always-on), so this provisioner exists
+# solely to satisfy the shared workload file's autoscaling resource on this rendering.
+- uri: template://placeframe/keda-scaled-object
+  type: keda-scaled-object
+  description: Autoscaling marker only; the compose rendering runs its workloads always-on.
