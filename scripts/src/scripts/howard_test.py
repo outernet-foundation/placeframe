@@ -918,7 +918,7 @@ def captures(
 ) -> None:
     sessions = sorted(run(_list_captures()), key=lambda s: s.recorded_at, reverse=True)
     if json_output:
-        flags = run(_spherical_flags(sessions)) if spherical_check else [None] * len(sessions)
+        flags = run(spherical_flags(sessions)) if spherical_check else [None] * len(sessions)
         typer.echo(dumps([{**_capture_to_dict(s), "is_spherical": f} for s, f in zip(sessions, flags, strict=True)]))
         return
     _print_table(
@@ -2903,22 +2903,64 @@ async def _list_captures() -> list[CaptureSessionRead]:
 # Whether a capture is spherical is recorded only in its manifest, so telling takes a fetch per
 # capture. Best-effort and concurrent: a capture whose manifest cannot be read reports None rather
 # than failing the listing, the same way frame stats degrade.
-async def _spherical_flags(sessions: list[CaptureSessionRead]) -> list[bool | None]:
-    async with authenticated_api_client() as api:
+# Whether each capture is spherical, by capture id. A capture's tar never changes once stored, so
+# the answer never does either, and asking costs a manifest fetch -- which the API serves by scanning
+# the capture's tar in storage, hundreds of MB to over a GB. The dashboard's captures list asks for
+# every capture every few seconds while anything runs, and uncached that was a 28 s listing on a
+# loop that slowed localization queries from 2 s to 7 s by contending for the API and storage.
+SPHERICAL_FLAGS_CACHE = DATA_DIR / "capture_spherical.json"
 
-        async def one(session: CaptureSessionRead) -> bool | None:
-            try:
-                manifest_bytes = await api.get_capture_session_manifest_file(id=session.id)
-            except ApiException:
-                return None
-            manifest = CaptureSessionManifest.model_validate_json(manifest_bytes)
-            return any(
-                isinstance(camera.camera_config, SphericalCameraConfig)
-                for rig in manifest.rigs
-                for camera in rig.cameras
-            )
 
-        return list(await gather(*(one(session) for session in sessions)))
+def _read_spherical_cache() -> dict[str, bool]:
+    try:
+        cached: object = loads(SPHERICAL_FLAGS_CACHE.read_text())
+    except (FileNotFoundError, ValueError):
+        return {}
+    if not isinstance(cached, dict):
+        return {}
+    return {str(k): v for k, v in cast("dict[object, object]", cached).items() if isinstance(v, bool)}
+
+
+def _write_spherical_cache(flags: dict[str, bool]) -> None:
+    # Replaced whole, through a temporary file: two listings can run at once, and a reader must
+    # never see half a file.
+    SPHERICAL_FLAGS_CACHE.parent.mkdir(parents=True, exist_ok=True)
+    temporary = SPHERICAL_FLAGS_CACHE.with_suffix(f".{uuid4().hex}.tmp")
+    temporary.write_text(dumps(flags, indent=1, sort_keys=True))
+    temporary.replace(SPHERICAL_FLAGS_CACHE)
+
+
+async def spherical_flags(sessions: list[CaptureSessionRead]) -> list[bool | None]:
+    """Whether each capture is spherical; None where its manifest could not be read.
+
+    Answers are cached for good (see SPHERICAL_FLAGS_CACHE); a failed fetch is not, so it is asked
+    again next time. Captures no longer listed are dropped from the cache when it is rewritten.
+    """
+    cache = _read_spherical_cache()
+    # An imported reconstruction's stand-in capture holds no tar (size 0), so it has no manifest to
+    # read: asking only earns a 500, on every listing, since a failure is not cached.
+    missing = [s for s in sessions if str(s.id) not in cache and (s.size_bytes or 0) > 0]
+    if missing:
+        async with authenticated_api_client() as api:
+
+            async def one(session: CaptureSessionRead) -> bool | None:
+                try:
+                    manifest_bytes = await api.get_capture_session_manifest_file(id=session.id)
+                except ApiException:
+                    return None
+                manifest = CaptureSessionManifest.model_validate_json(manifest_bytes)
+                return any(
+                    isinstance(camera.camera_config, SphericalCameraConfig)
+                    for rig in manifest.rigs
+                    for camera in rig.cameras
+                )
+
+            fetched = await gather(*(one(session) for session in missing))
+        listed = {str(s.id) for s in sessions}
+        cache = {k: v for k, v in cache.items() if k in listed}
+        cache.update({str(s.id): flag for s, flag in zip(missing, fetched, strict=True) if flag is not None})
+        await to_thread(_write_spherical_cache, cache)
+    return [cache.get(str(s.id)) for s in sessions]
 
 
 async def _list_reconstructions() -> list[ReconstructionReadWithQueue]:
