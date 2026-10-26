@@ -97,11 +97,11 @@ generate-score:
       values:
         - stack/score/k8s/values/loki.yaml
     - name: grafana
-      ref: oci://ghcr.io/grafana/helm-charts/grafana@sha256:161aa0727809ebdd41d27aa92e06e0f72623e9c86b7f2a6e2ebdb7cdbdd0764e
+      ref: oci://ghcr.io/grafana/helm-charts/grafana@sha256:3d75dc3173c3fb07eaa8853283f38558c7c27259f7ed00cf8c096173667426a1
       values:
         - stack/score/k8s/values/grafana.yaml
     - name: keycloak-operator
-      ref: oci://quay.io/keycloak/keycloak-operator-helm@sha256:daac469fec00157ff6dc29af1e41b06980673ee22706a093caf08afa373b8578
+      ref: oci://quay.io/keycloak/keycloak-operator-helm@sha256:650f7e1021def78ff799aa5ada703818a1a7d0e3cb6ee7eba6d5e1b557656a17
       values:
         - stack/score/k8s/values/keycloak-operator.yaml
   helm_version: "3.22.1"
