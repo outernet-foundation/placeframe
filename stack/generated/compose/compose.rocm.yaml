@@ -63,26 +63,6 @@ services:
     ports:
     - target: 8000
       published: '8000'
-  gateway-gateway:
-    annotations:
-      compose.score.dev/workload-name: gateway
-    depends_on:
-      wait-for-resources:
-        condition: service_completed_successfully
-        required: true
-    environment:
-      AUTH_REALM: placeframe-dev
-      PUBLIC_URL: ${PUBLIC_URL:?err}
-    hostname: gateway
-    image: ghcr.io/outernet-foundation/placeframe/gateway:tree-181bdf0a8030816491548e1d9b7eab243ff9393c
-    ports:
-    - target: 8443
-      published: '8443'
-    configs:
-    - source: gateway-files-auth-loki.conf
-      target: /etc/caddy/snippets/loki/auth-loki.conf
-    - source: gateway-files-auth-site.conf
-      target: /etc/caddy/snippets/site/auth-site.conf
   grafana:
     depends_on:
       loki:
@@ -145,43 +125,6 @@ services:
       S3_ENDPOINT_URL: http://seaweedfs:8333
       S3_SECRET_KEY: ${S3_SECRET_KEY:?err}
     image: ghcr.io/outernet-foundation/placeframe/s3-initializer:tree-599cb0c699094c854cc266424972c4dab5bd3ab8
-  keycloak:
-    command:
-    - start-dev
-    - --health-enabled=true
-    environment:
-      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?err}
-      KC_BOOTSTRAP_ADMIN_USERNAME: admin
-      KC_HOSTNAME: ${PUBLIC_URL:?err}/auth
-      KC_HOSTNAME_ADMIN: ${PUBLIC_URL:?err}/auth
-      KC_HOSTNAME_STRICT_HTTPS: 'true'
-      KC_PROXY_HEADERS: xforwarded
-    healthcheck:
-      test:
-      - CMD
-      - /bin/bash
-      - -c
-      - 'exec 3<>/dev/tcp/127.0.0.1/9000; echo -e ''GET /health/ready HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n'' >&3; cat <&3 | grep -q ''200 OK'''
-      timeout: 5s
-      interval: 10s
-      retries: 20
-      start_period: 30s
-    image: ${KEYCLOAK_IMAGE:?err}
-  keycloak-configurator:
-    depends_on:
-      keycloak:
-        condition: service_healthy
-        required: false
-    environment:
-      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?err}
-      KC_BOOTSTRAP_ADMIN_USERNAME: admin
-      KEYCLOAK_ACCESS_TOKEN_LIFESPAN: ${KEYCLOAK_ACCESS_TOKEN_LIFESPAN:?err}
-      KEYCLOAK_SSO_SESSION_IDLE_TIMEOUT: ${KEYCLOAK_SSO_SESSION_IDLE_TIMEOUT:?err}
-      KEYCLOAK_SSO_SESSION_MAX_LIFESPAN: ${KEYCLOAK_SSO_SESSION_MAX_LIFESPAN:?err}
-      KEYCLOAK_URL: http://keycloak:8080
-      PUBLIC_URL: ${PUBLIC_URL:?err}
-      SEED_TEST_USERS: ${SEED_TEST_USERS:-}
-    image: ghcr.io/outernet-foundation/placeframe/auth-initializer:tree-3423102b2ca426860c857756f26f218c2cc14697
   lease-server-lease-server:
     annotations:
       compose.score.dev/workload-name: lease-server
@@ -279,25 +222,6 @@ services:
     configs:
     - source: config.yaml
       target: /etc/loki/config.yaml
-  ngrok:
-    profiles:
-    - tunnel-ngrok
-    entrypoint:
-    - ngrok
-    - http
-    - --domain=${NGROK_DOMAIN:-}
-    - --upstream-protocol=http2
-    - --log=stdout
-    - http://gateway:8443
-    environment:
-      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:-}
-    image: ${NGROK_IMAGE:?err}
-    ports:
-    - mode: ingress
-      target: 4040
-      published: '4040'
-      protocol: tcp
-    restart: on-failure
   pf-postgres:
     entrypoint:
     - /usr/local/bin/entrypoint-wrapper.sh
@@ -368,16 +292,6 @@ services:
       DB_PORT: '5432'
       DB_USER: placeframe_owner
     image: ghcr.io/outernet-foundation/placeframe/database-migrator:tree-7b79d3f23baeeed16e5baee60baa4adbfd51ff94
-  rathole-client:
-    profiles:
-    - tunnel-rathole
-    environment:
-      ENGINEER_NAME: ${ENGINEER_NAME:-}
-      RATHOLE_SERVICES: gateway:tcp:gateway:8443
-      TUNNEL_CONTROL_ENDPOINT: ${TUNNEL_CONTROL_ENDPOINT:-}
-      TUNNEL_TOKEN: ${TUNNEL_TOKEN:-}
-    image: ghcr.io/outernet-foundation/placeframe/rathole-client:tree-fcf5c6d5ad813f3332ec12b39929b91255f6d2ef
-    restart: on-failure
   reconstructor-reconstructor:
     annotations:
       compose.score.dev/workload-name: reconstructor
@@ -484,12 +398,6 @@ services:
       initialize-s3:
         condition: service_started
         required: true
-      keycloak:
-        condition: service_healthy
-        required: true
-      keycloak-configurator:
-        condition: service_started
-        required: true
       loki:
         condition: service_healthy
         required: true
@@ -564,19 +472,6 @@ configs:
         endpoint {
           url = sys.env("LOKI_WRITE_ENDPOINT")
         }
-      }
-  gateway-files-auth-loki.conf:
-    content: |
-      forward_auth keycloak:8080 {
-          uri /realms/{$$AUTH_REALM}/protocol/openid-connect/userinfo
-      }
-  gateway-files-auth-site.conf:
-    content: |
-      handle_path /auth/* {
-          reverse_proxy keycloak:8080 {
-              header_up X-Forwarded-Proto {$$FORWARDED_PROTO}
-              header_up X-Forwarded-Port {$$FORWARDED_PORT}
-          }
       }
   datasources.yaml:
     content: |

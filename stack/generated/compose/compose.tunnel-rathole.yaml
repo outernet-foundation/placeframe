@@ -1,0 +1,13 @@
+name: placeframe
+services:
+  tunnel-rathole-rathole-client:
+    annotations:
+      compose.score.dev/workload-name: tunnel-rathole
+    environment:
+      ENGINEER_NAME: ${ENGINEER_NAME:-}
+      RATHOLE_SERVICES: gateway:tcp:gateway:8443
+      TUNNEL_CONTROL_ENDPOINT: ${TUNNEL_CONTROL_ENDPOINT:-}
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:-}
+    hostname: tunnel-rathole
+    image: ghcr.io/outernet-foundation/placeframe/rathole-client:tree-fcf5c6d5ad813f3332ec12b39929b91255f6d2ef
+    restart: on-failure

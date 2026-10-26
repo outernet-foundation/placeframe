@@ -1,0 +1,18 @@
+name: placeframe
+services:
+  tunnel-ngrok-ngrok:
+    annotations:
+      compose.score.dev/workload-name: tunnel-ngrok
+    entrypoint:
+      - /bin/sh
+      - -c
+      - exec ngrok http --domain=$${NGROK_DOMAIN:-} --upstream-protocol=http2 --log=stdout http://gateway:8443
+    environment:
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:-}
+      NGROK_DOMAIN: ${NGROK_DOMAIN:-}
+    hostname: tunnel-ngrok
+    image: ${NGROK_IMAGE:?err}
+    ports:
+      - target: 4040
+        published: "4040"
+    restart: on-failure
