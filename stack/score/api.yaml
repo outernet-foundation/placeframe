@@ -7,7 +7,7 @@ containers:
     variables:
       PUBLIC_URL: ${resources.config.public_url}
       AUTH_ISSUER_URL: ${resources.config.auth_issuer_url}
-      AUTH_JWKS_URL: ${resources.auth.certs_url}
+      AUTH_JWKS_URL: ${resources.config.auth_jwks_url}
       AUTH_AUTHORIZATION_ENDPOINT: ${resources.config.auth_authorization_endpoint}
       AUTH_TOKEN_ENDPOINT: ${resources.config.auth_token_endpoint}
       AUTH_AUDIENCE: ${resources.config.auth_audience}
@@ -57,6 +57,3 @@ resources:
   observability:
     type: observability
     id: placeframe-observability
-  auth:
-    type: oidc-issuer
-    id: placeframe-keycloak

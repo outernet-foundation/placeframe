@@ -13,6 +13,7 @@
     public_url: '{{ encodeSecretRef "placeframe-secrets" "PUBLIC_URL" }}'
     auth_audience: '{{ encodeSecretRef "placeframe-secrets" "AUTH_AUDIENCE" }}'
     auth_issuer_url: '{{ encodeSecretRef "placeframe-secrets" "AUTH_ISSUER_URL" }}'
+    auth_jwks_url: '{{ encodeSecretRef "placeframe-secrets" "AUTH_JWKS_URL" }}'
     auth_authorization_endpoint: '{{ encodeSecretRef "placeframe-secrets" "AUTH_AUTHORIZATION_ENDPOINT" }}'
     auth_token_endpoint: '{{ encodeSecretRef "placeframe-secrets" "AUTH_TOKEN_ENDPOINT" }}'
     deployment_environment: '{{ encodeSecretRef "placeframe-secrets" "DEPLOYMENT_ENVIRONMENT" }}'

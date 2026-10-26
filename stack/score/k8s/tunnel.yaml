@@ -1,8 +1,0 @@
-# Tunnel provisioner (Kubernetes): emits nothing. Public ingress on the cluster is the
-# load balancer's job (Pulumi/infra tier), not a relay's — the compose twin's profile-
-# gated ngrok/rathole services have no k8s counterpart. The resource type still must
-# be registered so the gateway's `tunnel` resource declaration resolves on this tier.
-- uri: template://placeframe/tunnel-k8s
-  type: tunnel
-  description: No-op on k8s; public ingress is the load balancer's job.
-  state: {}

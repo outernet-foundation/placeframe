@@ -1,0 +1,27 @@
+apiVersion: score.dev/v1b1
+metadata:
+  name: tunnel-ngrok
+containers:
+  ngrok:
+    image: ${NGROK_IMAGE:?err}
+    # The shell wrapper is load-bearing twice over: score does not substitute
+    # resource refs inside command args, and score-compose $$-escapes ${...} in
+    # them to a docker-compose literal — so the shell expands the domain inside
+    # the container from NGROK_DOMAIN below, while the authtoken is read from
+    # the environment natively by ngrok itself.
+    command:
+      - /bin/sh
+      - -c
+      - exec ngrok http --domain=${NGROK_DOMAIN:-} --upstream-protocol=http2 --log=stdout http://gateway:8443
+    variables:
+      NGROK_AUTHTOKEN: ${resources.config.ngrok_authtoken}
+      NGROK_DOMAIN: ${resources.config.ngrok_domain}
+service:
+  ports:
+    admin:
+      port: 4040
+      targetPort: 4040
+resources:
+  config:
+    type: tunnel-config
+    id: placeframe-tunnel-config

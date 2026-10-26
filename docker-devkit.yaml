@@ -8,6 +8,9 @@ lifecycle:
 mirror:
   prefix: ghcr.io/outernet-foundation/mirror
 generate-score:
+  # The k8s rendering's monolithic workload list — compose-only workloads (the
+  # relays) stay out of it. Assembly by seam inclusion is a compose-consumer
+  # concept; the cluster applies one artifact wholesale.
   workloads:
     - api.yaml
     - lease-server.yaml
@@ -17,45 +20,84 @@ generate-score:
   project_name: placeframe
   cloud_storage_class: hcloud-volumes
   local_storage_class: local-path
-  compose_output: stack/generated/compose/compose.{gpu}.yaml
-  gpu_variants:
-    - cuda
-    - rocm
   k8s_gpu_variant: cuda
-  compose_provisioners:
-    - compose/postgres.yaml
-    - compose/config.yaml
-    - compose/oidc-issuer.yaml
-    - compose/seaweedfs.yaml
-    - compose/observability.yaml
-    - compose/tunnel.yaml
-    - compose/keda-scaled-object.yaml
-  compose_patch_templates:
-    - compose/patches/wait-for-resources-image.tpl
-    - compose/patches/workload-healthchecks.tpl
-    - compose/patches/tunnel-gate-exclusion.tpl
-    - compose/patches/gpu-{gpu}.tpl
   k8s_provisioners:
     - k8s/postgres.yaml
     - k8s/seaweedfs.yaml
     - k8s/config.yaml
     - k8s/oidc-issuer.yaml
     - k8s/observability.yaml
-    - k8s/tunnel.yaml
     - k8s/keda-scaled-object.yaml
   k8s_patch_templates:
     - k8s/patches/gpu-pod.tpl
     - k8s/patches/scale-to-zero.tpl
-  publishes:
-    - "8000:api:8000"
-    - "8443:gateway:8443"
+  seams:
+    - name: core
+      output: stack/generated/compose/compose.{gpu}.yaml
+      gpu_variants:
+        - cuda
+        - rocm
+      workloads:
+        - api.yaml
+        - lease-server.yaml
+        - reconstructor.yaml
+        - localizer.yaml
+      provisioners:
+        - compose/postgres.yaml
+        - compose/config.yaml
+        - compose/seaweedfs.yaml
+        - compose/observability.yaml
+        - compose/keda-scaled-object.yaml
+      patch_templates:
+        - compose/patches/wait-for-resources-image.tpl
+        - compose/patches/workload-healthchecks.tpl
+        - compose/patches/gpu-{gpu}.tpl
+      publishes:
+        - "8000:api:8000"
+    - name: gateway-open
+      output: stack/generated/compose/compose.gateway-open.yaml
+      workloads:
+        - gateway.yaml
+      overrides:
+        gateway.yaml: compose/overrides/gateway-open.yaml
+      provisioners:
+        - compose/config.yaml
+      publishes:
+        - "8443:gateway:8443"
+    - name: gateway-keycloak
+      output: stack/generated/compose/compose.gateway-keycloak.yaml
+      workloads:
+        - gateway.yaml
+      provisioners:
+        - compose/config.yaml
+        - compose/oidc-issuer.yaml
+      publishes:
+        - "8443:gateway:8443"
+    - name: tunnel-ngrok
+      output: stack/generated/compose/compose.tunnel-ngrok.yaml
+      workloads:
+        - tunnel-ngrok.yaml
+      provisioners:
+        - compose/tunnel.yaml
+      patch_templates:
+        - compose/patches/tunnel-restart.tpl
+      publishes:
+        - "4040:tunnel-ngrok:4040"
+    - name: tunnel-rathole
+      output: stack/generated/compose/compose.tunnel-rathole.yaml
+      workloads:
+        - tunnel-rathole.yaml
+      provisioners:
+        - compose/tunnel.yaml
+      patch_templates:
+        - compose/patches/tunnel-restart.tpl
   charts:
     - name: loki
       ref: oci://ghcr.io/grafana/helm-charts/loki@sha256:ba8b6b3ee954c9d6eeee713d148a22e6f73eb440189e11acd3112a06acdfd2f8
       values:
         - stack/score/k8s/values/loki.yaml
     - name: grafana
-      ref: oci://ghcr.io/grafana/helm-charts/grafana@sha256:161aa0727809ebdd41d27aa92e06e0f72623a9c86b7f2a6e2ebdb7cdbdd0764e
+      ref: oci://ghcr.io/grafana/helm-charts/grafana@sha256:161aa0727809ebdd41d27aa92e06e0f72623e9c86b7f2a6e2ebdb7cdbdd0764e
       values:
         - stack/score/k8s/values/grafana.yaml
     - name: keycloak-operator

@@ -9,6 +9,7 @@
     public_url: ${PUBLIC_URL:?err}
     auth_audience: ${AUTH_AUDIENCE:-}
     auth_issuer_url: ${AUTH_ISSUER_URL:-}
+    auth_jwks_url: ${AUTH_JWKS_URL:-}
     auth_authorization_endpoint: ${AUTH_AUTHORIZATION_ENDPOINT:-}
     auth_token_endpoint: ${AUTH_TOKEN_ENDPOINT:-}
     deployment_environment: ${DEPLOYMENT_ENVIRONMENT:-development}

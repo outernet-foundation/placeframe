@@ -1,0 +1,12 @@
+# gateway-open seam override: strips the gateway's auth surface for the anonymous
+# edge. Null deletes a key (docker-devkit merge semantics): the snippet files, the
+# AUTH_REALM env, and the oidc-issuer resource all ride out, and the seam
+# registers no oidc-issuer provisioner — this override IS the auth-snippet
+# presence difference between the two gateway artifacts.
+containers:
+  gateway:
+    files: null
+    variables:
+      AUTH_REALM: null
+resources:
+  auth: null
