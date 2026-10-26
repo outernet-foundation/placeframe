@@ -167,12 +167,25 @@ closes completely with what is ported at the time.
    tunnel-ngrok/tunnel-rathole — one artifact per relay, both first-class (Make-it-Sing is
    only one consumer), and no compose profile survives the split; the
    `tunnel-gate-exclusion.tpl` carve-out dies with the last profile-gated service.
- 2. **Cutover.** `lifecycle.files` → generated files; delete the hand compose files;
-    Make-it-Sing re-pins to `core-cuda` + `gateway-keycloak` + `tunnel-rathole` (its env
-   renames go live here — it still includes the old published bundle by digest today);
-   `.env.sample` drops `COMPOSE_PROFILES`; re-think preflight's `compose.postgres.yml`
-   role. `compose.dev.yml` survives as the hand overlay on generated files, never
-   published. Migrate the ledger residue into `stack/AGENTS.md` and delete this plan.
+2. **Cutover — rides PR #151 itself** (operator decision: the whole initiative lands as
+   one PR; no post-merge rebase step, the branch is already on post-#150 dev and bors
+   re-runs CI on the enlarged head). `lifecycle.files` → the generated artifacts with
+   env-conditioned selection (docker-devkit gains `when_env`/`when_env_absent` file
+   rules: `AUTH_ISSUER_URL` presence picks the gateway artifact — the same law the api
+   uses internally; `NGROK_AUTHTOKEN`/`TUNNEL_TOKEN` presence pick the relay; `down`
+   layers every declared file unconditionally so teardown covers prior selections);
+   delete the hand compose files; `.env.sample` drops `COMPOSE_PROFILES`; preflight's
+   `compose.postgres.yml` dies in favor of an isolated `docker run` postgres (same
+   wrapper image, port 55432, no compose project — which also stops preflight's old
+   `down --remove-orphans` from tearing down a running dev stack); the dangling
+   `workloads/orchestrator` workspace entry is discarded (never existed in git, no
+   orchestrator service exists). `compose.dev.yml` survives, re-keyed to the generated
+   `<workload>-<container>` service names, with a `!override` gateway port remap for
+   the dev host. Migrate the ledger residue into `stack/AGENTS.md` and delete this
+   plan. Make-it-Sing's re-pin to `core-cuda` + `gateway-keycloak` + `tunnel-rathole`
+   is deferred to the very end, after this PR lands — it consumes the old published
+   bundle by digest, OCI artifacts are immutable, so nothing breaks in between; its env
+   renames go live at its own re-pin.
 
 ## Mechanics that shape execution
 
@@ -218,21 +231,12 @@ closes completely with what is ported at the time.
 
 ## Current state
 
-- **Next session: execute the cutover** (work item 2). First confirm PR #151 landed
-  (operator-owned bors flow; green on `bf891c72` at close) and rebase onto the
-  post-merge `dev`. Then, per the item: `lifecycle.files` → the generated files;
-  delete the hand compose files; Make-it-Sing re-pins to `core-cuda` +
-  `gateway-keycloak` + `tunnel-rathole` (its env renames go live here — it still
-  includes the old published bundle by digest today); `.env.sample` drops
-  `COMPOSE_PROFILES`; re-think preflight's `compose.postgres.yml` role (preflight
-  tears down and re-brings-up that file, which cutover deletes). Close the
-  initiative by migrating the ledger residue into `stack/AGENTS.md` and deleting
-  this plan. Fold in or discard deliberately: the dangling
-  `workloads/orchestrator` workspace-member entry (directory never existed in git
-  history). Context: item 1 is fully landed and green — the six compose artifacts
-  publish in CI, the mirror is skip-if-present-resilient, and the first
-  chart-carrying k8s artifact is committed (`de934288`; the values-marker law it
-  surfaced now lives in `stack/AGENTS.md`).
+- **This session: execute the cutover (work item 2) on the `score-compose` branch
+  itself** — single-PR shape, per the amended item above. PR #151 stays open and
+  absorbs the cutover commits; no merge-wait, no rebase (green on `bf891c72` at last
+  check; CI re-runs on the enlarged head). Two plan-status commits ride the branch
+  unpushed (`bc6ab674`, `e9f6af15`) — push scope stays operator-owned. Make-it-Sing
+  is deliberately last (post-landing, its own repo).
 - **Item 1 landed** (commits `04c9022b`..`47881ff7` + devkit `491f4fb`/`7fa29ea`):
   the devkit seam schema replaced the flat compose fields (seams × gpu variants →
   per-output flattening; overrides with null-deletion merge, compose-only); the six
