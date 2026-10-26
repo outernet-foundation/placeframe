@@ -61,7 +61,7 @@ placeframe_api_client = { workspace = true }
 dirtorch = { workspace = true }
 # Git-pinned until the seam fields ship in a registry release (>=0.4.9); the pushed
 # branch self-reports 0.0.0.dev0, the dev sentinel that bypasses the requires self-check.
-docker-devkit = { git = "https://github.com/outernet-foundation/docker-devkit", rev = "6d922b4174afe52dc2b3861ce28d1819838090e6" }
+docker-devkit = { git = "https://github.com/outernet-foundation/docker-devkit", rev = "1f40c60037a1edc7b17bba4506cfa52a7772859a" }
 scripts = { workspace = true }
 lightglue = { git = "https://github.com/cvg/LightGlue.git" }
 
