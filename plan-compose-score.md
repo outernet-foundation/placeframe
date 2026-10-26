@@ -229,8 +229,8 @@ closes completely with what is ported at the time.
   never run), and `de934288` commits the first chart-carrying k8s artifact (20,784
   lines: operator CRDs/RBAC, grafana + loki chart docs, the ExternalName alias, the
   `AUTH_JWKS_URL` secretKeyRef passthrough, KEDA CRs, tree-shas matching the pushed
-  builds). Those two commits are unpushed at session end — push `score-compose`,
-  confirm CI green, then the initiative's remaining work is item 2 (cutover).
+  builds). Pushed as `bf891c72` and fully green in CI — the initiative's remaining
+  work is item 2 (cutover).
 - **Item 1 landed** (commits `04c9022b`..`47881ff7` + devkit `491f4fb`/`7fa29ea`):
   the devkit seam schema replaced the flat compose fields (seams × gpu variants →
   per-output flattening; overrides with null-deletion merge, compose-only); the six
