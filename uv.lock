@@ -533,8 +533,8 @@ source = { editable = "packages/python/neural-networks/third-party/deep-image-re
 
 [[package]]
 name = "docker-devkit"
-version = "0.4.7"
-source = { registry = "https://pypi.org/simple" }
+version = "0.0.0.dev0"
+source = { git = "https://github.com/outernet-foundation/docker-devkit?rev=7fa29eada9b86efeee80e1727c09b984b22689fa#7fa29eada9b86efeee80e1727c09b984b22689fa" }
 dependencies = [
     { name = "bashrun" },
     { name = "build-artifact-registry" },
@@ -544,10 +544,6 @@ dependencies = [
     { name = "pyyaml" },
     { name = "strictyaml" },
     { name = "typer" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/7c/49/9098eae7d699f6b988578565be21898eabe2f7793eb81a3ac0ab62bee8ea/docker_devkit-0.4.7.tar.gz", hash = "sha256:e1dd0e1ab3590742a2424278911f67dbb6e09c5689fa19c7d763e3d0074a98dc", size = 85324, upload-time = "2026-10-16T21:56:31.609Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/a1/b3/214d5f48dbf5de3d2d438647db2c374d11ef1643ccca32741ed008e64f89/docker_devkit-0.4.7-py3-none-any.whl", hash = "sha256:c8f0b9bcd8b3efd016c47185e88bb4dba465ea7ab5e550145aaa730e1100564e", size = 32501, upload-time = "2026-10-16T21:56:30.493Z" },
 ]
 
 [[package]]
@@ -2962,7 +2958,7 @@ dependencies = [
 requires-dist = [
     { name = "bashrun", specifier = ">=0.1.0" },
     { name = "datamodel-code-generator", specifier = ">=0.33.0" },
-    { name = "docker-devkit", specifier = ">=0.4.2" },
+    { name = "docker-devkit", git = "https://github.com/outernet-foundation/docker-devkit?rev=7fa29eada9b86efeee80e1727c09b984b22689fa" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "numpy", specifier = ">=2.1" },
     { name = "openapi-client-codegen", specifier = ">=0.1.12" },
