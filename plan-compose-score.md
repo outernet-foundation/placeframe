@@ -218,14 +218,24 @@ closes completely with what is ported at the time.
 
 ## Current state
 
-- **Next session starts here**: the push+pin landed — docker-devkit
-  `score-gpu-variants` is pushed (`7fa29ea`) and placeframe is git-pinned to it
-  (root `AGENTS.md` carries the exception note). The ball is the operator opening
-  the PR to `dev`: the mirror job runs (keycloak operator chart + 26.8.1 images),
-  publish-compose publishes the six artifacts, and preflight runs green under the
-  pin (verified locally: full scripts battery, basedpyright, native regeneration
-  byte-identical to the committed artifacts). After the PR: the mirror-gated k8s
-  regen below, then work item 2 (cutover).
+- **Next session starts here**: PR #151 is **red on `mirror-images`** — the whole DAG
+  skipped downstream. Diagnosis: `crane copy` of the grafana helm chart died with
+  `MANIFEST_UNKNOWN` at ghcr.io — the pinned upstream digest
+  (`161aa072…`) no longer exists; ghcr GC'd it (the exact failure mode the mirror
+  namespace exists for — but the mirror verb re-copies every declared ref from
+  upstream on every run, so an upstream GC breaks the job even if the mirror copy
+  already exists). Two side facts from the same log: the keycloak 26.8.1 **images**
+  (server + operator) copied successfully this run — the long-standing mirror gap
+  is closed — and the loki + keycloak-operator-helm chart copies were never
+  attempted (the loop aborted at grafana, which sorts first among the charts).
+  Fix paths, decision at next session: (a) re-pin the grafana chart to a live
+  upstream digest (resolve via `crane digest` on the version tag; chart digests
+  are unstable across re-publishes, so this is a re-resolve, not a re-verify —
+  then values/grafana.yaml compat check and the k8s regen carry the new digest), or
+  (b) a devkit change making `mirror` skip refs already present in the mirror
+  (softens the declared fail-closed re-copy law — needs an explicit decision).
+  The six-artifact publish and preflight have not run yet (skipped behind the
+  mirror job); re-push or re-run the workflow after the fix.
 - **Item 1 landed** (commits `04c9022b`..`47881ff7` + devkit `491f4fb`/`7fa29ea`):
   the devkit seam schema replaced the flat compose fields (seams × gpu variants →
   per-output flattening; overrides with null-deletion merge, compose-only); the six
@@ -238,14 +248,15 @@ closes completely with what is ported at the time.
   profile; the api's `AUTH_JWKS_URL` moved to the config passthrough so the core
   seam carries no oidc-issuer; `publish-compose` publishes the six from the
   generated files (no config inlining; single CI leg, no variant matrix).
-- **k8s deliberately stale** — unchanged: the operator chart and the 26.8.1 images
-  are declared but not mirrored, and k8s generation fails on the chart fetch until
-  the mirror job runs (Integrate, PR to `dev`; a bare branch push never runs it).
-  The k8s sources carry the seam split's k8s-side edits (config provisioner's
-  `auth_jwks_url`, no tunnel provisioner) whenever that regen runs;
-  `scripts/tests/test_score_k8s_generation.py` locks the k8s mechanics (GPU patches,
-  KEDA CRs, service-port URLs, no operator documents) and its compose twin locks the
-  seam split.
+- **k8s deliberately stale** — the operator chart and the 26.8.1 images are declared
+  but not mirrored, and k8s generation fails on the chart fetch until the mirror job
+  runs (Integrate, PR to `dev`; a bare branch push never runs it). The 26.8.1 images
+  mirrored on PR #151's failed run; the three chart copies did not complete (grafana
+  chart pin dead upstream — see the red-CI diagnosis above). The k8s sources carry
+  the seam split's k8s-side edits (config provisioner's `auth_jwks_url`, no tunnel
+  provisioner) whenever that regen runs; `scripts/tests/test_score_k8s_generation.py`
+  locks the k8s mechanics (GPU patches, KEDA CRs, service-port URLs, no operator
+  documents) and its compose twin locks the seam split.
 - **SaaS-engineer coordination**: his deploy branches
   (`cnpg-dev`/`placeframe-deploy`/`pf-secrets-dev`/`score-dev`) carry score-up/score-down
   wrappers, a CNPG backend option, and deploy-time fixes; he consumes the generated k8s
