@@ -1,9 +1,15 @@
 requires: ">=0.4.9"
 lifecycle:
   files:
-    - compose.yml
-    - compose.postgres.yml
-    - compose.{gpu}.yml
+    - stack/generated/compose/compose.{gpu}.yaml
+    - path: stack/generated/compose/compose.gateway-open.yaml
+      when_env_absent: AUTH_ISSUER_URL
+    - path: stack/generated/compose/compose.gateway-keycloak.yaml
+      when_env: AUTH_ISSUER_URL
+    - path: stack/generated/compose/compose.tunnel-ngrok.yaml
+      when_env: NGROK_AUTHTOKEN
+    - path: stack/generated/compose/compose.tunnel-rathole.yaml
+      when_env: TUNNEL_TOKEN
   dev_file: compose.dev.yml
 mirror:
   prefix: ghcr.io/outernet-foundation/mirror
