@@ -2,7 +2,7 @@
 
 ## What this is
 
-Placeframe's server-side stack: a set of cooperating microservices that ingest capture sessions from phone clients, reconstruct sparse 3D maps, and serve real-time 6-DOF localization queries. Everything in this directory builds into a container that runs under `compose.yml`. The Unity apps in `apps/` consume this stack; this directory is the stack itself.
+Placeframe's server-side stack: a set of cooperating microservices that ingest capture sessions from phone clients, reconstruct sparse 3D maps, and serve real-time 6-DOF localization queries. Everything in this directory builds into a container that runs under the score-generated compose artifacts. The Unity apps in `apps/` consume this stack; this directory is the stack itself.
 
 ## Shape
 
@@ -17,14 +17,14 @@ Placeframe's server-side stack: a set of cooperating microservices that ingest c
 | `database-manager` | `database-manager/` | Python | Runs SQL migrations at startup, then exits. |
 | `auth-initializer` | `auth-initializer/` | Python | Configures the Keycloak realm post-boot, then exits: waits for keycloak's admin API, then creates or updates the realm from the committed export over the admin REST API, substituting the `KEYCLOAK_*`/`PUBLIC_URL` holes from env; when `SEED_TEST_USERS` (`username:password` pairs) is set, also create-or-updates those users. The old file-import path is gone; in the score tier the emitted `keycloak-configurator` service (compose) and realm Job (k8s) run it. |
 | `gateway` | `gateway/` | Caddy | Reverse proxy fronting every public surface (`api`, `localizer`, `/loki/`, `/grafana/`, Keycloak). Caddyfile is generated at container start by `entrypoint.sh` from `PUBLIC_URL` plus whichever auth snippets the edge mounted under `/etc/caddy/snippets/{site,loki}/`; there is no static Caddyfile. `PUBLIC_URL` is parsed into scheme + port and exported as `FORWARDED_PROTO`/`FORWARDED_PORT` for the snippets to read via caddy's `{$VAR}` placeholder. The listener is always cleartext HTTP on `:8443` with h2c enabled — TLS is either terminated upstream by the tunnel relay (ngrok) or absent (LAN / air-gap). |
-| `ngrok` | (no Dockerfile — upstream image) | ngrok | Gated on the `tunnel-ngrok` compose profile (activated from `COMPOSE_PROFILES` in `.env`). When active, runs an [ngrok](https://ngrok.com) HTTP tunnel forwarding public traffic to the gateway at `http://gateway:8443` (cleartext, HTTP/2 upstream via h2c). Authenticates with `NGROK_AUTHTOKEN` from `.env`. Consumers that need UDP plumbing (e.g. LiveKit's RTC media plane in Make-it-Sing) layer a different tunnel agent in their own compose. |
-| `keycloak` | `keycloak/` | Keycloak 26 | OIDC / OAuth2 identity provider. Gated by the `keycloak` compose profile; profile selection and the API's issuer-based auth mode are separate axes (see Authentication below). |
+| `ngrok` | (no Dockerfile — upstream image) | ngrok | One compose seam per relay (`tunnel-ngrok` / `tunnel-rathole`); the ngrok artifact rides the assembly when `NGROK_AUTHTOKEN` is set in `.env`. Runs an [ngrok](https://ngrok.com) HTTP tunnel forwarding public traffic to the gateway at `http://gateway:8443` (cleartext, HTTP/2 upstream via h2c). Consumers that need UDP plumbing (e.g. LiveKit's RTC media plane in Make-it-Sing) layer a different tunnel agent in their own compose. |
+| `keycloak` | `keycloak/` | Keycloak 26 | OIDC / OAuth2 identity provider. Rides the `gateway-keycloak` seam (selected by `AUTH_ISSUER_URL` presence); seam selection and the API's issuer-based auth mode are the same axis (see Authentication below). |
 
 **Observability**: `loki/` (log storage, monolithic mode), `alloy/` (OTLP log relay), `grafana/` (query UI) — digest-pinned stock mirror images, not built wrappers. Configs ride compose top-level `configs:` from `workloads/loki/config.yaml`, `workloads/alloy/config.alloy`, and `workloads/grafana/provisioning/datasources/datasources.yaml`, mounted at the in-container paths the `command:` overrides reference. Loki writes to a `loki` bucket in the shared SeaweedFS; its config expands `${S3_ACCESS_KEY}`/`${S3_SECRET_KEY}` at runtime (`-config.expand-env=true`). Services push OTLP/gRPC to alloy on 4317 — alloy mounts no docker.sock and discovers nothing. The published OCI bundle inlines the configs as `content:` (`publish_compose.py` rewrites `file:` → `content:`, `$`-doubled so env expansion stays in the container). The ZED box consumes the same stock images + its own configs from the [placeframe-capture-tool](https://github.com/outernet-foundation/placeframe-capture-tool) repo (`config.alloy` there is a mirror of this file — the one config the two stacks shared; `LOKI_WRITE_ENDPOINT` env drives the only difference).
 
 **Backing services**: PostgreSQL 16, SeaweedFS (S3-compatible object storage; `seaweedfs` server + `seaweedfs-admin` web console + `seaweedfs-audit` relay).
 
-**GPU**: `compose.yml` defines the stack; `compose.cuda.yml` and `compose.rocm.yml` add GPU overrides for `reconstructor` and `localizer`. The `up` script auto-detects the accelerator.
+**GPU**: the generated core artifact comes per accelerator (`compose.cuda.yaml` / `compose.rocm.yaml` under `stack/generated/compose/`); `uv run up` auto-detects which to layer.
 
 ### Data flow
 
@@ -39,16 +39,16 @@ phone --[tar]--> api --[row+blob]--> SeaweedFS
 phone --[query img]--> localizer --[lookup]'
 ```
 
-1. **Capture**: the capture-tool phone app (in the [placeframe-capture-tool](https://github.com/outernet-foundation/placeframe-capture-tool) repo) records images + sensor data and POSTs a `.tar` to the API. The API stores the tar in `dev-captures/<capture_session_id>.tar` and inserts a row at `queued`.
-2. **Reconstruction**: the `reconstructor` worker polls `lease-server`'s `POST /leases/request` over the compose network to claim queued work (no separate orchestrator service — it's a worker-pull architecture). On a successful claim, it downloads the tar, runs feature extraction → matching → OPQ/PQ training → geometric verification → SfM, uploads outputs to `dev-reconstructions/<reconstruction_id>/`, then `PUT`s `/leases/<id>/succeed` (or `/fail`) to `lease-server`. Progress updates between phases go through `/leases/<id>/progress`.
+1. **Capture**: the capture-tool phone app (in the [placeframe-capture-tool](https://github.com/outernet-foundation/placeframe-capture-tool) repo) records images + sensor data and POSTs a `.tar` to the API. The API stores the tar in `captures/<capture_session_id>.tar` and inserts a row at `queued`.
+2. **Reconstruction**: the `reconstructor` worker polls `lease-server`'s `POST /leases/request` over the compose network to claim queued work (no separate orchestrator service — it's a worker-pull architecture). On a successful claim, it downloads the tar, runs feature extraction → matching → OPQ/PQ training → geometric verification → SfM, uploads outputs to `reconstructions/<reconstruction_id>/`, then `PUT`s `/leases/<id>/succeed` (or `/fail`) to `lease-server`. Progress updates between phases go through `/leases/<id>/progress`.
 3. **Localization**: a Unity client posts a query image to `localizer`, which matches it against the stored map and estimates a 6-DOF pose via RANSAC / PnP.
 4. **Georeferencing**: out of scope for this stack — map-to-world registration against Cesium tilesets was the (now-deleted) Map Registration Tool's job; the Cesium asset pipeline under `build/` remains for producing tilesets.
 
 ### Authentication and public URL
 
-The stack is parameterised by two independent env vars plus the auth block:
+The stack is parameterised by `PUBLIC_URL` plus the auth block:
 
-- **`COMPOSE_PROFILES`**: the sole selector of which optional services run — every profile-gated service (`keycloak`/`auth-initializer`, `ngrok`, `rathole-client`) is active exactly when its profile is listed here. `uv run up` (docker-devkit) resolves it and forwards the selection as explicit `--profile` flags, rejecting names the compose files don't define; `uv run down` tears down every profile the files define regardless of the current selection.
+- **`COMPOSE_PROFILES` is extinct**: assembly selection is structural. `uv run up` layers the generated core artifact plus env-conditioned seams — `AUTH_ISSUER_URL` presence selects the keycloak gateway (unset = the anonymous gateway), `NGROK_AUTHTOKEN` presence brings the ngrok relay, `TUNNEL_TOKEN` presence brings the rathole relay. `uv run down` layers every seam unconditionally so teardown covers prior selections. A stale `COMPOSE_PROFILES` line in `.env` fails loudly (it names profiles no artifact defines).
 
 - **`PUBLIC_URL`**: full URL of the public-facing entry point, e.g. `https://yoursubdomain.ngrok-free.app` or `http://192.168.1.100:58080`. Single source of truth — compose plumbs it through to every downstream (Keycloak realm URLs, Grafana root URL, gateway forwarded-headers, OpenAPI server list) instead of each consumer reconstructing a domain + scheme by hand. The public-facing `AUTH_*` URLs in `.env` are derived from it by hand. The gateway always listens on cleartext `:8443` with h2c; TLS, when present, is terminated upstream by the tunnel relay. LAN-with-self-signed is not a supported shape (distributing an internal CA to every Unity client is the pain point air-gap mode exists to remove), so there is no `tls internal` listener.
 - **The `AUTH_*` block (mode is structural, not told)**: at boot the API asks one question — was it given `AUTH_ISSUER_URL`? Set ⇒ the keycloak backend (JWKS verification of bearer tokens). Unset ⇒ the anonymous backend (one shared sentinel user/tenant, no credentials). The issuer never travels alone: `AUTH_JWKS_URL`, `AUTH_AUTHORIZATION_ENDPOINT`, and `AUTH_TOKEN_ENDPOINT` are required when it is set and must be absent when it is not — partial config is a loud boot error in `check_auth_config` (`workloads/api/src/settings.py`), not a runtime 401 mystery. `AUTH_AUDIENCE` defaults to `placeframe-api` (the realm export's client id) and is overridden only for a swapped provider whose `aud` differs from its client id. The API is an OIDC resource server: it knows the protocol, not the provider — every keycloak-specific spelling (realm path, `keycloak:8080`, the `/auth/` prefix) lives in the deployment edge that runs the provider, so none of the five are derivable by the API and compose passes all of them through as soft passthroughs (empty ⇒ unset). Setting the issuer while `PUBLIC_URL` is cleartext `http://` is rejected at API boot (OAuth credentials would travel unencrypted). `AUTH_MODE` is extinct everywhere in the stack: the API selects its mode from issuer presence, and the gateway composes its auth directives from file presence — the auth snippets (`/etc/caddy/snippets/{site,loki}/*.conf`) exist exactly when the deployment edge runs an OIDC provider, and an anonymous edge mounts nothing.
@@ -89,7 +89,7 @@ Operational commands for investigating "what did the system actually do?" — DB
 The application user is `placeframe_owner` (RLS policies are scoped to it), not `postgres`:
 
 ```bash
-docker exec placeframe-postgres-1 psql -U placeframe_owner -d placeframe -c "<query>"
+docker exec placeframe-pf-postgres-1 psql -U placeframe_owner -d placeframe -c "<query>"
 ```
 
 A bare `psql -U postgres` lands in a default schema with no app tables visible.
@@ -102,18 +102,18 @@ Read bucket contents with the awscli image (creds from `.env`: `S3_ACCESS_KEY` /
 docker run --rm --network placeframe_default \
   -e AWS_ACCESS_KEY_ID=admin -e AWS_SECRET_ACCESS_KEY=password -e AWS_DEFAULT_REGION=us-east-1 \
   $(grep INITIALIZE_S3_IMAGE workloads/images.lock | cut -d= -f2) \
-  s3 ls s3://dev-captures/ --recursive --endpoint-url http://seaweedfs:8333
+  s3 ls s3://captures/ --recursive --endpoint-url http://seaweedfs:8333
 ```
 
 Single-object reads don't even need credentials — the weed filer serves buckets unauthenticated inside the compose network at `http://seaweedfs:8888/buckets/<bucket>/<key>`:
 
 ```bash
-docker exec placeframe-seaweedfs-1 curl -s http://localhost:8888/buckets/dev-captures/<id>.tar -o /tmp/capture.tar
+docker exec placeframe-seaweedfs-1 curl -s http://localhost:8888/buckets/captures/<id>.tar -o /tmp/capture.tar
 ```
 
 The web console (`weed admin`, login `admin` / `S3_SECRET_KEY`) is published at `SEAWEEDFS_ADMIN_PORT` (59001). For cluster operations there is also `weed shell`: `docker exec placeframe-seaweedfs-1 weed shell -master=localhost:9333`.
 
-Bucket schema and what each prefix contains is the bucket layout under `## Constraints` above. The operationally relevant gotcha: presence of `sfm_model/` under `dev-reconstructions/<id>/` means SfM completed, regardless of what the DB says — the final `/succeed` PUT can fail and orphan a reconstruction at `uploading`.
+Bucket schema and what each prefix contains is the bucket layout under `## Constraints` above. The operationally relevant gotcha: presence of `sfm_model/` under `reconstructions/<id>/` means SfM completed, regardless of what the DB says — the final `/succeed` PUT can fail and orphan a reconstruction at `uploading`.
 
 ### Reconstruction audit
 
@@ -128,9 +128,9 @@ for f in frames.txt frame_poses.npz rigs.txt cameras.txt images.txt; do
   docker run --rm --network placeframe_default -v "$WORK/sfm":/work \
     -e AWS_ACCESS_KEY_ID=admin -e AWS_SECRET_ACCESS_KEY=password -e AWS_DEFAULT_REGION=us-east-1 \
     $(grep INITIALIZE_S3_IMAGE workloads/images.lock | cut -d= -f2) \
-    s3 cp s3://dev-reconstructions/$RID/sfm_model/$f /work/$f --endpoint-url http://seaweedfs:8333
+    s3 cp s3://reconstructions/$RID/sfm_model/$f /work/$f --endpoint-url http://seaweedfs:8333
 done
-docker exec placeframe-seaweedfs-1 curl -s http://localhost:8888/buckets/dev-captures/$CID.tar -o /tmp/cap.tar
+docker exec placeframe-seaweedfs-1 curl -s http://localhost:8888/buckets/captures/$CID.tar -o /tmp/cap.tar
 docker cp placeframe-seaweedfs-1:/tmp/cap.tar "$WORK/cap.tar"
 tar -xf "$WORK/cap.tar" -C "$WORK/cap" manifest.json rig0/frames.csv
 ```
@@ -138,7 +138,7 @@ tar -xf "$WORK/cap.tar" -C "$WORK/cap" manifest.json rig0/frames.csv
 **Inspect a recon's options + key metrics from Postgres** (app user, per the Postgres note above — `-U postgres` cannot see the `reconstructions` table):
 
 ```bash
-docker exec placeframe-postgres-1 psql -U placeframe_owner -d placeframe -c "
+docker exec placeframe-pf-postgres-1 psql -U placeframe_owner -d placeframe -c "
   SELECT manifest->'options', manifest->'metrics'->'all_verified_matches',
          manifest->'metrics'->'map_image_count'
   FROM reconstructions WHERE id='<rid>';"
@@ -147,7 +147,7 @@ docker exec placeframe-postgres-1 psql -U placeframe_owner -d placeframe -c "
 **Queue a rerun** — unchanged, or with a single `ReconstructionOptions` field overridden, without a code change:
 
 ```bash
-docker exec placeframe-postgres-1 psql -U placeframe_owner -d placeframe -c "
+docker exec placeframe-pf-postgres-1 psql -U placeframe_owner -d placeframe -c "
   INSERT INTO reconstructions (tenant_id, capture_session_id, status, manifest_version, manifest)
   SELECT tenant_id, capture_session_id, 'queued'::reconstruction_status, manifest_version,
          jsonb_set(manifest, '{options,<field>}', to_jsonb(<value>))  -- or bare 'manifest' to rerun as-is

@@ -5,10 +5,10 @@
 The score tier: one authored description per service, compiled into two renderings —
 six Docker compose artifacts under `stack/generated/compose/` (one per assembly seam,
 the core seam split per GPU variant) and `stack/generated/k8s/manifests.yaml`
-(Kubernetes, one monolithic artifact). Coverage is the full hand-authored compose
-stack at the repo root — the hand files are porting references only until cutover
-deletes them; `stack/score/` holds the authored sources, `stack/generated/` the
-committed artifacts.
+(Kubernetes, one monolithic artifact). Coverage is the full stack — the hand compose
+files are deleted; `stack/score/` holds the authored sources, `stack/generated/` the
+committed artifacts, and the repo's `docker-devkit.yaml` lifecycle consumes the
+artifacts directly.
 
     stack/score/            authored
       api.yaml              workload contracts (tier-neutral), ${SHA} placeholders for image tags,
@@ -61,12 +61,20 @@ context (a dependency-lock bump included) re-stales the committed output through
 
 ## Deploy: Docker
 
-The generated compose has no entry in `docker-devkit.yaml`'s `lifecycle:` section, so bring it
-up through raw `docker compose`, anchored at the repo root (`--project-directory .` is
-required — compose otherwise anchors relative paths at the first `-f` file's directory).
-Assemble by layering one file per seam: the core matching the accelerator
-(`compose.cuda.yaml` / `compose.rocm.yaml` — a GPU-less host cannot run the core; both GPU
-workloads reserve devices), one gateway, and at most one relay:
+`uv run up` / `uv run down` (docker-devkit) assemble the graph from the `lifecycle:`
+section of `docker-devkit.yaml`, layering the generated artifacts: the core matching
+the accelerator (`compose.cuda.yaml` / `compose.rocm.yaml`, auto-detected — a GPU-less
+host cannot run the core; both GPU workloads reserve devices), one gateway artifact,
+and at most one relay. Which gateway and relay ride is env-conditioned: `AUTH_ISSUER_URL`
+presence selects `compose.gateway-keycloak.yaml` over `compose.gateway-open.yaml` (the
+same law the api applies internally — issuer set = keycloak mode), `NGROK_AUTHTOKEN`
+presence brings `compose.tunnel-ngrok.yaml`, `TUNNEL_TOKEN` presence brings
+`compose.tunnel-rathole.yaml`. Conditions resolve from the merged shell-over-`.env`
+view; `uv run down` ignores them and layers every declared file so teardown covers
+prior bring-ups under a different selection. `up --dev` layers `compose.dev.yml`
+(generated service names — `api-api`, `gateway-gateway` — plus a `!override` gateway
+port remap to `${GATEWAY_PORT:-58080}`); it is never published. External consumers
+(Make-it-Sing) assemble by `include:`-ing the published OCI bundles instead.
 
 ```bash
 docker compose --project-directory . \
@@ -77,14 +85,19 @@ docker compose --project-directory . \
 # teardown: same command with `down --remove-orphans`
 ```
 
+Raw `docker compose` (the pressure valve) anchors at the repo root
+(`--project-directory .` is required — compose otherwise anchors relative paths at the
+first `-f` file's directory).
+
 The `tree-<sha>` image tags the generated compose references must exist before `up` — a
 regeneration can reference tags that have never been built or pushed, and the pull fails
 with `not found`. Build the missing services first (`uv run build -t api -t gateway
 --gpu none`).
 
-It reads the same `.env` as the hand stack (`KEYCLOAK_ADMIN_PASSWORD` consumed only by the
-gateway-keycloak artifact — keycloak and its configurator ride that seam; the core and
-gateway-open never see it). Reach it at `http://localhost:8443/schema`.
+It reads `.env` the same way any assembly does (`KEYCLOAK_ADMIN_PASSWORD` consumed only by
+the gateway-keycloak artifact — keycloak and its configurator ride that seam; the core and
+gateway-open never see it). Reach it at `http://localhost:8443/schema` (the dev overlay
+remaps to `GATEWAY_PORT`).
 
 ## Deploy: Kubernetes
 
@@ -117,6 +130,41 @@ admits them; a restricted Argo target must too.
 k3d pulls through Docker Hub, whose unauthenticated rate limit is low enough to fail a cold
 cluster; preload slow images with `docker save <image> | docker exec -i k3d-score-poc-server-0
 ctr -n k8s.io images import -`.
+
+## Divergence between the renderings
+
+One authored source, two renderings — the deliberate differences, so nobody "fixes" them:
+
+- Secrets: compose emits `${VAR:?err}` holes filled from `.env` at run time; k8s emits
+  `secretKeyRef` wiring into `placeframe-secrets`. Each tier's native mechanism.
+- Liveness: chart probes (loki, grafana) on k8s vs compose healthchecks; the
+  `workload-healthchecks.tpl` patch covers the built workloads on compose.
+- Host ports (`api` 8000, gateway 8443, ngrok 4040) and the `seaweedfs-admin` console
+  exist only in compose; the k8s edge is the Pulumi-owned Ingress (`PUBLIC_URL` host,
+  cert-manager issuer — per-site and Secret-resident, un-committable in a deterministic
+  artifact).
+- The relays are compose-only (one artifact per relay); the SaaS cluster has no relay.
+- Grafana: anonymous auth on compose vs credentialed `existingSecret` on k8s; root URL
+  spelled from `${PUBLIC_URL}` on compose vs request-derived placeholders on k8s — one
+  semantic, two idioms.
+- `PGDATA` subdir and storage class/size literals exist only in the k8s StatefulSets;
+  ordering rests on compose health `depends_on` vs Argo sync-hook weights plus job
+  retry-idempotency (the weights are inert under bare `kubectl apply`, by design).
+- `k8s/postgres-cnpg.yaml` is an unregistered alternative twin (CloudNativePG), not
+  drift; registering it instead of `k8s/postgres.yaml` switches the k8s backend.
+- KEDA: scale-to-zero exists only on k8s (compose runs the reconstructor always-on);
+  `maxReplicaCount` and the trigger SQL bake as literals with per-cloud node caps in
+  the ASG/MIG/CAS layer; the operator and the Argo `ignoreDifferences` for
+  `/spec/replicas` live in the infra Pulumi layer, not the artifact.
+
+Pending external work lives in `TODO.md` (repo root): the infra-side deletion of the
+Pulumi reconstructor workload (until it lands, the SaaS cluster has two owners of the
+`reconstructor` Deployment — Argo prune vs Pulumi) and the Argo/Secret mint items. The
+per-resource-pair provisioner duplication (env sets and command lines repeated across
+the compose/k8s pairs) is deliberate: with placeframe-only scope and five stable
+resource types, pairwise edits are cheaper than a shared resource-semantics authoring
+tier in docker-devkit; re-evaluate if docker-devkit is published or resource types
+proliferate.
 
 ## Constraints
 
@@ -292,8 +340,6 @@ ctr -n k8s.io images import -`.
 
 ## See also
 
-- `plan-compose-score.md` (repo root) — the initiative this tier serves: coverage slices,
-  artifact split, open decisions.
-- [`docker-devkit`'s `AGENTS.md`](https://github.com/outernet-foundation/docker-devkit/blob/main/AGENTS.md)
+- [`docker-devkit's `AGENTS.md`](https://github.com/outernet-foundation/docker-devkit/blob/main/AGENTS.md)
   — `generate-score` internals (placeholder expansion, bind inlining, determinism suite).
 - `workloads/AGENTS.md` — the running stack's service inventory, data flow, auth model.
