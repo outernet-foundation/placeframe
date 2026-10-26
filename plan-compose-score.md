@@ -265,12 +265,18 @@ closes completely with what is ported at the time.
   local pull of the upstream digest or a `KEYCLOAK_IMAGE` override). The
   tree-sha tags in the artifacts must exist before `up` (build missing services
   first, `uv run build -t api -t gateway --gpu none`).
-- **Smoke-verified on the seam artifacts**: both assemblies parse+interpolate
-  (`docker compose config`) against `.env` + `workloads/images.lock`; the
-  publish-side bake path (substitution + digest pinning with stubbed digests) parses
-  standalone for all six. Prior smoke facts on the full stack stand (anonymous +
-  keycloak modes, GPU pass-through, service-port wiring) — re-verify an `up` of the
-  assembled OIDC triplet after the pin lands if the last smoke predates it.
+- **Smoke-verified on the seam artifacts** (isolated `-p` projects, fresh volumes,
+  keycloak 26.8.1 bridged by a local upstream-digest pull): the OIDC assembly
+  (core-cuda + gateway-keycloak + tunnel-rathole) fully healthy — configurator realm
+  sync complete, gateway `/server-info` in keycloak mode, `/schema` 200; the rathole
+  relay correctly names its empty passthrough holes and restart-waits (no tunnel
+  creds in this `.env`). The anonymous assembly (core + gateway-open) fully healthy
+  with no keycloak container and the gateway serving. Both parse+interpolate
+  (`docker compose config`); the publish-side bake path (substitution + digest
+  pinning with stubbed digests) parses standalone for all six. Concurrent
+  assemblies on one host collide on the baked host ports (8443; `seaweedfs-admin`
+  via `SEAWEEDFS_ADMIN_PORT`, grafana via `GRAFANA_PORT`) — dev-host reality, not an
+  artifact bug. Prior smoke facts stand.
 - **Resumption mechanics**: the pinned score tools, helm, and repo-pinned uv live in
   `~/.local/bin`, not on the sandbox's default PATH (`export PATH="$HOME/.local/bin:$PATH"`).
   Generation runs natively from the repo root: `uv run generate-score --target compose|k8s`
