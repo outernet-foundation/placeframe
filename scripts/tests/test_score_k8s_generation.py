@@ -54,7 +54,9 @@ def _generate_k8s_without_charts(output: Path, monkeypatch: pytest.MonkeyPatch) 
     return documents
 
 
-def test_k8s_generation_patches_gpu_workloads_and_renders_keda_crs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_k8s_generation_patches_gpu_workloads_and_renders_keda_crs(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     documents = _generate_k8s_without_charts(tmp_path / "manifests.yaml", monkeypatch)
 
     reconstructor = documents["Deployment/reconstructor"]
