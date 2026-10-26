@@ -218,14 +218,14 @@ closes completely with what is ported at the time.
 
 ## Current state
 
-- **Next session starts here**: work item 1 is implemented end-to-end and committed
-  locally — the ball is the forced push+pin hand-off: operator pushes docker-devkit
-  `score-gpu-variants` (HEAD `7fa29ea`), then placeframe pins the pushed SHA
-  (`[tool.uv.sources]` git source + `uv lock && uv sync --all-packages`, root
-  `AGENTS.md`'s "release-only consumption" note gains its git-pin exception in the
-  pin's prose commit), then the PR opens — preflight and the publish-compose job
-  need the pin (the locked 0.4.7 predates the seam fields; `test_publish_compose`
-  and the generation tests import them). After the pin: work item 2 (cutover).
+- **Next session starts here**: the push+pin landed — docker-devkit
+  `score-gpu-variants` is pushed (`7fa29ea`) and placeframe is git-pinned to it
+  (root `AGENTS.md` carries the exception note). The ball is the operator opening
+  the PR to `dev`: the mirror job runs (keycloak operator chart + 26.8.1 images),
+  publish-compose publishes the six artifacts, and preflight runs green under the
+  pin (verified locally: full scripts battery, basedpyright, native regeneration
+  byte-identical to the committed artifacts). After the PR: the mirror-gated k8s
+  regen below, then work item 2 (cutover).
 - **Item 1 landed** (commits `04c9022b`..`47881ff7` + devkit `491f4fb`/`7fa29ea`):
   the devkit seam schema replaced the flat compose fields (seams × gpu variants →
   per-output flattening; overrides with null-deletion merge, compose-only); the six
