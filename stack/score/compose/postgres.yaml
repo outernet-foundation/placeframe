@@ -4,14 +4,14 @@
 # single generated role.
 #
 # HERMETIC BY CONSTRUCTION: this provisioner resolves no secret at generation time. Every
-# credential is emitted as a literal ${VAR:?err} string, exactly as the hand-authored
-# compose.yml writes it, and docker compose resolves it from --env-file at run time. That
+# credential is emitted as a literal ${VAR:?err} string, and docker compose resolves it from
+# --env-file at run time. That
 # is what lets the generated compose.yaml be committed and consumed unchanged. ${...}
 # carries no meaning to Go's template engine, so it passes through the provisioner and
 # into the output verbatim.
 #
 # Consequently there is no `init:` block minting passwords and no password state: .env is
-# the single source of truth for credentials, shared with the hand-authored stack.
+# the single source of truth for credentials.
 - uri: template://placeframe/postgres
   type: placeframe-postgres
   description: Placeframe postgres with placeframe_* roles created by database-manager.

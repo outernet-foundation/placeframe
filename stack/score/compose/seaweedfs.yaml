@@ -2,12 +2,12 @@
 # baked-in references require — the entrypoint wrapper renders the fluent audit sink
 # pointing at `seaweedfs-audit`, and loki's config addresses `seaweedfs:8333` — with the
 # real buckets (captures, reconstructions, loki) converged by the real
-# s3-initializer image. Ported from the hand compose stack, which this replaces.
+# s3-initializer image.
 # Declaring `type: s3` here overrides the built-in, because custom provisioners are
 # matched ahead of the defaults on a first-match policy.
 #
 # HERMETIC BY CONSTRUCTION: the credentials are literal ${VAR:?err} placeholders, matching
-# how compose.yml writes S3_ACCESS_KEY / S3_SECRET_KEY, so nothing is resolved at
+# the S3_ACCESS_KEY / S3_SECRET_KEY consumption everywhere else, so nothing is resolved at
 # generation time and .env stays the single source of truth.
 - uri: template://placeframe/seaweedfs
   type: s3
