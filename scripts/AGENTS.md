@@ -152,7 +152,7 @@ Deterministic, scales to capture length, gives even temporal spacing → roughly
 
 ## See also
 
-- [`docker-devkit`](https://github.com/outernet-foundation/docker-devkit) — the standalone package holding the Docker-stack lifecycle (`up`, `down`, `build`) and the SHA/auth helpers, a PyPI dependency of this package (`docker-devkit>=0.4`). `scripts/` imports from it (`docker_devkit.modes.parse_env_file` in `api_auth.py`); the inverse does not hold.
+- [`docker-devkit`](https://github.com/outernet-foundation/docker-devkit) — the standalone package holding the Docker-stack lifecycle (`up`, `down`, `build`) and the SHA/auth helpers, a PyPI dependency of this package (`docker-devkit>=0.4`). `scripts/` imports from it (`docker_devkit.lifecycle.parse_env_file` in `api_auth.py`); the inverse does not hold.
 - [`unity-devkit`'s `AGENTS.md`](https://github.com/outernet-foundation/unity-devkit/blob/main/AGENTS.md) — the standalone Unity build toolkit, which also hosts the `install` command. `scripts/` no longer imports from it; the dependency was dropped when `install.py` moved.
 - `workloads/localizer/AGENTS.md` — defines the `/version` and `/localize` endpoints that `fit-calibration` consumes and the `pipeline_version` baked into the localizer image.
 - `workloads/reconstructor/AGENTS.md` — defines the single-anchor truth-frame alignment and the Procrustes-residual diagnostic metrics that Algorithm 1 step 2 relies on.
