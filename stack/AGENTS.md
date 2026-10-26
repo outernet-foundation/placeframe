@@ -3,10 +3,12 @@
 ## What this is
 
 The score tier: one authored description per service, compiled into two renderings —
-`stack/generated/compose/compose.{cuda,rocm}.yaml` (Docker compose, one per GPU variant) and
-`stack/generated/k8s/manifests.yaml` (Kubernetes). Coverage is the full hand-authored compose
-stack at the repo root — the hand files are porting references only until cutover deletes them;
-`stack/score/` holds the authored sources, `stack/generated/` the committed artifacts.
+six Docker compose artifacts under `stack/generated/compose/` (one per assembly seam,
+the core seam split per GPU variant) and `stack/generated/k8s/manifests.yaml`
+(Kubernetes, one monolithic artifact). Coverage is the full hand-authored compose
+stack at the repo root — the hand files are porting references only until cutover
+deletes them; `stack/score/` holds the authored sources, `stack/generated/` the
+committed artifacts.
 
     stack/score/            authored
       api.yaml              workload contracts (tier-neutral), ${SHA} placeholders for image tags,
@@ -14,16 +16,32 @@ stack at the repo root — the hand files are porting references only until cuto
       gateway.yaml
       reconstructor.yaml
       localizer.yaml
+      tunnel-ngrok.yaml     compose-only relay workloads — absent from the k8s workload list,
+      tunnel-rathole.yaml   which is why they have no k8s provisioner twin
       compose/              provisioners for the compose rendering
+      compose/overrides/    per-seam workload overrides (null deletes a key)
       compose/patches/      patch templates applied over the generated compose
       k8s/                  provisioners for the k8s rendering
       k8s/patches/          patch templates applied over the generated manifests
       k8s/values/           helm values for the declared charts (k8s rendering only)
       secrets.yaml          tier-neutral secrets/env declaration (both renderings)
     stack/generated/        committed artifacts, never hand-edited
-      compose/compose.cuda.yaml, compose/compose.rocm.yaml
+      compose/compose.{cuda,rocm}.yaml                    core seam per GPU variant
+      compose/compose.gateway-{open,keycloak}.yaml       gateway seam, anonymous / OIDC edge
+      compose/compose.tunnel-{ngrok,rathole}.yaml        one artifact per relay
       k8s/manifests.yaml
       secrets.txt           mint list generated from the secrets declaration
+
+The seams are declared in `docker-devkit.yaml`'s `generate-score.seams` list: each seam
+names its workloads, provisioners, patch templates, publishes, and output file; the
+core seam additionally carries `gpu_variants` (the `{gpu}` token in its output and
+device-patch names). Consumers assemble a backend by including artifacts —
+`core-cuda + gateway-keycloak + tunnel-rathole` is the OIDC-with-relay assembly;
+`gateway-open` is the gateway with its auth snippet files and oidc-issuer resource
+overridden out (the override *is* the auth-mode difference between the gateway
+artifacts) and registers no oidc-issuer provisioner, so keycloak rides only the
+gateway-keycloak artifact. The k8s rendering is deliberately monolithic: Argo applies
+one artifact wholesale, and assembly-by-inclusion is a compose-consumer concept.
 
 ## Generate
 
@@ -45,14 +63,17 @@ context (a dependency-lock bump included) re-stales the committed output through
 
 The generated compose has no entry in `docker-devkit.yaml`'s `lifecycle:` section, so bring it
 up through raw `docker compose`, anchored at the repo root (`--project-directory .` is
-required — compose otherwise anchors relative paths at the first `-f` file's directory) and
-the variant file matching the accelerator (`compose.cuda.yaml` / `compose.rocm.yaml` — a
-GPU-less host cannot run the core; both GPU workloads reserve devices):
+required — compose otherwise anchors relative paths at the first `-f` file's directory).
+Assemble by layering one file per seam: the core matching the accelerator
+(`compose.cuda.yaml` / `compose.rocm.yaml` — a GPU-less host cannot run the core; both GPU
+workloads reserve devices), one gateway, and at most one relay:
 
 ```bash
 docker compose --project-directory . \
   --env-file .env --env-file workloads/images.lock \
-  -f stack/generated/compose/compose.cuda.yaml up -d
+  -f stack/generated/compose/compose.cuda.yaml \
+  -f stack/generated/compose/compose.gateway-keycloak.yaml \
+  -f stack/generated/compose/compose.tunnel-rathole.yaml up -d
 # teardown: same command with `down --remove-orphans`
 ```
 
@@ -61,9 +82,9 @@ regeneration can reference tags that have never been built or pushed, and the pu
 with `not found`. Build the missing services first (`uv run build -t api -t gateway
 --gpu none`).
 
-It reads the same `.env` as the hand stack (`KEYCLOAK_ADMIN_PASSWORD` included — keycloak
-and its configurator consume it in both modes, since the generated stack runs keycloak
-unconditionally). Reach it at `http://localhost:8443/schema`.
+It reads the same `.env` as the hand stack (`KEYCLOAK_ADMIN_PASSWORD` consumed only by the
+gateway-keycloak artifact — keycloak and its configurator ride that seam; the core and
+gateway-open never see it). Reach it at `http://localhost:8443/schema`.
 
 ## Deploy: Kubernetes
 
@@ -132,10 +153,12 @@ ctr -n k8s.io images import -`.
   source, shared with the hand stack); k8s provisioners emit `encodeSecretRef` pointers into
   the externally managed `placeframe-secrets` Secret — score-k8s has no configMap equivalent,
   so non-secret config rides the same Secret. Both artifacts are safe to commit.
-- **`AUTH_JWKS_URL` is a passthrough in both renderings**, never a baked keycloak URL: the api
-  boots anonymous mode only when the issuer is empty *and* every auth endpoint is empty
-  (`check_auth_config` in `workloads/api/src/settings.py`); a baked JWKS URL would crash
-  anonymous boots.
+- **`AUTH_JWKS_URL` is a config-provisioner passthrough in both renderings**, never a baked
+  keycloak URL: the api boots anonymous mode only when the issuer is empty *and* every auth
+  endpoint is empty (`check_auth_config` in `workloads/api/src/settings.py`); a baked JWKS
+  URL would crash anonymous boots. It moved onto `placeframe-config` with the seam split —
+  the core artifact carries no oidc-issuer provisioner, so no workload in it may hang auth
+  wiring off that resource type.
 - **Service names in provisioners are load-bearing DNS names.** `seaweedfs`,
   `seaweedfs-audit`, `pf-postgres`, `keycloak` are addressed by baked-in references (loki's
   config, the entrypoint wrapper's rendered audit sink, the gateway auth snippets); renaming
@@ -187,9 +210,20 @@ ctr -n k8s.io images import -`.
   on each other's health; workloads gate on the auto-emitted `wait-for-resources` service,
   whose `alpine` default image is redirected through the `${ALPINE_IMAGE:?err}` lock hole by
   the `compose/patches/wait-for-resources-image.tpl` patch template — the artifact carries no
-  unpinned image. Profile-gated provisioner services are carved out of that gate by
-  `compose/patches/tunnel-gate-exclusion.tpl`: compose treats an inactive-profile service as
-  undefined, so a `required` gate entry breaks operators who didn't enable the profile.
+  unpinned image. The gate emits only where a provisioner carries services, so the
+  gateway-open and tunnel artifacts carry none.
+- **The relays are compose-only workloads** (`tunnel-ngrok.yaml` / `tunnel-rathole.yaml`,
+  absent from the k8s workload list). Score workload specs cannot carry runtime `${VAR}`
+  holes — score validates placeholders as dotted resource references — so the relay
+  credentials ride the outputs-only `compose/tunnel.yaml` provisioner (`type:
+  tunnel-config`, no services, no k8s twin) exactly like the placeframe-config valve.
+  ngrok's domain cannot be a resource ref inside `command` either (score does not
+  substitute there and `$$`-escapes the hole to a compose literal), so its command is a
+  `/bin/sh -c` wrapper expanding `${NGROK_DOMAIN:-}` inside the container from the
+  passthrough env. `compose/patches/tunnel-restart.tpl` sets `restart: on-failure` — the
+  relays are long-lived agents whose control endpoints flap. No compose profile exists
+  anywhere in the six artifacts; the relays forward to the gateway by Docker DNS name, so
+  an assembly without a relay simply has no public edge.
 - **Third-party k8s stamp-outs are charts where an OCI chart exists** — loki, grafana, and
   the keycloak operator render from digest-pinned upstream-native OCI refs declared in
   `docker-devkit.yaml` (`generate-score.charts` + `helm_version`), pulled through the org
@@ -247,8 +281,11 @@ ctr -n k8s.io images import -`.
 - **The generated k8s mechanics are test-locked** — `scripts/tests/test_score_k8s_generation.py`
   regenerates the k8s manifests from the real sources (charts stripped: their mirror gap is
   environmental, not structural) and asserts the GPU patches, the service-port URLs, and the
-  KEDA CRs — and that no KEDA operator documents ride the artifact. It skips when score-k8s
-  is off PATH or the installed docker-devkit predates the variant config fields.
+  KEDA CRs — and that no KEDA operator documents ride the artifact. The compose seam split
+  has its twin in `scripts/tests/test_score_compose_generation.py`: six outputs, zero
+  profiles, zero binds, the snippet/auth difference between the gateway artifacts, and the
+  relay restart/passthrough mechanics. Both skip when the pinned tool is off PATH or the
+  installed docker-devkit predates the seam/variant config fields.
 
 ## See also
 

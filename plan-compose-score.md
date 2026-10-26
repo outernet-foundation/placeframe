@@ -176,25 +176,26 @@ closes completely with what is ported at the time.
 
 ## Mechanics that shape execution
 
+- **Regeneration order**: commit sources → regenerate → commit artifacts. Staleness between
+  those commits is accepted; preflight does not gate it (every context SHA re-stales the
+  tree-sha tags).
 - Runtime `.env` holes survive only as provisioner outputs inserted verbatim — the
-  `placeframe-config` provisioner is the passthrough valve.
+  `placeframe-config` provisioner is the passthrough valve, and the seam split's relay
+  credentials ride the same pattern (`tunnel-config`, outputs-only). Score workload specs
+  cannot carry `${VAR}` holes at all (score validates placeholders as dotted resource
+  references), and resource refs are not substituted inside `command` args (score-compose
+  `$$`-escapes them to compose literals) — the ngrok domain expands in-container through a
+  `/bin/sh -c` wrapper instead.
 - Generated workload services are named `<workload>-<container>` (`api-api`); patches must
   compute names, never hardcode.
 - Cross-workload `depends_on` is not a score concept — the auto-built `wait-for-resources`
-  gate replaces it; poll-retry absorbs ordering.
+  gate replaces it; poll-retry absorbs ordering. The gate emits only where a provisioner
+  carries services, so seams whose provisioners are outputs-only (gateway-open, tunnels)
+  carry no gate at all.
 - Seam tests: platform-variance → score file; docker-only detail → patch template;
-  generation-time baking vs runtime `.env` hole → config provisioner.
-- Regeneration order: commit sources → regenerate → commit artifacts. Staleness between
-  those commits is accepted; preflight does not gate it (every context SHA re-stales the
-  tree-sha tags).
-- Profile-gated provisioner services had to be carved out of the auto-built
-  `wait-for-resources` gate (`compose/patches/tunnel-gate-exclusion.tpl`): docker compose treats
-  an inactive-profile service as undefined, so a `required` gate entry breaks every
-  operator who didn't enable the profile — and the gateway forwards to whichever relay
-  runs alongside it; it does not depend on the relay being up. The exclusion set is
-  derived from the generated compose itself (every service declaring `profiles`), not a
-  hardcoded service list. The tunnel seam split removes the last profile-gated service,
-  so the carve-out (and the template) dies with item 1.
+  generation-time baking vs runtime `.env` hole → config provisioner. The seam split is
+  locked by `scripts/tests/test_score_compose_generation.py` (six outputs, zero profiles,
+  zero binds, auth-difference between the gateway artifacts, relay mechanics).
 
 ## Open decisions
 
@@ -217,92 +218,71 @@ closes completely with what is ported at the time.
 
 ## Current state
 
-- **Next session starts here**: work item 1 — seam generation + multi-artifact publish.
-  Its scoping decisions are settled (artifact names, six-artifact split, k8s
-  monolithic, devkit git-pin — all recorded in work item 1 and the docker-devkit
-  coupling bullet below); the first step is the devkit seam schema on
-  `score-gpu-variants`.
-  Slice D landed (see below); the k8s artifact regen remains gated on the keycloak mirror
-  job and carries Slice D's sources (the KEDA CRs; the operator itself is cluster tier)
-  whenever it runs, and `scripts/tests/test_score_k8s_generation.py` already locks the k8s
-  mechanics
-  (GPU patches, KEDA CRs, service-port URLs, no operator documents) against the real
-  sources with charts stripped.
-- **Slice D landed**: reconstructor + localizer workload files (`placeframe.io/gpu`
-  annotation, `${GPU_VARIANT}` images), per-variant compose outputs
-  (`compose.cuda.yaml`/`compose.rocm.yaml` replacing the single artifact), compose device
-  patch templates per variant, k8s `patches/gpu-pod.tpl` + `patches/scale-to-zero.tpl` patch
-  templates,
-  the `keda-scaled-object` provisioner pair (k8s renders ScaledObject +
-  TriggerAuthentication; compose twin is a no-op), and native `service-port` wiring for
-  `LOCALIZER_CONTAINER_URL`/`LEASE_SERVER_URL`. The plan's "localizer
-  network alias via patch templates" was superseded:
-  score-compose's service-port hostname output resolves identically on both tiers, so
-  no alias is needed.
-- **docker-devkit coupling**: item 1's seam generation extends docker-devkit branch
-  `score-gpu-variants` (branched from `dev` at `1f2c829`; it already carries the variant
-  config fields and a `vendored_manifests` add-then-remove, net absent) — one lineage, one
-  hand-off. Coupling strategy: placeframe pins docker-devkit **by git SHA**, not via the
-  PyPI release. Sequencing is forced (uv fetches the SHA from origin): devkit commits land
-  locally → operator pushes the branch → placeframe pins the pushed SHA
-  (`[tool.uv.sources]` git source) → `uv lock && uv sync --all-packages`. The pushed
-  branch self-reports `0.0.0.dev0`, the dev sentinel that bypasses the `requires`
-  self-check — verbs work under the pin with no version bump; `requires: ">=0.4.9"`
-  stays as the honest released floor for the eventual registry re-pin (additive →
-  `0.4.9` per the devkit's pre-1.0 patch flow; the repo is public, so CI resolves the
-  git pin unauthenticated). At the pin commit, root `AGENTS.md`'s "release-only
-  consumption" note gains its git-pin exception (prose commit, separate from the
-  pyproject/lock code commit). Until the push+pin land, every docker-devkit verb in
-  this repo refuses loudly (`requires: ">=0.4.9"` vs the locked 0.4.7); preflight is
-  unaffected (raw docker compose). Until then, generation runs from the devkit
-  checkout's venv (`/workspace/docker-devkit/.venv/bin/generate-score`).
-- **Branches**: `score-compose`, squashed and rebased onto `origin/dev` (`daf491a9`,
-  post-#150). The pre-squash lineage survives at `backup-pre-chapter-consolidation`; earlier
-  squash lineages under the other `backup-pre-*` branches. Landing is
-  operator-owned (bors model); the sandbox has no push scope — commit locally, hand off
-  branch + HEAD at session end. Remote is `outernet-foundation/plerion` (renamed;
-  redirects cover old URLs). docker-devkit `dev` is merged/pushed; 0.4.7 is on PyPI
-  and locked here — the seam work rides `score-gpu-variants` (unpushed) and couples
-  by git pin per the coupling bullet above.
-- **SaaS-engineer coordination**: his deploy work is no longer deferred —
-  `cnpg-dev`/`placeframe-deploy`/`pf-secrets-dev`/`score-dev` carry score-up/score-down
-  wrappers, a CNPG backend option, and deploy-time fixes. He consumes the generated k8s
-  artifact; coordinate k8s provisioner edits with him — the keycloak-operator switch
-  (landed in source) is the largest yet. External deploy-time actions live in
+- **Next session starts here**: work item 1 is implemented end-to-end and committed
+  locally — the ball is the forced push+pin hand-off: operator pushes docker-devkit
+  `score-gpu-variants` (HEAD `7fa29ea`), then placeframe pins the pushed SHA
+  (`[tool.uv.sources]` git source + `uv lock && uv sync --all-packages`, root
+  `AGENTS.md`'s "release-only consumption" note gains its git-pin exception in the
+  pin's prose commit), then the PR opens — preflight and the publish-compose job
+  need the pin (the locked 0.4.7 predates the seam fields; `test_publish_compose`
+  and the generation tests import them). After the pin: work item 2 (cutover).
+- **Item 1 landed** (commits `04c9022b`..`47881ff7` + devkit `491f4fb`/`7fa29ea`):
+  the devkit seam schema replaced the flat compose fields (seams × gpu variants →
+  per-output flattening; overrides with null-deletion merge, compose-only); the six
+  artifacts are generated, deterministic, hermetic, and `docker compose config`-valid
+  in both the OIDC (core-cuda + gateway-keycloak + tunnel-rathole) and anonymous
+  (core-rocm + gateway-open + tunnel-ngrok) assemblies. The relays became compose-only
+  workloads (credentials through an outputs-only `tunnel-config` provisioner; ngrok's
+  domain through a shell wrapper — score substitutes nothing inside command args);
+  `tunnel-gate-exclusion.tpl` and both tunnel provisioner pairs died with the last
+  profile; the api's `AUTH_JWKS_URL` moved to the config passthrough so the core
+  seam carries no oidc-issuer; `publish-compose` publishes the six from the
+  generated files (no config inlining; single CI leg, no variant matrix).
+- **k8s deliberately stale** — unchanged: the operator chart and the 26.8.1 images
+  are declared but not mirrored, and k8s generation fails on the chart fetch until
+  the mirror job runs (Integrate, PR to `dev`; a bare branch push never runs it).
+  The k8s sources carry the seam split's k8s-side edits (config provisioner's
+  `auth_jwks_url`, no tunnel provisioner) whenever that regen runs;
+  `scripts/tests/test_score_k8s_generation.py` locks the k8s mechanics (GPU patches,
+  KEDA CRs, service-port URLs, no operator documents) and its compose twin locks the
+  seam split.
+- **SaaS-engineer coordination**: his deploy branches
+  (`cnpg-dev`/`placeframe-deploy`/`pf-secrets-dev`/`score-dev`) carry score-up/score-down
+  wrappers, a CNPG backend option, and deploy-time fixes; he consumes the generated k8s
+  artifact, which the seam split does not reshape. External deploy-time actions live in
   `TODO.md` (repo root) — mint `POSTGRES_ADMIN_USER`, the three `KEYCLOAK_*` lifespan
   keys, mint-list conformance, Argo path fix, MinIO removal, and the reconstructor split
   (delete the Pulumi workload path, keep `install_keda` as the operator's permanent
-  home). His `placeframe-pulumi`
-  branch is surveyed (Settled): the cluster tier stays — KEDA operator included; the
-  reconstructor workload scaffolding is absorbed by Slice D and deleted his-side per the
-  TODO items.
-- **Artifacts**: compose current with the Slice D landing (per-variant; the mirror gap on the
-  keycloak 26.8.1 image bites compose `up` — bridge with a local pull of the upstream
-  digest or a `KEYCLOAK_IMAGE` override pointing at `quay.io/...@sha256:...`); **k8s
-  deliberately stale** — the operator chart and the 26.8.1 images are declared but not
-  mirrored, and k8s generation fails on the chart fetch until the mirror job runs
-  (Integrate, PR to `dev`). After the mirror lands: `uv run generate-score --target k8s`,
-  then verify the operator path (CRD admission, `keycloak-service` DNS, configurator
-  Job) on k3d. Standing gotcha: the image/chart mirror runs only inside Integrate, which
-  triggers on PRs to `dev` — a bare branch push never runs it.
-- **Smoke-verified on the generated compose.cuda.yaml** (isolated `-p` project, fresh
-  volumes, locally built reconstructor-cuda/localizer-cuda at the artifact's tree tags):
-  full stack healthy — reconstructor polling lease-server through the service-port
-  hostname (clean 404 no-work loops), both GPU containers seeing the RTX 4080 through
-  the device reservation, localizer healthy on its `/version` probe, api →
-  `localizer:8000` returning 200, gateway serving `/server-info`. Prior smoke facts
-  stand: anonymous + keycloak modes (configurator realm sync, `SEED_TEST_USERS`,
-  direct grant, JWT validation, 401 on garbage); keycloak 26.8.1 boots fine with an
-  `http://` `KC_HOSTNAME`.
+  home).
+- **Branches**: `score-compose`, squashed and rebased onto `origin/dev` (`daf491a9`,
+  post-#150). Landing is operator-owned (bors model); the sandbox has no push scope —
+  commit locally, hand off branch + HEAD at session end. Remote is
+  `outernet-foundation/plerion`. docker-devkit `dev` is merged/pushed; 0.4.7 is on PyPI
+  and locked here — the seam work rides `score-gpu-variants` (unpushed) and couples
+  by git pin.
+- **Artifacts**: compose current with the seam split (six files; the mirror gap on the
+  keycloak 26.8.1 image bites `up` of the gateway-keycloak artifact — bridge with a
+  local pull of the upstream digest or a `KEYCLOAK_IMAGE` override). The
+  tree-sha tags in the artifacts must exist before `up` (build missing services
+  first, `uv run build -t api -t gateway --gpu none`).
+- **Smoke-verified on the seam artifacts**: both assemblies parse+interpolate
+  (`docker compose config`) against `.env` + `workloads/images.lock`; the
+  publish-side bake path (substitution + digest pinning with stubbed digests) parses
+  standalone for all six. Prior smoke facts on the full stack stand (anonymous +
+  keycloak modes, GPU pass-through, service-port wiring) — re-verify an `up` of the
+  assembled OIDC triplet after the pin lands if the last smoke predates it.
 - **Resumption mechanics**: the pinned score tools, helm, and repo-pinned uv live in
   `~/.local/bin`, not on the sandbox's default PATH (`export PATH="$HOME/.local/bin:$PATH"`).
   Generation runs natively from the repo root: `uv run generate-score --target compose|k8s`
   (`--local` for k3s against the gitignored local artifact) — until the devkit re-pin,
-  from `/workspace/docker-devkit/.venv/bin/generate-score` instead. Lifecycle verbs
-  (`uv run up`/`down`/`build`) work natively (same re-pin caveat). Regeneration is
-  deterministic across fresh runs. `uv cache clean docker-devkit` before any future
-  `uv lock --upgrade-package` (once served a stale cached simple-index). docker-devkit
-  is read via the `/workspace` bind mount (fetching its SSH remote fails).
+  from `/workspace/docker-devkit/.venv/bin/generate-score` instead (the repo venv's
+  locked 0.4.7 predates the seam fields; the two new test modules likewise only run
+  under the devkit venv or post-pin). Lifecycle verbs (`uv run up`/`down`/`build`) work
+  natively (same re-pin caveat). Regeneration is deterministic across fresh runs.
+  `uv cache clean docker-devkit` before any future `uv lock --upgrade-package` (once
+  served a stale cached simple-index). docker-devkit is read via the `/workspace` bind
+  mount (fetching its SSH remote fails).
 - **Authoring format and artifact laws live in `stack/AGENTS.md`** (mapping-form markers,
   include/lock resolution, hermeticity, load-bearing DNS/bucket names, GPU/variant
-  mechanics, KEDA absorption, patch-template gotchas) — not duplicated here.
+  mechanics, KEDA absorption, seam/override mechanics, patch-template gotchas) — not
+  duplicated here.
