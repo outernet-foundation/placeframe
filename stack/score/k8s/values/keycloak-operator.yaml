@@ -6,12 +6,12 @@
 # mirror per the image laws.
 operator:
   image:
-    lock-image: KEYCLOAK_OPERATOR_IMAGE
+    lock: KEYCLOAK_OPERATOR_IMAGE
   envs:
     RELATED_IMAGE_KEYCLOAK:
-      lock-image: KEYCLOAK_IMAGE
+      lock: KEYCLOAK_IMAGE
     kc:
       operator:
         keycloak:
           image:
-            lock-image: KEYCLOAK_IMAGE
+            lock: KEYCLOAK_IMAGE
