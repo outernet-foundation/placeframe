@@ -218,24 +218,24 @@ closes completely with what is ported at the time.
 
 ## Current state
 
-- **Next session starts here**: PR #151 is **red on `mirror-images`** — the whole DAG
-  skipped downstream. Diagnosis: `crane copy` of the grafana helm chart died with
-  `MANIFEST_UNKNOWN` at ghcr.io — the pinned upstream digest
-  (`161aa072…`) no longer exists; ghcr GC'd it (the exact failure mode the mirror
-  namespace exists for — but the mirror verb re-copies every declared ref from
-  upstream on every run, so an upstream GC breaks the job even if the mirror copy
-  already exists). Two side facts from the same log: the keycloak 26.8.1 **images**
-  (server + operator) copied successfully this run — the long-standing mirror gap
-  is closed — and the loki + keycloak-operator-helm chart copies were never
-  attempted (the loop aborted at grafana, which sorts first among the charts).
-  Fix paths, decision at next session: (a) re-pin the grafana chart to a live
-  upstream digest (resolve via `crane digest` on the version tag; chart digests
-  are unstable across re-publishes, so this is a re-resolve, not a re-verify —
-  then values/grafana.yaml compat check and the k8s regen carry the new digest), or
-  (b) a devkit change making `mirror` skip refs already present in the mirror
-  (softens the declared fail-closed re-copy law — needs an explicit decision).
-  The six-artifact publish and preflight have not run yet (skipped behind the
-  mirror job); re-push or re-run the workflow after the fix.
+- **Next session starts here**: the red-CI fix decision resolved as *both* paths. The
+  devkit `mirror` verb now skips references the mirror already holds — presence probed
+  by `crane digest` on the exact digest consumers pull (the lock entry for image
+  declarations, the mirror-prefixed ref for digest-pinned charts), any probe failure
+  falling through to `crane copy`, which stays the loud gate (docker-devkit
+  `score-gpu-variants` commits `c105126`/`6d922b4`, unpushed at session end). The
+  upstream diagnosis gained precision: the grafana pin's bytes are still tag-addressable
+  (`:10.5.14` resolves to the pinned `161aa072…` today) but digest-addressing 404s —
+  ghcr dropped the digest route, not the manifest — while the keycloak-operator
+  `26.8.1` tag was genuinely re-published (new bytes, digest `650f7e10…`): two upstream
+  sins, same remedy. Both charts re-pinned to live digest-addressable digests
+  (`docker-devkit.yaml`: grafana → 10.5.15 `3d75dc31…`, keycloak-operator → 26.8.1
+  `650f7e10…`; values keys verified present in both new chart bodies; loki's pin is
+  addressable and untouched). Remaining, in order: operator pushes docker-devkit
+  `score-gpu-variants` → this repo re-pins the devkit git rev + `uv lock` → push
+  `score-compose` (PR #151): the new mirror verb skips the ~20 already-mirrored images
+  and copies the three charts → six-artifact publish + preflight legs run → the k8s
+  regen + artifact commit (needs the charts mirrored first; split landing accepted).
 - **Item 1 landed** (commits `04c9022b`..`47881ff7` + devkit `491f4fb`/`7fa29ea`):
   the devkit seam schema replaced the flat compose fields (seams × gpu variants →
   per-output flattening; overrides with null-deletion merge, compose-only); the six
