@@ -1,0 +1,25 @@
+# OIDC issuer provisioner (compose): local counterpart of k8s/oidc-issuer.yaml.
+# The type is named for the protocol, not the provider — a swapped issuer implementation
+# registers a different provisioner for the same `oidc-issuer` type. A minimal dev keycloak
+# so the compose stack works standalone; local dev runs auth disabled, so no realm import is
+# performed here.
+#
+# certs_url is a soft passthrough, not the keycloak literal: the api treats issuer-unset
+# with any auth endpoint set as a boot error (anonymous mode must receive it empty), and
+# .env carries the keycloak JWKS URL whenever OIDC mode runs.
+- uri: template://placeframe/oidc-issuer
+  type: oidc-issuer
+  description: Local dev keycloak for the compose stack.
+  state:
+    service: keycloak
+    realm: placeframe-dev
+  outputs:
+    certs_url: ${AUTH_JWKS_URL:-}
+    realm: "{{ .State.realm }}"
+  services:
+    "{{ .State.service }}":
+      image: ${KEYCLOAK_IMAGE:?err}
+      command: ["start-dev", "--health-enabled=true"]
+      environment:
+        KEYCLOAK_ADMIN: admin
+        KEYCLOAK_ADMIN_PASSWORD: admin

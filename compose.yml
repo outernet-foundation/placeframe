@@ -259,12 +259,11 @@ services:
       retries: 3
     environment:
       PUBLIC_URL: "${PUBLIC_URL:?err}"
-      AUTH_MODE: "${AUTH_MODE:-keycloak}"
-      AUTH_AUDIENCE: "${AUTH_AUDIENCE:?err}"
-      AUTH_ISSUER_URL: "${PUBLIC_URL:?err}/auth/realms/placeframe-dev"
-      AUTH_URL: "${PUBLIC_URL:?err}/auth/realms/placeframe-dev/protocol/openid-connect/auth"
-      AUTH_TOKEN_URL: "${PUBLIC_URL:?err}/auth/realms/placeframe-dev/protocol/openid-connect/token"
-      AUTH_CERTS_URL: "http://keycloak:8080/realms/placeframe-dev/protocol/openid-connect/certs"
+      AUTH_ISSUER_URL: "${AUTH_ISSUER_URL:-}"
+      AUTH_JWKS_URL: "${AUTH_JWKS_URL:-}"
+      AUTH_AUTHORIZATION_ENDPOINT: "${AUTH_AUTHORIZATION_ENDPOINT:-}"
+      AUTH_TOKEN_ENDPOINT: "${AUTH_TOKEN_ENDPOINT:-}"
+      AUTH_AUDIENCE: "${AUTH_AUDIENCE:-}"
       POSTGRES_HOST: "${POSTGRES_HOST:?err}"
       DATABASE_NAME: "${DATABASE_NAME:?err}"
       DATABASE_API_USER: "${DATABASE_NAME:?err}_api_user"
@@ -277,6 +276,7 @@ services:
       S3_ACCESS_KEY: "${S3_ACCESS_KEY:?err}"
       S3_SECRET_KEY: "${S3_SECRET_KEY:?err}"
       RECONSTRUCTIONS_BUCKET: dev-reconstructions
+      CAPTURES_BUCKET: dev-captures
       LOCALIZER_CONTAINER_URL: http://localizer:8000
       LOKI_URL: http://loki:3100
       DEPLOYMENT_ENVIRONMENT: "${DEPLOYMENT_ENVIRONMENT:-development}"

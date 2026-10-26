@@ -6,7 +6,27 @@ containers:
     image: ghcr.io/outernet-foundation/placeframe/gateway:${GATEWAY_SHA}
     variables:
       PUBLIC_URL: ${resources.config.public_url}
-      AUTH_MODE: ${resources.config.auth_mode}
+      AUTH_REALM: ${resources.auth.realm}
+    # Auth composition is by file presence: the entrypoint imports these snippet globs
+    # into the Caddyfile, and an anonymous edge simply ships the gateway without them.
+    # One source for both renderings — score-k8s turns these into ConfigMap mounts,
+    # score-compose into binds the generation converter inlines as configs.content.
+    # The realm rides as an env var consumed by the caddy {$AUTH_REALM} placeholder —
+    # the only realm declaration lives in the oidc-issuer provisioner states.
+    files:
+      /etc/caddy/snippets/site/auth-site.conf:
+        content: |
+          handle_path /auth/* {
+              reverse_proxy keycloak:8080 {
+                  header_up X-Forwarded-Proto {$FORWARDED_PROTO}
+                  header_up X-Forwarded-Port {$FORWARDED_PORT}
+              }
+          }
+      /etc/caddy/snippets/loki/auth-loki.conf:
+        content: |
+          forward_auth keycloak:8080 {
+              uri /realms/{$AUTH_REALM}/protocol/openid-connect/userinfo
+          }
 service:
   ports:
     gateway:
@@ -16,3 +36,6 @@ resources:
   config:
     type: placeframe-config
     id: placeframe-config
+  auth:
+    type: oidc-issuer
+    id: placeframe-keycloak

@@ -1,0 +1,27 @@
+# Values for the grafana chart (ghcr.io/grafana/helm-charts/grafana,
+# digest-pinned in docker-devkit.yaml). The Service keeps the fixed name and port
+# the gateway Caddyfile proxies (grafana:3000). No anonymous access on this tier
+# (unlike the compose dev stack): admin credentials are injected from the
+# externally managed placeframe-secrets Secret. Root URL uses grafana's
+# request-derived placeholders so no PUBLIC_URL needs to be composed at
+# generation; the OAuth block joins when the k8s keycloak edge lands.
+image:
+  lock-image:
+    key: GRAFANA_IMAGE
+    digest_field: sha
+initChownData:
+  enabled: false
+testFramework:
+  enabled: false
+admin:
+  existingSecret: placeframe-secrets
+  userKey: GRAFANA_ADMIN_USER
+  passwordKey: GRAFANA_ADMIN_PASSWORD
+service:
+  port: 3000
+env:
+  GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+  GF_SERVER_ROOT_URL: "%(protocol)s://%(domain)s:%(http_port)s/grafana/"
+datasources:
+  datasources.yaml:
+    include-yaml: workloads/grafana/provisioning/datasources/datasources.yaml

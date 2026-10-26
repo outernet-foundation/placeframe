@@ -1,0 +1,50 @@
+# Values for the loki chart (ghcr.io/grafana/helm-charts/loki, digest-pinned in
+# docker-devkit.yaml). The entire config is the committed workloads/loki/config.yaml —
+# the same file the compose tier binds — substituted verbatim into the chart's
+# loki.config string override (the chart's templated config and structured sections
+# are replaced wholesale). Credentials never carry values: the S3 keys ride the
+# config as ${VAR} holes expanded by -config.expand-env=true, injected from the
+# externally managed placeframe-secrets Secret via extraEnvFrom.
+global:
+  extraEnvFrom:
+    - secretRef:
+        name: placeframe-secrets
+deploymentMode: SingleBinary
+loki:
+  image:
+    lock-image: LOKI_IMAGE
+  # The chart's templated config is blanked and replaced wholesale by the committed
+  # workloads/loki/config.yaml (the same file the compose tier binds): calculatedConfig
+  # merge-overwrites the structured config onto the empty templated base.
+  config: ""
+  structuredConfig:
+    include-yaml: workloads/loki/config.yaml
+singleBinary:
+  replicas: 1
+  # The single-binary template reads its own extraArgs/extraEnvFrom, not the
+  # global ones the distributed-mode templates merge in.
+  extraArgs:
+    - -config.expand-env=true
+  extraEnvFrom:
+    - secretRef:
+        name: placeframe-secrets
+# SimpleScalable targets zeroed: single-binary owns the whole deployment.
+read:
+  replicas: 0
+backend:
+  replicas: 0
+write:
+  replicas: 0
+lokiCanary:
+  enabled: false
+test:
+  enabled: false
+gateway:
+  enabled: false
+chunksCache:
+  enabled: false
+resultsCache:
+  enabled: false
+sidecar:
+  rules:
+    enabled: false
