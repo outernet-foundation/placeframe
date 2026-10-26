@@ -68,7 +68,7 @@ deleted — two permanent drift registries would themselves be drift.
   cleartext `http://` PUBLIC_URL is a boot error. `/server-info`'s `auth_mode` wire values
   unchanged.
 - **Auth snippets ride as score workload `files:`** in `gateway.yaml` — one source for both
-  renderings; snippet presence *is* the auth-mode difference between the edges.
+  renderings; snippet presence *is* the auth-mode difference between the gateway artifacts.
 - **auth-initializer is the post-boot admin-API realm configurator** (both tiers). The
   file-import path is dead: operator-managed pods carry no initContainers, and a
   KeycloakRealmImport CR cannot resolve holes. K8s keycloak state is ephemeral H2 until a
@@ -153,16 +153,16 @@ closes completely with what is ported at the time.
 
 1. **Seam generation + multi-artifact publish (B3+B4).** `generate-score` emits one
    compose per seam (subsetted workload lists per artifact); `publish-compose` publishes
-   the five artifacts. Edge-anonymous is the gateway workload with its `files:` and
+   the five artifacts. `gateway-open` is the gateway workload with its `files:` and
    `resources.auth` overridden out (a per-seam override file — the gateway's realm env
    hangs off the keycloak provisioner) plus no keycloak provisioner — that override *is*
-   the auth-snippet presence difference between the edges. `publish-compose` loses its
+   the auth-snippet presence difference between the gateway artifacts. `publish-compose` loses its
    config inlining (artifacts are born hermetic); env-stubbing, digest-pinning, and the
    publish call survive. The per-variant core landed with Slice D: `compose_output`
    carries `{gpu}`, workload images carry `${GPU_VARIANT}`, and the five-artifact set
-   fans out as core-cuda/core-rocm + edges + tunnel.
-2. **Cutover.** `lifecycle.files` → generated files; delete the hand compose files;
-   Make-it-Sing re-pins to `core-cuda` + `edge-keycloak` + `tunnel-rathole` (its env
+   fans out as core-cuda/core-rocm + gateway-open/gateway-keycloak + tunnel.
+ 2. **Cutover.** `lifecycle.files` → generated files; delete the hand compose files;
+    Make-it-Sing re-pins to `core-cuda` + `gateway-keycloak` + `tunnel-rathole` (its env
    renames go live here — it still includes the old published bundle by digest today);
    `.env.sample` drops `COMPOSE_PROFILES`; re-think preflight's `compose.postgres.yml`
    role. `compose.dev.yml` survives as the hand overlay on generated files, never
