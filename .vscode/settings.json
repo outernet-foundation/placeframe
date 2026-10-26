@@ -1,5 +1,8 @@
 {
   "files.exclude": {
     "packages/unity/Placeframe/Build/": true
+  },
+  "files.associations": {
+    "*.tpl": "yaml"
   }
 }

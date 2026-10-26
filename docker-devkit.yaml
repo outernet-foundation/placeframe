@@ -31,10 +31,10 @@ generate-score:
     - compose/tunnel.yaml
     - compose/keda-scaled-object.yaml
   compose_patch_templates:
-    - compose/wait-for-resources-image.tpl
-    - compose/workload-healthchecks.tpl
-    - compose/tunnel-gate-exclusion.tpl
-    - compose/gpu-{gpu}.tpl
+    - compose/patches/wait-for-resources-image.tpl
+    - compose/patches/workload-healthchecks.tpl
+    - compose/patches/tunnel-gate-exclusion.tpl
+    - compose/patches/gpu-{gpu}.tpl
   k8s_provisioners:
     - k8s/postgres.yaml
     - k8s/seaweedfs.yaml
@@ -44,8 +44,8 @@ generate-score:
     - k8s/tunnel.yaml
     - k8s/keda-scaled-object.yaml
   k8s_patch_templates:
-    - k8s/gpu-pod.tpl
-    - k8s/scale-to-zero.tpl
+    - k8s/patches/gpu-pod.tpl
+    - k8s/patches/scale-to-zero.tpl
   publishes:
     - "8000:api:8000"
     - "8443:gateway:8443"
