@@ -1,25 +1,286 @@
 ---
+# Source: grafana/templates/clusterrole.yaml
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  labels:
+    helm.sh/chart: grafana-10.5.14
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/instance: grafana
+    app.kubernetes.io/version: "11.6.0"
+  name: grafana-clusterrole
+rules: []
+---
+# Source: loki/templates/backend/clusterrole.yaml
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  labels:
+    helm.sh/chart: loki-7.3.0
+    app.kubernetes.io/name: loki
+    app.kubernetes.io/instance: loki
+    app.kubernetes.io/version: "3.5.0"
+  name: loki-clusterrole
+rules: []
+---
+# Source: grafana/templates/clusterrolebinding.yaml
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: grafana-clusterrolebinding
+  labels:
+    helm.sh/chart: grafana-10.5.14
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/instance: grafana
+    app.kubernetes.io/version: "11.6.0"
+subjects:
+  - kind: ServiceAccount
+    name: grafana
+    namespace: default
+roleRef:
+  kind: ClusterRole
+  name: grafana-clusterrole
+  apiGroup: rbac.authorization.k8s.io
+---
+# Source: loki/templates/backend/clusterrolebinding.yaml
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: loki-clusterrolebinding
+  labels:
+    helm.sh/chart: loki-7.3.0
+    app.kubernetes.io/name: loki
+    app.kubernetes.io/instance: loki
+    app.kubernetes.io/version: "3.5.0"
+subjects:
+  - kind: ServiceAccount
+    name: loki
+    namespace: default
+roleRef:
+  kind: ClusterRole
+  name: loki-clusterrole
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: v1
+data:
+  config.alloy: |
+    // OTLP/gRPC receiver → attributes processor (label-cardinality policy) → Loki
+    // exporter → loki.write. Producers ship OTel log records with full SemConv
+    // resource attributes (service.name, service.namespace, service.instance.id,
+    // service.version, deployment.environment.name, container.name). Only the
+    // low-cardinality subset becomes Loki indexed labels; everything else rides
+    // as Loki structured metadata. Write endpoint is env-driven so this single
+    // config serves both the main backend stack (writes to loki:3100) and the
+    // ZED box stack (writes to 127.0.0.1:3100).
+
+    otelcol.receiver.otlp "default" {
+      grpc {
+        endpoint = "0.0.0.0:4317"
+      }
+
+      output {
+        logs = [otelcol.processor.attributes.label_promotion.input]
+      }
+    }
+
+    // The Loki exporter promotes resource attributes named in the
+    // `loki.resource.labels` record attribute to indexed Loki labels. Everything
+    // else stays as structured metadata. Severity is promoted automatically.
+    otelcol.processor.attributes "label_promotion" {
+      action {
+        key    = "loki.resource.labels"
+        value  = "service.name,deployment.environment.name"
+        action = "insert"
+      }
+
+      output {
+        logs = [otelcol.exporter.loki.default.input]
+      }
+    }
+
+    otelcol.exporter.loki "default" {
+      forward_to = [loki.write.default.receiver]
+    }
+
+    loki.write "default" {
+      endpoint {
+        url = sys.env("LOKI_WRITE_ENDPOINT")
+      }
+    }
+kind: ConfigMap
+metadata:
+  name: alloy-config
+---
+apiVersion: v1
+binaryData:
+  file: aGFuZGxlX3BhdGggL2F1dGgvKiB7CiAgICByZXZlcnNlX3Byb3h5IGtleWNsb2FrOjgwODAgewogICAgICAgIGhlYWRlcl91cCBYLUZvcndhcmRlZC1Qcm90byB7JEZPUldBUkRFRF9QUk9UT30KICAgICAgICBoZWFkZXJfdXAgWC1Gb3J3YXJkZWQtUG9ydCB7JEZPUldBUkRFRF9QT1JUfQogICAgfQp9Cg==
+kind: ConfigMap
+metadata:
+  name: gateway-gateway-file-0a0cef3b6f
+---
+apiVersion: v1
+binaryData:
+  file: Zm9yd2FyZF9hdXRoIGtleWNsb2FrOjgwODAgewogICAgdXJpIC9yZWFsbXMveyRBVVRIX1JFQUxNfS9wcm90b2NvbC9vcGVuaWQtY29ubmVjdC91c2VyaW5mbwp9Cg==
+kind: ConfigMap
+metadata:
+  name: gateway-gateway-file-b8ac556a0a
+---
+# Source: grafana/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana
+  namespace: default
+  labels:
+    helm.sh/chart: grafana-10.5.14
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/instance: grafana
+    app.kubernetes.io/version: "11.6.0"
+data:
+  
+  grafana.ini: |
+    [analytics]
+    check_for_updates = true
+    [log]
+    mode = console
+    [paths]
+    data = /var/lib/grafana/
+    logs = /var/log/grafana
+    plugins = /var/lib/grafana/plugins
+    provisioning = /etc/grafana/provisioning
+    [server]
+    domain = ''
+    [unified_storage]
+    index_path = /var/lib/grafana-search/bleve
+  datasources.yaml: |
+    apiVersion: 1
+    datasources:
+    - access: proxy
+      isDefault: true
+      name: Loki
+      type: loki
+      url: http://loki:3100
+---
+# Source: loki/templates/config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: loki
+  namespace: default
+  labels:
+    helm.sh/chart: loki-7.3.0
+    app.kubernetes.io/name: loki
+    app.kubernetes.io/instance: loki
+    app.kubernetes.io/version: "3.5.0"
+data:
+  config.yaml: |
+    
+    auth_enabled: false
+    common:
+      path_prefix: /loki
+      ring:
+        instance_addr: 127.0.0.1
+        kvstore:
+          store: inmemory
+        replication_factor: 1
+    ingester:
+      lifecycler:
+        ring:
+          replication_factor: 1
+      max_chunk_age: 720h
+    limits_config:
+      reject_old_samples: true
+      reject_old_samples_max_age: 720h
+      retention_period: 720h
+    schema_config:
+      configs:
+      - from: "2024-01-01"
+        index:
+          period: 24h
+          prefix: index_
+        object_store: s3
+        schema: v13
+        store: tsdb
+    server:
+      http_listen_port: 3100
+    storage_config:
+      aws:
+        access_key_id: ${S3_ACCESS_KEY}
+        bucketnames: loki
+        endpoint: seaweedfs:8333
+        insecure: true
+        s3forcepathstyle: true
+        secret_access_key: ${S3_SECRET_KEY}
+---
+# Source: loki/templates/runtime-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: loki-runtime
+  namespace: default
+  labels:
+    helm.sh/chart: loki-7.3.0
+    app.kubernetes.io/name: loki
+    app.kubernetes.io/instance: loki
+    app.kubernetes.io/version: "3.5.0"
+data:
+  runtime-config.yaml: |
+    {}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alloy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: alloy
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: alloy
+    spec:
+      containers:
+        - args:
+            - run
+            - /etc/alloy/config.alloy
+          env:
+            - name: LOKI_WRITE_ENDPOINT
+              value: http://loki:3100/loki/api/v1/push
+          image: ghcr.io/outernet-foundation/mirror/docker.io/grafana/alloy:v1.9.0@sha256:32bc0ba6bad75ca24bdf4a6d2dd793a564dff06b6446927699c08d9f9c749c6e
+          name: alloy
+          ports:
+            - containerPort: 4317
+          volumeMounts:
+            - mountPath: /etc/alloy
+              name: config
+      volumes:
+        - configMap:
+            name: alloy-config
+          name: config
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   annotations:
     k8s.score.dev/workload-name: api
   labels:
-    app.kubernetes.io/instance: api-7ae5e8b491
+    app.kubernetes.io/instance: api-14c2529eb4
     app.kubernetes.io/managed-by: score-k8s
     app.kubernetes.io/name: api
   name: api
 spec:
   selector:
     matchLabels:
-      app.kubernetes.io/instance: api-7ae5e8b491
+      app.kubernetes.io/instance: api-14c2529eb4
   strategy: {}
   template:
     metadata:
       annotations:
         k8s.score.dev/workload-name: api
       labels:
-        app.kubernetes.io/instance: api-7ae5e8b491
+        app.kubernetes.io/instance: api-14c2529eb4
         app.kubernetes.io/managed-by: score-k8s
         app.kubernetes.io/name: api
     spec:
@@ -30,28 +291,28 @@ spec:
                 secretKeyRef:
                   key: AUTH_AUDIENCE
                   name: placeframe-secrets
-            - name: AUTH_CERTS_URL
-              value: http://keycloak:8080/realms/placeframe-dev/protocol/openid-connect/certs
+            - name: AUTH_AUTHORIZATION_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  key: AUTH_AUTHORIZATION_ENDPOINT
+                  name: placeframe-secrets
             - name: AUTH_ISSUER_URL
               valueFrom:
                 secretKeyRef:
                   key: AUTH_ISSUER_URL
                   name: placeframe-secrets
-            - name: AUTH_MODE
+            - name: AUTH_JWKS_URL
               valueFrom:
                 secretKeyRef:
-                  key: AUTH_MODE
+                  key: AUTH_JWKS_URL
                   name: placeframe-secrets
-            - name: AUTH_TOKEN_URL
+            - name: AUTH_TOKEN_ENDPOINT
               valueFrom:
                 secretKeyRef:
-                  key: AUTH_TOKEN_URL
+                  key: AUTH_TOKEN_ENDPOINT
                   name: placeframe-secrets
-            - name: AUTH_URL
-              valueFrom:
-                secretKeyRef:
-                  key: AUTH_URL
-                  name: placeframe-secrets
+            - name: CAPTURES_BUCKET
+              value: captures
             - name: DATABASE_API_USER
               value: placeframe_api_user
             - name: DATABASE_API_USER_PASSWORD
@@ -83,19 +344,9 @@ spec:
             - name: LOCALIZER_CONTAINER_URL
               value: http://localhost:8000
             - name: LOKI_URL
-              value: http://localhost:3100
-            - name: MINIO_ACCESS_KEY
-              valueFrom:
-                secretKeyRef:
-                  key: MINIO_ACCESS_KEY
-                  name: placeframe-secrets
-            - name: MINIO_ENDPOINT_URL
-              value: http://minio:9000
-            - name: MINIO_SECRET_KEY
-              valueFrom:
-                secretKeyRef:
-                  key: MINIO_SECRET_KEY
-                  name: placeframe-secrets
+              value: http://loki:3100
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: http://alloy:4317
             - name: POSTGRES_HOST
               value: pf-postgres
             - name: PUBLIC_URL
@@ -105,7 +356,21 @@ spec:
                   name: placeframe-secrets
             - name: RECONSTRUCTIONS_BUCKET
               value: reconstructions
-          image: ghcr.io/outernet-foundation/placeframe/api:tree-19bcf81e1b2f5fbdfece166877de67f035a51016
+            - name: S3_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: S3_ACCESS_KEY
+                  name: placeframe-secrets
+            - name: S3_ENDPOINT_URL
+              value: http://seaweedfs:8333
+            - name: S3_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: S3_SECRET_KEY
+                  name: placeframe-secrets
+            - name: SERVICE_VERSION
+              value: tree-1150144643d998f94d9f3930091a185a1c7ff03a
+          image: ghcr.io/outernet-foundation/placeframe/api:tree-1150144643d998f94d9f3930091a185a1c7ff03a
           livenessProbe:
             httpGet:
               path: /health
@@ -120,39 +385,54 @@ metadata:
   annotations:
     k8s.score.dev/workload-name: gateway
   labels:
-    app.kubernetes.io/instance: gateway-63f43f747f
+    app.kubernetes.io/instance: gateway-4ea5ee68fe
     app.kubernetes.io/managed-by: score-k8s
     app.kubernetes.io/name: gateway
   name: gateway
 spec:
   selector:
     matchLabels:
-      app.kubernetes.io/instance: gateway-63f43f747f
+      app.kubernetes.io/instance: gateway-4ea5ee68fe
   strategy: {}
   template:
     metadata:
       annotations:
         k8s.score.dev/workload-name: gateway
       labels:
-        app.kubernetes.io/instance: gateway-63f43f747f
+        app.kubernetes.io/instance: gateway-4ea5ee68fe
         app.kubernetes.io/managed-by: score-k8s
         app.kubernetes.io/name: gateway
     spec:
       containers:
         - env:
-            - name: AUTH_MODE
-              valueFrom:
-                secretKeyRef:
-                  key: AUTH_MODE
-                  name: placeframe-secrets
+            - name: AUTH_REALM
+              value: placeframe-dev
             - name: PUBLIC_URL
               valueFrom:
                 secretKeyRef:
                   key: PUBLIC_URL
                   name: placeframe-secrets
-          image: ghcr.io/outernet-foundation/placeframe/gateway:tree-4714e22b2bbd09351eef51bfe3b3c24bf483a33b
+          image: ghcr.io/outernet-foundation/placeframe/gateway:tree-f8dfbcbee11d52750d3bd0766b7538379703ba86
           name: gateway
           resources: {}
+          volumeMounts:
+            - mountPath: /etc/caddy/snippets/loki
+              name: file-b8ac556a0a
+            - mountPath: /etc/caddy/snippets/site
+              name: file-0a0cef3b6f
+      volumes:
+        - configMap:
+            items:
+              - key: file
+                path: auth-loki.conf
+            name: gateway-gateway-file-b8ac556a0a
+          name: file-b8ac556a0a
+        - configMap:
+            items:
+              - key: file
+                path: auth-site.conf
+            name: gateway-gateway-file-0a0cef3b6f
+          name: file-0a0cef3b6f
 status: {}
 ---
 apiVersion: apps/v1
@@ -161,21 +441,21 @@ metadata:
   annotations:
     k8s.score.dev/workload-name: lease-server
   labels:
-    app.kubernetes.io/instance: lease-server-1ec460ca93
+    app.kubernetes.io/instance: lease-server-0907dc0fb6
     app.kubernetes.io/managed-by: score-k8s
     app.kubernetes.io/name: lease-server
   name: lease-server
 spec:
   selector:
     matchLabels:
-      app.kubernetes.io/instance: lease-server-1ec460ca93
+      app.kubernetes.io/instance: lease-server-0907dc0fb6
   strategy: {}
   template:
     metadata:
       annotations:
         k8s.score.dev/workload-name: lease-server
       labels:
-        app.kubernetes.io/instance: lease-server-1ec460ca93
+        app.kubernetes.io/instance: lease-server-0907dc0fb6
         app.kubernetes.io/managed-by: score-k8s
         app.kubernetes.io/name: lease-server
     spec:
@@ -191,10 +471,17 @@ spec:
                   key: DATABASE_ORCHESTRATION_USER_PASSWORD
                   name: placeframe-secrets
             - name: DEPLOYMENT_ENVIRONMENT
-              value: development
+              valueFrom:
+                secretKeyRef:
+                  key: DEPLOYMENT_ENVIRONMENT
+                  name: placeframe-secrets
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: http://alloy:4317
             - name: POSTGRES_HOST
               value: pf-postgres
-          image: ghcr.io/outernet-foundation/placeframe/lease-server:tree-7b3d4cec6cf3f2d2d98f578ed3cf112a1158d9a8
+            - name: SERVICE_VERSION
+              value: tree-2b32a6ca67ac908e51bb60410a96448fe3a342aa
+          image: ghcr.io/outernet-foundation/placeframe/lease-server:tree-2b32a6ca67ac908e51bb60410a96448fe3a342aa
           livenessProbe:
             httpGet:
               path: /health
@@ -203,36 +490,161 @@ spec:
           resources: {}
 status: {}
 ---
-apiVersion: batch/v1
-kind: Job
+apiVersion: apps/v1
+kind: Deployment
 metadata:
-  annotations:
-    argocd.argoproj.io/hook: Sync
-    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
-  name: minio-bucket
+  name: seaweedfs-audit
 spec:
-  backoffLimit: 30
+  replicas: 1
+  selector:
+    matchLabels:
+      app: seaweedfs-audit
   template:
+    metadata:
+      labels:
+        app: seaweedfs-audit
     spec:
       containers:
-        - command:
-            - /bin/sh
-            - -c
-            - mc alias set local http://minio:9000 $(MINIO_ACCESS_KEY) $(MINIO_SECRET_KEY) && mc mb --ignore-existing local/reconstructions && mc mb --ignore-existing local/dev-captures
+        - args:
+            - -i
+            - forward
+            - -p
+            - listen=0.0.0.0
+            - -p
+            - port=24224
+            - -o
+            - stdout
+            - -m
+            - '*'
+          image: ghcr.io/outernet-foundation/mirror/docker.io/fluent/fluent-bit:5.1.2@sha256:d792375ca8e53be72fc25716c28f291f32c6fc6f4f31d12d0d14bc78cefe9226
+          name: audit
+---
+# Source: grafana/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: default
+  labels:
+    helm.sh/chart: grafana-10.5.14
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/instance: grafana
+    app.kubernetes.io/version: "11.6.0"
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: grafana
+      app.kubernetes.io/instance: grafana
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        helm.sh/chart: grafana-10.5.14
+        app.kubernetes.io/name: grafana
+        app.kubernetes.io/instance: grafana
+        app.kubernetes.io/version: "11.6.0"
+      annotations:
+        checksum/config: 605efb751c3b28e0e0ac495b63887f7c1a6077c51928466ccefd2c5575a374f5
+        checksum/sc-dashboard-provider-config: e70bf6a851099d385178a76de9757bb0bef8299da6d8443602590e44f05fdf24
+        kubectl.kubernetes.io/default-container: grafana
+    spec:
+      
+      serviceAccountName: grafana
+      automountServiceAccountToken: true
+      shareProcessNamespace: false
+      securityContext:
+        fsGroup: 472
+        runAsGroup: 472
+        runAsNonRoot: true
+        runAsUser: 472
+      enableServiceLinks: true
+      containers:
+        - name: grafana
+          image: "ghcr.io/outernet-foundation/mirror/docker.io/grafana/grafana:11.6.0@sha256:62d2b9d20a19714ebfe48d1bb405086081bc602aa053e28cf6d73c7537640dfb"
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            privileged: false
+            seccompProfile:
+              type: RuntimeDefault
+          volumeMounts:
+            - name: config
+              mountPath: "/etc/grafana/grafana.ini"
+              subPath: grafana.ini
+            - name: storage
+              mountPath: "/var/lib/grafana"
+            - name: search
+              mountPath: "/var/lib/grafana-search"
+            - name: config
+              mountPath: "/etc/grafana/provisioning/datasources/datasources.yaml"
+              subPath: "datasources.yaml"
+          ports:
+            - name: grafana
+              containerPort: 3000
+              protocol: TCP
+            - name: gossip-tcp
+              containerPort: 9094
+              protocol: TCP
+            - name: gossip-udp
+              containerPort: 9094
+              protocol: UDP
+            - name: profiling
+              containerPort: 6060
+              protocol: TCP
           env:
-            - name: MINIO_ACCESS_KEY
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: GF_SECURITY_ADMIN_USER
               valueFrom:
                 secretKeyRef:
-                  key: MINIO_ACCESS_KEY
                   name: placeframe-secrets
-            - name: MINIO_SECRET_KEY
+                  key: GRAFANA_ADMIN_USER
+            - name: GF_SECURITY_ADMIN_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  key: MINIO_SECRET_KEY
                   name: placeframe-secrets
-          image: quay.io/minio/mc@sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727
-          name: bucket
-      restartPolicy: OnFailure
+                  key: GRAFANA_ADMIN_PASSWORD
+            - name: GF_PATHS_DATA
+              value: /var/lib/grafana/
+            - name: GF_PATHS_LOGS
+              value: /var/log/grafana
+            - name: GF_PATHS_PLUGINS
+              value: /var/lib/grafana/plugins
+            - name: GF_PATHS_PROVISIONING
+              value: /etc/grafana/provisioning
+            - name: GF_UNIFIED_STORAGE_INDEX_PATH
+              value: /var/lib/grafana-search/bleve
+            - name: "GF_SERVER_ROOT_URL"
+              value: "%(protocol)s://%(domain)s:%(http_port)s/grafana/"
+            - name: "GF_SERVER_SERVE_FROM_SUB_PATH"
+              value: "true"
+          livenessProbe:
+            failureThreshold: 10
+            httpGet:
+              path: /api/health
+              port: grafana
+            initialDelaySeconds: 60
+            timeoutSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: grafana
+      volumes:
+        - name: config
+          configMap:
+            name: grafana
+        - name: storage
+          emptyDir: {}
+        - name: search
+          emptyDir: {}
 ---
 apiVersion: batch/v1
 kind: Job
@@ -240,6 +652,7 @@ metadata:
   annotations:
     argocd.argoproj.io/hook: Sync
     argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/hook-weight: "10"
   name: pf-postgres-create
 spec:
   backoffLimit: 30
@@ -269,7 +682,10 @@ spec:
             - name: POSTGRES_HOST
               value: pf-postgres
             - name: POSTGRES_ADMIN_USER
-              value: postgres
+              valueFrom:
+                secretKeyRef:
+                  key: POSTGRES_ADMIN_USER
+                  name: placeframe-secrets
             - name: POSTGRES_ADMIN_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -295,15 +711,9 @@ spec:
                 secretKeyRef:
                   key: DATABASE_ORCHESTRATION_USER_PASSWORD
                   name: placeframe-secrets
-          image: ghcr.io/outernet-foundation/placeframe/database-manager:tree-d69c18305f567e658be165e13d45e0caa0bd6669
+          image: ghcr.io/outernet-foundation/placeframe/database-manager:tree-96f371a14ed3f2a41a4e9095178fc772d1f44ae7
           name: create
-          volumeMounts:
-            - mountPath: /mnt/efs
-              name: efs
       restartPolicy: OnFailure
-      volumes:
-        - emptyDir: {}
-          name: efs
 ---
 apiVersion: batch/v1
 kind: Job
@@ -311,6 +721,7 @@ metadata:
   annotations:
     argocd.argoproj.io/hook: Sync
     argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/hook-weight: "20"
   name: pf-postgres-migrate
 spec:
   backoffLimit: 30
@@ -335,9 +746,85 @@ spec:
               value: database
             - name: ALLOWED_HAZARDS
               value: HAS_UNTRACKABLE_DEPENDENCIES
-          image: ghcr.io/outernet-foundation/placeframe/database-migrator:tree-82d31655502cfa8eaaaf276755b1eddefd5b9ab5
+          image: ghcr.io/outernet-foundation/placeframe/database-migrator:tree-7b79d3f23baeeed16e5baee60baa4adbfd51ff94
           name: migrate
       restartPolicy: OnFailure
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/hook-weight: "10"
+  name: seaweedfs-bucket
+spec:
+  backoffLimit: 30
+  template:
+    spec:
+      containers:
+        - env:
+            - name: S3_ENDPOINT_URL
+              value: http://seaweedfs:8333
+            - name: S3_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: S3_ACCESS_KEY
+                  name: placeframe-secrets
+            - name: S3_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: S3_SECRET_KEY
+                  name: placeframe-secrets
+            - name: S3_BUCKETS
+              value: reconstructions captures loki
+          image: ghcr.io/outernet-foundation/placeframe/s3-initializer:tree-599cb0c699094c854cc266424972c4dab5bd3ab8
+          name: bucket
+      restartPolicy: OnFailure
+---
+# Source: grafana/templates/role.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: grafana
+  namespace: default
+  labels:
+    helm.sh/chart: grafana-10.5.14
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/instance: grafana
+    app.kubernetes.io/version: "11.6.0"
+rules: []
+---
+# Source: grafana/templates/rolebinding.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: grafana
+  namespace: default
+  labels:
+    helm.sh/chart: grafana-10.5.14
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/instance: grafana
+    app.kubernetes.io/version: "11.6.0"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: grafana
+subjects:
+- kind: ServiceAccount
+  name: grafana
+  namespace: default
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: alloy
+spec:
+  ports:
+    - port: 4317
+      targetPort: 4317
+  selector:
+    app.kubernetes.io/instance: alloy
 ---
 apiVersion: v1
 kind: Service
@@ -345,7 +832,7 @@ metadata:
   annotations:
     k8s.score.dev/workload-name: api
   labels:
-    app.kubernetes.io/instance: api-7ae5e8b491
+    app.kubernetes.io/instance: api-14c2529eb4
     app.kubernetes.io/managed-by: score-k8s
     app.kubernetes.io/name: api
   name: api
@@ -356,7 +843,7 @@ spec:
       protocol: TCP
       targetPort: 8000
   selector:
-    app.kubernetes.io/instance: api-7ae5e8b491
+    app.kubernetes.io/instance: api-14c2529eb4
 status:
   loadBalancer: {}
 ---
@@ -366,7 +853,7 @@ metadata:
   annotations:
     k8s.score.dev/workload-name: gateway
   labels:
-    app.kubernetes.io/instance: gateway-63f43f747f
+    app.kubernetes.io/instance: gateway-4ea5ee68fe
     app.kubernetes.io/managed-by: score-k8s
     app.kubernetes.io/name: gateway
   name: gateway
@@ -377,7 +864,7 @@ spec:
       protocol: TCP
       targetPort: 8443
   selector:
-    app.kubernetes.io/instance: gateway-63f43f747f
+    app.kubernetes.io/instance: gateway-4ea5ee68fe
 status:
   loadBalancer: {}
 ---
@@ -398,7 +885,7 @@ metadata:
   annotations:
     k8s.score.dev/workload-name: lease-server
   labels:
-    app.kubernetes.io/instance: lease-server-1ec460ca93
+    app.kubernetes.io/instance: lease-server-0907dc0fb6
     app.kubernetes.io/managed-by: score-k8s
     app.kubernetes.io/name: lease-server
   name: lease-server
@@ -409,20 +896,9 @@ spec:
       protocol: TCP
       targetPort: 8000
   selector:
-    app.kubernetes.io/instance: lease-server-1ec460ca93
+    app.kubernetes.io/instance: lease-server-0907dc0fb6
 status:
   loadBalancer: {}
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: minio
-spec:
-  ports:
-    - port: 9000
-      targetPort: 9000
-  selector:
-    app.kubernetes.io/instance: minio
 ---
 apiVersion: v1
 kind: Service
@@ -434,6 +910,154 @@ spec:
       targetPort: 5432
   selector:
     app.kubernetes.io/instance: pf-postgres
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: seaweedfs
+spec:
+  ports:
+    - port: 8333
+      targetPort: 8333
+  selector:
+    app.kubernetes.io/instance: seaweedfs
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: seaweedfs-audit
+spec:
+  ports:
+    - port: 24224
+      targetPort: 24224
+  selector:
+    app: seaweedfs-audit
+---
+# Source: grafana/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: default
+  labels:
+    helm.sh/chart: grafana-10.5.14
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/instance: grafana
+    app.kubernetes.io/version: "11.6.0"
+spec:
+  type: ClusterIP
+  ports:
+    - name: service
+      port: 3000
+      protocol: TCP
+      targetPort: grafana
+  selector:
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/instance: grafana
+---
+# Source: loki/templates/single-binary/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: loki
+  namespace: default
+  labels:
+    helm.sh/chart: loki-7.3.0
+    app.kubernetes.io/name: loki
+    app.kubernetes.io/instance: loki
+    app.kubernetes.io/version: "3.5.0"
+  annotations:
+spec:
+  type: ClusterIP
+  ports:
+    - name: http-metrics
+      port: 3100
+      targetPort: http-metrics
+      protocol: TCP
+    - name: grpc
+      port: 9095
+      targetPort: grpc
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: loki
+    app.kubernetes.io/instance: loki
+    app.kubernetes.io/component: single-binary
+---
+# Source: loki/templates/single-binary/service-headless.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: loki-headless
+  namespace: default
+  labels:
+    helm.sh/chart: loki-7.3.0
+    app.kubernetes.io/name: loki
+    app.kubernetes.io/instance: loki
+    app.kubernetes.io/version: "3.5.0"
+    variant: headless
+    prometheus.io/service-monitor: "false"
+  annotations:
+spec:
+  clusterIP: None
+  ports:
+    - name: http-metrics
+      port: 3100
+      targetPort: http-metrics
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: loki
+    app.kubernetes.io/instance: loki
+---
+# Source: loki/templates/service-memberlist.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: loki-memberlist
+  namespace: default
+  labels:
+    helm.sh/chart: loki-7.3.0
+    app.kubernetes.io/name: loki
+    app.kubernetes.io/instance: loki
+    app.kubernetes.io/version: "3.5.0"
+  annotations:
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - name: tcp
+      port: 7946
+      targetPort: http-memberlist
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: loki
+    app.kubernetes.io/instance: loki
+    app.kubernetes.io/part-of: memberlist
+---
+# Source: grafana/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+automountServiceAccountToken: false
+metadata:
+  labels:
+    helm.sh/chart: grafana-10.5.14
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/instance: grafana
+    app.kubernetes.io/version: "11.6.0"
+  name: grafana
+  namespace: default
+---
+# Source: loki/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: loki
+  namespace: default
+  labels:
+    helm.sh/chart: loki-7.3.0
+    app.kubernetes.io/name: loki
+    app.kubernetes.io/instance: loki
+    app.kubernetes.io/version: "3.5.0"
+automountServiceAccountToken: true
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -503,7 +1127,7 @@ spec:
             - mountPath: /opt/keycloak/data
               name: data
       initContainers:
-        - image: ghcr.io/outernet-foundation/placeframe/auth-initializer:tree-1acc0ab6b5f4d41ea1639366ab80a75cae830b91
+        - image: ghcr.io/outernet-foundation/placeframe/auth-initializer:tree-802683b87582acf04ee3e378f8750383d105603c
           name: auth-initializer
           volumeMounts:
             - mountPath: /keycloak_import
@@ -532,58 +1156,6 @@ kind: StatefulSet
 metadata:
   annotations:
     argocd.argoproj.io/sync-options: Prune=false
-  name: minio
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app.kubernetes.io/instance: minio
-  serviceName: minio
-  template:
-    metadata:
-      labels:
-        app.kubernetes.io/instance: minio
-    spec:
-      containers:
-        - args:
-            - server
-            - /data
-            - --console-address
-            - :9001
-          env:
-            - name: MINIO_ROOT_USER
-              valueFrom:
-                secretKeyRef:
-                  key: MINIO_ACCESS_KEY
-                  name: placeframe-secrets
-            - name: MINIO_ROOT_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  key: MINIO_SECRET_KEY
-                  name: placeframe-secrets
-          image: quay.io/minio/minio@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
-          name: minio
-          ports:
-            - containerPort: 9000
-          volumeMounts:
-            - mountPath: /data
-              name: data
-  volumeClaimTemplates:
-    - metadata:
-        name: data
-      spec:
-        accessModes:
-          - ReadWriteOnce
-        resources:
-          requests:
-            storage: 50Gi
-        storageClassName: hcloud-volumes
----
-apiVersion: apps/v1
-kind: StatefulSet
-metadata:
-  annotations:
-    argocd.argoproj.io/sync-options: Prune=false
   name: pf-postgres
 spec:
   replicas: 1
@@ -603,16 +1175,27 @@ spec:
             - name: PGDATA
               value: /var/lib/postgresql/data/pgdata
             - name: POSTGRES_USER
-              value: postgres
+              valueFrom:
+                secretKeyRef:
+                  key: POSTGRES_ADMIN_USER
+                  name: placeframe-secrets
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
                   key: POSTGRES_ADMIN_PASSWORD
                   name: placeframe-secrets
-          image: ghcr.io/outernet-foundation/placeframe/postgres:tree-a725eaecbe5687560986ed32b2768c46e8e8e98f
+          image: ghcr.io/outernet-foundation/placeframe/postgres:tree-26c3202a4932b69e22fed4509ca3ca88ed4fa825
           name: postgres-db
           ports:
             - containerPort: 5432
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - pg_isready -U $POSTGRES_USER
+            failureThreshold: 60
+            periodSeconds: 5
           volumeMounts:
             - mountPath: /var/lib/postgresql/data
               name: pv-data
@@ -626,3 +1209,200 @@ spec:
           requests:
             storage: 1Gi
         storageClassName: hcloud-volumes
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
+  name: seaweedfs
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: seaweedfs
+  serviceName: seaweedfs
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: seaweedfs
+    spec:
+      containers:
+        - args:
+            - server
+            - -filer
+            - -s3
+            - -s3.port=8333
+            - -s3.config=/etc/seaweedfs/s3.json
+            - -s3.auditLogConfig=/etc/seaweedfs/fluent.json
+          command:
+            - /usr/local/bin/entrypoint-wrapper.sh
+          env:
+            - name: S3_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: S3_ACCESS_KEY
+                  name: placeframe-secrets
+            - name: S3_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: S3_SECRET_KEY
+                  name: placeframe-secrets
+          image: ghcr.io/outernet-foundation/placeframe/seaweedfs:tree-cc8694c015d4492f8938d3a9b59fef175b1ad4a8
+          name: seaweedfs
+          ports:
+            - containerPort: 8333
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - curl -fsS http://127.0.0.1:9333/cluster/status && curl -s -o /dev/null http://127.0.0.1:8333/
+            failureThreshold: 60
+            periodSeconds: 5
+          volumeMounts:
+            - mountPath: /data
+              name: data
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 50Gi
+        storageClassName: hcloud-volumes
+---
+# Source: loki/templates/single-binary/statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: loki
+  namespace: default
+  labels:
+    helm.sh/chart: loki-7.3.0
+    app.kubernetes.io/name: loki
+    app.kubernetes.io/instance: loki
+    app.kubernetes.io/version: "3.5.0"
+    app.kubernetes.io/component: single-binary
+    app.kubernetes.io/part-of: memberlist
+spec:
+  replicas: 1
+  podManagementPolicy: Parallel
+  updateStrategy:
+    rollingUpdate:
+      partition: 0
+  serviceName: loki-headless
+  revisionHistoryLimit: 10
+  
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: Delete
+    whenScaled: Delete
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: loki
+      app.kubernetes.io/instance: loki
+      app.kubernetes.io/component: single-binary
+  template:
+    metadata:
+      annotations:
+        checksum/config: 02b9b15701f991c2a22f58950167c7513cb431248178db0b4062a8ac7cf741ca
+        storage/size: "10Gi"
+        kubectl.kubernetes.io/default-container: "loki"
+      labels:
+        app.kubernetes.io/name: loki
+        app.kubernetes.io/instance: loki
+        app.kubernetes.io/component: single-binary
+        app.kubernetes.io/part-of: memberlist
+    spec:
+      serviceAccountName: loki
+      automountServiceAccountToken: true
+      enableServiceLinks: true
+      
+      securityContext:
+        fsGroup: 10001
+        fsGroupChangePolicy: OnRootMismatch
+        runAsGroup: 10001
+        runAsNonRoot: true
+        runAsUser: 10001
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: loki
+          image: ghcr.io/outernet-foundation/mirror/docker.io/grafana/loki@sha256:4c431d2e6b9b38718694b31c5d56be7c80dc69c513215fde1aeb5b02cd4e2665
+          imagePullPolicy: IfNotPresent
+          args:
+            - -config.file=/etc/loki/config/config.yaml
+            - -target=all
+            - -config.expand-env=true
+          ports:
+            - name: http-metrics
+              containerPort: 3100
+              protocol: TCP
+            - name: grpc
+              containerPort: 9095
+              protocol: TCP
+            - name: http-memberlist
+              containerPort: 7946
+              protocol: TCP
+          envFrom:
+            - secretRef:
+                name: placeframe-secrets
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /ready
+              port: http-metrics
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: config
+              mountPath: /etc/loki/config
+            - name: runtime-config
+              mountPath: /etc/loki/runtime-config
+            - name: storage
+              mountPath: /var/loki
+          resources:
+            {}
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app.kubernetes.io/component: single-binary
+                app.kubernetes.io/instance: 'loki'
+                app.kubernetes.io/name: 'loki'
+            topologyKey: kubernetes.io/hostname
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: config
+          configMap:
+            name: loki
+            items:
+              - key: "config.yaml"
+                path: "config.yaml"
+        - name: runtime-config
+          configMap:
+            name: loki-runtime
+  volumeClaimTemplates:
+    - apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: storage
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: "10Gi"
