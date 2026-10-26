@@ -22,7 +22,6 @@ dependencies = [
     "datamodel-code-generator>=0.33.0",
     "psycopg[binary]>=3.2.10",
     "pyhumps>=3.8.0",
-    "pyyaml>=6.0",
 ]
 
 [tool.deptry.per_rule_ignores]
