@@ -1,38 +1,51 @@
-from pathlib import Path
+from scripts.publish_compose import pin_references, substitute_holes
 
-import yaml
-
-from scripts.publish_compose import _inline_configs  # noqa: PLC2701 — testing private helper
+REGISTRY = "ghcr.io/outernet-foundation/placeframe"
 
 
-def test_inline_configs_replaces_file_with_escaped_content(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
-    Path("loki.yaml").write_text("storage:\n  access_key_id: ${S3_ACCESS_KEY}\n", encoding="utf-8")
-    baked = Path("compose.yml")
-    baked.write_text(
+def test_substitute_holes_fills_internal_vars_and_keeps_passthroughs():
+    text = (
         "services:\n"
-        "  loki:\n"
-        "    image: ghcr.io/outernet-foundation/mirror/docker.io/grafana/loki@sha256:abc\n"
-        "configs:\n"
-        "  loki_config:\n"
-        "    file: loki.yaml\n",
-        encoding="utf-8",
+        "  api:\n"
+        f"    image: {REGISTRY}/api:${{API_SHA}}\n"
+        "    environment:\n"
+        f"      PUBLIC_URL: ${{PUBLIC_URL:?err}}\n"
+        f"      AUTH_ISSUER_URL: ${{AUTH_ISSUER_URL:-}}\n"
+        f"      NGROK_IMAGE: ${{NGROK_IMAGE:?err}}\n"
     )
 
-    _inline_configs(baked)
+    baked = substitute_holes(text, {"API_SHA": "tree-abc", "NGROK_IMAGE": "mirror/ngrok:alpine@sha256:abc"})
 
-    document = yaml.safe_load(baked.read_text(encoding="utf-8"))
-    assert document["services"]["loki"]["image"] == (
-        "ghcr.io/outernet-foundation/mirror/docker.io/grafana/loki@sha256:abc"
+    assert f"{REGISTRY}/api:tree-abc" in baked
+    assert "mirror/ngrok:alpine@sha256:abc" in baked
+    assert "${PUBLIC_URL:?err}" in baked
+    assert "${AUTH_ISSUER_URL:-}" in baked
+
+
+def test_pin_references_resolves_placeframe_tags_to_digests(monkeypatch):
+    monkeypatch.setattr(
+        "scripts.publish_compose.resolve_remote_digest",
+        lambda _reference: "sha256:" + "f" * 64,
     )
-    assert document["configs"]["loki_config"] == {"content": "storage:\n  access_key_id: $${S3_ACCESS_KEY}\n"}
+    text = (
+        "services:\n"
+        f"  api:\n    image: {REGISTRY}/api:tree-abc\n"
+        "  loki:\n    image: ghcr.io/outernet-foundation/mirror/docker.io/grafana/loki@sha256:abc\n"
+    )
+
+    pinned = pin_references(text, {})
+
+    assert f"{REGISTRY}/api@sha256:" + "f" * 64 in pinned
+    assert f"{REGISTRY}/api:tree-abc" not in pinned
+    # Non-placeframe references (the org mirror) pass through untouched.
+    assert "mirror/docker.io/grafana/loki@sha256:abc" in pinned
+    # Resolutions cache across calls — one registry hit per reference.
+    digests: dict[str, str] = {}
+    pin_references(text, digests)
+    assert list(digests) == [f"{REGISTRY}/api:tree-abc"]
 
 
-def test_inline_configs_keeps_documents_without_configs_untouched(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
-    baked = Path("compose.yml")
-    baked.write_text("services:\n  postgres:\n    image: db:16\n", encoding="utf-8")
+def test_pin_references_leaves_hole_texts_alone():
+    text = f"services:\n  api:\n    image: {REGISTRY}/api:${{API_SHA}}\n"
 
-    _inline_configs(baked)
-
-    assert baked.read_text(encoding="utf-8") == "services:\n  postgres:\n    image: db:16\n"
+    assert pin_references(text, {}) == text

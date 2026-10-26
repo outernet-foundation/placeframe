@@ -50,10 +50,6 @@ jobs:
     permissions:
       contents: read
       packages: write
-    strategy:
-      fail-fast: false
-      matrix:
-        variant: [cuda, rocm]
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
         with:
@@ -63,9 +59,8 @@ jobs:
         with:
           enable-cache: true
           save-cache: "false"
-      - run: uv run --locked publish-compose --variant "$VARIANT"
+      - run: uv run --locked publish-compose
         env:
-          VARIANT: ${{ matrix.variant }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
 
