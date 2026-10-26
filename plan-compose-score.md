@@ -131,7 +131,7 @@ closes completely with what is ported at the time.
   secret mechanism.
 - Chart probes (k8s observability) vs compose healthchecks.
 - Host ports and the `seaweedfs-admin` service exist only in compose.
-- Tunnels are compose-only (profile-gated ngrok/rathole); k8s has no relay.
+- Tunnels are compose-only (one artifact per relay, no profiles); k8s has no relay.
 - Grafana auth modes: anonymous dev (compose) vs credentialed via existingSecret (k8s).
 - Grafana root-URL spelling: `${PUBLIC_URL}`-composed vs request-derived placeholders —
   one semantic, two idioms.
@@ -153,14 +153,17 @@ closes completely with what is ported at the time.
 
 1. **Seam generation + multi-artifact publish (B3+B4).** `generate-score` emits one
    compose per seam (subsetted workload lists per artifact); `publish-compose` publishes
-   the five artifacts. `gateway-open` is the gateway workload with its `files:` and
+   the six artifacts. `gateway-open` is the gateway workload with its `files:` and
    `resources.auth` overridden out (a per-seam override file — the gateway's realm env
    hangs off the keycloak provisioner) plus no keycloak provisioner — that override *is*
    the auth-snippet presence difference between the gateway artifacts. `publish-compose` loses its
    config inlining (artifacts are born hermetic); env-stubbing, digest-pinning, and the
    publish call survive. The per-variant core landed with Slice D: `compose_output`
    carries `{gpu}`, workload images carry `${GPU_VARIANT}`, and the five-artifact set
-   fans out as core-cuda/core-rocm + gateway-open/gateway-keycloak + tunnel.
+   fans out as core-cuda/core-rocm + gateway-open/gateway-keycloak +
+   tunnel-ngrok/tunnel-rathole — one artifact per relay, both first-class (Make-it-Sing is
+   only one consumer), and no compose profile survives the split; the
+   `tunnel-gate-exclusion.tpl` carve-out dies with the last profile-gated service.
  2. **Cutover.** `lifecycle.files` → generated files; delete the hand compose files;
     Make-it-Sing re-pins to `core-cuda` + `gateway-keycloak` + `tunnel-rathole` (its env
    renames go live here — it still includes the old published bundle by digest today);
@@ -181,13 +184,14 @@ closes completely with what is ported at the time.
 - Regeneration order: commit sources → regenerate → commit artifacts. Staleness between
   those commits is accepted; preflight does not gate it (every context SHA re-stales the
   tree-sha tags).
-- Profile-gated provisioner services must be carved out of the auto-built
+- Profile-gated provisioner services had to be carved out of the auto-built
   `wait-for-resources` gate (`compose/patches/tunnel-gate-exclusion.tpl`): docker compose treats
   an inactive-profile service as undefined, so a `required` gate entry breaks every
   operator who didn't enable the profile — and the gateway forwards to whichever relay
   runs alongside it; it does not depend on the relay being up. The exclusion set is
   derived from the generated compose itself (every service declaring `profiles`), not a
-  hardcoded service list — a future profile-gated service needs no template edit.
+  hardcoded service list. The tunnel seam split removes the last profile-gated service,
+  so the carve-out (and the template) dies with item 1.
 
 ## Open decisions
 
