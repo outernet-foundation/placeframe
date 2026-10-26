@@ -218,19 +218,21 @@ closes completely with what is ported at the time.
 
 ## Current state
 
-- **Next session starts here**: the mirror-CI saga is closed. PR #151 went fully green
-  on `d2e568e3` — mirror-images validated the skip-if-present verb in production
-  (everything present, zero copies needed), and preflight, build-docker (all cohorts),
-  compile-check-unity, **publish-compose** (the six artifacts' first CI publish), and
-  release-pr-builds all passed. The k8s regen followed: `f07c9d4b` fixes the
-  keycloak-operator values to the string `lock:` marker (the chart's values schema
-  wants string-typed image fields — `lock-image:`'s `{registry, repository, tag,
-  digest}` objects fail its validation; latent since chart-carrying generation had
-  never run), and `de934288` commits the first chart-carrying k8s artifact (20,784
-  lines: operator CRDs/RBAC, grafana + loki chart docs, the ExternalName alias, the
-  `AUTH_JWKS_URL` secretKeyRef passthrough, KEDA CRs, tree-shas matching the pushed
-  builds). Pushed as `bf891c72` and fully green in CI — the initiative's remaining
-  work is item 2 (cutover).
+- **Next session: execute the cutover** (work item 2). First confirm PR #151 landed
+  (operator-owned bors flow; green on `bf891c72` at close) and rebase onto the
+  post-merge `dev`. Then, per the item: `lifecycle.files` → the generated files;
+  delete the hand compose files; Make-it-Sing re-pins to `core-cuda` +
+  `gateway-keycloak` + `tunnel-rathole` (its env renames go live here — it still
+  includes the old published bundle by digest today); `.env.sample` drops
+  `COMPOSE_PROFILES`; re-think preflight's `compose.postgres.yml` role (preflight
+  tears down and re-brings-up that file, which cutover deletes). Close the
+  initiative by migrating the ledger residue into `stack/AGENTS.md` and deleting
+  this plan. Fold in or discard deliberately: the dangling
+  `workloads/orchestrator` workspace-member entry (directory never existed in git
+  history). Context: item 1 is fully landed and green — the six compose artifacts
+  publish in CI, the mirror is skip-if-present-resilient, and the first
+  chart-carrying k8s artifact is committed (`de934288`; the values-marker law it
+  surfaced now lives in `stack/AGENTS.md`).
 - **Item 1 landed** (commits `04c9022b`..`47881ff7` + devkit `491f4fb`/`7fa29ea`):
   the devkit seam schema replaced the flat compose fields (seams × gpu variants →
   per-output flattening; overrides with null-deletion merge, compose-only); the six
@@ -259,11 +261,13 @@ closes completely with what is ported at the time.
   home).
 - **Branches**: `score-compose`, squashed and rebased onto `origin/dev` (`daf491a9`,
   post-#150). Landing is operator-owned (bors model); the sandbox has no push scope —
-  commit locally, hand off branch + HEAD at session end. Remote is
-  `outernet-foundation/placeframe` (renamed from `plerion`; the old name redirects,
-  but CI-status queries against it 401). docker-devkit `dev` is merged/pushed; 0.4.7 is
-  on PyPI, and the repo git-pins the seam work plus the mirror skip-if-present change
-  (`score-gpu-variants` @ `6d922b4`) until a registry release carries both.
+  commit locally, hand off branch + HEAD at session end; session close leaves the
+  plan-status commit `bc6ab674` unpushed (push it with the cutover branch or before).
+  Remote is `outernet-foundation/placeframe` (renamed from `plerion`; the old name
+  redirects, but CI-status queries against it 401). docker-devkit `dev` is
+  merged/pushed; 0.4.7 is on PyPI, and the repo git-pins the seam work plus the
+  mirror skip-if-present change (`score-gpu-variants` @ `6d922b4`) until a registry
+  release carries both.
 - **Artifacts**: compose current with the seam split (six files) and k8s current with
   charts; every referenced third-party ref is mirrored. The
   tree-sha tags in the artifacts must exist before `up` (build missing services

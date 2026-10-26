@@ -128,7 +128,10 @@ ctr -n k8s.io images import -`.
   path>` inserts a file's bytes verbatim / parsed structure, and `lock: NAME`/
   `lock-image: NAME` substitutes an `images.lock` entry — the full digest reference for
   provisioner `image:` fields, or the registry/repository/tag/digest fields chart values
-  want (`digest_field: sha` for grafana's bare-hex spelling). The lock is the k8s
+  want (`digest_field: sha` for grafana's bare-hex spelling) — object-typed image
+  values only. Charts whose values schema types image fields as strings (the
+  keycloak-operator chart: `operator.image`, `operator.envs.*`) take `lock: NAME`
+  instead; the object form fails their values validation. The lock is the k8s
   provisioners' single digest source: they have no runtime env-file, so no compose-style
   `${VAR}` hole is available there.
 - **K8s config content arrives by inclusion, never hand mirrors.** The alloy ConfigMap
