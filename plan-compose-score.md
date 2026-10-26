@@ -235,15 +235,23 @@ closes completely with what is ported at the time.
   network alias via patch templates" was superseded:
   score-compose's service-port hostname output resolves identically on both tiers, so
   no alias is needed.
-- **docker-devkit coupling (operator follow-up)**: the variant config fields
-  live on docker-devkit branch `score-gpu-variants` (branched from `dev` at `1f2c829`;
-  the branch also carries a `vendored_manifests` add-then-remove, net absent). Needs
-  operator push + release (additive → `0.4.9`),
-  then here: `uv cache clean docker-devkit && uv lock --upgrade-package docker-devkit &&
-  uv sync --all-packages`. Until the re-pin, every docker-devkit verb in this repo
-  refuses loudly (`requires: ">=0.4.9"` vs the locked 0.4.7 — load_config parses the
-  whole file for every verb); preflight is unaffected (raw docker compose). This
-  session's generation ran from the devkit checkout's venv.
+- **docker-devkit coupling**: item 1's seam generation extends docker-devkit branch
+  `score-gpu-variants` (branched from `dev` at `1f2c829`; it already carries the variant
+  config fields and a `vendored_manifests` add-then-remove, net absent) — one lineage, one
+  hand-off. Coupling strategy: placeframe pins docker-devkit **by git SHA**, not via the
+  PyPI release. Sequencing is forced (uv fetches the SHA from origin): devkit commits land
+  locally → operator pushes the branch → placeframe pins the pushed SHA
+  (`[tool.uv.sources]` git source) → `uv lock && uv sync --all-packages`. The pushed
+  branch self-reports `0.0.0.dev0`, the dev sentinel that bypasses the `requires`
+  self-check — verbs work under the pin with no version bump; `requires: ">=0.4.9"`
+  stays as the honest released floor for the eventual registry re-pin (additive →
+  `0.4.9` per the devkit's pre-1.0 patch flow; the repo is public, so CI resolves the
+  git pin unauthenticated). At the pin commit, root `AGENTS.md`'s "release-only
+  consumption" note gains its git-pin exception (prose commit, separate from the
+  pyproject/lock code commit). Until the push+pin land, every docker-devkit verb in
+  this repo refuses loudly (`requires: ">=0.4.9"` vs the locked 0.4.7); preflight is
+  unaffected (raw docker compose). Until then, generation runs from the devkit
+  checkout's venv (`/workspace/docker-devkit/.venv/bin/generate-score`).
 - **Branches**: `score-compose`, squashed and rebased onto `origin/dev` (`daf491a9`,
   post-#150). The pre-squash lineage survives at `backup-pre-chapter-consolidation`; earlier
   squash lineages under the other `backup-pre-*` branches. Landing is
