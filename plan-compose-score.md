@@ -218,24 +218,19 @@ closes completely with what is ported at the time.
 
 ## Current state
 
-- **Next session starts here**: the red-CI fix decision resolved as *both* paths. The
-  devkit `mirror` verb now skips references the mirror already holds — presence probed
-  by `crane digest` on the exact digest consumers pull (the lock entry for image
-  declarations, the mirror-prefixed ref for digest-pinned charts), any probe failure
-  falling through to `crane copy`, which stays the loud gate (docker-devkit
-  `score-gpu-variants` commits `c105126`/`6d922b4`, unpushed at session end). The
-  upstream diagnosis gained precision: the grafana pin's bytes are still tag-addressable
-  (`:10.5.14` resolves to the pinned `161aa072…` today) but digest-addressing 404s —
-  ghcr dropped the digest route, not the manifest — while the keycloak-operator
-  `26.8.1` tag was genuinely re-published (new bytes, digest `650f7e10…`): two upstream
-  sins, same remedy. Both charts re-pinned to live digest-addressable digests
-  (`docker-devkit.yaml`: grafana → 10.5.15 `3d75dc31…`, keycloak-operator → 26.8.1
-  `650f7e10…`; values keys verified present in both new chart bodies; loki's pin is
-  addressable and untouched). Remaining, in order: operator pushes docker-devkit
-  `score-gpu-variants` → this repo re-pins the devkit git rev + `uv lock` → push
-  `score-compose` (PR #151): the new mirror verb skips the ~20 already-mirrored images
-  and copies the three charts → six-artifact publish + preflight legs run → the k8s
-  regen + artifact commit (needs the charts mirrored first; split landing accepted).
+- **Next session starts here**: the mirror-CI saga is closed. PR #151 went fully green
+  on `d2e568e3` — mirror-images validated the skip-if-present verb in production
+  (everything present, zero copies needed), and preflight, build-docker (all cohorts),
+  compile-check-unity, **publish-compose** (the six artifacts' first CI publish), and
+  release-pr-builds all passed. The k8s regen followed: `f07c9d4b` fixes the
+  keycloak-operator values to the string `lock:` marker (the chart's values schema
+  wants string-typed image fields — `lock-image:`'s `{registry, repository, tag,
+  digest}` objects fail its validation; latent since chart-carrying generation had
+  never run), and `de934288` commits the first chart-carrying k8s artifact (20,784
+  lines: operator CRDs/RBAC, grafana + loki chart docs, the ExternalName alias, the
+  `AUTH_JWKS_URL` secretKeyRef passthrough, KEDA CRs, tree-shas matching the pushed
+  builds). Those two commits are unpushed at session end — push `score-compose`,
+  confirm CI green, then the initiative's remaining work is item 2 (cutover).
 - **Item 1 landed** (commits `04c9022b`..`47881ff7` + devkit `491f4fb`/`7fa29ea`):
   the devkit seam schema replaced the flat compose fields (seams × gpu variants →
   per-output flattening; overrides with null-deletion merge, compose-only); the six
@@ -248,15 +243,12 @@ closes completely with what is ported at the time.
   profile; the api's `AUTH_JWKS_URL` moved to the config passthrough so the core
   seam carries no oidc-issuer; `publish-compose` publishes the six from the
   generated files (no config inlining; single CI leg, no variant matrix).
-- **k8s deliberately stale** — the operator chart and the 26.8.1 images are declared
-  but not mirrored, and k8s generation fails on the chart fetch until the mirror job
-  runs (Integrate, PR to `dev`; a bare branch push never runs it). The 26.8.1 images
-  mirrored on PR #151's failed run; the three chart copies did not complete (grafana
-  chart pin dead upstream — see the red-CI diagnosis above). The k8s sources carry
-  the seam split's k8s-side edits (config provisioner's `auth_jwks_url`, no tunnel
-  provisioner) whenever that regen runs; `scripts/tests/test_score_k8s_generation.py`
-  locks the k8s mechanics (GPU patches, KEDA CRs, service-port URLs, no operator
-  documents) and its compose twin locks the seam split.
+- **k8s regenerated with charts** — the mirror job populated the three chart refs, and
+  `de934288` carries the first chart-bearing artifact. The keycloak 26.8.1 images
+  (server + operator) are mirrored; the long-standing mirror gap is closed.
+  `scripts/tests/test_score_k8s_generation.py` locks the k8s mechanics (GPU patches,
+  KEDA CRs, service-port URLs, no operator documents) and its compose twin locks the
+  seam split; both now run natively post devkit re-pin.
 - **SaaS-engineer coordination**: his deploy branches
   (`cnpg-dev`/`placeframe-deploy`/`pf-secrets-dev`/`score-dev`) carry score-up/score-down
   wrappers, a CNPG backend option, and deploy-time fixes; he consumes the generated k8s
@@ -268,14 +260,15 @@ closes completely with what is ported at the time.
 - **Branches**: `score-compose`, squashed and rebased onto `origin/dev` (`daf491a9`,
   post-#150). Landing is operator-owned (bors model); the sandbox has no push scope —
   commit locally, hand off branch + HEAD at session end. Remote is
-  `outernet-foundation/plerion`. docker-devkit `dev` is merged/pushed; 0.4.7 is on PyPI
-  and locked here — the seam work rides `score-gpu-variants` (unpushed) and couples
-  by git pin.
-- **Artifacts**: compose current with the seam split (six files; the mirror gap on the
-  keycloak 26.8.1 image bites `up` of the gateway-keycloak artifact — bridge with a
-  local pull of the upstream digest or a `KEYCLOAK_IMAGE` override). The
+  `outernet-foundation/placeframe` (renamed from `plerion`; the old name redirects,
+  but CI-status queries against it 401). docker-devkit `dev` is merged/pushed; 0.4.7 is
+  on PyPI, and the repo git-pins the seam work plus the mirror skip-if-present change
+  (`score-gpu-variants` @ `6d922b4`) until a registry release carries both.
+- **Artifacts**: compose current with the seam split (six files) and k8s current with
+  charts; every referenced third-party ref is mirrored. The
   tree-sha tags in the artifacts must exist before `up` (build missing services
-  first, `uv run build -t api -t gateway --gpu none`).
+  first, `uv run build -t api -t gateway --gpu none`; the CI build on `d2e568e3`
+  pushed them).
 - **Smoke-verified on the seam artifacts** (isolated `-p` projects, fresh volumes,
   keycloak 26.8.1 bridged by a local upstream-digest pull): the OIDC assembly
   (core-cuda + gateway-keycloak + tunnel-rathole) fully healthy — configurator realm
@@ -291,14 +284,16 @@ closes completely with what is ported at the time.
 - **Resumption mechanics**: the pinned score tools, helm, and repo-pinned uv live in
   `~/.local/bin`, not on the sandbox's default PATH (`export PATH="$HOME/.local/bin:$PATH"`).
   Generation runs natively from the repo root: `uv run generate-score --target compose|k8s`
-  (`--local` for k3s against the gitignored local artifact) — until the devkit re-pin,
-  from `/workspace/docker-devkit/.venv/bin/generate-score` instead (the repo venv's
-  locked 0.4.7 predates the seam fields; the two new test modules likewise only run
-  under the devkit venv or post-pin). Lifecycle verbs (`uv run up`/`down`/`build`) work
-  natively (same re-pin caveat). Regeneration is deterministic across fresh runs.
-  `uv cache clean docker-devkit` before any future `uv lock --upgrade-package` (once
-  served a stale cached simple-index). docker-devkit is read via the `/workspace` bind
-  mount (fetching its SSH remote fails).
+  (`--local` for k3s against the gitignored local artifact) — the devkit git pin carries
+  the seam fields. Lifecycle verbs (`uv run up`/`down`/`build`) work natively (same
+  caveat). Regeneration is deterministic across fresh runs. Chart-carrying k8s
+  generation needs helm ghcr credentials for the private mirror namespace:
+  `helm registry login` fails its own probe (403 on a bogus-scope token exchange), so
+  write the credential from `docker-credential-github-app` into
+  `~/.config/helm/registry.json` instead (the helper's minted pair; re-mint when
+  expired). `uv cache clean docker-devkit` before any future
+  `uv lock --upgrade-package` (once served a stale cached simple-index). docker-devkit
+  is read via the `/workspace` bind mount (fetching its SSH remote fails).
 - **Authoring format and artifact laws live in `stack/AGENTS.md`** (mapping-form markers,
   include/lock resolution, hermeticity, load-bearing DNS/bucket names, GPU/variant
   mechanics, KEDA absorption, seam/override mechanics, patch-template gotchas) — not
