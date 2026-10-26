@@ -162,7 +162,7 @@ closes completely with what is ported at the time.
    the auth-snippet presence difference between the gateway artifacts. `publish-compose` loses its
    config inlining (artifacts are born hermetic); env-stubbing, digest-pinning, and the
    publish call survive. The per-variant core landed with Slice D: `compose_output`
-   carries `{gpu}`, workload images carry `${GPU_VARIANT}`, and the five-artifact set
+   carries `{gpu}`, workload images carry `${GPU_VARIANT}`, and the six-artifact set
    fans out as core-cuda/core-rocm + gateway-open/gateway-keycloak +
    tunnel-ngrok/tunnel-rathole — one artifact per relay, both first-class (Make-it-Sing is
    only one consumer), and no compose profile survives the split; the
@@ -218,6 +218,10 @@ closes completely with what is ported at the time.
 ## Current state
 
 - **Next session starts here**: work item 1 — seam generation + multi-artifact publish.
+  Its scoping decisions are settled (artifact names, six-artifact split, k8s
+  monolithic, devkit git-pin — all recorded in work item 1 and the docker-devkit
+  coupling bullet below); the first step is the devkit seam schema on
+  `score-gpu-variants`.
   Slice D landed (see below); the k8s artifact regen remains gated on the keycloak mirror
   job and carries Slice D's sources (the KEDA CRs; the operator itself is cluster tier)
   whenever it runs, and `scripts/tests/test_score_k8s_generation.py` already locks the k8s
@@ -257,8 +261,9 @@ closes completely with what is ported at the time.
   squash lineages under the other `backup-pre-*` branches. Landing is
   operator-owned (bors model); the sandbox has no push scope — commit locally, hand off
   branch + HEAD at session end. Remote is `outernet-foundation/plerion` (renamed;
-  redirects cover old URLs). docker-devkit `dev` is merged/pushed; 0.4.7 is on PyPI and
-  re-pinned here.
+  redirects cover old URLs). docker-devkit `dev` is merged/pushed; 0.4.7 is on PyPI
+  and locked here — the seam work rides `score-gpu-variants` (unpushed) and couples
+  by git pin per the coupling bullet above.
 - **SaaS-engineer coordination**: his deploy work is no longer deferred —
   `cnpg-dev`/`placeframe-deploy`/`pf-secrets-dev`/`score-dev` carry score-up/score-down
   wrappers, a CNPG backend option, and deploy-time fixes. He consumes the generated k8s
