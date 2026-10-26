@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import os
+import time
 from pathlib import Path
 
-from bashrun.bash import bash, bash_output
+from bashrun.bash import bash, bash_check, bash_output
 
 from docker_devkit.documents import compute_service_shas, parse_bake
 from docker_devkit.image_refs import VersionCoupling, VersionSite, unpinned_references, version_coupling_violations
@@ -53,14 +54,31 @@ def main() -> None:
         ALLOWED_HAZARDS="HAS_UNTRACKABLE_DEPENDENCIES",
     )
     os.environ.update(compute_service_shas(Path.cwd(), parse_bake(require_manifest(Path.cwd()))))
-    # Build the postgres wrapper locally so the image tag in compose.postgres.yml resolves
-    # without needing a registry push first. --project-directory anchors the manifest's
-    # relative paths at the repo root; compose would otherwise resolve them against the
-    # manifest's own directory.
+    # Build the postgres wrapper locally so its tree-sha image tag resolves without
+    # needing a registry push first. --project-directory anchors the manifest's
+    # relative paths at the repo root; compose would otherwise resolve them against
+    # the manifest's own directory.
     bash("docker compose --project-directory . -f workloads/images.yml --env-file workloads/images.lock build postgres")
-    # Kill any leftover containers to avoid port collisions on shared runners
-    bash("docker compose --env-file workloads/images.lock -f compose.postgres.yml down --volumes --remove-orphans")
-    bash("docker compose --env-file workloads/images.lock -f compose.postgres.yml up -d --wait")
+    # Run postgres as one throwaway container instead of a compose project: an isolated
+    # bring-up cannot collide with (or tear down) a concurrently running dev stack, and
+    # the container's ephemeral filesystem replaces the old down --volumes reset.
+    if bash_check("docker inspect pf-preflight-postgres"):
+        bash("docker rm -f pf-preflight-postgres")
+    bash(
+        "docker run --rm -d --name pf-preflight-postgres -p 55432:5432"
+        " --entrypoint /usr/local/bin/entrypoint-wrapper.sh"
+        " -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=password"
+        f" ghcr.io/outernet-foundation/placeframe/postgres:{os.environ['POSTGRES_SHA']}"
+    )
+    ready = False
+    for _ in range(30):
+        if bash_check("docker exec pf-preflight-postgres pg_isready -q -h localhost -p 5432 -U postgres"):
+            ready = True
+            break
+        time.sleep(1)
+    if not ready:
+        logs = bash_output("docker logs pf-preflight-postgres")
+        raise SystemExit(f"preflight postgres never became ready:\n{logs}")
     gopath = bash_output("go env GOPATH").strip()
     gopath_bin = Path(gopath) / "bin"
     gopath_bin.mkdir(parents=True, exist_ok=True)
