@@ -153,7 +153,10 @@ closes completely with what is ported at the time.
 
 1. **Seam generation + multi-artifact publish (B3+B4).** `generate-score` emits one
    compose per seam (subsetted workload lists per artifact); `publish-compose` publishes
-   the six artifacts. `gateway-open` is the gateway workload with its `files:` and
+   the six artifacts. Seams are compose-only: the k8s rendering stays one monolithic
+   `manifests.yaml` — Argo applies it wholesale, and assembly-by-inclusion is a
+   compose-consumer concept (the SaaS cluster picks nothing: cuda, keycloak, no relay).
+   `gateway-open` is the gateway workload with its `files:` and
    `resources.auth` overridden out (a per-seam override file — the gateway's realm env
    hangs off the keycloak provisioner) plus no keycloak provisioner — that override *is*
    the auth-snippet presence difference between the gateway artifacts. `publish-compose` loses its
