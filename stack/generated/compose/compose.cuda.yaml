@@ -174,7 +174,7 @@ services:
       S3_ACCESS_KEY: ${S3_ACCESS_KEY:?err}
       S3_ENDPOINT_URL: http://seaweedfs:8333
       S3_SECRET_KEY: ${S3_SECRET_KEY:?err}
-      SERVICE_VERSION: tree-be8da8239515712b8d5a05a7cce697471f2436e6
+      SERVICE_VERSION: tree-1bf664f338163c641a9683053614c873b83520b5
     hostname: localizer
     healthcheck:
       test:
@@ -186,7 +186,7 @@ services:
       interval: 5s
       retries: 3
       start_period: 5s
-    image: ghcr.io/outernet-foundation/placeframe/localizer-cuda:tree-be8da8239515712b8d5a05a7cce697471f2436e6
+    image: ghcr.io/outernet-foundation/placeframe/localizer-cuda:tree-1bf664f338163c641a9683053614c873b83520b5
   loki:
     command:
     - -config.file=/etc/loki/config.yaml
