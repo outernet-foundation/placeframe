@@ -10,7 +10,7 @@ The capture tier (phone CaptureTool app + ZED-box appliance) lived here until 20
 
 ## Commands
 
-Top-level commands are `uv run <name>` from the repo root. See [`docker-devkit's `AGENTS.md`](https://github.com/outernet-foundation/docker-devkit/blob/main/AGENTS.md) for the stack-lifecycle catalog (`up`, `down`, `build`), `scripts/AGENTS.md` for the codegen and operator-utility catalog (`generate-clients`, `generate-datamodels`, `publish-compose`, `fit-calibration`, debug-attach helpers, …), and [`unity-devkit's `AGENTS.md`](https://github.com/outernet-foundation/unity-devkit/blob/main/AGENTS.md) for the Unity catalog (`compile-unity`, `lock-unity`, `test-unity`, …), including per-command flags. Every command accepts `--help`.
+Top-level commands are `uv run <name>` from the repo root. See [`docker-devkit's `AGENTS.md`](https://github.com/outernet-foundation/docker-devkit/blob/main/AGENTS.md) for the stack-lifecycle catalog (`up`, `down`, `build`, `publish-compose`, `generate-score`), `scripts/AGENTS.md` for the codegen and operator-utility catalog (`generate-clients`, `generate-datamodels`, `fit-calibration`, debug-attach helpers, …), and [`unity-devkit's `AGENTS.md`](https://github.com/outernet-foundation/unity-devkit/blob/main/AGENTS.md) for the Unity catalog (`compile-unity`, `lock-unity`, `test-unity`, …), including per-command flags. Every command accepts `--help`.
 
 **Linting and type checking** (from repo root):
 

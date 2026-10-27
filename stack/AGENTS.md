@@ -3,7 +3,7 @@
 ## What this is
 
 The score tier: one authored description per service, compiled into two renderings —
-six Docker compose artifacts under `stack/generated/compose/` (one per assembly seam,
+five Docker compose artifacts under `stack/generated/compose/` (one per assembly seam,
 the core seam split per GPU variant) and `stack/generated/k8s/manifests.yaml`
 (Kubernetes, one monolithic artifact). Coverage is the full stack — the hand compose
 files are deleted; `stack/score/` holds the authored sources, `stack/generated/` the
@@ -16,8 +16,8 @@ artifacts directly.
       gateway.yaml
       reconstructor.yaml
       localizer.yaml
-      tunnel-ngrok.yaml     compose-only relay workloads — absent from the k8s workload list,
-      tunnel-rathole.yaml   which is why they have no k8s provisioner twin
+      tunnel-ngrok.yaml     compose-only relay workload — absent from the k8s workload list,
+                            which is why it has no k8s provisioner twin
       compose/              provisioners for the compose rendering
       compose/overrides/    per-seam workload overrides (null deletes a key)
       compose/patches/      patch templates applied over the generated compose
@@ -28,7 +28,7 @@ artifacts directly.
     stack/generated/        committed artifacts, never hand-edited
       compose/compose.{cuda,rocm}.yaml                    core seam per GPU variant
       compose/compose.gateway-{open,keycloak}.yaml       gateway seam, anonymous / OIDC edge
-      compose/compose.tunnel-{ngrok,rathole}.yaml        one artifact per relay
+      compose/compose.tunnel-ngrok.yaml                 the ngrok relay artifact
       k8s/manifests.yaml
       secrets.txt           mint list generated from the secrets declaration
 
@@ -36,7 +36,7 @@ The seams are declared in `docker-devkit.yaml`'s `generate-score.seams` list: ea
 names its workloads, provisioners, patch templates, publishes, and output file; the
 core seam additionally carries `gpu_variants` (the `{gpu}` token in its output and
 device-patch names). Consumers assemble a backend by including artifacts —
-`core-cuda + gateway-keycloak + tunnel-rathole` is the OIDC-with-relay assembly;
+`core-cuda + gateway-keycloak + tunnel-ngrok` is the OIDC-with-relay assembly;
 `gateway-open` is the gateway with its auth snippet files and oidc-issuer resource
 overridden out (the override *is* the auth-mode difference between the gateway
 artifacts) and registers no oidc-issuer provisioner, so keycloak rides only the
@@ -65,23 +65,25 @@ context (a dependency-lock bump included) re-stales the committed output through
 section of `docker-devkit.yaml`, layering the generated artifacts: the core matching
 the accelerator (`compose.cuda.yaml` / `compose.rocm.yaml`, auto-detected — a GPU-less
 host cannot run the core; both GPU workloads reserve devices), one gateway artifact,
-and at most one relay. Which gateway and relay ride is env-conditioned: `AUTH_ISSUER_URL`
-presence selects `compose.gateway-keycloak.yaml` over `compose.gateway-open.yaml` (the
-same law the api applies internally — issuer set = keycloak mode), `NGROK_AUTHTOKEN`
-presence brings `compose.tunnel-ngrok.yaml`, `TUNNEL_TOKEN` presence brings
-`compose.tunnel-rathole.yaml`. Conditions resolve from the merged shell-over-`.env`
-view; `uv run down` ignores them and layers every declared file so teardown covers
-prior bring-ups under a different selection. `up --dev` layers `compose.dev.yml`
-(generated service names — `api-api`, `gateway-gateway` — plus a `!override` gateway
-port remap to `${GATEWAY_PORT:-58080}`); it is never published. External consumers
-(Make-it-Sing) assemble by `include:`-ing the published OCI bundles instead.
+and at most one relay. Which gateway and relay ride is declared as lifecycle axes in
+`docker-devkit.yaml` (docker-devkit's AGENTS.md owns the resolution law): the
+`auth-edge` axis maps `AUTH_ISSUER_URL` to `compose.gateway-keycloak.yaml` with
+`compose.gateway-open.yaml` as the default (the same law the api applies internally —
+issuer set = keycloak mode), and the `relay` axis maps `NGROK_AUTHTOKEN` to
+`compose.tunnel-ngrok.yaml` with no default — no token, no relay. Axes resolve from the
+merged shell-over-`.env` view at `up`; `uv run down` layers every axis option and
+default unconditionally so teardown covers prior bring-ups under a different selection.
+`up --dev` layers `compose.dev.yml` (collapsed service names — `api`, `gateway` — plus
+a `!override` gateway port remap to `${GATEWAY_PORT:-58080}`); it is never published.
+External consumers (Make-it-Sing) assemble by `include:`-ing the published OCI bundles
+instead.
 
 ```bash
 docker compose --project-directory . \
   --env-file .env --env-file workloads/images.lock \
   -f stack/generated/compose/compose.cuda.yaml \
   -f stack/generated/compose/compose.gateway-keycloak.yaml \
-  -f stack/generated/compose/compose.tunnel-rathole.yaml up -d
+  -f stack/generated/compose/compose.tunnel-ngrok.yaml up -d
 # teardown: same command with `down --remove-orphans`
 ```
 
@@ -143,7 +145,7 @@ One authored source, two renderings — the deliberate differences, so nobody "f
   exist only in compose; the k8s edge is the Pulumi-owned Ingress (`PUBLIC_URL` host,
   cert-manager issuer — per-site and Secret-resident, un-committable in a deterministic
   artifact).
-- The relays are compose-only (one artifact per relay); the SaaS cluster has no relay.
+- The relay is compose-only (its own artifact); the SaaS cluster has no relay.
 - Grafana: anonymous auth on compose vs credentialed `existingSecret` on k8s; root URL
   spelled from `${PUBLIC_URL}` on compose vs request-derived placeholders on k8s — one
   semantic, two idioms.
@@ -263,8 +265,8 @@ proliferate.
   the `compose/patches/wait-for-resources-image.tpl` patch template — the artifact carries no
   unpinned image. The gate emits only where a provisioner carries services, so the
   gateway-open and tunnel artifacts carry none.
-- **The relays are compose-only workloads** (`tunnel-ngrok.yaml` / `tunnel-rathole.yaml`,
-  absent from the k8s workload list). Score workload specs cannot carry runtime `${VAR}`
+- **The relay is a compose-only workload** (`tunnel-ngrok.yaml`, absent from the k8s
+  workload list). Score workload specs cannot carry runtime `${VAR}`
   holes — score validates placeholders as dotted resource references — so the relay
   credentials ride the outputs-only `compose/tunnel.yaml` provisioner (`type:
   tunnel-config`, no services, no k8s twin) exactly like the placeframe-config valve.
@@ -272,9 +274,9 @@ proliferate.
   substitute there and `$$`-escapes the hole to a compose literal), so its command is a
   `/bin/sh -c` wrapper expanding `${NGROK_DOMAIN:-}` inside the container from the
   passthrough env. `compose/patches/tunnel-restart.tpl` sets `restart: on-failure` — the
-  relays are long-lived agents whose control endpoints flap. No compose profile exists
-  anywhere in the six artifacts; the relays forward to the gateway by Docker DNS name, so
-  an assembly without a relay simply has no public edge.
+  relay is a long-lived agent whose control endpoint flaps. No compose profile exists
+  anywhere in the five artifacts; the relay forwards to the gateway by Docker DNS name, so
+  an assembly without it simply has no public edge.
 - **Third-party k8s stamp-outs are charts where an OCI chart exists** — loki, grafana, and
   the keycloak operator render from digest-pinned upstream-native OCI refs declared in
   `docker-devkit.yaml` (`generate-score.charts` + `helm_version`), pulled through the org
@@ -333,9 +335,10 @@ proliferate.
   regenerates the k8s manifests from the real sources (charts stripped: their mirror gap is
   environmental, not structural) and asserts the GPU patches, the service-port URLs, and the
   KEDA CRs — and that no KEDA operator documents ride the artifact. The compose seam split
-  has its twin in `scripts/tests/test_score_compose_generation.py`: six outputs, zero
-  profiles, zero binds, the snippet/auth difference between the gateway artifacts, and the
-  relay restart/passthrough mechanics. Both skip when the pinned tool is off PATH or the
+  has its twin in `scripts/tests/test_score_compose_generation.py`: five outputs, zero
+  profiles, zero binds, the collapsed service names, the snippet/auth difference between
+  the gateway artifacts, and the relay restart/passthrough mechanics. Both skip when the
+  pinned tool is off PATH or the
   installed docker-devkit predates the seam/variant config fields.
 
 ## See also
