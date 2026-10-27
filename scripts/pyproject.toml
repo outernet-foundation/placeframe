@@ -10,7 +10,6 @@ dependencies = [
     "placeframe-core",
     "placeframe-api-client",
     "pydantic>=2",
-    "pydantic-settings>=2.9.1",
     "httpx>=0.28.1",
     "typer>=0.15",
     "numpy>=2.1",
@@ -48,4 +47,3 @@ reconstruction = "scripts.reconstruction:app"
 pf-secrets = "scripts.secrets_exec:app"
 generate-clients = "openapi_client_codegen.cli:app"
 generate-datamodels = "scripts.generate_datamodels:main"
-publish-compose = "scripts.publish_compose:ci_app"

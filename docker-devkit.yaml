@@ -11,6 +11,8 @@ lifecycle:
       NGROK_AUTHTOKEN: stack/generated/compose/compose.tunnel-ngrok.yaml
 mirror:
   prefix: ghcr.io/outernet-foundation/mirror
+publish-compose:
+  repository: ghcr.io/outernet-foundation/placeframe
 generate-score:
   # The k8s rendering's monolithic workload list — compose-only workloads (the
   # relays) stay out of it. Assembly by seam inclusion is a compose-consumer
