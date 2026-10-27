@@ -16,7 +16,6 @@ members = [
     "workloads/auth-initializer",
     "workloads/lease-server",
     "workloads/localizer",
-    "workloads/rathole-client",
     "workloads/reconstructor",
     "packages/python/core",
     "packages/python/common",

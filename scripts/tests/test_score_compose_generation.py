@@ -65,7 +65,6 @@ def test_seam_generation_splits_the_stack_by_assembly_unit(tmp_path: Path, monke
         "gateway-keycloak",
         "gateway-open",
         "tunnel-ngrok",
-        "tunnel-rathole",
     ]
 
     for name, artifact in artifacts.items():
@@ -115,7 +114,3 @@ def test_seam_generation_splits_the_stack_by_assembly_unit(tmp_path: Path, monke
     assert ngrok["image"] == "${NGROK_IMAGE:?err}"
     assert "exec ngrok http --domain=$${NGROK_DOMAIN:-}" in " ".join(ngrok["entrypoint"])
     assert ngrok["ports"] == [{"target": 4040, "published": "4040"}]
-
-    rathole = artifacts["tunnel-rathole"]["services"]["tunnel-rathole-rathole-client"]
-    assert rathole["restart"] == "on-failure"
-    assert rathole["environment"]["RATHOLE_SERVICES"] == "gateway:tcp:gateway:8443"

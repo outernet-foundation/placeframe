@@ -8,8 +8,6 @@ lifecycle:
       when_env: AUTH_ISSUER_URL
     - path: stack/generated/compose/compose.tunnel-ngrok.yaml
       when_env: NGROK_AUTHTOKEN
-    - path: stack/generated/compose/compose.tunnel-rathole.yaml
-      when_env: TUNNEL_TOKEN
   dev_file: compose.dev.yml
 mirror:
   prefix: ghcr.io/outernet-foundation/mirror
@@ -89,14 +87,6 @@ generate-score:
         - compose/patches/tunnel-restart.tpl
       publishes:
         - "4040:tunnel-ngrok:4040"
-    - name: tunnel-rathole
-      output: stack/generated/compose/compose.tunnel-rathole.yaml
-      workloads:
-        - tunnel-rathole.yaml
-      provisioners:
-        - compose/tunnel.yaml
-      patch_templates:
-        - compose/patches/tunnel-restart.tpl
   charts:
     - name: loki
       ref: oci://ghcr.io/grafana/helm-charts/loki@sha256:ba8b6b3ee954c9d6eeee713d148a22e6f73eb440189e11acd3112a06acdfd2f8
