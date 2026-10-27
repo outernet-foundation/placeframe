@@ -1,5 +1,5 @@
 services:
-  api-api:
+  api:
     ports:
       - "5679:5678"
     volumes:
@@ -9,7 +9,7 @@ services:
       DEBUG: "${DEBUG_API:-true}"
       DEBUG_WAIT: "${DEBUG_WAIT_API:-false}"
 
-  lease-server-lease-server:
+  lease-server:
     ports:
       - "5683:5678"
     volumes:
@@ -19,6 +19,6 @@ services:
       DEBUG: "${DEBUG_LEASE_SERVER:-false}"
       DEBUG_WAIT: "${DEBUG_WAIT_LEASE_SERVER:-false}"
 
-  gateway-gateway:
+  gateway:
     ports: !override
       - "${GATEWAY_PORT:-58080}:8443"
