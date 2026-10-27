@@ -19687,8 +19687,8 @@ spec:
                   key: S3_SECRET_KEY
                   name: placeframe-secrets
             - name: SERVICE_VERSION
-              value: tree-be8da8239515712b8d5a05a7cce697471f2436e6
-          image: ghcr.io/outernet-foundation/placeframe/localizer-cuda:tree-be8da8239515712b8d5a05a7cce697471f2436e6
+              value: tree-1bf664f338163c641a9683053614c873b83520b5
+          image: ghcr.io/outernet-foundation/placeframe/localizer-cuda:tree-1bf664f338163c641a9683053614c873b83520b5
           livenessProbe:
             httpGet:
               path: /version

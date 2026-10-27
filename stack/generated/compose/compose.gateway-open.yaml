@@ -1,6 +1,6 @@
 name: placeframe
 services:
-  gateway-gateway:
+  gateway:
     annotations:
       compose.score.dev/workload-name: gateway
     environment:
@@ -8,5 +8,5 @@ services:
     hostname: gateway
     image: ghcr.io/outernet-foundation/placeframe/gateway:tree-181bdf0a8030816491548e1d9b7eab243ff9393c
     ports:
-      - target: 8443
-        published: "8443"
+    - target: 8443
+      published: '8443'

@@ -1,6 +1,6 @@
 name: placeframe
 services:
-  gateway-gateway:
+  gateway:
     annotations:
       compose.score.dev/workload-name: gateway
     depends_on:

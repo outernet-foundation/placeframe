@@ -16,7 +16,7 @@ services:
     configs:
     - source: config.alloy
       target: /etc/alloy/config.alloy
-  api-api:
+  api:
     annotations:
       compose.score.dev/workload-name: api
     depends_on:
@@ -125,7 +125,7 @@ services:
       S3_ENDPOINT_URL: http://seaweedfs:8333
       S3_SECRET_KEY: ${S3_SECRET_KEY:?err}
     image: ghcr.io/outernet-foundation/placeframe/s3-initializer:tree-599cb0c699094c854cc266424972c4dab5bd3ab8
-  lease-server-lease-server:
+  lease-server:
     annotations:
       compose.score.dev/workload-name: lease-server
     depends_on:
@@ -152,7 +152,7 @@ services:
       retries: 3
       start_period: 5s
     image: ghcr.io/outernet-foundation/placeframe/lease-server:tree-2b32a6ca67ac908e51bb60410a96448fe3a342aa
-  localizer-localizer:
+  localizer:
     annotations:
       compose.score.dev/workload-name: localizer
       placeframe.io/gpu: 'true'
@@ -292,7 +292,7 @@ services:
       DB_PORT: '5432'
       DB_USER: placeframe_owner
     image: ghcr.io/outernet-foundation/placeframe/database-migrator:tree-7b79d3f23baeeed16e5baee60baa4adbfd51ff94
-  reconstructor-reconstructor:
+  reconstructor:
     annotations:
       compose.score.dev/workload-name: reconstructor
       placeframe.io/gpu: 'true'
