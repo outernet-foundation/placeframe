@@ -2,13 +2,13 @@ requires: ">=0.4.9"
 lifecycle:
   files:
     - stack/generated/compose/compose.{gpu}.yaml
-    - path: stack/generated/compose/compose.gateway-open.yaml
-      when_env_absent: AUTH_ISSUER_URL
-    - path: stack/generated/compose/compose.gateway-keycloak.yaml
-      when_env: AUTH_ISSUER_URL
-    - path: stack/generated/compose/compose.tunnel-ngrok.yaml
-      when_env: NGROK_AUTHTOKEN
   dev_file: compose.dev.yml
+  axes:
+    auth-edge:
+      AUTH_ISSUER_URL: stack/generated/compose/compose.gateway-keycloak.yaml
+      default: stack/generated/compose/compose.gateway-open.yaml
+    relay:
+      NGROK_AUTHTOKEN: stack/generated/compose/compose.tunnel-ngrok.yaml
 mirror:
   prefix: ghcr.io/outernet-foundation/mirror
 generate-score:

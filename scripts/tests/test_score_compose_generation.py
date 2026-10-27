@@ -77,10 +77,10 @@ def test_seam_generation_splits_the_stack_by_assembly_unit(tmp_path: Path, monke
 
     core = artifacts["core-cuda"]["services"]
     assert set(core) == {
-        "api-api",
-        "lease-server-lease-server",
-        "localizer-localizer",
-        "reconstructor-reconstructor",
+        "api",
+        "lease-server",
+        "localizer",
+        "reconstructor",
         "pf-postgres",
         "pf-postgres-create",
         "pf-postgres-migrate",
@@ -94,9 +94,9 @@ def test_seam_generation_splits_the_stack_by_assembly_unit(tmp_path: Path, monke
         "grafana",
         "wait-for-resources",
     }
-    assert core["api-api"]["environment"]["AUTH_JWKS_URL"] == "${AUTH_JWKS_URL:-}"
+    assert core["api"]["environment"]["AUTH_JWKS_URL"] == "${AUTH_JWKS_URL:-}"
 
-    keycloak_gateway = artifacts["gateway-keycloak"]["services"]["gateway-gateway"]
+    keycloak_gateway = artifacts["gateway-keycloak"]["services"]["gateway"]
     assert keycloak_gateway["environment"]["AUTH_REALM"] == "placeframe-dev"
     assert sorted(config["target"] for config in keycloak_gateway["configs"]) == [
         "/etc/caddy/snippets/loki/auth-loki.conf",
@@ -104,7 +104,7 @@ def test_seam_generation_splits_the_stack_by_assembly_unit(tmp_path: Path, monke
     ]
     assert "keycloak" in artifacts["gateway-keycloak"]["services"]
 
-    open_gateway = artifacts["gateway-open"]["services"]["gateway-gateway"]
+    open_gateway = artifacts["gateway-open"]["services"]["gateway"]
     assert "AUTH_REALM" not in open_gateway["environment"]
     assert "configs" not in open_gateway
     assert "keycloak" not in artifacts["gateway-open"]["services"]
