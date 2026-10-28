@@ -118,6 +118,7 @@ services:
         - "ghcr.io/outernet-foundation/placeframe/seaweedfs:${SEAWEEDFS_SHA}"
 
   neural-networks-base-cuda:
+    x-gpu: cuda
     build:
       context: .
       dockerfile: workloads/neural-networks-base/Dockerfile
@@ -129,6 +130,7 @@ services:
         - "ghcr.io/outernet-foundation/placeframe/neural-networks-base-cuda:${NEURAL_NETWORKS_BASE_SHA}"
 
   neural-networks-base-rocm:
+    x-gpu: rocm
     build:
       context: .
       dockerfile: workloads/neural-networks-base/Dockerfile
@@ -140,6 +142,7 @@ services:
         - "ghcr.io/outernet-foundation/placeframe/neural-networks-base-rocm:${NEURAL_NETWORKS_BASE_SHA}"
 
   reconstructor-cuda:
+    x-gpu: cuda
     build:
       context: .
       dockerfile: workloads/reconstructor/Dockerfile
@@ -154,6 +157,7 @@ services:
         neural-networks-base: "target:neural-networks-base-cuda"
 
   localizer-cuda:
+    x-gpu: cuda
     build:
       context: .
       dockerfile: workloads/localizer/Dockerfile
@@ -168,6 +172,7 @@ services:
         neural-networks-base: "target:neural-networks-base-cuda"
 
   reconstructor-rocm:
+    x-gpu: rocm
     build:
       context: .
       dockerfile: workloads/reconstructor/Dockerfile
@@ -182,6 +187,7 @@ services:
         neural-networks-base: "target:neural-networks-base-rocm"
 
   localizer-rocm:
+    x-gpu: rocm
     build:
       context: .
       dockerfile: workloads/localizer/Dockerfile
