@@ -48,16 +48,23 @@ one artifact wholesale, and assembly-by-inclusion is a compose-consumer concept.
 `uv run generate-score [--target compose|k8s] [--local]` writes the artifacts and deploys
 nothing. Image tags resolve via `compute_service_shas` from the **committed** tree
 (`git ls-tree HEAD`), so the order is: commit the source change, regenerate, commit the
-artifacts. Generating first produces artifacts built against the previous tree.
+artifacts as their own canonical `Run generate-score` commit. Generating first produces
+artifacts built against the previous tree.
 
 The score tools (score-compose 0.42.0, score-k8s 0.15.0) must be on PATH at those exact
 versions — output differs between releases. In the COI sandbox they live in `~/.local/bin`,
 which is not on the default PATH.
 
-Preflight does not gate these artifacts on staleness: every change inside a service's build
-context (a dependency-lock bump included) re-stales the committed output through the embedded
-`tree-<sha>` tags. Regeneration is a deliberate manual step, deterministic across fresh runs
-(the tool state dirs are per-run temp; instance suffixes are name-derived hashes).
+Staleness is gated in CI's build-docker getter, not preflight: its `generate-score --check`
+step fetches the exact pinned score tools itself, regenerates in the runner checkout, and
+fails on any git change under the config-derived outputs (the five compose artifacts,
+`k8s/manifests.yaml`, `secrets.txt`), printing the diff — uncommitted edits heal by
+regeneration, only committed state can drift. Every change inside a service's build
+context (a dependency-lock bump included) re-stales the committed output through the
+embedded `tree-<sha>` tags, so each source change carries its regeneration in the same
+PR. Regeneration is a deliberate manual step (the gate verifies, never writes the tree),
+deterministic across fresh runs (the tool state dirs are per-run temp; instance suffixes
+are name-derived hashes).
 
 ## Deploy: Docker
 
