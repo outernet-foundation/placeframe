@@ -11,7 +11,6 @@ x-base-images:
   ALLOY_IMAGE: "docker.io/grafana/alloy:v1.9.0"
   GRAFANA_IMAGE: "docker.io/grafana/grafana:11.6.0"
   POSTGIS_IMAGE: "docker.io/postgis/postgis:16-3.4-alpine"
-  POSTGRES_CNPG_IMAGE: "ghcr.io/cloudnative-pg/postgis:14@sha256:8e05fbc908ffbdb34aaaf594ea8d108450266f686500fc6e6d78dd007f32c568"
   SEAWEEDFS_IMAGE: "docker.io/chrislusf/seaweedfs:4.47"
   KEYCLOAK_IMAGE: "quay.io/keycloak/keycloak:26.8.1"
   KEYCLOAK_OPERATOR_IMAGE: "quay.io/keycloak/keycloak-operator:26.8.1"
