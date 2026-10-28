@@ -36,7 +36,6 @@ x-registry-cache: ghcr.io/outernet-foundation/placeframe/build-cache
 services:
   s3-initializer:
     build:
-      context: .
       dockerfile: workloads/s3-initializer/Dockerfile
       args: *base-args
       tags:
@@ -45,7 +44,6 @@ services:
 
   create-database:
     build:
-      context: .
       dockerfile: workloads/database-manager/Dockerfile
       args: *base-args
       tags:
@@ -54,7 +52,6 @@ services:
 
   auth-initializer:
     build:
-      context: .
       dockerfile: workloads/auth-initializer/Dockerfile
       args: *base-args
       tags:
@@ -63,7 +60,6 @@ services:
 
   gateway:
     build:
-      context: .
       dockerfile: workloads/gateway/Dockerfile
       args: *base-args
       tags:
@@ -72,7 +68,6 @@ services:
 
   database-migrator:
     build:
-      context: .
       dockerfile: workloads/database-migrator/Dockerfile
       args: *base-args
       tags:
@@ -81,7 +76,6 @@ services:
 
   api:
     build:
-      context: .
       dockerfile: workloads/api/Dockerfile
       target: dev
       args: *base-args
@@ -91,7 +85,6 @@ services:
 
   lease-server:
     build:
-      context: .
       dockerfile: workloads/lease-server/Dockerfile
       target: dev
       args: *base-args
@@ -101,7 +94,6 @@ services:
 
   postgres:
     build:
-      context: .
       dockerfile: workloads/postgres/Dockerfile
       args: *base-args
       tags:
@@ -110,7 +102,6 @@ services:
 
   seaweedfs:
     build:
-      context: .
       dockerfile: workloads/seaweedfs/Dockerfile
       args: *base-args
       tags:
@@ -120,7 +111,6 @@ services:
   neural-networks-base-cuda:
     x-gpu: cuda
     build:
-      context: .
       dockerfile: workloads/neural-networks-base/Dockerfile
       args:
         <<: *base-args
@@ -132,7 +122,6 @@ services:
   neural-networks-base-rocm:
     x-gpu: rocm
     build:
-      context: .
       dockerfile: workloads/neural-networks-base/Dockerfile
       args:
         <<: *base-args
@@ -144,7 +133,6 @@ services:
   reconstructor-cuda:
     x-gpu: cuda
     build:
-      context: .
       dockerfile: workloads/reconstructor/Dockerfile
       args:
         <<: *base-args
@@ -159,7 +147,6 @@ services:
   localizer-cuda:
     x-gpu: cuda
     build:
-      context: .
       dockerfile: workloads/localizer/Dockerfile
       args:
         <<: *base-args
@@ -174,7 +161,6 @@ services:
   reconstructor-rocm:
     x-gpu: rocm
     build:
-      context: .
       dockerfile: workloads/reconstructor/Dockerfile
       args:
         <<: *base-args
@@ -189,7 +175,6 @@ services:
   localizer-rocm:
     x-gpu: rocm
     build:
-      context: .
       dockerfile: workloads/localizer/Dockerfile
       args:
         <<: *base-args
