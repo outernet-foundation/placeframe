@@ -159,8 +159,6 @@ One authored source, two renderings — the deliberate differences, so nobody "f
 - `PGDATA` subdir and storage class/size literals exist only in the k8s StatefulSets;
   ordering rests on compose health `depends_on` vs Argo sync-hook weights plus job
   retry-idempotency (the weights are inert under bare `kubectl apply`, by design).
-- `k8s/postgres-cnpg.yaml` is an unregistered alternative twin (CloudNativePG), not
-  drift; registering it instead of `k8s/postgres.yaml` switches the k8s backend.
 - KEDA: scale-to-zero exists only on k8s (compose runs the reconstructor always-on);
   `maxReplicaCount` and the trigger SQL bake as literals with per-cloud node caps in
   the ASG/MIG/CAS layer; the operator and the Argo `ignoreDifferences` for
@@ -257,12 +255,7 @@ proliferate.
 - **Provisioners come in per-rendering pairs** — `compose/<name>.yaml` and `k8s/<name>.yaml`
   for the same resource type. Which file is registered is declared in `docker-devkit.yaml`'s
   `generate-score:` section (the `compose_provisioners` / `k8s_provisioners` lists); the score
-  tools themselves impose no naming requirements on these files. `k8s/postgres-cnpg.yaml` is
-  an unregistered alternative (CloudNativePG operator instead of a raw StatefulSet) —
-  registering it *instead of* `k8s/postgres.yaml` switches the k8s backend with workloads
-  unchanged. Its operand image is built from `workloads/postgres-cnpg/Dockerfile`
-  (`placeframe-postgres-cnpg:14-trusted`, PostGIS marked trusted for non-superuser
-  pg-schema-diff shadow databases).
+  tools themselves impose no naming requirements on these files.
 - **Workload files are not standalone-valid score documents** — `${API_SHA}`-style image
   placeholders are expanded by `generate-score` from the committed tree before the score
   tools see them.

@@ -66,17 +66,6 @@ must contain (regenerate with `uv run generate-score --target k8s` from the repo
     CRD/RBAC permissions — the cluster-scoped-permissions caveat now applies only to
     the keycloak-operator chart (item 3).
 
-## When the CNPG backend is adopted (not yet agreed — StatefulSet until then)
-
-- Slim `stack/score/k8s/postgres-cnpg.yaml`: its minted passwords break generation
-  determinism and commit secret values.
-- Host and digest-pin the `14-trusted` operand image in the org registry (operator
-  action; the CI token cannot push to the placeframe ghcr namespace).
-- Install the CNPG operator via Pulumi (same class as the Hetzner CSI driver).
-- Sync `pf-postgres` → `pf-postgres-rw` DNS in `reconstructor.py`.
-- Add a PG-14-vs-compose-tier major-skew check (compose runs Postgres 16).
-- Add a Pulumi-side Argo sync.
-
 ## Notes
 
 - The Job annotations (`argocd.argoproj.io/hook-weight`) only take effect under Argo CD;
