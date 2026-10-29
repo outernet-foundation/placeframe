@@ -1,0 +1,38 @@
+# OIDC issuer provisioner (compose): local counterpart of k8s/oidc-issuer.yaml.
+# The type is named for the protocol, not the provider — a swapped issuer implementation
+# registers a different provisioner for the same `oidc-issuer` type. The keycloak service
+# itself is the keycloak workload container; this provisioner carries the workload's env
+# surface (image ref, admin credentials, advertised hostname — runtime holes filled from
+# .env and the lock env-file) plus the post-boot configurator (auth-initializer image):
+# it polls the admin API, then creates or updates the realm from the committed export,
+# substituting the KEYCLOAK_* and PUBLIC_URL holes from env. The poll loop is the
+# ordering mechanism — no depends_on: the wait-for-resources gate passes on
+# service_started, and the configurator absorbs keycloak's boot by polling.
+#
+# certs_url is a soft passthrough, not the keycloak literal: the api treats issuer-unset
+# with any auth endpoint set as a boot error (anonymous mode must receive it empty), and
+# .env carries the keycloak JWKS URL whenever OIDC mode runs.
+- uri: template://placeframe/oidc-issuer
+  type: oidc-issuer
+  description: Keycloak env surface with the realm converged by the admin-API configurator.
+  state:
+    service: keycloak
+    configurator: keycloak-configurator
+    realm: placeframe-dev
+  outputs:
+    admin_password: ${KEYCLOAK_ADMIN_PASSWORD:?err}
+    hostname: ${PUBLIC_URL:?err}/auth
+    certs_url: ${AUTH_JWKS_URL:-}
+    realm: "{{ .State.realm }}"
+  services:
+    "{{ .State.configurator }}":
+      image: ghcr.io/outernet-foundation/placeframe/auth-initializer:{{ env "AUTH_INITIALIZER_SHA" }}
+      environment:
+        KEYCLOAK_URL: http://{{ .State.service }}:8080
+        KC_BOOTSTRAP_ADMIN_USERNAME: admin
+        KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?err}
+        PUBLIC_URL: ${PUBLIC_URL:?err}
+        KEYCLOAK_ACCESS_TOKEN_LIFESPAN: ${KEYCLOAK_ACCESS_TOKEN_LIFESPAN:?err}
+        KEYCLOAK_SSO_SESSION_IDLE_TIMEOUT: ${KEYCLOAK_SSO_SESSION_IDLE_TIMEOUT:?err}
+        KEYCLOAK_SSO_SESSION_MAX_LIFESPAN: ${KEYCLOAK_SSO_SESSION_MAX_LIFESPAN:?err}
+        SEED_TEST_USERS: ${SEED_TEST_USERS:-}

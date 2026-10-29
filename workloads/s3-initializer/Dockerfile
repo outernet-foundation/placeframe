@@ -1,6 +1,6 @@
 ARG UV_BASE_IMAGE
 
-FROM ${UV_BASE_IMAGE} AS dev
+FROM ${UV_BASE_IMAGE}
 
 WORKDIR /app/workloads/s3-initializer
 
