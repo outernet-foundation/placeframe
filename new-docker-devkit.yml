@@ -1,0 +1,85 @@
+requires: ">=0.4.11"
+
+project_name: placeframe
+
+probe_adapter: python-urllib
+
+repository: ghcr.io/outernet-foundation/placeframe
+
+base_images:
+  UV_BASE_IMAGE: "ghcr.io/astral-sh/uv:0.12.15-python3.13-trixie-slim"
+  GOLANG_IMAGE: "docker.io/library/golang:1.22-alpine"
+  ALPINE_IMAGE: "docker.io/library/alpine:3.20"
+  CADDY_IMAGE: "docker.io/library/caddy:2.8.4-alpine"
+  POSTGRES_BOOKWORM_IMAGE: "docker.io/library/postgres:16-bookworm"
+  LOKI_IMAGE: "docker.io/grafana/loki:3.5.0"
+  ALLOY_IMAGE: "docker.io/grafana/alloy:v1.9.0"
+  GRAFANA_IMAGE: "docker.io/grafana/grafana:11.6.0"
+  POSTGIS_IMAGE: "docker.io/postgis/postgis:16-3.4-alpine"
+  SEAWEEDFS_IMAGE: "docker.io/chrislusf/seaweedfs:4.47"
+  KEYCLOAK_IMAGE: "quay.io/keycloak/keycloak:26.8.1"
+  KEYCLOAK_OPERATOR_IMAGE: "quay.io/keycloak/keycloak-operator:26.8.1"
+  NGROK_IMAGE: "docker.io/ngrok/ngrok:alpine"
+  SEAWEEDFS_AUDIT_IMAGE: "docker.io/fluent/fluent-bit:5.1.2"
+  INITIALIZE_S3_IMAGE: "docker.io/amazon/aws-cli:2.36.9"
+
+bundles:
+  core-cuda:
+    vars:
+      GPU_VARIANT: cuda
+    workloads:
+      api.yaml:
+        publishes:
+          - "8000:8000"
+          - "127.0.0.1:${API_DEBUG_PORT:-5679}:5678"
+      lease-server.yaml:
+        publishes:
+          - "127.0.0.1:${LEASE_SERVER_DEBUG_PORT:-5683}:5678"
+      reconstructor.yaml:
+      localizer.yaml:
+
+  core-rocm:
+    vars:
+      GPU_VARIANT: rocm
+    workloads:
+      api.yaml:
+        publishes:
+          - "8000:8000"
+          - "127.0.0.1:${API_DEBUG_PORT:-5679}:5678"
+      lease-server.yaml:
+        publishes:
+          - "127.0.0.1:${LEASE_SERVER_DEBUG_PORT:-5683}:5678"
+      reconstructor.yaml:
+      localizer.yaml:
+
+  gateway-open:
+    workloads:
+      gateway-open.yaml:
+        publishes:
+          - "${GATEWAY_PORT:-8443}:8443"
+
+  gateway-keycloak:
+    workloads:
+      gateway-keycloak.yaml:
+        publishes:
+          - "${GATEWAY_PORT:-8443}:8443"
+
+  tunnel-ngrok:
+    workloads:
+      tunnel-ngrok.yaml:
+        publishes:
+          - "4040:4040"
+
+k8s:
+  workloads:
+    - api.yaml
+    - lease-server.yaml
+    - gateway-keycloak.yaml
+    - reconstructor.yaml
+    - localizer.yaml
+  vars:
+    GPU_VARIANT: cuda
+  charts:
+    loki: oci://ghcr.io/grafana/helm-charts/loki:7.3.0
+    grafana: oci://ghcr.io/grafana/helm-charts/grafana:10.5.15
+    keycloak-operator: oci://quay.io/keycloak/keycloak-operator-helm:26.8.1
