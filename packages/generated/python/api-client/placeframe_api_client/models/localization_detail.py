@@ -23,6 +23,7 @@ from placeframe_api_client.models.gate_detail import GateDetail
 from placeframe_api_client.models.localization_metrics import LocalizationMetrics
 from placeframe_api_client.models.pair_detail import PairDetail
 from placeframe_api_client.models.pinhole_camera_config import PinholeCameraConfig
+from placeframe_api_client.models.transform import Transform
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
@@ -38,11 +39,12 @@ class LocalizationDetail(BaseModel):
     num_query_keypoints: StrictInt
     timings_ms: Dict[str, Union[StrictFloat, StrictInt]]
     pairs: List[PairDetail]
+    camera_from_map_transform: Optional[Transform] = None
     metrics: Optional[LocalizationMetrics] = None
     gate: Optional[GateDetail] = None
     failure_reason: Optional[StrictStr] = None
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["reconstruction_id", "camera", "retrieval_top_k", "ransac_threshold", "num_query_keypoints", "timings_ms", "pairs", "metrics", "gate", "failure_reason"]
+    __properties: ClassVar[List[str]] = ["reconstruction_id", "camera", "retrieval_top_k", "ransac_threshold", "num_query_keypoints", "timings_ms", "pairs", "camera_from_map_transform", "metrics", "gate", "failure_reason"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -95,6 +97,9 @@ class LocalizationDetail(BaseModel):
                 if _item_pairs:
                     _items.append(_item_pairs.to_dict())
             _dict['pairs'] = _items
+        # override the default output from pydantic by calling `to_dict()` of camera_from_map_transform
+        if self.camera_from_map_transform:
+            _dict['camera_from_map_transform'] = self.camera_from_map_transform.to_dict()
         # override the default output from pydantic by calling `to_dict()` of metrics
         if self.metrics:
             _dict['metrics'] = self.metrics.to_dict()
@@ -130,6 +135,7 @@ class LocalizationDetail(BaseModel):
             "num_query_keypoints": obj.get("num_query_keypoints"),
             "timings_ms": obj.get("timings_ms"),
             "pairs": [PairDetail.from_dict(_item) for _item in obj["pairs"]] if obj.get("pairs") is not None else None,
+            "camera_from_map_transform": Transform.from_dict(obj["camera_from_map_transform"]) if obj.get("camera_from_map_transform") is not None else None,
             "metrics": LocalizationMetrics.from_dict(obj["metrics"]) if obj.get("metrics") is not None else None,
             "gate": GateDetail.from_dict(obj["gate"]) if obj.get("gate") is not None else None,
             "failure_reason": obj.get("failure_reason")

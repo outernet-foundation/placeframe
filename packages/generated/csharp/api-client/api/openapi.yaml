@@ -1882,6 +1882,7 @@ components:
           title: Recorded At
           type: string
         size_bytes:
+          format: int64
           nullable: true
           title: Size Bytes
           type: integer
@@ -1916,6 +1917,7 @@ components:
           title: Recorded At
           type: string
         size_bytes:
+          format: int64
           nullable: true
           title: Size Bytes
           type: integer
@@ -2063,6 +2065,7 @@ components:
           title: Created At
           type: string
         size_bytes:
+          format: int64
           title: Size Bytes
           type: integer
         device_type:
@@ -2095,6 +2098,7 @@ components:
           title: Recorded At
           type: string
         size_bytes:
+          format: int64
           nullable: true
           title: Size Bytes
           type: integer
@@ -2501,9 +2505,9 @@ components:
       type: object
     GateDetail:
       example:
-        tight_min: 5.944895607614016
+        tight_min: 6.704019297950036
         passed: true
-        loose_min: 6.878052220127876
+        loose_min: 5.944895607614016
       properties:
         loose_min:
           format: double
@@ -2716,6 +2720,16 @@ components:
         ransac_threshold: 7.386281948385884
         num_query_keypoints: 1
         reconstruction_id: reconstruction_id
+        camera_from_map_transform:
+          rotation:
+            w: 5.962133916683182
+            x: 0.8008281904610115
+            "y": 6.027456183070403
+            z: 1.4658129805029452
+          translation:
+            x: 5.637376656633329
+            "y": 2.3021358869347655
+            z: 7.061401241503109
         metrics:
           num_correspondences: 5
           pipeline_version: pipeline_version
@@ -2738,9 +2752,9 @@ components:
           num_matches: 5
           confidence_is_calibrated: true
         gate:
-          tight_min: 5.944895607614016
+          tight_min: 6.704019297950036
           passed: true
-          loose_min: 6.878052220127876
+          loose_min: 5.944895607614016
         failure_reason: failure_reason
         camera:
           orientation: TOP_LEFT
@@ -2757,61 +2771,83 @@ components:
           inlier_ratio: 8.762042012749001
           reprojection_error_median: 9.018348186070783
           query_xy:
-          - - 6.965117697638846
-            - 6.965117697638846
-          - - 6.965117697638846
-            - 6.965117697638846
+          - - 1.284659006116532
+            - 1.284659006116532
+          - - 1.284659006116532
+            - 1.284659006116532
           database_xy:
-          - - 1.284659006116532
-            - 1.284659006116532
-          - - 1.284659006116532
-            - 1.284659006116532
+          - - 2.8841621266687802
+            - 2.8841621266687802
+          - - 2.8841621266687802
+            - 2.8841621266687802
           num_correspondences: 9
           retrieval_score: 4.965218492984954
           view_angle_deg: 3.5571952270680973
           reprojection_error_px:
-          - 6.778324963048013
-          - 6.778324963048013
+          - 6.878052220127876
+          - 6.878052220127876
           name: name
           width: 7
           rank: 1
+          camera_from_map_transform:
+            rotation:
+              w: 5.962133916683182
+              x: 0.8008281904610115
+              "y": 6.027456183070403
+              z: 1.4658129805029452
+            translation:
+              x: 5.637376656633329
+              "y": 2.3021358869347655
+              z: 7.061401241503109
           image_id: 6
           num_matches: 9
           distance_m: 6.438423552598547
           height: 1
+          pose_num_inliers: 6
           status:
-          - 2
-          - 2
+          - 6
+          - 6
         - num_keypoints: 5
           num_inliers: 6
           inlier_ratio: 8.762042012749001
           reprojection_error_median: 9.018348186070783
           query_xy:
-          - - 6.965117697638846
-            - 6.965117697638846
-          - - 6.965117697638846
-            - 6.965117697638846
+          - - 1.284659006116532
+            - 1.284659006116532
+          - - 1.284659006116532
+            - 1.284659006116532
           database_xy:
-          - - 1.284659006116532
-            - 1.284659006116532
-          - - 1.284659006116532
-            - 1.284659006116532
+          - - 2.8841621266687802
+            - 2.8841621266687802
+          - - 2.8841621266687802
+            - 2.8841621266687802
           num_correspondences: 9
           retrieval_score: 4.965218492984954
           view_angle_deg: 3.5571952270680973
           reprojection_error_px:
-          - 6.778324963048013
-          - 6.778324963048013
+          - 6.878052220127876
+          - 6.878052220127876
           name: name
           width: 7
           rank: 1
+          camera_from_map_transform:
+            rotation:
+              w: 5.962133916683182
+              x: 0.8008281904610115
+              "y": 6.027456183070403
+              z: 1.4658129805029452
+            translation:
+              x: 5.637376656633329
+              "y": 2.3021358869347655
+              z: 7.061401241503109
           image_id: 6
           num_matches: 9
           distance_m: 6.438423552598547
           height: 1
+          pose_num_inliers: 6
           status:
-          - 2
-          - 2
+          - 6
+          - 6
       properties:
         reconstruction_id:
           type: string
@@ -2833,6 +2869,8 @@ components:
           items:
             $ref: "#/components/schemas/PairDetail"
           type: array
+        camera_from_map_transform:
+          $ref: "#/components/schemas/Transform"
         metrics:
           $ref: "#/components/schemas/LocalizationMetrics"
         gate:
@@ -2889,6 +2927,7 @@ components:
           title: Ransac Threshold
           type: number
         frame_timestamp:
+          format: int64
           title: Frame Timestamp
           type: integer
         inlier_coverage:
@@ -3001,6 +3040,7 @@ components:
           title: Ransac Threshold
           type: number
         frame_timestamp:
+          format: int64
           title: Frame Timestamp
           type: integer
         updated_at:
@@ -3149,6 +3189,7 @@ components:
           title: Rotation W
           type: number
         color:
+          format: int64
           nullable: true
           title: Color
           type: integer
@@ -3222,6 +3263,7 @@ components:
           title: Rotation W
           type: number
         color:
+          format: int64
           title: Color
           type: integer
         active:
@@ -3309,6 +3351,7 @@ components:
           title: Rotation W
           type: number
         color:
+          format: int64
           title: Color
           type: integer
         created_at:
@@ -3400,6 +3443,7 @@ components:
           title: Rotation W
           type: number
         color:
+          format: int64
           nullable: true
           title: Color
           type: integer
@@ -3568,6 +3612,16 @@ components:
           ransac_threshold: 7.386281948385884
           num_query_keypoints: 1
           reconstruction_id: reconstruction_id
+          camera_from_map_transform:
+            rotation:
+              w: 5.962133916683182
+              x: 0.8008281904610115
+              "y": 6.027456183070403
+              z: 1.4658129805029452
+            translation:
+              x: 5.637376656633329
+              "y": 2.3021358869347655
+              z: 7.061401241503109
           metrics:
             num_correspondences: 5
             pipeline_version: pipeline_version
@@ -3590,9 +3644,9 @@ components:
             num_matches: 5
             confidence_is_calibrated: true
           gate:
-            tight_min: 5.944895607614016
+            tight_min: 6.704019297950036
             passed: true
-            loose_min: 6.878052220127876
+            loose_min: 5.944895607614016
           failure_reason: failure_reason
           camera:
             orientation: TOP_LEFT
@@ -3609,61 +3663,83 @@ components:
             inlier_ratio: 8.762042012749001
             reprojection_error_median: 9.018348186070783
             query_xy:
-            - - 6.965117697638846
-              - 6.965117697638846
-            - - 6.965117697638846
-              - 6.965117697638846
+            - - 1.284659006116532
+              - 1.284659006116532
+            - - 1.284659006116532
+              - 1.284659006116532
             database_xy:
-            - - 1.284659006116532
-              - 1.284659006116532
-            - - 1.284659006116532
-              - 1.284659006116532
+            - - 2.8841621266687802
+              - 2.8841621266687802
+            - - 2.8841621266687802
+              - 2.8841621266687802
             num_correspondences: 9
             retrieval_score: 4.965218492984954
             view_angle_deg: 3.5571952270680973
             reprojection_error_px:
-            - 6.778324963048013
-            - 6.778324963048013
+            - 6.878052220127876
+            - 6.878052220127876
             name: name
             width: 7
             rank: 1
+            camera_from_map_transform:
+              rotation:
+                w: 5.962133916683182
+                x: 0.8008281904610115
+                "y": 6.027456183070403
+                z: 1.4658129805029452
+              translation:
+                x: 5.637376656633329
+                "y": 2.3021358869347655
+                z: 7.061401241503109
             image_id: 6
             num_matches: 9
             distance_m: 6.438423552598547
             height: 1
+            pose_num_inliers: 6
             status:
-            - 2
-            - 2
+            - 6
+            - 6
           - num_keypoints: 5
             num_inliers: 6
             inlier_ratio: 8.762042012749001
             reprojection_error_median: 9.018348186070783
             query_xy:
-            - - 6.965117697638846
-              - 6.965117697638846
-            - - 6.965117697638846
-              - 6.965117697638846
+            - - 1.284659006116532
+              - 1.284659006116532
+            - - 1.284659006116532
+              - 1.284659006116532
             database_xy:
-            - - 1.284659006116532
-              - 1.284659006116532
-            - - 1.284659006116532
-              - 1.284659006116532
+            - - 2.8841621266687802
+              - 2.8841621266687802
+            - - 2.8841621266687802
+              - 2.8841621266687802
             num_correspondences: 9
             retrieval_score: 4.965218492984954
             view_angle_deg: 3.5571952270680973
             reprojection_error_px:
-            - 6.778324963048013
-            - 6.778324963048013
+            - 6.878052220127876
+            - 6.878052220127876
             name: name
             width: 7
             rank: 1
+            camera_from_map_transform:
+              rotation:
+                w: 5.962133916683182
+                x: 0.8008281904610115
+                "y": 6.027456183070403
+                z: 1.4658129805029452
+              translation:
+                x: 5.637376656633329
+                "y": 2.3021358869347655
+                z: 7.061401241503109
             image_id: 6
             num_matches: 9
             distance_m: 6.438423552598547
             height: 1
+            pose_num_inliers: 6
             status:
-            - 2
-            - 2
+            - 6
+            - 6
         map_transform:
           rotation:
             w: 5.962133916683182
@@ -4162,31 +4238,42 @@ components:
         inlier_ratio: 8.762042012749001
         reprojection_error_median: 9.018348186070783
         query_xy:
-        - - 6.965117697638846
-          - 6.965117697638846
-        - - 6.965117697638846
-          - 6.965117697638846
+        - - 1.284659006116532
+          - 1.284659006116532
+        - - 1.284659006116532
+          - 1.284659006116532
         database_xy:
-        - - 1.284659006116532
-          - 1.284659006116532
-        - - 1.284659006116532
-          - 1.284659006116532
+        - - 2.8841621266687802
+          - 2.8841621266687802
+        - - 2.8841621266687802
+          - 2.8841621266687802
         num_correspondences: 9
         retrieval_score: 4.965218492984954
         view_angle_deg: 3.5571952270680973
         reprojection_error_px:
-        - 6.778324963048013
-        - 6.778324963048013
+        - 6.878052220127876
+        - 6.878052220127876
         name: name
         width: 7
         rank: 1
+        camera_from_map_transform:
+          rotation:
+            w: 5.962133916683182
+            x: 0.8008281904610115
+            "y": 6.027456183070403
+            z: 1.4658129805029452
+          translation:
+            x: 5.637376656633329
+            "y": 2.3021358869347655
+            z: 7.061401241503109
         image_id: 6
         num_matches: 9
         distance_m: 6.438423552598547
         height: 1
+        pose_num_inliers: 6
         status:
-        - 2
-        - 2
+        - 6
+        - 6
       properties:
         rank:
           type: integer
@@ -4224,6 +4311,11 @@ components:
           format: double
           nullable: true
           type: number
+        camera_from_map_transform:
+          $ref: "#/components/schemas/Transform"
+        pose_num_inliers:
+          default: 0
+          type: integer
         query_xy:
           items:
             items:

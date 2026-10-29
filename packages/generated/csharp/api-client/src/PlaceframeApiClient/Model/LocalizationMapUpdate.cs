@@ -246,7 +246,7 @@ namespace PlaceframeApiClient.Model
         /// Gets or Sets Color
         /// </summary>
         [DataMember(Name = "color", EmitDefaultValue = true)]
-        public int? Color
+        public long? Color
         {
             get{ return _Color;}
             set
@@ -255,7 +255,7 @@ namespace PlaceframeApiClient.Model
                 _flagColor = true;
             }
         }
-        private int? _Color;
+        private long? _Color;
         private bool _flagColor;
 
         /// <summary>

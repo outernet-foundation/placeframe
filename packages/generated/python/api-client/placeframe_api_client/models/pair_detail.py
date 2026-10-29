@@ -19,6 +19,7 @@ import json
 
 from pydantic import BaseModel, ConfigDict, StrictFloat, StrictInt, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional, Union
+from placeframe_api_client.models.transform import Transform
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
@@ -41,12 +42,14 @@ class PairDetail(BaseModel):
     reprojection_error_median: Optional[Union[StrictFloat, StrictInt]] = None
     distance_m: Optional[Union[StrictFloat, StrictInt]] = None
     view_angle_deg: Optional[Union[StrictFloat, StrictInt]] = None
+    camera_from_map_transform: Optional[Transform] = None
+    pose_num_inliers: Optional[StrictInt] = 0
     query_xy: List[List[Union[StrictFloat, StrictInt]]]
     database_xy: List[List[Union[StrictFloat, StrictInt]]]
     status: List[StrictInt]
     reprojection_error_px: List[Union[StrictFloat, StrictInt]]
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["rank", "image_id", "name", "width", "height", "retrieval_score", "num_keypoints", "num_matches", "num_correspondences", "num_inliers", "inlier_ratio", "reprojection_error_median", "distance_m", "view_angle_deg", "query_xy", "database_xy", "status", "reprojection_error_px"]
+    __properties: ClassVar[List[str]] = ["rank", "image_id", "name", "width", "height", "retrieval_score", "num_keypoints", "num_matches", "num_correspondences", "num_inliers", "inlier_ratio", "reprojection_error_median", "distance_m", "view_angle_deg", "camera_from_map_transform", "pose_num_inliers", "query_xy", "database_xy", "status", "reprojection_error_px"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -89,6 +92,9 @@ class PairDetail(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
+        # override the default output from pydantic by calling `to_dict()` of camera_from_map_transform
+        if self.camera_from_map_transform:
+            _dict['camera_from_map_transform'] = self.camera_from_map_transform.to_dict()
         # puts key-value pairs in additional_properties in the top level
         if self.additional_properties is not None:
             for _key, _value in self.additional_properties.items():
@@ -135,6 +141,8 @@ class PairDetail(BaseModel):
             "reprojection_error_median": obj.get("reprojection_error_median"),
             "distance_m": obj.get("distance_m"),
             "view_angle_deg": obj.get("view_angle_deg"),
+            "camera_from_map_transform": Transform.from_dict(obj["camera_from_map_transform"]) if obj.get("camera_from_map_transform") is not None else None,
+            "pose_num_inliers": obj.get("pose_num_inliers") if obj.get("pose_num_inliers") is not None else 0,
             "query_xy": obj.get("query_xy"),
             "database_xy": obj.get("database_xy"),
             "status": obj.get("status"),

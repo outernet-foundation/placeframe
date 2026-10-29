@@ -261,6 +261,10 @@
             },
             "type": "array"
           },
+          "camera_from_map_transform": {
+            "nullable": true,
+            "$ref": "#/components/schemas/Transform"
+          },
           "metrics": {
             "nullable": true,
             "$ref": "#/components/schemas/LocalizationMetrics"
@@ -465,6 +469,14 @@
             "nullable": true,
             "type": "number",
             "format": "double"
+          },
+          "camera_from_map_transform": {
+            "nullable": true,
+            "$ref": "#/components/schemas/Transform"
+          },
+          "pose_num_inliers": {
+            "type": "integer",
+            "default": 0
           },
           "query_xy": {
             "items": {

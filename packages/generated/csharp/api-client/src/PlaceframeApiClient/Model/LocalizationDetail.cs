@@ -46,6 +46,7 @@ namespace PlaceframeApiClient.Model
         /// <param name="numQueryKeypoints">numQueryKeypoints (required).</param>
         /// <param name="timingsMs">timingsMs (required).</param>
         /// <param name="pairs">pairs (required).</param>
+        /// <param name="cameraFromMapTransform">cameraFromMapTransform.</param>
         /// <param name="metrics">metrics.</param>
         /// <param name="gate">gate.</param>
         /// <param name="failureReason">failureReason.</param>
@@ -249,6 +250,30 @@ namespace PlaceframeApiClient.Model
             return _flagPairs;
         }
         /// <summary>
+        /// Gets or Sets CameraFromMapTransform
+        /// </summary>
+        [DataMember(Name = "camera_from_map_transform", EmitDefaultValue = false)]
+        public Transform CameraFromMapTransform
+        {
+            get{ return _CameraFromMapTransform;}
+            set
+            {
+                _CameraFromMapTransform = value;
+                _flagCameraFromMapTransform = true;
+            }
+        }
+        private Transform _CameraFromMapTransform;
+        private bool _flagCameraFromMapTransform;
+
+        /// <summary>
+        /// Returns false as CameraFromMapTransform should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeCameraFromMapTransform()
+        {
+            return _flagCameraFromMapTransform;
+        }
+        /// <summary>
         /// Gets or Sets Metrics
         /// </summary>
         [DataMember(Name = "metrics", EmitDefaultValue = false)]
@@ -335,6 +360,7 @@ namespace PlaceframeApiClient.Model
             sb.Append("  NumQueryKeypoints: ").Append(NumQueryKeypoints).Append("\n");
             sb.Append("  TimingsMs: ").Append(TimingsMs).Append("\n");
             sb.Append("  Pairs: ").Append(Pairs).Append("\n");
+            sb.Append("  CameraFromMapTransform: ").Append(CameraFromMapTransform).Append("\n");
             sb.Append("  Metrics: ").Append(Metrics).Append("\n");
             sb.Append("  Gate: ").Append(Gate).Append("\n");
             sb.Append("  FailureReason: ").Append(FailureReason).Append("\n");

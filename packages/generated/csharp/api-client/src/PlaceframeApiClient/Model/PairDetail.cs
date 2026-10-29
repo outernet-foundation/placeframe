@@ -53,6 +53,8 @@ namespace PlaceframeApiClient.Model
         /// <param name="reprojectionErrorMedian">reprojectionErrorMedian.</param>
         /// <param name="distanceM">distanceM.</param>
         /// <param name="viewAngleDeg">viewAngleDeg.</param>
+        /// <param name="cameraFromMapTransform">cameraFromMapTransform.</param>
+        /// <param name="poseNumInliers">poseNumInliers (default to 0).</param>
         /// <param name="queryXy">queryXy (required).</param>
         /// <param name="databaseXy">databaseXy (required).</param>
         /// <param name="status">status (required).</param>
@@ -534,6 +536,54 @@ namespace PlaceframeApiClient.Model
             return _flagViewAngleDeg;
         }
         /// <summary>
+        /// Gets or Sets CameraFromMapTransform
+        /// </summary>
+        [DataMember(Name = "camera_from_map_transform", EmitDefaultValue = false)]
+        public Transform CameraFromMapTransform
+        {
+            get{ return _CameraFromMapTransform;}
+            set
+            {
+                _CameraFromMapTransform = value;
+                _flagCameraFromMapTransform = true;
+            }
+        }
+        private Transform _CameraFromMapTransform;
+        private bool _flagCameraFromMapTransform;
+
+        /// <summary>
+        /// Returns false as CameraFromMapTransform should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeCameraFromMapTransform()
+        {
+            return _flagCameraFromMapTransform;
+        }
+        /// <summary>
+        /// Gets or Sets PoseNumInliers
+        /// </summary>
+        [DataMember(Name = "pose_num_inliers", EmitDefaultValue = false)]
+        public int PoseNumInliers
+        {
+            get{ return _PoseNumInliers;}
+            set
+            {
+                _PoseNumInliers = value;
+                _flagPoseNumInliers = true;
+            }
+        }
+        private int _PoseNumInliers = 0;
+        private bool _flagPoseNumInliers;
+
+        /// <summary>
+        /// Returns false as PoseNumInliers should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializePoseNumInliers()
+        {
+            return _flagPoseNumInliers;
+        }
+        /// <summary>
         /// Returns the string presentation of the object
         /// </summary>
         /// <returns>String presentation of the object</returns>
@@ -559,6 +609,8 @@ namespace PlaceframeApiClient.Model
             sb.Append("  ReprojectionErrorMedian: ").Append(ReprojectionErrorMedian).Append("\n");
             sb.Append("  DistanceM: ").Append(DistanceM).Append("\n");
             sb.Append("  ViewAngleDeg: ").Append(ViewAngleDeg).Append("\n");
+            sb.Append("  CameraFromMapTransform: ").Append(CameraFromMapTransform).Append("\n");
+            sb.Append("  PoseNumInliers: ").Append(PoseNumInliers).Append("\n");
             sb.Append("}\n");
             return sb.ToString();
         }
