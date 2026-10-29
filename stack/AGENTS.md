@@ -3,8 +3,8 @@
 ## What this is
 
 The score tier: one authored description per service, compiled into two renderings —
-five Docker compose artifacts under `stack/generated/compose/` (one per assembly seam,
-the core seam split per GPU variant) and `stack/generated/k8s/manifests.yaml`
+five Docker compose artifacts under `stack/generated/compose/` (one per assembly bundle,
+the core bundle split per GPU variant) and `stack/generated/k8s/manifests.yaml`
 (Kubernetes, one monolithic artifact). Coverage is the full stack — the hand compose
 files are deleted; `stack/score/` holds the authored sources, `stack/generated/` the
 committed artifacts, and the repo's `docker-devkit.yaml` lifecycle consumes the
@@ -19,23 +19,23 @@ artifacts directly.
       tunnel-ngrok.yaml     compose-only relay workload — absent from the k8s workload list,
                             which is why it has no k8s provisioner twin
       compose/              provisioners for the compose rendering
-      compose/overrides/    per-seam workload overrides (null deletes a key)
-      compose/patches/      patch templates applied over the generated compose
+      compose/overrides/    per-bundle workload overrides (null deletes a key)
       k8s/                  provisioners for the k8s rendering
-      k8s/patches/          patch templates applied over the generated manifests
       k8s/values/           helm values for the declared charts (k8s rendering only)
       secrets.yaml          tier-neutral secrets/env declaration (both renderings)
     stack/generated/        committed artifacts, never hand-edited
-      compose/compose.{cuda,rocm}.yaml                    core seam per GPU variant
-      compose/compose.gateway-{open,keycloak}.yaml       gateway seam, anonymous / OIDC edge
+      compose/compose.{cuda,rocm}.yaml                    core bundle per GPU variant
+      compose/compose.gateway-{open,keycloak}.yaml       gateway bundle, anonymous / OIDC edge
       compose/compose.tunnel-ngrok.yaml                 the ngrok relay artifact
       k8s/manifests.yaml
       secrets.txt           mint list generated from the secrets declaration
 
-The seams are declared in `docker-devkit.yaml`'s `generate-score.seams` list: each seam
-names its workloads, provisioners, patch templates, publishes, and output file; the
-core seam additionally carries `gpu_variants` (the `{gpu}` token in its output and
-device-patch names). Consumers assemble a backend by including artifacts —
+The bundles are declared in `docker-devkit.yaml`'s `generate-score.bundles` list: each
+bundle names its workloads, provisioners, publishes, and output file; the core bundle
+additionally carries `gpu_variants` (the `{gpu}` token in its output). Deployment-surface
+behavior — healthchecks, gpu plumbing, the relay restart, the wait-for-resources pin —
+is annotation-driven through the devkit's built-in patch templates; this repo authors
+no patch template. Consumers assemble a backend by including artifacts —
 `core-cuda + gateway-keycloak + tunnel-ngrok` is the OIDC-with-relay assembly;
 `gateway-open` is the gateway with its auth snippet files and oidc-issuer resource
 overridden out (the override *is* the auth-mode difference between the gateway
@@ -104,7 +104,7 @@ with `not found`. Build the missing services first (`uv run build -t api -t gate
 --gpu none`).
 
 It reads `.env` the same way any assembly does (`KEYCLOAK_ADMIN_PASSWORD` consumed only by
-the gateway-keycloak artifact — keycloak and its configurator ride that seam; the core and
+the gateway-keycloak artifact — keycloak and its configurator ride that bundle; the core and
 gateway-open never see it). Reach it at `http://localhost:8443/schema` (the dev overlay
 remaps to `GATEWAY_PORT`).
 
@@ -146,8 +146,9 @@ One authored source, two renderings — the deliberate differences, so nobody "f
 
 - Secrets: compose emits `${VAR:?err}` holes filled from `.env` at run time; k8s emits
   `secretKeyRef` wiring into `placeframe-secrets`. Each tier's native mechanism.
-- Liveness: chart probes (loki, grafana) on k8s vs compose healthchecks; the
-  `workload-healthchecks.tpl` patch covers the built workloads on compose.
+- Liveness/readiness: chart probes (loki, grafana) on k8s vs compose healthchecks; the
+  built workloads declare `outernet.internal/probe-adapter` and the devkit's built-in
+  template converts their httpGet probes into compose healthchecks.
 - Host ports (`api` 8000, gateway 8443, ngrok 4040) and the `seaweedfs-admin` console
   exist only in compose; the k8s edge is the Pulumi-owned Ingress (`PUBLIC_URL` host,
   cert-manager issuer — per-site and Secret-resident, un-committable in a deterministic
@@ -214,7 +215,7 @@ proliferate.
 - **`AUTH_JWKS_URL` is a config-provisioner passthrough in both renderings**, never a baked
   keycloak URL: the api boots anonymous mode only when the issuer is empty *and* every auth
   endpoint is empty (`check_auth_config` in `workloads/api/src/settings.py`); a baked JWKS
-  URL would crash anonymous boots. It moved onto `placeframe-config` with the seam split —
+  URL would crash anonymous boots. It moved onto `placeframe-config` with the bundle split —
   the core artifact carries no oidc-issuer provisioner, so no workload in it may hang auth
   wiring off that resource type.
 - **Service names in provisioners are load-bearing DNS names.** `seaweedfs`,
@@ -262,7 +263,7 @@ proliferate.
 - **No `depends_on` across workloads**: score has no such concept. Provisioner services gate
   on each other's health; workloads gate on the auto-emitted `wait-for-resources` service,
   whose `alpine` default image is redirected through the `${ALPINE_IMAGE:?err}` lock hole by
-  the `compose/patches/wait-for-resources-image.tpl` patch template — the artifact carries no
+  the devkit's built-in gate-pin template — the artifact carries no
   unpinned image. The gate emits only where a provisioner carries services, so the
   gateway-open and tunnel artifacts carry none.
 - **The relay is a compose-only workload** (`tunnel-ngrok.yaml`, absent from the k8s
@@ -273,7 +274,9 @@ proliferate.
   ngrok's domain cannot be a resource ref inside `command` either (score does not
   substitute there and `$$`-escapes the hole to a compose literal), so its command is a
   `/bin/sh -c` wrapper expanding `${NGROK_DOMAIN:-}` inside the container from the
-  passthrough env. `compose/patches/tunnel-restart.tpl` sets `restart: on-failure` — the
+  passthrough env. The workload's `outernet.internal/restart: on-failure` annotation (read
+  by the devkit's built-in restart template, the value validated against the compose
+  restart-policy enum at generation) sets `restart: on-failure` — the
   relay is a long-lived agent whose control endpoint flaps. No compose profile exists
   anywhere in the five artifacts; the relay forwards to the gateway by Docker DNS name, so
   an assembly without it simply has no public edge.
@@ -288,8 +291,9 @@ proliferate.
   Secret (`envValueFrom`/`extraEnvFrom`/`existingSecret`) or `${VAR}` config holes
   expanded in-container. Alloy has no upstream OCI chart, so `k8s/observability.yaml`
   hand-writes its Deployment + Service + ConfigMap (config body by inclusion; see above).
-- **No restart policies are declared anywhere** — workload services, provisioner services,
-  and the deleted patch template all rely on compose's default. The hand stack's posture is
+- **Restart policies stay undeclared everywhere except the relay** — workload services and
+  provisioner services rely on compose's default; the one sanctioned exception is the
+  relay's `outernet.internal/restart: on-failure` annotation. The hand stack's posture is
   identical.
 - **Argo CD Jobs**: create/migrate/bucket Jobs carry `argocd.argoproj.io/hook: Sync` +
   `BeforeHookCreation` because a Job's spec.template is immutable — without the hook an image
@@ -297,15 +301,17 @@ proliferate.
   idempotent, the migrator is a no-op on matching schemas, the bucket initializer only creates
   missing buckets).
 - **GPU plumbing is annotation-driven per variant.** A workload declares
-  `metadata.annotations.placeframe.io/gpu: "true"` — the single declaration of
+  `metadata.annotations.outernet.internal/gpu: "true"` — the single declaration of
   accelerator-carrying behavior. Everything else derives: `${GPU_VARIANT}` in the workload
-  image name (substituted per compose output and fixed to `cuda` for the k8s rendering), the
-  `{gpu}`-templated device patch template (`compose/patches/gpu-cuda.tpl` reserves all NVIDIA
-  GPUs, `gpu-rocm.tpl` maps `/dev/kfd` + `/dev/dri` with the render/video groups), and the k8s
-  `patches/gpu-pod.tpl` patch template. The k8s seam contract with the cluster tier (Pulumi-owned):
+  image name (substituted per compose output and fixed to `cuda` for the k8s rendering),
+  the devkit's built-in gpu device templates (registered per the rendering's variant:
+  NVIDIA device reservations for cuda, `/dev/kfd` + `/dev/dri` with the render/video
+  groups for rocm), and the devkit's built-in gpu-pod template on k8s. The k8s plumbing
+  contract with the cluster tier (Pulumi-owned):
   runtimeClassName `nvidia`, nodeSelector `placeframe.io/gpu=true`, `nvidia.com/gpu: 1` —
   the NVIDIA device plugin and GPU-worker labeling live in infra, and renaming any of the
-  three breaks scheduling, not generation.
+  three breaks scheduling, not generation. The annotation is org-namespaced; the
+  nodeSelector label stays `placeframe.io/gpu`, exactly what Pulumi labels GPU nodes with.
 - **Cross-workload URLs ride the native `service-port` resource** — `${resources.x.hostname}`
   resolves to the same string on both tiers (compose: the workload `hostname:` field, which
   Docker's embedded DNS serves; k8s: the per-workload Service). The api's
@@ -317,7 +323,8 @@ proliferate.
   layer) plus a TriggerAuthentication whose only `secretTargetRef` is the password into
   `placeframe-secrets`; host/port/dbName/userName bake as literal trigger metadata from the
   provisioner state. The compose twin is an outputs-less no-op (compose runs the
-  reconstructor always-on). `patches/scale-to-zero.tpl` sets `spec.replicas: 0` on any Deployment
+  reconstructor always-on). The devkit's built-in scale-to-zero template sets
+  `spec.replicas: 0` on any Deployment
   whose workload declares the resource — Argo's selfHeal fights KEDA over that field unless
   the Application carries `ignoreDifferences` (infra-side config). The operator itself is
   cluster tier — infra's Pulumi helm release installs it, peer of the NVIDIA device plugin
@@ -334,12 +341,12 @@ proliferate.
 - **The generated k8s mechanics are test-locked** — `scripts/tests/test_score_k8s_generation.py`
   regenerates the k8s manifests from the real sources (charts stripped: their mirror gap is
   environmental, not structural) and asserts the GPU patches, the service-port URLs, and the
-  KEDA CRs — and that no KEDA operator documents ride the artifact. The compose seam split
+  KEDA CRs — and that no KEDA operator documents ride the artifact. The compose bundle split
   has its twin in `scripts/tests/test_score_compose_generation.py`: five outputs, zero
   profiles, zero binds, the collapsed service names, the snippet/auth difference between
   the gateway artifacts, and the relay restart/passthrough mechanics. Both skip when the
   pinned tool is off PATH or the
-  installed docker-devkit predates the seam/variant config fields.
+  installed docker-devkit predates the bundle/variant config fields.
 
 ## See also
 
