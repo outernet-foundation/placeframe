@@ -3,6 +3,7 @@ services:
   tunnel-ngrok-ngrok:
     annotations:
       compose.score.dev/workload-name: tunnel-ngrok
+      outernet.internal/restart: on-failure
     entrypoint:
     - /bin/sh
     - -c

@@ -19331,6 +19331,7 @@ spec:
     metadata:
       annotations:
         k8s.score.dev/workload-name: api
+        outernet.internal/probe-adapter: python-urllib
       labels:
         app.kubernetes.io/instance: api-14c2529eb4
         app.kubernetes.io/managed-by: score-k8s
@@ -19428,6 +19429,10 @@ spec:
               path: /health
               port: 8000
           name: api
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
           resources: {}
 status: {}
 ---
@@ -19602,6 +19607,7 @@ spec:
     metadata:
       annotations:
         k8s.score.dev/workload-name: lease-server
+        outernet.internal/probe-adapter: python-urllib
       labels:
         app.kubernetes.io/instance: lease-server-0907dc0fb6
         app.kubernetes.io/managed-by: score-k8s
@@ -19635,6 +19641,10 @@ spec:
               path: /health
               port: 8000
           name: lease-server
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
           resources: {}
 status: {}
 ---
@@ -19657,7 +19667,8 @@ spec:
     metadata:
       annotations:
         k8s.score.dev/workload-name: localizer
-        placeframe.io/gpu: "true"
+        outernet.internal/gpu: "true"
+        outernet.internal/probe-adapter: python-urllib
       labels:
         app.kubernetes.io/instance: localizer-c47a44cdc7
         app.kubernetes.io/managed-by: score-k8s
@@ -19694,6 +19705,10 @@ spec:
               path: /version
               port: 8000
           name: localizer
+          readinessProbe:
+            httpGet:
+              path: /version
+              port: 8000
           resources:
             limits:
               nvidia.com/gpu: "1"
@@ -19722,7 +19737,7 @@ spec:
     metadata:
       annotations:
         k8s.score.dev/workload-name: reconstructor
-        placeframe.io/gpu: "true"
+        outernet.internal/gpu: "true"
       labels:
         app.kubernetes.io/instance: reconstructor-89aa1836e2
         app.kubernetes.io/managed-by: score-k8s

@@ -19,6 +19,7 @@ services:
   api:
     annotations:
       compose.score.dev/workload-name: api
+      outernet.internal/probe-adapter: python-urllib
     depends_on:
       wait-for-resources:
         condition: service_completed_successfully
@@ -128,6 +129,7 @@ services:
   lease-server:
     annotations:
       compose.score.dev/workload-name: lease-server
+      outernet.internal/probe-adapter: python-urllib
     depends_on:
       wait-for-resources:
         condition: service_completed_successfully
@@ -155,7 +157,8 @@ services:
   localizer:
     annotations:
       compose.score.dev/workload-name: localizer
-      placeframe.io/gpu: 'true'
+      outernet.internal/gpu: 'true'
+      outernet.internal/probe-adapter: python-urllib
     depends_on:
       wait-for-resources:
         condition: service_completed_successfully
@@ -295,7 +298,7 @@ services:
   reconstructor:
     annotations:
       compose.score.dev/workload-name: reconstructor
-      placeframe.io/gpu: 'true'
+      outernet.internal/gpu: 'true'
     depends_on:
       wait-for-resources:
         condition: service_completed_successfully

@@ -67,7 +67,7 @@ services:
       keycloak-configurator:
         condition: service_started
         required: true
-    image: alpine
+    image: ${ALPINE_IMAGE:?err}
 configs:
   gateway-files-auth-loki.conf:
     content: |
