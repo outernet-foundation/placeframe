@@ -1,6 +1,6 @@
 # Custom Score provisioner: a real Placeframe postgres (PostGIS) whose placeframe_*
 # roles and database are created by the actual database-manager image (the same
-# create-database logic the compose stack runs), rather than a vanilla postgres with a
+# database-create logic the compose stack runs), rather than a vanilla postgres with a
 # single generated role.
 #
 # HERMETIC BY CONSTRUCTION: this provisioner resolves no secret at generation time. Every

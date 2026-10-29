@@ -1,16 +1,19 @@
 apiVersion: score.dev/v1b1
 metadata:
   name: gateway
+  annotations:
+    outernet.internal/publish: ${GATEWAY_PORT:-8443}/8443
 containers:
   gateway:
     image: ghcr.io/outernet-foundation/placeframe/gateway:${GATEWAY_SHA}
     variables:
       PUBLIC_URL: ${resources.config.public_url}
       AUTH_REALM: ${resources.auth.realm}
-    # Auth composition is by file presence: the entrypoint imports these snippet globs
-    # into the Caddyfile, and an anonymous edge simply ships the gateway without them
-    # (the gateway-open seam override strips files and the oidc-issuer resource).
-    # One source for both renderings — score-k8s turns these into ConfigMap mounts,
+    # Auth composition is by file choice: the entrypoint imports these snippet globs
+    # into the Caddyfile, and the anonymous edge is the gateway-open.yaml twin — this
+    # file minus the snippets and the oidc-issuer resource (the file pair *is* the
+    # auth-mode difference between the two gateway artifacts).
+    # One source shape for both renderings — score-k8s turns these into ConfigMap mounts,
     # score-compose into binds the generation converter inlines as configs.content.
     # The realm rides as an env var consumed by the caddy {$AUTH_REALM} placeholder —
     # the only realm declaration lives in the oidc-issuer provisioner states.

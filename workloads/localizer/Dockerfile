@@ -1,4 +1,4 @@
-FROM neural-networks-base AS dev
+FROM neural-networks-base
 
 # PyTorch's default caching allocator uses fixed-size segments, which fragment under
 # varying per-request peaks (chaotic image sizes, retrieval top-k results, keypoint

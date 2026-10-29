@@ -60,7 +60,7 @@ placeframe_api_client = { workspace = true }
 dirtorch = { workspace = true }
 # Git-pinned to the compose-bundles branch, which carries the unreleased bundle
 # fields and reports real versions, so the requires self-check is enforced.
-docker-devkit = { git = "https://github.com/outernet-foundation/docker-devkit", rev = "11f2b083cb4c6c2b8ee8c7e50adbfcd2dabe3235" }
+docker-devkit = { git = "https://github.com/outernet-foundation/docker-devkit", rev = "0bd89245745e432be8f40ebc0708c9a05944c2cb" }
 scripts = { workspace = true }
 lightglue = { git = "https://github.com/cvg/LightGlue.git" }
 

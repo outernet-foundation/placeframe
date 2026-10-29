@@ -3,6 +3,10 @@ metadata:
   name: lease-server
   annotations:
     outernet.internal/probe-adapter: python-urllib
+    outernet.internal/publish: 127.0.0.1/${LEASE_SERVER_DEBUG_PORT:-5683}/5678
+    # Dev defaults for the generated dev overlay (up --dev turns the pairs into
+    # ${NAME:-default} env holes); the variables below bake prod-safe literals.
+    outernet.internal/dev-toggles: RELOAD=true,DEBUG_LEASE_SERVER=false,DEBUG_WAIT_LEASE_SERVER=false
 containers:
   lease-server:
     image: ghcr.io/outernet-foundation/placeframe/lease-server:${LEASE_SERVER_SHA}
@@ -14,6 +18,9 @@ containers:
       DEPLOYMENT_ENVIRONMENT: ${resources.config.deployment_environment}
       OTEL_EXPORTER_OTLP_ENDPOINT: ${resources.observability.otlp_endpoint}
       SERVICE_VERSION: ${LEASE_SERVER_SHA}
+      RELOAD: "false"
+      DEBUG_LEASE_SERVER: "false"
+      DEBUG_WAIT_LEASE_SERVER: "false"
     livenessProbe:
       httpGet:
         path: /health

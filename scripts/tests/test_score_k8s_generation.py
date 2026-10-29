@@ -6,21 +6,20 @@ import pytest
 import yaml
 from packaging.version import Version
 
-from docker_devkit.config import load_config
-from docker_devkit.documents import compute_service_shas, parse_bake
-from docker_devkit.lifecycle import LOCK_PATH, require_manifest
+from docker_devkit.config import LOCK_PATH, load_config
+from docker_devkit.documents import compute_service_shas, parse_image_lock
 from docker_devkit.score_generate import generate_k8s
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
-# The generated k8s sources need the variant config fields.
-_required_devkit = Version("0.4.11")
+# The generated k8s sources need the root-config variant fields.
+_required_devkit = Version("0.5")
 pytestmark = [
     pytest.mark.skipif(which("score-k8s") is None, reason="pinned score-k8s not on PATH"),
     pytest.mark.skipif(
         Version(version("docker-devkit")) < _required_devkit
         and Version(version("docker-devkit")) != Version("0.0.0.dev0"),
-        reason=f"docker-devkit >= {_required_devkit} required for the variant fields",
+        reason=f"docker-devkit >= {_required_devkit} required for the root-config variant fields",
     ),
 ]
 
@@ -32,19 +31,13 @@ def _generate_k8s_without_charts(output: Path, monkeypatch: pytest.MonkeyPatch) 
     # tier (infra/Pulumi), so the artifact carries only the ScaledObject and
     # TriggerAuthentication CRs.
     config = load_config(REPO_ROOT)
-    assert config is not None and config.generate_score is not None
-    chartless = config.generate_score.model_copy(update={"charts": []})
+    assert config is not None and config.k8s is not None
+    chartless = config.model_copy(update={"k8s": config.k8s.model_copy(update={"charts": {}})})
 
-    for name, value in compute_service_shas(REPO_ROOT, parse_bake(require_manifest(REPO_ROOT))).items():
+    for name, value in compute_service_shas(REPO_ROOT, config).items():
         monkeypatch.setenv(name, value)
 
-    lock_images: dict[str, str] = {}
-    for line in (REPO_ROOT / LOCK_PATH).read_text(encoding="utf-8").splitlines():
-        name, separator, reference = line.partition("=")
-        if separator and name.strip() and not name.startswith("#"):
-            lock_images[name.strip()] = reference
-
-    generate_k8s(REPO_ROOT, chartless, output, None, lock_images)
+    generate_k8s(REPO_ROOT, chartless, output, parse_image_lock(REPO_ROOT / LOCK_PATH).root)
     documents = {}
     for document in yaml.safe_load_all(output.read_text(encoding="utf-8")):
         if document:
