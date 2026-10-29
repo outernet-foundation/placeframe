@@ -10,9 +10,9 @@ from textwrap import dedent
 from typing import Any
 
 from bashrun import bash
-from pydantic import create_model
+from pydantic import Field, create_model
 from pydantic.alias_generators import to_snake
-from sqlalchemy import MetaData, create_engine, inspect as sa_inspect
+from sqlalchemy import BigInteger, MetaData, create_engine, inspect as sa_inspect
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.sql.sqltypes import Enum as SAEnum
 from typer import run
@@ -79,6 +79,8 @@ def _generate_datamodels_for_schema(database_schema: str, models_path: Path, eng
         for column in columns:
             column_type = column.type.python_type
 
+            field = _int64_field if isinstance(column.type, BigInteger) else Field
+
             # Ensure that raw Enums (str) do not appear (should be post-processed into strict Enums)
             if isinstance(column.type, SAEnum) and not issubclass(column_type, Enum):
                 raise NotImplementedError(
@@ -90,9 +92,9 @@ def _generate_datamodels_for_schema(database_schema: str, models_path: Path, eng
                 continue
 
             if getattr(column, "nullable", True):
-                read_fields[column.name] = (column_type | None, None)
+                read_fields[column.name] = (column_type | None, field(None))
             else:
-                read_fields[column.name] = (column_type, ...)
+                read_fields[column.name] = (column_type, field(...))
 
             # Skip read-only fields in create/update/batch update DTOs
             #
@@ -115,25 +117,25 @@ def _generate_datamodels_for_schema(database_schema: str, models_path: Path, eng
                 continue
 
             if column.name in primary_keys:
-                batch_update_fields[column.name] = (column_type, ...)
+                batch_update_fields[column.name] = (column_type, field(...))
             else:
-                update_fields[column.name] = (column_type | None, None)
-                batch_update_fields[column.name] = (column_type | None, None)
+                update_fields[column.name] = (column_type | None, field(None))
+                batch_update_fields[column.name] = (column_type | None, field(None))
 
             if (
                 getattr(column, "nullable", True)
                 or getattr(column, "default", None) is not None
                 or getattr(column, "server_default", None) is not None
             ):
-                create_fields[column.name] = (column_type | None, None)
+                create_fields[column.name] = (column_type | None, field(None))
                 # For BatchCreate, 'id' must be required, even if the DB has a default generator.
                 if column.name == "id":
-                    batch_create_fields[column.name] = (column_type, ...)
+                    batch_create_fields[column.name] = (column_type, field(...))
                 else:
-                    batch_create_fields[column.name] = (column_type | None, None)
+                    batch_create_fields[column.name] = (column_type | None, field(None))
             else:
-                create_fields[column.name] = (column_type, ...)
-                batch_create_fields[column.name] = (column_type, ...)
+                create_fields[column.name] = (column_type, field(...))
+                batch_create_fields[column.name] = (column_type, field(...))
 
         for schema_name, fields in [
             (f"{table_name}Create", create_fields),
@@ -175,7 +177,8 @@ def _generate_datamodels_for_schema(database_schema: str, models_path: Path, eng
             f"--output {dtos_path} "
             f"--target-python-version {sys.version_info.major}.{sys.version_info.minor} "
             f"--output-model-type pydantic_v2.BaseModel "
-            f"--use-default-kwarg"
+            f"--use-default-kwarg "
+            f"--field-extra-keys-without-x-prefix x-format"
         )
 
         # datamodel-codegen may generate duplicate Enum definitions, so we need to deduplicate them
@@ -245,6 +248,14 @@ def _generate_datamodels_for_schema(database_schema: str, models_path: Path, eng
         # Format generated DTO models
         bash(f"uv run ruff check --fix --select I,F401 {generated_dto_models_path}")
         bash(f"uv run ruff format {generated_dto_models_path}")
+
+
+# JSON Schema `integer` carries no width, so a client generator falls back to 32 bits (C# `int`)
+# and fails to parse any bigint past 2^31, such as a capture over 2 GB. The `x-` prefix survives
+# datamodel-codegen, which drops a plain `format`; --field-extra-keys-without-x-prefix strips it
+# back to `format` on the generated DTO field, which Litestar then emits into the OpenAPI spec.
+def _int64_field(default: Any) -> Any:
+    return Field(default, json_schema_extra={"x-format": "int64"})
 
 
 def main():
