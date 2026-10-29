@@ -19331,7 +19331,9 @@ spec:
     metadata:
       annotations:
         k8s.score.dev/workload-name: api
+        outernet.internal/dev-toggles: RELOAD=true,DEBUG_API=true,DEBUG_WAIT_API=false
         outernet.internal/probe-adapter: python-urllib
+        outernet.internal/publish: 8000/8000,127.0.0.1/${API_DEBUG_PORT:-5679}/5678
       labels:
         app.kubernetes.io/instance: api-14c2529eb4
         app.kubernetes.io/managed-by: score-k8s
@@ -19389,6 +19391,10 @@ spec:
                 secretKeyRef:
                   key: DATABASE_ORCHESTRATION_USER_PASSWORD
                   name: placeframe-secrets
+            - name: DEBUG_API
+              value: "false"
+            - name: DEBUG_WAIT_API
+              value: "false"
             - name: DEPLOYMENT_ENVIRONMENT
               valueFrom:
                 secretKeyRef:
@@ -19409,6 +19415,8 @@ spec:
                   name: placeframe-secrets
             - name: RECONSTRUCTIONS_BUCKET
               value: reconstructions
+            - name: RELOAD
+              value: "false"
             - name: S3_ACCESS_KEY
               valueFrom:
                 secretKeyRef:
@@ -19422,8 +19430,8 @@ spec:
                   key: S3_SECRET_KEY
                   name: placeframe-secrets
             - name: SERVICE_VERSION
-              value: tree-b480959fd142d9767a50204fba7136ef3a965328
-          image: ghcr.io/outernet-foundation/placeframe/api:tree-b480959fd142d9767a50204fba7136ef3a965328
+              value: tree-cc3b171164a15a978755140046ef085a407046af
+          image: ghcr.io/outernet-foundation/placeframe/api:tree-cc3b171164a15a978755140046ef085a407046af
           livenessProbe:
             httpGet:
               path: /health
@@ -19455,6 +19463,7 @@ spec:
     metadata:
       annotations:
         k8s.score.dev/workload-name: gateway
+        outernet.internal/publish: ${GATEWAY_PORT:-8443}/8443
       labels:
         app.kubernetes.io/instance: gateway-4ea5ee68fe
         app.kubernetes.io/managed-by: score-k8s
@@ -19469,7 +19478,7 @@ spec:
                 secretKeyRef:
                   key: PUBLIC_URL
                   name: placeframe-secrets
-          image: ghcr.io/outernet-foundation/placeframe/gateway:tree-181bdf0a8030816491548e1d9b7eab243ff9393c
+          image: ghcr.io/outernet-foundation/placeframe/gateway:tree-d4a9cf7ad8d7160b425cf693bbc4d206e6936bdf
           name: gateway
           resources: {}
           volumeMounts:
@@ -19607,7 +19616,9 @@ spec:
     metadata:
       annotations:
         k8s.score.dev/workload-name: lease-server
+        outernet.internal/dev-toggles: RELOAD=true,DEBUG_LEASE_SERVER=false,DEBUG_WAIT_LEASE_SERVER=false
         outernet.internal/probe-adapter: python-urllib
+        outernet.internal/publish: 127.0.0.1/${LEASE_SERVER_DEBUG_PORT:-5683}/5678
       labels:
         app.kubernetes.io/instance: lease-server-0907dc0fb6
         app.kubernetes.io/managed-by: score-k8s
@@ -19624,6 +19635,10 @@ spec:
                 secretKeyRef:
                   key: DATABASE_ORCHESTRATION_USER_PASSWORD
                   name: placeframe-secrets
+            - name: DEBUG_LEASE_SERVER
+              value: "false"
+            - name: DEBUG_WAIT_LEASE_SERVER
+              value: "false"
             - name: DEPLOYMENT_ENVIRONMENT
               valueFrom:
                 secretKeyRef:
@@ -19633,9 +19648,11 @@ spec:
               value: http://alloy:4317
             - name: POSTGRES_HOST
               value: pf-postgres
+            - name: RELOAD
+              value: "false"
             - name: SERVICE_VERSION
-              value: tree-2b32a6ca67ac908e51bb60410a96448fe3a342aa
-          image: ghcr.io/outernet-foundation/placeframe/lease-server:tree-2b32a6ca67ac908e51bb60410a96448fe3a342aa
+              value: tree-854c8d8d3cfcd2608625ee2d04eeb1d4d7aca4eb
+          image: ghcr.io/outernet-foundation/placeframe/lease-server:tree-854c8d8d3cfcd2608625ee2d04eeb1d4d7aca4eb
           livenessProbe:
             httpGet:
               path: /health
@@ -19698,8 +19715,8 @@ spec:
                   key: S3_SECRET_KEY
                   name: placeframe-secrets
             - name: SERVICE_VERSION
-              value: tree-1bf664f338163c641a9683053614c873b83520b5
-          image: ghcr.io/outernet-foundation/placeframe/localizer-cuda:tree-1bf664f338163c641a9683053614c873b83520b5
+              value: tree-d8e0c862a3283fc2e85fd9c8ceb79bc515d96a22
+          image: ghcr.io/outernet-foundation/placeframe/localizer-cuda:tree-d8e0c862a3283fc2e85fd9c8ceb79bc515d96a22
           livenessProbe:
             httpGet:
               path: /version
@@ -19771,8 +19788,8 @@ spec:
                   key: S3_SECRET_KEY
                   name: placeframe-secrets
             - name: SERVICE_VERSION
-              value: tree-30511aee6a6f1f557ebebb792b6196d91ab115ce
-          image: ghcr.io/outernet-foundation/placeframe/reconstructor-cuda:tree-30511aee6a6f1f557ebebb792b6196d91ab115ce
+              value: tree-32f1084ba46dec82d01f728c3637eec28eaa4a99
+          image: ghcr.io/outernet-foundation/placeframe/reconstructor-cuda:tree-32f1084ba46dec82d01f728c3637eec28eaa4a99
           name: reconstructor
           resources:
             limits:
@@ -19986,7 +20003,7 @@ spec:
                 secretKeyRef:
                   key: SEED_TEST_USERS
                   name: placeframe-secrets
-          image: ghcr.io/outernet-foundation/placeframe/auth-initializer:tree-3423102b2ca426860c857756f26f218c2cc14697
+          image: ghcr.io/outernet-foundation/placeframe/auth-initializer:tree-eb404c12f567bbfbe47acac6671afc097be7c346
           name: configurator
       restartPolicy: OnFailure
 ---
@@ -20055,7 +20072,7 @@ spec:
                 secretKeyRef:
                   key: DATABASE_ORCHESTRATION_USER_PASSWORD
                   name: placeframe-secrets
-          image: ghcr.io/outernet-foundation/placeframe/database-manager:tree-01ff257ab81d1062324aa1556becb89977590852
+          image: ghcr.io/outernet-foundation/placeframe/database-manager:tree-35635174747dcbf7c19160f5130ededfe022a495
           name: create
       restartPolicy: OnFailure
 ---
@@ -20090,7 +20107,7 @@ spec:
               value: database
             - name: ALLOWED_HAZARDS
               value: HAS_UNTRACKABLE_DEPENDENCIES
-          image: ghcr.io/outernet-foundation/placeframe/database-migrator:tree-7b79d3f23baeeed16e5baee60baa4adbfd51ff94
+          image: ghcr.io/outernet-foundation/placeframe/database-migrator:tree-3fb057942aa45ab7e4276a6734c8d640dd681259
           name: migrate
       restartPolicy: OnFailure
 ---
@@ -20122,7 +20139,7 @@ spec:
                   name: placeframe-secrets
             - name: S3_BUCKETS
               value: reconstructions captures loki
-          image: ghcr.io/outernet-foundation/placeframe/s3-initializer:tree-599cb0c699094c854cc266424972c4dab5bd3ab8
+          image: ghcr.io/outernet-foundation/placeframe/s3-initializer:tree-83630bf2947a16beabd404e4553ca6d1c72e266c
           name: bucket
       restartPolicy: OnFailure
 ---
@@ -20565,7 +20582,7 @@ spec:
                 secretKeyRef:
                   key: POSTGRES_ADMIN_PASSWORD
                   name: placeframe-secrets
-          image: ghcr.io/outernet-foundation/placeframe/postgres:tree-26c3202a4932b69e22fed4509ca3ca88ed4fa825
+          image: ghcr.io/outernet-foundation/placeframe/postgres:tree-f42850530e2989c3e0eae5ccaa7c3f40a7407a76
           name: postgres-db
           ports:
             - containerPort: 5432
@@ -20629,7 +20646,7 @@ spec:
                 secretKeyRef:
                   key: S3_SECRET_KEY
                   name: placeframe-secrets
-          image: ghcr.io/outernet-foundation/placeframe/seaweedfs:tree-cc8694c015d4492f8938d3a9b59fef175b1ad4a8
+          image: ghcr.io/outernet-foundation/placeframe/seaweedfs:tree-fdaa90914e10c7ac77401981b1bb19491af5fe63
           name: seaweedfs
           ports:
             - containerPort: 8333

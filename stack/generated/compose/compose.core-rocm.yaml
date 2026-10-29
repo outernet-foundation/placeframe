@@ -1,0 +1,554 @@
+name: placeframe
+services:
+  alloy:
+    command:
+    - run
+    - /etc/alloy/config.alloy
+    depends_on:
+      loki:
+        condition: service_healthy
+        required: false
+    environment:
+      LOKI_WRITE_ENDPOINT: http://loki:3100/loki/api/v1/push
+    expose:
+    - '4317'
+    image: ${ALLOY_IMAGE:?err}
+    configs:
+    - source: config.alloy
+      target: /etc/alloy/config.alloy
+  api:
+    annotations:
+      compose.score.dev/workload-name: api
+      outernet.internal/dev-toggles: RELOAD=true,DEBUG_API=true,DEBUG_WAIT_API=false
+      outernet.internal/probe-adapter: python-urllib
+      outernet.internal/publish: 8000/8000,127.0.0.1/${API_DEBUG_PORT:-5679}/5678
+    depends_on:
+      wait-for-resources:
+        condition: service_completed_successfully
+        required: true
+    environment:
+      AUTH_AUDIENCE: ${AUTH_AUDIENCE:-}
+      AUTH_AUTHORIZATION_ENDPOINT: ${AUTH_AUTHORIZATION_ENDPOINT:-}
+      AUTH_ISSUER_URL: ${AUTH_ISSUER_URL:-}
+      AUTH_JWKS_URL: ${AUTH_JWKS_URL:-}
+      AUTH_TOKEN_ENDPOINT: ${AUTH_TOKEN_ENDPOINT:-}
+      CAPTURES_BUCKET: captures
+      DATABASE_API_USER: placeframe_api_user
+      DATABASE_API_USER_PASSWORD: ${DATABASE_API_USER_PASSWORD:?err}
+      DATABASE_AUTH_USER: placeframe_auth_user
+      DATABASE_AUTH_USER_PASSWORD: ${DATABASE_AUTH_USER_PASSWORD:?err}
+      DATABASE_NAME: placeframe
+      DATABASE_ORCHESTRATION_USER: placeframe_orchestration_user
+      DATABASE_ORCHESTRATION_USER_PASSWORD: ${DATABASE_ORCHESTRATION_USER_PASSWORD:?err}
+      DEBUG_API: 'false'
+      DEBUG_WAIT_API: 'false'
+      DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-development}
+      LOCALIZER_CONTAINER_URL: http://localizer:8000
+      LOKI_URL: http://loki:3100
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4317
+      POSTGRES_HOST: pf-postgres
+      PUBLIC_URL: ${PUBLIC_URL:?err}
+      RECONSTRUCTIONS_BUCKET: reconstructions
+      RELOAD: 'false'
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?err}
+      S3_ENDPOINT_URL: http://seaweedfs:8333
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?err}
+      SERVICE_VERSION: tree-cc3b171164a15a978755140046ef085a407046af
+    hostname: api
+    healthcheck:
+      test:
+      - CMD
+      - python
+      - -c
+      - import urllib.request; urllib.request.urlopen('http://localhost:8000/health')
+      timeout: 5s
+      interval: 5s
+      retries: 3
+      start_period: 5s
+    image: ghcr.io/outernet-foundation/placeframe/api:tree-cc3b171164a15a978755140046ef085a407046af
+    ports:
+    - target: 8000
+      published: '8000'
+    - host_ip: 127.0.0.1
+      target: 5678
+      published: ${API_DEBUG_PORT:-5679}
+  grafana:
+    depends_on:
+      loki:
+        condition: service_healthy
+        required: false
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: 'true'
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_AUTH_GENERIC_OAUTH_API_URL: ${PUBLIC_URL:?err}/auth/realms/placeframe-dev/protocol/openid-connect/userinfo
+      GF_AUTH_GENERIC_OAUTH_AUTH_URL: ${PUBLIC_URL:?err}/auth/realms/placeframe-dev/protocol/openid-connect/auth
+      GF_AUTH_GENERIC_OAUTH_CLIENT_ID: placeframe-grafana
+      GF_AUTH_GENERIC_OAUTH_ENABLED: 'true'
+      GF_AUTH_GENERIC_OAUTH_NAME: Keycloak
+      GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_PATH: '''Admin'''
+      GF_AUTH_GENERIC_OAUTH_SCOPES: openid email profile
+      GF_AUTH_GENERIC_OAUTH_TOKEN_URL: ${PUBLIC_URL:?err}/auth/realms/placeframe-dev/protocol/openid-connect/token
+      GF_SERVER_ROOT_URL: ${PUBLIC_URL:?err}/grafana/
+      GF_SERVER_SERVE_FROM_SUB_PATH: 'true'
+    healthcheck:
+      test:
+      - CMD
+      - wget
+      - --quiet
+      - --tries=1
+      - --output-document=-
+      - http://localhost:3000/grafana/api/health
+      timeout: 5s
+      interval: 5s
+      retries: 20
+      start_period: 10s
+    image: ${GRAFANA_IMAGE:?err}
+    ports:
+    - mode: ingress
+      target: 3000
+      published: ${GRAFANA_PORT:?err}
+      protocol: tcp
+    configs:
+    - source: datasources.yaml
+      target: /etc/grafana/provisioning/datasources/datasources.yaml
+  initialize-loki:
+    entrypoint:
+    - /bin/sh
+    - -c
+    - chown -R 10001:10001 /loki
+    image: ${LOKI_IMAGE:?err}
+    restart: 'no'
+    user: 0:0
+    volumes:
+    - type: volume
+      source: loki-data
+      target: /loki
+  initialize-s3:
+    depends_on:
+      seaweedfs:
+        condition: service_healthy
+        required: false
+    environment:
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?err}
+      S3_BUCKETS: captures reconstructions loki
+      S3_ENDPOINT_URL: http://seaweedfs:8333
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?err}
+    image: ghcr.io/outernet-foundation/placeframe/s3-initializer:tree-83630bf2947a16beabd404e4553ca6d1c72e266c
+  lease-server:
+    annotations:
+      compose.score.dev/workload-name: lease-server
+      outernet.internal/dev-toggles: RELOAD=true,DEBUG_LEASE_SERVER=false,DEBUG_WAIT_LEASE_SERVER=false
+      outernet.internal/probe-adapter: python-urllib
+      outernet.internal/publish: 127.0.0.1/${LEASE_SERVER_DEBUG_PORT:-5683}/5678
+    depends_on:
+      wait-for-resources:
+        condition: service_completed_successfully
+        required: true
+    environment:
+      DATABASE_NAME: placeframe
+      DATABASE_ORCHESTRATION_USER: placeframe_orchestration_user
+      DATABASE_ORCHESTRATION_USER_PASSWORD: ${DATABASE_ORCHESTRATION_USER_PASSWORD:?err}
+      DEBUG_LEASE_SERVER: 'false'
+      DEBUG_WAIT_LEASE_SERVER: 'false'
+      DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-development}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4317
+      POSTGRES_HOST: pf-postgres
+      RELOAD: 'false'
+      SERVICE_VERSION: tree-854c8d8d3cfcd2608625ee2d04eeb1d4d7aca4eb
+    hostname: lease-server
+    healthcheck:
+      test:
+      - CMD
+      - python
+      - -c
+      - import urllib.request; urllib.request.urlopen('http://localhost:8000/health')
+      timeout: 5s
+      interval: 5s
+      retries: 3
+      start_period: 5s
+    image: ghcr.io/outernet-foundation/placeframe/lease-server:tree-854c8d8d3cfcd2608625ee2d04eeb1d4d7aca4eb
+    ports:
+    - host_ip: 127.0.0.1
+      target: 5678
+      published: ${LEASE_SERVER_DEBUG_PORT:-5683}
+  localizer:
+    annotations:
+      compose.score.dev/workload-name: localizer
+      outernet.internal/gpu: 'true'
+      outernet.internal/probe-adapter: python-urllib
+    depends_on:
+      wait-for-resources:
+        condition: service_completed_successfully
+        required: true
+    devices:
+    - source: /dev/kfd
+      target: /dev/kfd
+    - source: /dev/dri
+      target: /dev/dri
+    environment:
+      DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-development}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4317
+      RECONSTRUCTIONS_BUCKET: reconstructions
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?err}
+      S3_ENDPOINT_URL: http://seaweedfs:8333
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?err}
+      SERVICE_VERSION: tree-d8e0c862a3283fc2e85fd9c8ceb79bc515d96a22
+    group_add:
+    - '44'
+    - '110'
+    hostname: localizer
+    healthcheck:
+      test:
+      - CMD
+      - python
+      - -c
+      - import urllib.request; urllib.request.urlopen('http://localhost:8000/version')
+      timeout: 5s
+      interval: 5s
+      retries: 3
+      start_period: 5s
+    image: ghcr.io/outernet-foundation/placeframe/localizer-rocm:tree-d8e0c862a3283fc2e85fd9c8ceb79bc515d96a22
+  loki:
+    command:
+    - -config.file=/etc/loki/config.yaml
+    - -config.expand-env=true
+    depends_on:
+      initialize-loki:
+        condition: service_completed_successfully
+        required: false
+      initialize-s3:
+        condition: service_completed_successfully
+        required: false
+    environment:
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?err}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?err}
+    healthcheck:
+      test:
+      - CMD
+      - wget
+      - --quiet
+      - --tries=1
+      - --output-document=-
+      - http://localhost:3100/ready
+      timeout: 5s
+      interval: 5s
+      retries: 20
+      start_period: 10s
+    image: ${LOKI_IMAGE:?err}
+    volumes:
+    - type: volume
+      source: loki-data
+      target: /loki
+    configs:
+    - source: config.yaml
+      target: /etc/loki/config.yaml
+  pf-postgres:
+    entrypoint:
+    - /usr/local/bin/entrypoint-wrapper.sh
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:?err}
+      POSTGRES_USER: ${POSTGRES_ADMIN_USER:?err}
+    healthcheck:
+      test:
+      - CMD
+      - pg_isready
+      - -q
+      - -h
+      - localhost
+      - -p
+      - '5432'
+      - -U
+      - ${POSTGRES_ADMIN_USER:?err}
+      - -d
+      - postgres
+      timeout: 2s
+      interval: 2s
+      retries: 30
+    image: ghcr.io/outernet-foundation/placeframe/postgres:tree-f42850530e2989c3e0eae5ccaa7c3f40a7407a76
+    volumes:
+    - type: volume
+      source: pf-postgres-data
+      target: /var/lib/postgresql/data
+  pf-postgres-create:
+    depends_on:
+      pf-postgres:
+        condition: service_healthy
+        required: false
+    entrypoint:
+    - uv
+    - run
+    - --no-sync
+    - python
+    - -m
+    - src.main
+    - --op
+    - create
+    - --name
+    - placeframe
+    - --owner-password
+    - ${DATABASE_OWNER_PASSWORD:?err}
+    - --api-user-password
+    - ${DATABASE_API_USER_PASSWORD:?err}
+    - --auth-user-password
+    - ${DATABASE_AUTH_USER_PASSWORD:?err}
+    - --orchestration-user-password
+    - ${DATABASE_ORCHESTRATION_USER_PASSWORD:?err}
+    environment:
+      POSTGRES_ADMIN_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:?err}
+      POSTGRES_ADMIN_USER: ${POSTGRES_ADMIN_USER:?err}
+      POSTGRES_HOST: pf-postgres
+    image: ghcr.io/outernet-foundation/placeframe/database-manager:tree-35635174747dcbf7c19160f5130ededfe022a495
+  pf-postgres-migrate:
+    depends_on:
+      pf-postgres-create:
+        condition: service_completed_successfully
+        required: false
+    environment:
+      ALLOWED_HAZARDS: HAS_UNTRACKABLE_DEPENDENCIES
+      DATABASE_SCHEMA_DIR: database
+      DB_HOST: pf-postgres
+      DB_NAME: placeframe
+      DB_PASSWORD: ${DATABASE_OWNER_PASSWORD:?err}
+      DB_PORT: '5432'
+      DB_USER: placeframe_owner
+    image: ghcr.io/outernet-foundation/placeframe/database-migrator:tree-3fb057942aa45ab7e4276a6734c8d640dd681259
+  reconstructor:
+    annotations:
+      compose.score.dev/workload-name: reconstructor
+      outernet.internal/gpu: 'true'
+    depends_on:
+      wait-for-resources:
+        condition: service_completed_successfully
+        required: true
+    devices:
+    - source: /dev/kfd
+      target: /dev/kfd
+    - source: /dev/dri
+      target: /dev/dri
+    environment:
+      CAPTURES_BUCKET: captures
+      DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-development}
+      LEASE_SERVER_URL: http://lease-server:8000
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4317
+      RECONSTRUCTIONS_BUCKET: reconstructions
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?err}
+      S3_ENDPOINT_URL: http://seaweedfs:8333
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?err}
+      SERVICE_VERSION: tree-32f1084ba46dec82d01f728c3637eec28eaa4a99
+    group_add:
+    - '44'
+    - '110'
+    hostname: reconstructor
+    image: ghcr.io/outernet-foundation/placeframe/reconstructor-rocm:tree-32f1084ba46dec82d01f728c3637eec28eaa4a99
+  seaweedfs:
+    command:
+    - server
+    - -filer
+    - -s3
+    - -s3.port=8333
+    - -s3.config=/etc/seaweedfs/s3.json
+    - -s3.auditLogConfig=/etc/seaweedfs/fluent.json
+    entrypoint:
+    - /usr/local/bin/entrypoint-wrapper.sh
+    environment:
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?err}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?err}
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - curl -fsS http://127.0.0.1:9333/cluster/status && curl -s -o /dev/null http://127.0.0.1:8333/
+      interval: 1s
+      retries: 60
+      start_period: 1m30s
+    image: ghcr.io/outernet-foundation/placeframe/seaweedfs:tree-fdaa90914e10c7ac77401981b1bb19491af5fe63
+    volumes:
+    - type: volume
+      source: seaweedfs-data
+      target: /data
+  seaweedfs-admin:
+    command:
+    - admin
+    - -ip=0.0.0.0
+    - -port=59001
+    - -port.grpc=59002
+    - -master=seaweedfs:9333
+    - -adminPassword=${S3_SECRET_KEY:?err}
+    depends_on:
+      seaweedfs:
+        condition: service_healthy
+        required: false
+    entrypoint:
+    - /usr/local/bin/entrypoint-wrapper.sh
+    image: ghcr.io/outernet-foundation/placeframe/seaweedfs:tree-fdaa90914e10c7ac77401981b1bb19491af5fe63
+    ports:
+    - mode: ingress
+      target: 59001
+      published: ${SEAWEEDFS_ADMIN_PORT:?err}
+      protocol: tcp
+  seaweedfs-audit:
+    command:
+    - -i
+    - forward
+    - -p
+    - listen=0.0.0.0
+    - -p
+    - port=24224
+    - -o
+    - stdout
+    - -m
+    - '*'
+    depends_on:
+      seaweedfs:
+        condition: service_healthy
+        required: false
+    image: ${SEAWEEDFS_AUDIT_IMAGE:?err}
+  wait-for-resources:
+    command:
+    - echo
+    depends_on:
+      alloy:
+        condition: service_started
+        required: true
+      grafana:
+        condition: service_healthy
+        required: true
+      initialize-loki:
+        condition: service_started
+        required: true
+      initialize-s3:
+        condition: service_started
+        required: true
+      loki:
+        condition: service_healthy
+        required: true
+      pf-postgres:
+        condition: service_healthy
+        required: true
+      pf-postgres-create:
+        condition: service_started
+        required: true
+      pf-postgres-migrate:
+        condition: service_started
+        required: true
+      seaweedfs:
+        condition: service_healthy
+        required: true
+      seaweedfs-admin:
+        condition: service_started
+        required: true
+      seaweedfs-audit:
+        condition: service_started
+        required: true
+    image: ${ALPINE_IMAGE:?err}
+volumes:
+  loki-data:
+    driver: local
+  pf-postgres-data:
+    driver: local
+  seaweedfs-data:
+    driver: local
+configs:
+  config.alloy:
+    content: |
+      // OTLP/gRPC receiver → attributes processor (label-cardinality policy) → Loki
+      // exporter → loki.write. Producers ship OTel log records with full SemConv
+      // resource attributes (service.name, service.namespace, service.instance.id,
+      // service.version, deployment.environment.name, container.name). Only the
+      // low-cardinality subset becomes Loki indexed labels; everything else rides
+      // as Loki structured metadata. Write endpoint is env-driven so this single
+      // config serves both the main backend stack (writes to loki:3100) and the
+      // ZED box stack (writes to 127.0.0.1:3100).
+
+      otelcol.receiver.otlp "default" {
+        grpc {
+          endpoint = "0.0.0.0:4317"
+        }
+
+        output {
+          logs = [otelcol.processor.attributes.label_promotion.input]
+        }
+      }
+
+      // The Loki exporter promotes resource attributes named in the
+      // `loki.resource.labels` record attribute to indexed Loki labels. Everything
+      // else stays as structured metadata. Severity is promoted automatically.
+      otelcol.processor.attributes "label_promotion" {
+        action {
+          key    = "loki.resource.labels"
+          value  = "service.name,deployment.environment.name"
+          action = "insert"
+        }
+
+        output {
+          logs = [otelcol.exporter.loki.default.input]
+        }
+      }
+
+      otelcol.exporter.loki "default" {
+        forward_to = [loki.write.default.receiver]
+      }
+
+      loki.write "default" {
+        endpoint {
+          url = sys.env("LOKI_WRITE_ENDPOINT")
+        }
+      }
+  datasources.yaml:
+    content: |
+      apiVersion: 1
+      datasources:
+        - name: Loki
+          type: loki
+          access: proxy
+          url: http://loki:3100
+          isDefault: true
+  config.yaml:
+    content: |
+      auth_enabled: false
+      server:
+        http_listen_port: 3100
+      common:
+        ring:
+          instance_addr: 127.0.0.1
+          kvstore:
+            store: inmemory
+          replication_factor: 1
+        path_prefix: /loki
+      storage_config:
+        aws:
+          endpoint: seaweedfs:8333
+          bucketnames: loki
+          access_key_id: $${S3_ACCESS_KEY}
+          secret_access_key: $${S3_SECRET_KEY}
+          s3forcepathstyle: true
+          insecure: true
+      ingester:
+        lifecycler:
+          ring:
+            replication_factor: 1
+        # Loki gates out-of-order writes by `max_chunk_age / 2` (the in-memory chunk's
+        # acceptance window). Default 2h → 1h cutoff, which silently drops phone-relay
+        # backfill older than 1h. Bump so the cutoff matches reject_old_samples_max_age
+        # in limits_config. Side effect: open chunks stay in ingester memory for up to
+        # this long if not size-flushed first; fine at our volume.
+        max_chunk_age: 720h
+      schema_config:
+        configs:
+          - from: "2024-01-01"
+            store: tsdb
+            object_store: s3
+            schema: v13
+            index:
+              prefix: index_
+              period: 24h
+      limits_config:
+        retention_period: 720h
+        # Box logs reach Loki via the phone, which is intermittently connected; a box
+        # may accumulate days of logs between phone visits, and on each visit the
+        # drainer pushes them at their original wall-clock timestamps. Two limits
+        # gate backfill — both must be wide enough or pushes get rejected with 400:
+        #   - reject_old_samples_max_age: stream-level wall-clock cutoff
+        #   - unordered_writes_max_age: per-stream out-of-order write cutoff
+        # Defaults are 168h and 1h respectively; 720h on both leaves plenty of margin.
+        reject_old_samples: true
+        reject_old_samples_max_age: 720h

@@ -3,6 +3,7 @@ services:
   gateway:
     annotations:
       compose.score.dev/workload-name: gateway
+      outernet.internal/publish: ${GATEWAY_PORT:-8443}/8443
     depends_on:
       wait-for-resources:
         condition: service_completed_successfully
@@ -11,10 +12,10 @@ services:
       AUTH_REALM: placeframe-dev
       PUBLIC_URL: ${PUBLIC_URL:?err}
     hostname: gateway
-    image: ghcr.io/outernet-foundation/placeframe/gateway:tree-181bdf0a8030816491548e1d9b7eab243ff9393c
+    image: ghcr.io/outernet-foundation/placeframe/gateway:tree-d4a9cf7ad8d7160b425cf693bbc4d206e6936bdf
     ports:
     - target: 8443
-      published: '8443'
+      published: ${GATEWAY_PORT:-8443}
     configs:
     - source: gateway-files-auth-loki.conf
       target: /etc/caddy/snippets/loki/auth-loki.conf
@@ -56,7 +57,7 @@ services:
       KEYCLOAK_URL: http://keycloak:8080
       PUBLIC_URL: ${PUBLIC_URL:?err}
       SEED_TEST_USERS: ${SEED_TEST_USERS:-}
-    image: ghcr.io/outernet-foundation/placeframe/auth-initializer:tree-3423102b2ca426860c857756f26f218c2cc14697
+    image: ghcr.io/outernet-foundation/placeframe/auth-initializer:tree-eb404c12f567bbfbe47acac6671afc097be7c346
   wait-for-resources:
     command:
     - echo
