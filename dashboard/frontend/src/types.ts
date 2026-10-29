@@ -128,6 +128,13 @@ export const MATCH_NO_POINT3D = 0;
 export const MATCH_OUTLIER = 1;
 export const MATCH_INLIER = 2;
 
+// A localizer `camera_from_map_transform`: world-to-camera, so the camera's own position is
+// -R^T t. Quaternion xyzw.
+export interface CameraFromMapTransform {
+  translation: { x: number; y: number; z: number };
+  rotation: { x: number; y: number; z: number; w: number };
+}
+
 export interface PairDetail {
   rank: number;
   image_id: number;
@@ -143,6 +150,10 @@ export interface PairDetail {
   reprojection_error_median: number | null;
   distance_m: number | null;
   view_angle_deg: number | null;
+  // The pose this database image supports on its own (PnP over its correspondences alone), null
+  // when it had too few inliers for one. Absent on runs localized before it was recorded.
+  camera_from_map_transform?: CameraFromMapTransform | null;
+  pose_num_inliers?: number;
   // Parallel arrays over this pair's raw matches. A negative reprojection error means
   // undefined, either because PnP never saw the match or because it reprojected nowhere real.
   query_xy: [number, number][];
@@ -161,6 +172,8 @@ export interface LocalizationDetail {
   num_query_keypoints: number;
   timings_ms: Record<string, number>;
   pairs: PairDetail[];
+  // The pooled estimate, kept when the confidence gate rejected it. Absent on older runs.
+  camera_from_map_transform?: CameraFromMapTransform | null;
   metrics: (LocalizationMetrics & { measurement_covariance: number[][]; pnp_covariance: number[][] }) | null;
   gate: { loose_min: number; tight_min: number; passed: boolean } | null;
   failure_reason: string | null;

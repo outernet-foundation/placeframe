@@ -152,6 +152,12 @@ function captureColor(rigIndices: Float64Array | null, poseIndex: number): numbe
 // Distinct from the reconstruction's own orange poses and from the RGB axis colors, so a handful
 // of overlaid localized query poses read immediately as "a different dataset."
 const LOCALIZED_POSE_COLOR = 0x9c27b0;
+// One query's candidate poses (the Details dialog's Visualize): what each retrieved map image
+// supports on its own, and the pooled estimate drawn over them. Away from the purple of the run's
+// poses and from each other, so "the candidates agree" and "the answer sits among them" both read
+// at a glance.
+export const PAIR_POSE_COLOR = 0x00acc1;
+export const QUERY_POSE_COLOR = 0xe53935;
 // Camera colours for the second and later clouds when several reconstructions are overlaid. The
 // first cloud keeps the per-capture palette above; these are chosen away from it (and from the
 // RGB axes) so each map's trail reads as its own at a glance.
@@ -420,6 +426,32 @@ export interface PointCloudSceneOptions {
   container: HTMLElement;
 }
 
+/** A camera pose in the map's frame (world_from_camera, quaternion xyzw) with the text drawn at it. */
+export interface LabelledPose {
+  position: [number, number, number];
+  orientation: [number, number, number, number];
+  label: string;
+}
+
+/**
+ * The camera's pose in the map from a localizer `camera_from_map_transform` (world-to-camera):
+ * the same inversion howard-test applies before writing a run's results.json, so a candidate
+ * lands in the frame the run's own poses are drawn in.
+ */
+export function poseFromCameraFromMap(
+  translation: { x: number; y: number; z: number },
+  rotation: { x: number; y: number; z: number; w: number },
+  label: string,
+): LabelledPose {
+  const worldFromCamera = new THREE.Quaternion(rotation.x, rotation.y, rotation.z, rotation.w).invert();
+  const position = new THREE.Vector3(translation.x, translation.y, translation.z).applyQuaternion(worldFromCamera).negate();
+  return {
+    position: [position.x, position.y, position.z],
+    orientation: [worldFromCamera.x, worldFromCamera.y, worldFromCamera.z, worldFromCamera.w],
+    label,
+  };
+}
+
 /** One reconstruction's geometry, as fetchPoints returns it, plus an id to address it by. */
 export interface CloudInput {
   id: string;
@@ -480,6 +512,7 @@ export class PointCloudScene {
   private localizedFrustums: THREE.LineSegments | null = null;
   private localizedAxes: THREE.LineSegments | null = null;
   private localizedLabels: THREE.Group | null = null;
+  private queryPoseObjects: THREE.Object3D[] = [];
 
   // The recentering offset setPoints computed (the point cloud's median center) — reused by
   // setLocalizedPoses so overlaid poses line up with the already-recentered scene.
@@ -589,6 +622,7 @@ export class PointCloudScene {
     this.localizedFrustums = null;
     this.localizedAxes = null;
     this.localizedLabels = null;
+    this.setQueryPoses([], null);
 
     clouds.forEach((c, layerIndex) => {
       const positions = new Float32Array(c.count * 3);
@@ -780,6 +814,34 @@ export class PointCloudScene {
 
   hasLocalizedPoses(): boolean {
     return this.localizedFrustums !== null;
+  }
+
+  // One query's candidates: a frustum per map image that yielded a pose of its own, and the pooled
+  // estimate larger and in its own colour on top. Labelled every one, since there are a dozen at
+  // most and the label is what ties a frustum back to its row in the Details table.
+  setQueryPoses(pairs: LabelledPose[], final: LabelledPose | null): void {
+    for (const object of this.queryPoseObjects) this.scene.remove(object);
+    this.queryPoseObjects = [];
+
+    const add = (poses: LabelledPose[], size: number, color: number) => {
+      if (poses.length === 0) return;
+      const positions = new Float32Array(poses.flatMap((p) => p.position));
+      const orientations = new Float32Array(poses.flatMap((p) => p.orientation));
+      const frustums = buildCameraFrustums(positions, orientations, poses.length, this.recenterOffset, size, color, 1);
+      const labels = buildPoseLabels(positions, poses.length, this.recenterOffset, size, 1, (i) => poses[i].label);
+      this.queryPoseObjects.push(frustums, labels);
+      this.scene.add(frustums, labels);
+    };
+    add(pairs, Math.max(this.cloudRadius * 0.06, 0.01), PAIR_POSE_COLOR);
+    add(final ? [final] : [], Math.max(this.cloudRadius * 0.12, 0.02), QUERY_POSE_COLOR);
+  }
+
+  // Orbit around a point of the map rather than the cloud's centre, close enough that a query's
+  // candidates fill the view instead of sitting as a speck in a map hundreds of metres across.
+  focusOn(position: [number, number, number]): void {
+    this.target.set(position[0] - this.recenterOffset.x, position[1] - this.recenterOffset.y, position[2] - this.recenterOffset.z);
+    this.distance = Math.max(this.cloudRadius * 0.5, this.minDistance);
+    this.updateCamera();
   }
 
   setLocCameraMode(mode: LocCameraMode): void {

@@ -1,10 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { fetchPoints, getLocalization, listReconstructions, saveScreenshot } from "../api";
-import type { Reconstruction } from "../types";
+import { fetchPoints, getLocalization, getLocalizationDetail, listReconstructions, saveScreenshot } from "../api";
+import type { LocalizationDetail, Reconstruction } from "../types";
 import {
   DEFAULT_POINT_SIZE,
+  PAIR_POSE_COLOR,
   PointCloudScene,
+  QUERY_POSE_COLOR,
   overlayCameraColor,
+  poseFromCameraFromMap,
+  type LabelledPose,
   type CameraMode,
   type LocCameraMode,
   type PointSize,
@@ -25,6 +29,37 @@ function reconstructionIdsFromUrl(): string[] {
 
 function localizationIdFromUrl(): string | null {
   return new URLSearchParams(window.location.search).get("localization");
+}
+
+// `&image=<index>` (with a localization run): that query's candidates, from its Details dialog.
+function imageIndexFromUrl(): number | null {
+  const raw = new URLSearchParams(window.location.search).get("image");
+  const index = raw === null ? NaN : Number(raw);
+  return Number.isInteger(index) ? index : null;
+}
+
+function hex(color: number): string {
+  return `#${color.toString(16).padStart(6, "0")}`;
+}
+
+// What the legend says about one query's candidates.
+interface QuerySummary {
+  index: number;
+  posed: number;
+  retrieved: number;
+  // Null when the attempt failed before PnP produced any pooled pose at all.
+  final: "accepted" | "rejected" | null;
+}
+
+// The query's candidates as poses to draw. Pair labels are the Details table's rank column, so a
+// frustum can be looked up there; the pooled one is labelled with the query's own index.
+function queryPoses(detail: LocalizationDetail, index: number): { pairs: LabelledPose[]; final: LabelledPose | null } {
+  const pairs = detail.pairs.flatMap((pair) => {
+    const t = pair.camera_from_map_transform;
+    return t ? [poseFromCameraFromMap(t.translation, t.rotation, `#${pair.rank}`)] : [];
+  });
+  const t = detail.camera_from_map_transform;
+  return { pairs, final: t ? poseFromCameraFromMap(t.translation, t.rotation, `query ${index}`) : null };
 }
 
 // What the legend calls a map: its capture, then its label (an aligned copy says what it was
@@ -51,6 +86,7 @@ export function ViewerPage() {
   const reconstructionIds = reconstructionIdsFromUrl();
   const reconstructionKey = reconstructionIds.join(",");
   const localizationId = localizationIdFromUrl();
+  const imageIndex = localizationId ? imageIndexFromUrl() : null;
   const containerRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<PointCloudScene | null>(null);
 
@@ -67,6 +103,7 @@ export function ViewerPage() {
   const [hasLocalizedPoses, setHasLocalizedPoses] = useState(false);
   const [locCameraMode, setLocCameraModeState] = useState<LocCameraMode>("frustum");
   const [layers, setLayers] = useState<Layer[]>([]);
+  const [querySummary, setQuerySummary] = useState<QuerySummary | null>(null);
 
   useEffect(() => {
     if (!containerRef.current || reconstructionIds.length === 0) return;
@@ -111,7 +148,11 @@ export function ViewerPage() {
         }
         if (!localizationId) return;
         const result = await getLocalization(localizationId);
-        const ok = result.images.filter((img) => img.status === "ok" && img.position && img.quaternion_xyzw);
+        // Viewing one query, its own run pose is the highlighted one below; drawing it in the run's
+        // colour as well would put two frustums on the same spot.
+        const ok = result.images.filter(
+          (img) => img.status === "ok" && img.position && img.quaternion_xyzw && img.index !== imageIndex,
+        );
         const positionsArray = new Float32Array(ok.length * 3);
         const orientationsArray = new Float32Array(ok.length * 4);
         // Label pose i with the image's *original* results.json index, not its position in this
@@ -130,6 +171,19 @@ export function ViewerPage() {
         });
         scene.setLocalizedPoses(positionsArray, orientationsArray, ok.length, labels);
         setHasLocalizedPoses(scene.hasLocalizedPoses());
+
+        if (imageIndex === null) return;
+        const detail = await getLocalizationDetail(localizationId, imageIndex);
+        const { pairs, final } = queryPoses(detail, imageIndex);
+        scene.setQueryPoses(pairs, final);
+        const focus = final ?? pairs[0];
+        if (focus) scene.focusOn(focus.position);
+        setQuerySummary({
+          index: imageIndex,
+          posed: pairs.length,
+          retrieved: detail.pairs.length,
+          final: final ? (detail.gate?.passed ? "accepted" : "rejected") : null,
+        });
       })
       .catch((err: unknown) => {
         setError(err instanceof Error ? err.message : String(err));
@@ -138,7 +192,7 @@ export function ViewerPage() {
 
     return () => scene.dispose();
     // The ids come from the URL; their joined string is the dependency that matters.
-  }, [reconstructionKey, localizationId]);
+  }, [reconstructionKey, localizationId, imageIndex]);
 
   function handleCameraModeChange(mode: CameraMode): void {
     setCameraModeState(mode);
@@ -292,6 +346,25 @@ export function ViewerPage() {
               </label>
             </div>
           ))}
+          {querySummary && (
+            <>
+              <div className="viewer-legend-row">
+                <span className="viewer-legend-swatch" style={{ background: hex(QUERY_POSE_COLOR) }} />
+                <span>
+                  {querySummary.final === null
+                    ? `query ${querySummary.index}: no pooled pose`
+                    : `query ${querySummary.index}: pooled pose (${querySummary.final} by the confidence gate)`}
+                </span>
+              </div>
+              <div className="viewer-legend-row">
+                <span className="viewer-legend-swatch" style={{ background: hex(PAIR_POSE_COLOR) }} />
+                <span>
+                  pose from each map image on its own: {querySummary.posed} of {querySummary.retrieved} retrieved
+                  (labels are the Details table's #)
+                </span>
+              </div>
+            </>
+          )}
         </div>
       )}
 

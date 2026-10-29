@@ -91,7 +91,12 @@ export function RunResults({ runId }: { runId: string }) {
         </tbody>
       </table>
       {inspecting && (
-        <DetailsDialog runId={runId} image={inspecting} onClose={() => setInspecting(null)} />
+        <DetailsDialog
+          runId={runId}
+          reconstructionId={result.reconstruction_id}
+          image={inspecting}
+          onClose={() => setInspecting(null)}
+        />
       )}
     </>
   );

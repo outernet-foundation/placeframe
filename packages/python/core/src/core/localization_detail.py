@@ -19,6 +19,7 @@ from pydantic import BaseModel
 
 from .camera_config import PinholeCameraConfig
 from .localization_metrics import LocalizationMetrics
+from .transform import Transform
 
 # `status` values for a raw LightGlue match. A match only becomes a 2D-3D correspondence
 # if the database keypoint carries a triangulated point, so NO_POINT3D records matches the
@@ -50,6 +51,15 @@ class PairDetail(BaseModel):
     # Both are None when the query produced no pose to measure against.
     distance_m: float | None
     view_angle_deg: float | None
+
+    # The pose this database image supports on its own: PnP over this pair's correspondences
+    # alone, with the camera and RANSAC settings of the pooled estimate, in the same form and
+    # axis convention as the response's `camera_from_map_transform`. The pooled pose is only as
+    # good as the agreement behind it, and a pair that lands somewhere else is a candidate
+    # pulling the other way -- which the pooled inlier count alone cannot show. None when the
+    # pair had too few correspondences, or PnP failed or kept too few inliers to mean anything.
+    camera_from_map_transform: Transform | None = None
+    pose_num_inliers: int = 0
 
     # Parallel arrays over this pair's raw matches, in the matcher's own order. Typed as
     # list[list[float]] rather than list[tuple[float, float]] deliberately: a fixed-length
@@ -83,6 +93,10 @@ class LocalizationDetail(BaseModel):
 
     timings_ms: dict[str, float]
     pairs: list[PairDetail]
+
+    # The pooled estimate, kept when the confidence gate rejects it too: a rejected query's pose
+    # is otherwise discarded with the answer, though it is exactly the one worth looking at.
+    camera_from_map_transform: Transform | None = None
 
     # Absent when the attempt failed before metrics could be built.
     metrics: LocalizationMetrics | None = None

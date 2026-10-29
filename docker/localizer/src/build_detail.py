@@ -7,8 +7,9 @@ cost more to serialize than the pose they explain.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
+from core.axis_convention import AxisConvention, change_basis_unity_from_opencv_pose
 from core.calibration import CalibrationArtifact
 from core.camera_config import PinholeCameraConfig
 from core.image_preprocess import canonicalize_intrinsics
@@ -22,11 +23,53 @@ from core.localization_detail import (
     PairDetail,
 )
 from core.localization_metrics import LocalizationMetrics
-from numpy import arccos, asarray, clip, degrees, float64, isfinite, median
+from core.transform import Float3, Float4, Transform
+from numpy import arccos, asarray, clip, degrees, float64, isfinite, median, vstack
 from numpy.linalg import norm
-from pycolmap._core import Rigid3d  # type: ignore  # noqa: PLC2701 — no public API
+from pycolmap import AbsolutePoseEstimationOptions
+from pycolmap import Camera as ColmapCamera
+from pycolmap._core import Rigid3d, estimate_and_refine_absolute_pose  # type: ignore  # noqa: PLC2701 — no public API
+from scipy.spatial.transform import Rotation
 
 from .map import Map
+
+# A pair's own pose is drawn next to the pooled one as evidence for or against it, so it has to
+# rest on enough points to be a pose at all: PnP needs four, and RANSAC on a dozen-odd
+# correspondences "succeeds" on nearly anything. Below this many inliers the pair gets no pose.
+PAIR_POSE_MIN_INLIERS = 12
+
+
+def camera_from_map_transform(cam_from_world: Rigid3d, axis_convention: AxisConvention) -> Transform:
+    """A COLMAP `cam_from_world` pose in the response's form and axis convention."""
+    translation = asarray(cam_from_world.translation, dtype=float64)
+    rotation = asarray(cam_from_world.rotation.matrix(), dtype=float64)
+    if axis_convention == AxisConvention.UNITY:
+        translation, rotation = change_basis_unity_from_opencv_pose(translation, rotation)
+    quaternion = Rotation.from_matrix(rotation).as_quat()
+    return Transform(
+        translation=Float3(x=translation[0], y=translation[1], z=translation[2]),
+        rotation=Float4(x=quaternion[0], y=quaternion[1], z=quaternion[2], w=quaternion[3]),
+    )
+
+
+def _pair_pose(
+    query_points: list[Any],
+    map_points: list[Any],
+    pycolmap_camera: ColmapCamera,
+    estimation_options: AbsolutePoseEstimationOptions,
+) -> tuple[Rigid3d, int] | None:
+    """PnP over one pair's correspondences alone, or None when it does not yield a usable pose."""
+    if len(query_points) < PAIR_POSE_MIN_INLIERS:
+        return None
+    result = cast(
+        dict[str, Any] | None,
+        estimate_and_refine_absolute_pose(
+            vstack(query_points), vstack(map_points), pycolmap_camera, estimation_options
+        ),
+    )
+    if result is None or int(result["num_inliers"]) < PAIR_POSE_MIN_INLIERS:
+        return None
+    return cast(Rigid3d, result["cam_from_world"]), int(result["num_inliers"])
 
 
 def _camera_centre_and_axis(pose: Rigid3d) -> tuple[Any, Any]:
@@ -51,6 +94,9 @@ def build_localization_detail(
     inlier_mask: Any | None,
     reprojection_errors: Any | None,
     cam_from_world: Rigid3d | None,
+    pycolmap_camera: ColmapCamera,
+    estimation_options: AbsolutePoseEstimationOptions,
+    axis_convention: AxisConvention,
     top_k: int,
     ransac_threshold: float,
     num_query_keypoints: int,
@@ -86,6 +132,8 @@ def build_localization_detail(
         num_inliers = 0
         num_correspondences = 0
         inlier_residuals: list[float] = []
+        pair_query_points: list[Any] = []
+        pair_map_points: list[Any] = []
 
         for slot in range(len(database_indices)):
             database_index = int(database_indices[slot])
@@ -108,6 +156,9 @@ def build_localization_detail(
                 continue
 
             num_correspondences += 1
+            pair_query_points.append(query_keypoints[query_index])
+            point3d_id = map.images[image_id].points2D[database_index].point3D_id
+            pair_map_points.append(map.points3D[point3d_id].xyz)
             residual = float(reprojection_errors[correspondence]) if reprojection_errors is not None else -1.0
             # A correspondence whose 3D point falls behind the estimated camera projects to
             # NaN or infinity. Left alone it serializes as JSON `null`, which the generated
@@ -138,6 +189,8 @@ def build_localization_detail(
             cosine = float(database_axis @ query_axis)
             view_angle_deg = float(degrees(arccos(clip(cosine, -1.0, 1.0))))
 
+        pair_pose = _pair_pose(pair_query_points, pair_map_points, pycolmap_camera, estimation_options)
+
         pairs.append(
             PairDetail(
                 rank=rank,
@@ -154,6 +207,10 @@ def build_localization_detail(
                 reprojection_error_median=float(median(inlier_residuals)) if inlier_residuals else None,
                 distance_m=distance_m,
                 view_angle_deg=view_angle_deg,
+                camera_from_map_transform=(
+                    camera_from_map_transform(pair_pose[0], axis_convention) if pair_pose is not None else None
+                ),
+                pose_num_inliers=pair_pose[1] if pair_pose is not None else 0,
                 query_xy=query_xy,
                 database_xy=database_xy,
                 status=status,
@@ -185,6 +242,9 @@ def build_localization_detail(
         num_query_keypoints=num_query_keypoints,
         timings_ms={name: value * 1000.0 for name, value in timings.items()},
         pairs=pairs,
+        camera_from_map_transform=(
+            camera_from_map_transform(cam_from_world, axis_convention) if cam_from_world is not None else None
+        ),
         metrics=metrics,
         gate=gate,
         failure_reason=failure_reason,

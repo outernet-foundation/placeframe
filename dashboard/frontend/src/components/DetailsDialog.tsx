@@ -49,12 +49,24 @@ function formatNumber(value: number | null, digits = 2): string {
   return value === null || Number.isNaN(value) ? "—" : value.toFixed(digits);
 }
 
+// The run's viewer, narrowed to this query: its candidates (one pose per map image, and the pooled
+// estimate) drawn over the run's poses and the map.
+function openQueryViewer(reconstructionId: string, runId: string, index: number): void {
+  window.open(
+    `/viewer?reconstruction=${reconstructionId}&localization=${runId}&image=${index}`,
+    "_blank",
+    "width=1280,height=900",
+  );
+}
+
 export function DetailsDialog({
   runId,
+  reconstructionId,
   image,
   onClose,
 }: {
   runId: string;
+  reconstructionId: string;
   image: LocalizationImage;
   onClose: () => void;
 }) {
@@ -172,6 +184,11 @@ export function DetailsDialog({
       [MATCH_NO_POINT3D]: pair.num_matches - pair.num_correspondences,
     } as Record<number, number>;
   }, [pair]);
+
+  // Nothing to draw for a query that produced no pose at all, nor for a run localized before the
+  // localizer recorded poses in its detail.
+  const hasPoses =
+    !!detail && (!!detail.camera_from_map_transform || detail.pairs.some((p) => !!p.camera_from_map_transform));
 
   // Portalled to <body> rather than rendered where it is used. This dialog is opened from a row
   // inside the results table, and an overlay rendered there is laid out against its ancestors
@@ -296,6 +313,17 @@ export function DetailsDialog({
         )}
 
         <div className="dialog-actions">
+          <button
+            onClick={() => openQueryViewer(reconstructionId, runId, image.index)}
+            disabled={!hasPoses}
+            title={
+              hasPoses
+                ? "Show the pose from each matched map image and the final estimate in 3D"
+                : "No poses recorded for this query (runs localized before per-image poses were added need re-running)"
+            }
+          >
+            Visualize
+          </button>
           <button onClick={onClose}>Close</button>
         </div>
       </div>

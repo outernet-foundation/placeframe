@@ -12,14 +12,24 @@ from unittest.mock import MagicMock
 
 import numpy as np
 import pytest
+from core.axis_convention import AxisConvention, change_basis_unity_from_opencv_pose
 from core.calibration import CalibrationArtifact
 from core.camera_config import PinholeCameraConfig
 from core.lightglue import Keypoints
 from core.localization_detail import MATCH_INLIER, MATCH_NO_POINT3D, MATCH_OUTLIER
+from numpy.testing import assert_allclose
+from pycolmap import AbsolutePoseEstimationOptions
+from pycolmap import Camera as ColmapCamera
 from pycolmap._core import Rigid3d, Rotation3d  # type: ignore  # noqa: PLC2701 — no public API
+from scipy.spatial.transform import Rotation
 from torch import tensor
 
-from src.build_detail import build_localization_detail
+from src.build_detail import PAIR_POSE_MIN_INLIERS, build_localization_detail, camera_from_map_transform
+from src.build_detail import _pair_pose  # noqa: PLC2701  # pyright: ignore[reportPrivateUsage] — testing private helper
+
+# Only reached by a pair with enough correspondences for its own PnP; the attribution tests
+# below have a handful, so for them it is never used.
+PNP_CAMERA = ColmapCamera(width=1024, height=768, model="PINHOLE", params=[800.0, 800.0, 512.0, 384.0])
 
 
 def _identity_pose() -> Rigid3d:
@@ -84,6 +94,9 @@ class TestMatchAttribution:
             inlier_mask=np.array([True, False, True]),
             reprojection_errors=np.array([1.5, 42.0, 2.5]),
             cam_from_world=_identity_pose(),
+            pycolmap_camera=PNP_CAMERA,
+            estimation_options=AbsolutePoseEstimationOptions(),
+            axis_convention=AxisConvention.OPENCV,
             top_k=2,
             ransac_threshold=8.0,
             num_query_keypoints=3,
@@ -150,6 +163,15 @@ class TestMatchAttribution:
 
         assert detail.timings_ms["pnp"] == pytest.approx(12.0)
 
+    def test_pooled_pose_is_reported_and_thin_pairs_get_none_of_their_own(self, camera: PinholeCameraConfig) -> None:
+        detail = self._build(camera)
+
+        assert detail.camera_from_map_transform is not None
+        assert detail.camera_from_map_transform.rotation.w == pytest.approx(1.0)
+        # One or two correspondences each: far too few for a pose a pair could stand behind.
+        assert [pair.camera_from_map_transform for pair in detail.pairs] == [None, None]
+        assert [pair.pose_num_inliers for pair in detail.pairs] == [0, 0]
+
 
 class TestFailedAttempt:
     def test_pairs_survive_with_no_pose_and_no_metrics(self, camera: PinholeCameraConfig) -> None:
@@ -165,6 +187,9 @@ class TestFailedAttempt:
             inlier_mask=None,
             reprojection_errors=None,
             cam_from_world=None,
+            pycolmap_camera=PNP_CAMERA,
+            estimation_options=AbsolutePoseEstimationOptions(),
+            axis_convention=AxisConvention.OPENCV,
             top_k=1,
             ransac_threshold=8.0,
             num_query_keypoints=1,
@@ -182,3 +207,65 @@ class TestFailedAttempt:
         assert detail.pairs[0].status == [MATCH_NO_POINT3D]
         # Without a pose there is nothing to measure a distance against.
         assert detail.pairs[0].distance_m is None
+        assert detail.camera_from_map_transform is None
+
+
+def _pnp_pose() -> Rigid3d:
+    rotation = Rotation.from_euler("xyz", [5.0, -20.0, 3.0], degrees=True)
+    return Rigid3d(Rotation3d(np.asarray(rotation.as_quat(), dtype=np.float64)), np.array([0.3, -0.1, 2.0]))
+
+
+def _observations(count: int, seed: int = 0) -> tuple[list[Any], list[Any]]:
+    """Map points in front of `_pnp_pose()` and their exact projections."""
+    pose = _pnp_pose()
+    rng = np.random.default_rng(seed)
+    in_camera = np.column_stack([rng.uniform(-2, 2, count), rng.uniform(-1.5, 1.5, count), rng.uniform(4, 9, count)])
+    world = (in_camera - pose.translation) @ pose.rotation.matrix()
+    pixels = PNP_CAMERA.img_from_cam(cam_points=in_camera)
+    return list(pixels), list(world)
+
+
+class TestPairPose:
+    def test_recovers_the_pose_its_correspondences_imply(self) -> None:
+        pixels, world = _observations(60)
+        result = _pair_pose(pixels, world, PNP_CAMERA, AbsolutePoseEstimationOptions())
+
+        assert result is not None
+        estimate, inliers = result
+        assert inliers == 60
+        assert_allclose(estimate.rotation.matrix(), _pnp_pose().rotation.matrix(), atol=1e-6)
+        assert_allclose(estimate.translation, _pnp_pose().translation, atol=1e-6)
+
+    def test_too_few_correspondences_give_no_pose(self) -> None:
+        pixels, world = _observations(PAIR_POSE_MIN_INLIERS - 1)
+
+        assert _pair_pose(pixels, world, PNP_CAMERA, AbsolutePoseEstimationOptions()) is None
+
+    def test_too_few_inliers_give_no_pose(self) -> None:
+        # Enough correspondences, but nearly all of them nonsense: the handful that agree must
+        # not be passed off as this pair's pose.
+        pixels, world = _observations(40)
+        rng = np.random.default_rng(1)
+        for i in range(PAIR_POSE_MIN_INLIERS - 4, 40):
+            pixels[i] = rng.uniform([0, 0], [1024, 768])
+
+        assert _pair_pose(pixels, world, PNP_CAMERA, AbsolutePoseEstimationOptions()) is None
+
+
+class TestCameraFromMapTransform:
+    def test_opencv_passes_the_pose_through(self) -> None:
+        transform = camera_from_map_transform(_pnp_pose(), AxisConvention.OPENCV)
+        t, q = transform.translation, transform.rotation
+
+        assert_allclose([t.x, t.y, t.z], _pnp_pose().translation)
+        assert_allclose(Rotation.from_quat([q.x, q.y, q.z, q.w]).as_matrix(), _pnp_pose().rotation.matrix(), atol=1e-12)
+
+    def test_unity_changes_basis_as_the_response_does(self) -> None:
+        transform = camera_from_map_transform(_pnp_pose(), AxisConvention.UNITY)
+        translation, rotation = change_basis_unity_from_opencv_pose(
+            _pnp_pose().translation, _pnp_pose().rotation.matrix()
+        )
+        t, q = transform.translation, transform.rotation
+
+        assert_allclose([t.x, t.y, t.z], translation)
+        assert_allclose(Rotation.from_quat([q.x, q.y, q.z, q.w]).as_matrix(), rotation, atol=1e-12)

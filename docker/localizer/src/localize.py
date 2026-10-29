@@ -5,7 +5,7 @@ from os import environ
 from time import perf_counter
 from typing import Any, cast
 
-from core.axis_convention import AxisConvention, change_basis_unity_from_opencv_pose
+from core.axis_convention import AxisConvention
 from core.camera_config import PinholeCameraConfig
 from core.image_preprocess import canonicalize_image, canonicalize_intrinsics
 from core.lightglue import Descriptors, Keypoints, MatchIndices
@@ -20,16 +20,15 @@ from core.model_wrappers import (
 from core.opq import decode_descriptors
 from core.model_wrappers import RetrievalDim
 from core.tensor_types import TT
-from core.transform import Float3, Float4, Transform
+from core.transform import Transform
 from numpy import asarray, float32, float64, vstack
 from numpy.linalg import norm
 from pycolmap import AbsolutePoseEstimationOptions, RANSACOptions
 from pycolmap import Camera as ColmapCamera
 from pycolmap._core import Rigid3d, estimate_and_refine_absolute_pose, set_random_seed  # type: ignore  # noqa: PLC2701 — no public API
-from scipy.spatial.transform import Rotation
 from torch import Tensor, cuda, inference_mode, manual_seed, topk  # type: ignore
 
-from .build_detail import build_localization_detail
+from .build_detail import build_localization_detail, camera_from_map_transform
 from .build_metrics import build_localization_metrics
 from core.calibration import CalibrationArtifact
 from .map import Map
@@ -116,6 +115,16 @@ def localize_image_against_reconstruction(
             cuda.synchronize()
 
     t0 = perf_counter()
+
+    # Create COLMAP camera model
+    width, height, *params = canonicalize_intrinsics(camera)
+    pycolmap_camera = ColmapCamera(width=width, height=height, model="PINHOLE", params=params)
+
+    # Set estimation options
+    ransac_options = RANSACOptions()
+    ransac_options.max_error = ransac_threshold if ransac_threshold is not None else RANSAC_THRESHOLD_DEFAULT
+    estimation_options = AbsolutePoseEstimationOptions()
+    estimation_options.ransac = ransac_options
 
     # Extract features from query image
     image = canonicalize_image(image_buffer, camera.orientation)
@@ -225,6 +234,9 @@ def localize_image_against_reconstruction(
             inlier_mask=inlier_mask,
             reprojection_errors=reprojection_errors,
             cam_from_world=cam_from_world,
+            pycolmap_camera=pycolmap_camera,
+            estimation_options=estimation_options,
+            axis_convention=axis_convention,
             top_k=top_k,
             ransac_threshold=ransac_threshold if ransac_threshold is not None else RANSAC_THRESHOLD_DEFAULT,
             num_query_keypoints=int(keypoints["query"].shape[0]),
@@ -239,16 +251,6 @@ def localize_image_against_reconstruction(
         raise LocalizationError(
             "No matching keypoints found", _detail(None, None, None, None, "No matching keypoints found")
         )
-
-    # Create COLMAP camera model
-    width, height, *params = canonicalize_intrinsics(camera)
-    pycolmap_camera = ColmapCamera(width=width, height=height, model="PINHOLE", params=params)
-
-    # Set estimation options
-    ransac_options = RANSACOptions()
-    ransac_options.max_error = ransac_threshold if ransac_threshold is not None else RANSAC_THRESHOLD_DEFAULT
-    estimation_options = AbsolutePoseEstimationOptions()
-    estimation_options.ransac = ransac_options
 
     # Estimate pose
     t = perf_counter()
@@ -276,19 +278,9 @@ def localize_image_against_reconstruction(
         camera_frame_points = (colmap_rotation @ points3D.T).T + colmap_translation[None, :]
         correspondence_residuals = norm(pycolmap_camera.img_from_cam(cam_points=camera_frame_points) - points2D, axis=1)
 
-    # Change basis if needed
+    # Build final transform, changing basis if needed
     cam_from_world = cast(Rigid3d, pnp_result["cam_from_world"])
-    translation = cam_from_world.translation
-    rotation = cam_from_world.rotation.matrix()
-    if axis_convention == AxisConvention.UNITY:
-        translation, rotation = change_basis_unity_from_opencv_pose(translation, rotation)
-    rotation = Rotation.from_matrix(rotation).as_quat()
-
-    # Build final transform
-    transform = Transform(
-        translation=Float3(x=translation[0], y=translation[1], z=translation[2]),
-        rotation=Float4(x=rotation[0], y=rotation[1], z=rotation[2], w=rotation[3]),
-    )
+    transform = camera_from_map_transform(cam_from_world, axis_convention)
 
     # Build metrics
     metrics = build_localization_metrics(
