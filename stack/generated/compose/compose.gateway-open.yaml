@@ -1,0 +1,13 @@
+name: placeframe
+services:
+  gateway:
+    annotations:
+      compose.score.dev/workload-name: gateway
+      outernet.internal/publish: ${GATEWAY_PORT:-8443}/8443
+    environment:
+      PUBLIC_URL: ${PUBLIC_URL:?err}
+    hostname: gateway
+    image: ghcr.io/outernet-foundation/placeframe/gateway:tree-d4a9cf7ad8d7160b425cf693bbc4d206e6936bdf
+    ports:
+    - target: 8443
+      published: ${GATEWAY_PORT:-8443}
