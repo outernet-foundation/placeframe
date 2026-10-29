@@ -65,11 +65,6 @@
         seaweedfs:
           condition: service_healthy
       command: admin -ip=0.0.0.0 -port=59001 -port.grpc=59002 -master=seaweedfs:9333 -adminPassword="${S3_SECRET_KEY:?err}"
-      ports:
-      - target: 59001
-        published: "${SEAWEEDFS_ADMIN_PORT:?err}"
-        protocol: tcp
-        mode: ingress
     # Converges the required buckets (verify if present, create if missing) and retries
     # until the S3 endpoint accepts connections — safe on both cold and warm volumes.
     # Gated on seaweedfs health, which asserts S3 readiness.

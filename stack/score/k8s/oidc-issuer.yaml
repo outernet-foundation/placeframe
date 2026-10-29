@@ -1,78 +1,33 @@
 # OIDC issuer provisioner (Kubernetes): local counterpart of compose/oidc-issuer.yaml.
-# Keycloak is operator-first on this tier: the official keycloak-operator chart (declared
-# under generate-score.charts) renders the operator Deployment plus CRDs, and this
-# provisioner emits the Keycloak CR the operator reconciles into a StatefulSet and a
-# Service named `<cr>-service` (keycloak-service). The ExternalName Service keeps the
-# `keycloak` DNS name load-bearing for the gateway auth snippets — one snippet source,
-# both renderings. The realm is converged post-boot by the configurator Job over the
-# admin API: operator-managed pods carry no initContainers, and KeycloakRealmImport
-# cannot resolve holes (no secretKeyRef in CRs, no generation-time secrets).
+# The keycloak Deployment is the keycloak workload container rendered by score-k8s, and
+# the workload's own Service is `keycloak` — the single-sourced keycloak:8080 references
+# resolve natively, with no ExternalName alias. This provisioner carries the workload's
+# env surface (the lock-pinned image digest; credentials and hostname from the externally
+# managed placeframe-secrets Secret — score-k8s has no configMap equivalent, so non-secret
+# config rides the same Secret) plus the realm configurator Job: the configurator polls
+# readiness itself (backoff absorbs keycloak's boot), carrying the same Sync-hook shape
+# as the create/bucket Jobs (immutable spec.template under Argo).
 #
-# Hostname, admin password, lifespans, and the public URL come from the externally
-# managed placeframe-secrets Secret; no values are emitted here. Keycloak state is
-# ephemeral H2 until a db spec lands — realm (re)configuration is idempotent and users
-# are dev-tier. certs_url references the Secret rather than emitting the keycloak
-# literal because the api treats issuer-unset with any auth endpoint set as a boot
-# error — anonymous mode must read an empty AUTH_JWKS_URL from the Secret.
+# Keycloak state is ephemeral H2 — realm (re)configuration is idempotent and users are
+# dev-tier. certs_url references the Secret rather than emitting the keycloak literal
+# because the api treats issuer-unset with any auth endpoint set as a boot error —
+# anonymous mode must read an empty AUTH_JWKS_URL from the Secret.
 - uri: template://placeframe/oidc-issuer-k8s
   type: oidc-issuer
-  description: Operator-managed keycloak with the realm converged by the admin-API configurator.
+  description: Keycloak env surface with the realm converged by the admin-API configurator.
   state:
     instance: keycloak
     realm: placeframe-dev
   outputs:
+    admin_password: '{{ encodeSecretRef "placeframe-secrets" "KEYCLOAK_ADMIN_PASSWORD" }}'
+    hostname: '{{ encodeSecretRef "placeframe-secrets" "KEYCLOAK_HOSTNAME" }}'
     certs_url: '{{ encodeSecretRef "placeframe-secrets" "AUTH_JWKS_URL" }}'
     realm: "{{ .State.realm }}"
   manifests:
-    - apiVersion: k8s.keycloak.org/v1
-      kind: Keycloak
-      metadata:
-        name: "{{ .State.instance }}"
-      spec:
-        instances: 1
-        # The mirrored image is not build-time augmented, so the operator must not
-        # assume --optimized applies.
-        startOptimized: false
-        image:
-          lock: KEYCLOAK_IMAGE
-        http:
-          httpEnabled: true
-          httpPort: 8080
-          serviceHttpPort: 8080
-        proxy:
-          headers: xforwarded
-        env:
-        - name: KC_BOOTSTRAP_ADMIN_USERNAME
-          value: admin
-        - name: KC_BOOTSTRAP_ADMIN_PASSWORD
-          secret:
-            name: placeframe-secrets
-            key: KEYCLOAK_ADMIN_PASSWORD
-        - name: KC_HOSTNAME
-          secret:
-            name: placeframe-secrets
-            key: KEYCLOAK_HOSTNAME
-        - name: KC_HOSTNAME_ADMIN
-          secret:
-            name: placeframe-secrets
-            key: KEYCLOAK_HOSTNAME
-        - name: KC_HOSTNAME_STRICT_HTTPS
-          value: "true"
-    - apiVersion: v1
-      kind: Service
-      metadata:
-        name: "{{ .State.instance }}"
-      spec:
-        type: ExternalName
-        externalName: "{{ .State.instance }}-service"
     - apiVersion: batch/v1
       kind: Job
       metadata:
         name: "{{ .State.instance }}-realm"
-        # Same Sync-hook shape as the create/bucket Jobs (immutable spec.template under
-        # Argo). The configurator polls readiness itself, so no hook weight could make
-        # this wait on the operator-managed StatefulSet anyway — poll-retry absorbs the
-        # ordering, including the operator's own startup delay on a cold cluster.
         annotations:
           argocd.argoproj.io/hook: Sync
           argocd.argoproj.io/hook-weight: "10"
@@ -87,7 +42,7 @@
               image: ghcr.io/outernet-foundation/placeframe/auth-initializer:{{ env "AUTH_INITIALIZER_SHA" }}
               env:
               - name: KEYCLOAK_URL
-                value: http://{{ .State.instance }}-service:8080
+                value: http://{{ .State.instance }}:8080
               - name: KC_BOOTSTRAP_ADMIN_USERNAME
                 value: admin
               - name: KC_BOOTSTRAP_ADMIN_PASSWORD

@@ -2,7 +2,7 @@
 # mode on the shared SeaweedFS), alloy (OTLP relay), grafana (query UI) — plus the
 # initialize-loki chown sidecar. Ported from the hand compose stack, which this
 # replaces. Service names are load-bearing DNS names: the api/lease-server
-# OTEL endpoints address `alloy`, the gateway Caddyfile proxies `loki:3100` and
+# OTEL endpoints address `alloy`, the edge routes `loki:3100` and
 # `grafana:3000`, and loki's committed config addresses `seaweedfs:8333`.
 #
 # Configs ride binds of the committed workloads/*/config.* paths — the generation
@@ -89,11 +89,6 @@
       depends_on:
         loki:
           condition: service_healthy
-      ports:
-      - target: 3000
-        published: "${GRAFANA_PORT:?err}"
-        protocol: tcp
-        mode: ingress
       healthcheck:
         test:
           [
