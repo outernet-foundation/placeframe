@@ -35,7 +35,7 @@ else:
 
     middleware = [partial(AuthMiddleware, exclude=EXCLUDE_FROM_AUTH)]
 
-    if settings.auth_mode == "disabled":
+    if settings.auth_issuer_url is None:
         openapi_config = OpenAPIConfig(
             "Placeframe",
             "0.1.0",
@@ -74,8 +74,8 @@ else:
                         type="oauth2",
                         flows=OAuthFlows(
                             authorization_code=OAuthFlow(
-                                authorization_url=str(settings.auth_url),
-                                token_url=str(settings.auth_token_url),
+                                authorization_url=str(settings.auth_authorization_endpoint),
+                                token_url=str(settings.auth_token_endpoint),
                                 scopes={"openid": "OpenID scope", "email": "Email", "profile": "Profile"},
                             )
                         ),
