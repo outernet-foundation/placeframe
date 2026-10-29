@@ -12,10 +12,10 @@ if [[ "${RELOAD:-}" == "true" ]]; then
   UVICORN_ARGS+=( "--reload" "--reload-dir" "/app/workloads/lease-server/src" "--reload-dir" "/app/packages/generated/python/datamodels/src" "--reload-dir" "/app/packages/python/common/src" "--reload-dir" "/app/packages/python/core/src" )
 fi
 
-if [[ "${DEBUG:-}" == "true" ]]; then
+if [[ "${DEBUG_LEASE_SERVER:-}" == "true" ]]; then
   echo "Debug mode enabled"
   DEBUG_WAIT_FLAG=()
-  if [[ "${DEBUG_WAIT:-}" == "true" ]]; then
+  if [[ "${DEBUG_WAIT_LEASE_SERVER:-}" == "true" ]]; then
     echo "Waiting for debugger to attach"
     DEBUG_WAIT_FLAG+=( "--wait-for-client" )
   fi

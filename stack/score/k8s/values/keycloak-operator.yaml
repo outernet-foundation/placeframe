@@ -1,0 +1,17 @@
+# Values for the keycloak-operator chart (quay.io/keycloak/keycloak-operator-helm,
+# digest-pinned in docker-devkit.yaml). The operator deploys no keycloak by itself —
+# the oidc-issuer provisioner emits the Keycloak CR it reconciles, with the server
+# image digest-pinned there. These overrides pin the operator Deployment's own image
+# and the two fallback server refs it injects as env defaults, all through the org
+# mirror per the image laws.
+operator:
+  image:
+    lock: KEYCLOAK_OPERATOR_IMAGE
+  envs:
+    RELATED_IMAGE_KEYCLOAK:
+      lock: KEYCLOAK_IMAGE
+    kc:
+      operator:
+        keycloak:
+          image:
+            lock: KEYCLOAK_IMAGE
