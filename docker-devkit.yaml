@@ -1,32 +1,64 @@
-requires: ">=0.4"
-lifecycle:
-  files:
-    - compose.yml
-    - compose.postgres.yml
-    - compose.{gpu}.yml
-  dev_file: compose.dev.yml
-mirror:
-  prefix: ghcr.io/outernet-foundation/mirror
-generate-score:
+requires: ">=0.5.4"
+repository: ghcr.io/outernet-foundation/placeframe
+project_name: placeframe
+
+base_images:
+  UV_BASE_IMAGE: "ghcr.io/astral-sh/uv:0.12.15-python3.13-trixie-slim"
+  GOLANG_IMAGE: "docker.io/library/golang:1.22-alpine"
+  ALPINE_IMAGE: "docker.io/library/alpine:3.20"
+  CADDY_IMAGE: "docker.io/library/caddy:2.8.4-alpine"
+  POSTGRES_BOOKWORM_IMAGE: "docker.io/library/postgres:16-bookworm"
+  LOKI_IMAGE: "docker.io/grafana/loki:3.5.0"
+  ALLOY_IMAGE: "docker.io/grafana/alloy:v1.9.0"
+  GRAFANA_IMAGE: "docker.io/grafana/grafana:11.6.0"
+  POSTGIS_IMAGE: "docker.io/postgis/postgis:16-3.4-alpine"
+  SEAWEEDFS_IMAGE: "docker.io/chrislusf/seaweedfs:4.47"
+  KEYCLOAK_IMAGE: "quay.io/keycloak/keycloak:26.8.1"
+  KEYCLOAK_OPERATOR_IMAGE: "quay.io/keycloak/keycloak-operator:26.8.1"
+  NGROK_IMAGE: "docker.io/ngrok/ngrok:alpine"
+  SEAWEEDFS_AUDIT_IMAGE: "docker.io/fluent/fluent-bit:5.1.2"
+  INITIALIZE_S3_IMAGE: "docker.io/amazon/aws-cli:2.36.9"
+
+bundles:
+  core-cuda:
+    workloads:
+      - api.yaml
+      - lease-server.yaml
+      - reconstructor.yaml
+      - localizer.yaml
+    vars:
+      GPU_VARIANT: cuda
+  core-rocm:
+    workloads:
+      - api.yaml
+      - lease-server.yaml
+      - reconstructor.yaml
+      - localizer.yaml
+    vars:
+      GPU_VARIANT: rocm
+  gateway-open:
+    workloads:
+      - gateway-open.yaml
+  gateway-keycloak:
+    workloads:
+      - gateway-keycloak.yaml
+  tunnel-ngrok:
+    workloads:
+      - tunnel-ngrok.yaml
+
+k8s:
   workloads:
     - api.yaml
     - lease-server.yaml
-    - gateway.yaml
-  project_name: placeframe
-  cloud_storage_class: hcloud-volumes
-  local_storage_class: local-path
-  compose_provisioners:
-    - placeframe-postgres.provisioners.yaml
-    - placeframe-config.provisioners.yaml
-    - placeframe-keycloak.provisioners.yaml
-    - placeframe-s3.provisioners.yaml
-  compose_patch_templates:
-    - restart-policy.tpl
-  k8s_provisioners:
-    - placeframe-postgres.k8s.provisioners.yaml
-    - placeframe-minio.k8s.provisioners.yaml
-    - placeframe-config.k8s.provisioners.yaml
-    - placeframe-keycloak.k8s.provisioners.yaml
-  publishes:
-    - "8000:api:8000"
-    - "8443:gateway:8443"
+    - gateway-keycloak.yaml
+    - reconstructor.yaml
+    - localizer.yaml
+  vars:
+    GPU_VARIANT: cuda
+    RELOAD: "false"
+    DEBUG_API: "false"
+    DEBUG_WAIT_API: "false"
+  charts:
+    loki: "oci://ghcr.io/grafana/helm-charts/loki:7.3.0"
+    grafana: "oci://ghcr.io/grafana/helm-charts/grafana:10.5.15"
+    keycloak-operator: "oci://quay.io/keycloak/keycloak-operator-helm:26.8.1"
