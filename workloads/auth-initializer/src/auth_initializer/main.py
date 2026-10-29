@@ -1,94 +1,166 @@
-# Vibe code - Gemini 3
-import sys
+import json
+import os
+import re
+import time
 from pathlib import Path
 
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import rsa
+from typing import Any
 
-# Paths match the volume mounts defined in the proposed compose.yml
-PRIVATE_KEY_PATH = Path("/auth_data/worker-private-key.pem")
+import httpx
+
 TEMPLATE_PATH = Path("/templates/placeframe.json")
-OUTPUT_PATH = Path("/keycloak_import/placeframe.json")
-PLACEHOLDER = "${WORKER_PUBLIC_KEY_PLACEHOLDER}"
-
-
-def get_clean_public_key(private_key: rsa.RSAPrivateKey) -> str:
-    """Derives the public key from a private key object and formats it for Keycloak (no headers/newlines)."""
-    public_key = private_key.public_key().public_bytes(
-        encoding=serialization.Encoding.PEM, format=serialization.PublicFormat.SubjectPublicKeyInfo
-    )
-    return (
-        public_key
-        .decode("utf-8")
-        .replace("-----BEGIN PUBLIC KEY-----", "")
-        .replace("-----END PUBLIC KEY-----", "")
-        .replace("\n", "")
-    )
+READY_TIMEOUT_SECONDS = 600
+POLL_INTERVAL_SECONDS = 5
+HOLE = re.compile(r"\$\{([A-Z_]+)\}")
 
 
 def main():
-    print("--- Auth Init: Starting Key Generation ---")
+    base_url = os.environ["KEYCLOAK_URL"].rstrip("/")
+    username = os.environ.get("KC_BOOTSTRAP_ADMIN_USERNAME", "admin")
+    password = os.environ["KC_BOOTSTRAP_ADMIN_PASSWORD"]
+    realm = render_template()
+    print(f"Configuring keycloak realm {realm['realm']} at {base_url}")
+    with httpx.Client(timeout=30) as client:
+        token = wait_until_ready(client, base_url, username, password)
+        sync_realm(client, base_url, token, realm)
+        sync_users(client, base_url, token, realm["realm"])
+    print("Realm configuration complete")
 
-    # 1. Acquire the Public Key String
-    # --------------------------------
-    public_key_str = ""
 
-    if PRIVATE_KEY_PATH.exists():
-        print(f"Existing private key found at {PRIVATE_KEY_PATH}. Loading...")
+def render_template() -> dict[str, Any]:
+    template = TEMPLATE_PATH.read_text(encoding="utf-8")
+    hole_names = sorted(set(HOLE.findall(template)))
+    missing = [name for name in hole_names if not os.environ.get(name, "")]
+    if missing:
+        raise RuntimeError(f"Realm template holes without an env value: {', '.join(missing)}")
+    rendered = template
+    for name in hole_names:
+        rendered = rendered.replace("${" + name + "}", os.environ[name])
+    return json.loads(rendered)
+
+
+def wait_until_ready(client: httpx.Client, base_url: str, username: str, password: str) -> str:
+    deadline = time.monotonic() + READY_TIMEOUT_SECONDS
+    while True:
         try:
-            private_key_bytes = PRIVATE_KEY_PATH.read_bytes()
-            loaded_key = serialization.load_pem_private_key(private_key_bytes, password=None)
+            token = fetch_admin_token(client, base_url, username, password)
+        except (httpx.TransportError, httpx.HTTPStatusError, json.JSONDecodeError, KeyError):
+            if time.monotonic() >= deadline:
+                raise TimeoutError(f"Keycloak admin API not ready within {READY_TIMEOUT_SECONDS}s")
+            print("Waiting for keycloak admin API...")
+            time.sleep(POLL_INTERVAL_SECONDS)
+        else:
+            print("Keycloak admin API is ready")
+            return token
 
-            # serialization.load_pem_private_key returns a Union of key types.
-            # We must assert it is RSA to satisfy strict typing and ensure safety.
-            assert isinstance(loaded_key, rsa.RSAPrivateKey), "Loaded key is not an RSA private key"
 
-            public_key_str = get_clean_public_key(loaded_key)
-            print("Public key derived successfully.")
-        except Exception as e:
-            print(f"Error loading existing key: {e}")
-            sys.exit(1)
-    else:
-        print("No private key found. Generating new RSA key pair...")
-        generated_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+def fetch_admin_token(client: httpx.Client, base_url: str, username: str, password: str) -> str:
+    response = client.post(
+        f"{base_url}/realms/master/protocol/openid-connect/token",
+        data={"grant_type": "password", "client_id": "admin-cli", "username": username, "password": password},
+    )
+    response.raise_for_status()
+    return response.json()["access_token"]
 
-        # Save Private Key (PKCS8 PEM)
-        pem = generated_key.private_bytes(
-            encoding=serialization.Encoding.PEM,
-            format=serialization.PrivateFormat.PKCS8,
-            encryption_algorithm=serialization.NoEncryption(),
+
+def sync_realm(client: httpx.Client, base_url: str, token: str, realm: dict[str, Any]) -> None:
+    name = realm["realm"]
+    lookup = admin_request(client, base_url, token, "GET", f"/admin/realms/{name}", None)
+    if lookup.status_code == 404:
+        created = admin_request(client, base_url, token, "POST", "/admin/realms", realm)
+        if created.status_code != 201:
+            raise RuntimeError(f"Realm create failed with HTTP {created.status_code}")
+        print(f"Realm {name} created")
+        return
+
+    if lookup.status_code != 200:
+        raise RuntimeError(f"Realm lookup failed with HTTP {lookup.status_code}")
+
+    updated = admin_request(client, base_url, token, "PUT", f"/admin/realms/{name}", realm)
+    if updated.status_code != 204:
+        raise RuntimeError(f"Realm update failed with HTTP {updated.status_code}")
+    print(f"Realm {name} updated")
+    sync_clients(client, base_url, token, name, realm.get("clients", []))
+
+
+def sync_clients(client: httpx.Client, base_url: str, token: str, realm: str, clients: list[dict[str, Any]]) -> None:
+    for client_definition in clients:
+        client_id = str(client_definition["clientId"])
+        query = f"?clientId={client_id}"
+        lookup = admin_request(client, base_url, token, "GET", f"/admin/realms/{realm}/clients{query}", None)
+        if lookup.status_code != 200:
+            raise RuntimeError(f"Client {client_id} lookup failed with HTTP {lookup.status_code}")
+
+        existing = lookup.json()
+        if not existing:
+            created = admin_request(
+                client, base_url, token, "POST", f"/admin/realms/{realm}/clients", client_definition
+            )
+            if created.status_code != 201:
+                raise RuntimeError(f"Client {client_id} create failed with HTTP {created.status_code}")
+            print(f"Client {client_id} created")
+            continue
+
+        client_uuid = existing[0]["id"]
+        updated = admin_request(
+            client, base_url, token, "PUT", f"/admin/realms/{realm}/clients/{client_uuid}", client_definition
         )
+        if updated.status_code != 204:
+            raise RuntimeError(f"Client {client_id} update failed with HTTP {updated.status_code}")
+        print(f"Client {client_id} updated")
 
-        PRIVATE_KEY_PATH.parent.mkdir(parents=True, exist_ok=True)
-        PRIVATE_KEY_PATH.write_bytes(pem)
-        print(f"Private key saved to {PRIVATE_KEY_PATH}")
 
-        public_key_str = get_clean_public_key(generated_key)
+def sync_users(client: httpx.Client, base_url: str, token: str, realm: str) -> None:
+    seed = os.environ.get("SEED_TEST_USERS", "")
+    if not seed:
+        return
+    for username, password in parse_seed_users(seed):
+        query = f"?username={username}&exact=true"
+        lookup = admin_request(client, base_url, token, "GET", f"/admin/realms/{realm}/users{query}", None)
+        if lookup.status_code != 200:
+            raise RuntimeError(f"User {username} lookup failed with HTTP {lookup.status_code}")
+        # A fresh 26.8.1 realm's default user profile requires firstName, lastName, and
+        # email — a user without any of them fails the first direct grant with
+        # "Account is not fully set up" (the implicit verify-profile action).
+        user = {
+            "username": username,
+            "firstName": username.capitalize(),
+            "lastName": "Seeded",
+            "email": f"{username}@seed.invalid",
+            "emailVerified": True,
+            "enabled": True,
+            "credentials": [{"type": "password", "value": password, "temporary": False}],
+        }
+        existing = lookup.json()
+        if not existing:
+            created = admin_request(client, base_url, token, "POST", f"/admin/realms/{realm}/users", user)
+            if created.status_code != 201:
+                raise RuntimeError(f"User {username} create failed with HTTP {created.status_code}")
+            print(f"User {username} created")
+        else:
+            user_id = existing[0]["id"]
+            updated = admin_request(client, base_url, token, "PUT", f"/admin/realms/{realm}/users/{user_id}", user)
+            if updated.status_code != 204:
+                raise RuntimeError(f"User {username} update failed with HTTP {updated.status_code}")
+            print(f"User {username} updated")
 
-    # 2. Process the Keycloak Import Template
-    # ---------------------------------------
-    if not TEMPLATE_PATH.exists():
-        print(f"CRITICAL: Template file not found at {TEMPLATE_PATH}")
-        sys.exit(1)
 
-    print(f"Reading realm template from {TEMPLATE_PATH}...")
-    template_content = TEMPLATE_PATH.read_text(encoding="utf-8")
+def parse_seed_users(seed: str) -> list[tuple[str, str]]:
+    pairs: list[tuple[str, str]] = []
+    for entry in seed.split(","):
+        username, separator, password = entry.partition(":")
+        if not separator or not username.strip() or not password:
+            raise RuntimeError(f"Invalid SEED_TEST_USERS entry {entry!r}; expected username:password pairs")
+        pairs.append((username.strip(), password))
+    return pairs
 
-    if PLACEHOLDER not in template_content:
-        print(f"WARNING: Placeholder '{PLACEHOLDER}' not found in template. Key injection may fail.")
-    else:
-        print("Injecting public key into template...")
 
-    # We perform a string replacement to preserve other Keycloak env vars (like ${PUBLIC_URL})
-    final_content = template_content.replace(PLACEHOLDER, public_key_str)
-
-    # 3. Write the Result
-    # -------------------
-    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    OUTPUT_PATH.write_text(final_content, encoding="utf-8")
-
-    print(f"Success: Keycloak import file written to {OUTPUT_PATH}")
-    print("--- Auth Init: Complete ---")
+def admin_request(
+    client: httpx.Client, base_url: str, token: str, method: str, path: str, payload: object | None
+) -> httpx.Response:
+    request = client.build_request(method, base_url + path, json=payload)
+    request.headers["Authorization"] = f"Bearer {token}"
+    return client.send(request)
 
 
 if __name__ == "__main__":
