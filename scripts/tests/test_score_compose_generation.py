@@ -6,34 +6,35 @@ import pytest
 import yaml
 from packaging.version import Version
 
-from docker_devkit.config import load_config
+from docker_devkit.config import compose_bundles, load_config
 from docker_devkit.documents import compute_service_shas, parse_bake
-from docker_devkit.lifecycle import require_manifest
-from docker_devkit.score_generate import compose_seams, generate_compose
+from docker_devkit.lifecycle import LOCK_PATH, require_manifest
+from docker_devkit.score_generate import generate_compose
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
-# The generated compose sources need the seam config fields.
-_required_devkit = Version("0.4.9")
+# The generated compose sources need the bundle config fields.
+_required_devkit = Version("0.4.11")
 pytestmark = [
     pytest.mark.skipif(which("score-compose") is None, reason="pinned score-compose not on PATH"),
     pytest.mark.skipif(
         Version(version("docker-devkit")) < _required_devkit
         and Version(version("docker-devkit")) != Version("0.0.0.dev0"),
-        reason=f"docker-devkit >= {_required_devkit} required for the seam fields",
+        reason=f"docker-devkit >= {_required_devkit} required for the bundle fields",
     ),
 ]
 
 
-def _seam_artifacts(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> dict[str, dict]:
+def _bundle_artifacts(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> dict[str, dict]:
     config = load_config(REPO_ROOT)
     assert config is not None and config.generate_score is not None
     # Redirect outputs into the test tmpdir so regeneration never touches the committed
-    # artifacts; {gpu} tokens ride along for the variant-carrying seam.
+    # artifacts; {gpu} tokens ride along for the variant-carrying bundle.
     redirected = config.generate_score.model_copy(
         update={
-            "seams": [
-                seam.model_copy(update={"output": tmp_path / seam.output.name}) for seam in config.generate_score.seams
+            "bundles": [
+                bundle.model_copy(update={"output": tmp_path / bundle.output.name})
+                for bundle in config.generate_score.bundles
             ]
         }
     )
@@ -42,22 +43,20 @@ def _seam_artifacts(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> dict[str
         monkeypatch.setenv(name, value)
 
     lock_images: dict[str, str] = {}
-    for line in (
-        (REPO_ROOT / config.generate_score.bake_file.with_suffix(".lock")).read_text(encoding="utf-8").splitlines()
-    ):
+    for line in (REPO_ROOT / LOCK_PATH).read_text(encoding="utf-8").splitlines():
         name, separator, reference = line.partition("=")
         if separator and name.strip() and not name.startswith("#"):
             lock_images[name.strip()] = reference
 
     generate_compose(REPO_ROOT, redirected, lock_images)
     return {
-        seam.name: yaml.safe_load((tmp_path / seam.output.name).read_text(encoding="utf-8"))
-        for seam in compose_seams(redirected)
+        bundle.name: yaml.safe_load((tmp_path / bundle.output.name).read_text(encoding="utf-8"))
+        for bundle in compose_bundles(redirected)
     }
 
 
-def test_seam_generation_splits_the_stack_by_assembly_unit(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    artifacts = _seam_artifacts(tmp_path, monkeypatch)
+def test_bundle_generation_splits_the_stack_by_assembly_unit(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    artifacts = _bundle_artifacts(tmp_path, monkeypatch)
 
     assert sorted(artifacts) == [
         "core-cuda",

@@ -2,7 +2,8 @@ apiVersion: score.dev/v1b1
 metadata:
   name: localizer
   annotations:
-    placeframe.io/gpu: "true"
+    outernet.internal/gpu: "true"
+    outernet.internal/probe-adapter: python-urllib
 containers:
   localizer:
     image: ghcr.io/outernet-foundation/placeframe/localizer-${GPU_VARIANT}:${LOCALIZER_SHA}
@@ -15,6 +16,10 @@ containers:
       SERVICE_VERSION: ${LOCALIZER_SHA}
       OTEL_EXPORTER_OTLP_ENDPOINT: ${resources.observability.otlp_endpoint}
     livenessProbe:
+      httpGet:
+        path: /version
+        port: 8000
+    readinessProbe:
       httpGet:
         path: /version
         port: 8000

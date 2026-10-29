@@ -1,6 +1,8 @@
 apiVersion: score.dev/v1b1
 metadata:
   name: tunnel-ngrok
+  annotations:
+    outernet.internal/restart: on-failure
 containers:
   ngrok:
     image: ${NGROK_IMAGE:?err}

@@ -1,6 +1,8 @@
 apiVersion: score.dev/v1b1
 metadata:
   name: lease-server
+  annotations:
+    outernet.internal/probe-adapter: python-urllib
 containers:
   lease-server:
     image: ghcr.io/outernet-foundation/placeframe/lease-server:${LEASE_SERVER_SHA}
@@ -13,6 +15,10 @@ containers:
       OTEL_EXPORTER_OTLP_ENDPOINT: ${resources.observability.otlp_endpoint}
       SERVICE_VERSION: ${LEASE_SERVER_SHA}
     livenessProbe:
+      httpGet:
+        path: /health
+        port: 8000
+    readinessProbe:
       httpGet:
         path: /health
         port: 8000

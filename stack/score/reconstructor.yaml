@@ -2,9 +2,9 @@ apiVersion: score.dev/v1b1
 metadata:
   name: reconstructor
   annotations:
-    # The GPU marker the compose device patch templates and the k8s gpu-pod patch
-    # template key on; accelerator plumbing is generated, never hand-declared.
-    placeframe.io/gpu: "true"
+    # The GPU marker the devkit's built-in gpu patch templates key on; accelerator
+    # plumbing is generated, never hand-declared.
+    outernet.internal/gpu: "true"
 containers:
   reconstructor:
     image: ghcr.io/outernet-foundation/placeframe/reconstructor-${GPU_VARIANT}:${RECONSTRUCTOR_SHA}

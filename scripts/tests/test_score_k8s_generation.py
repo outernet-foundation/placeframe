@@ -8,13 +8,13 @@ from packaging.version import Version
 
 from docker_devkit.config import load_config
 from docker_devkit.documents import compute_service_shas, parse_bake
-from docker_devkit.lifecycle import require_manifest
+from docker_devkit.lifecycle import LOCK_PATH, require_manifest
 from docker_devkit.score_generate import generate_k8s
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 # The generated k8s sources need the variant config fields.
-_required_devkit = Version("0.4.9")
+_required_devkit = Version("0.4.11")
 pytestmark = [
     pytest.mark.skipif(which("score-k8s") is None, reason="pinned score-k8s not on PATH"),
     pytest.mark.skipif(
@@ -39,9 +39,7 @@ def _generate_k8s_without_charts(output: Path, monkeypatch: pytest.MonkeyPatch) 
         monkeypatch.setenv(name, value)
 
     lock_images: dict[str, str] = {}
-    for line in (
-        (REPO_ROOT / config.generate_score.bake_file.with_suffix(".lock")).read_text(encoding="utf-8").splitlines()
-    ):
+    for line in (REPO_ROOT / LOCK_PATH).read_text(encoding="utf-8").splitlines():
         name, separator, reference = line.partition("=")
         if separator and name.strip() and not name.startswith("#"):
             lock_images[name.strip()] = reference

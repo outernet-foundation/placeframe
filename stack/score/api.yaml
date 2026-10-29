@@ -1,6 +1,8 @@
 apiVersion: score.dev/v1b1
 metadata:
   name: api
+  annotations:
+    outernet.internal/probe-adapter: python-urllib
 containers:
   api:
     image: ghcr.io/outernet-foundation/placeframe/api:${API_SHA}
@@ -30,6 +32,10 @@ containers:
       RECONSTRUCTIONS_BUCKET: ${resources.bucket.bucket}
       CAPTURES_BUCKET: ${resources.bucket.captures_bucket}
     livenessProbe:
+      httpGet:
+        path: /health
+        port: 8000
+    readinessProbe:
       httpGet:
         path: /health
         port: 8000

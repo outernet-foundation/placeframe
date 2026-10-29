@@ -1,4 +1,4 @@
-requires: ">=0.4.9"
+requires: ">=0.4.11"
 lifecycle:
   files:
     - stack/generated/compose/compose.{gpu}.yaml
@@ -15,7 +15,7 @@ publish-compose:
   repository: ghcr.io/outernet-foundation/placeframe
 generate-score:
   # The k8s rendering's monolithic workload list — compose-only workloads (the
-  # relays) stay out of it. Assembly by seam inclusion is a compose-consumer
+  # relays) stay out of it. Assembly by bundle inclusion is a compose-consumer
   # concept; the cluster applies one artifact wholesale.
   workloads:
     - api.yaml
@@ -34,10 +34,7 @@ generate-score:
     - k8s/oidc-issuer.yaml
     - k8s/observability.yaml
     - k8s/keda-scaled-object.yaml
-  k8s_patch_templates:
-    - k8s/patches/gpu-pod.tpl
-    - k8s/patches/scale-to-zero.tpl
-  seams:
+  bundles:
     - name: core
       output: stack/generated/compose/compose.{gpu}.yaml
       gpu_variants:
@@ -54,10 +51,6 @@ generate-score:
         - compose/seaweedfs.yaml
         - compose/observability.yaml
         - compose/keda-scaled-object.yaml
-      patch_templates:
-        - compose/patches/wait-for-resources-image.tpl
-        - compose/patches/workload-healthchecks.tpl
-        - compose/patches/gpu-{gpu}.tpl
       publishes:
         - "8000:api:8000"
     - name: gateway-open
@@ -85,8 +78,6 @@ generate-score:
         - tunnel-ngrok.yaml
       provisioners:
         - compose/tunnel.yaml
-      patch_templates:
-        - compose/patches/tunnel-restart.tpl
       publishes:
         - "4040:tunnel-ngrok:4040"
   charts:
@@ -102,7 +93,6 @@ generate-score:
       ref: oci://quay.io/keycloak/keycloak-operator-helm@sha256:650f7e1021def78ff799aa5ada703818a1a7d0e3cb6ee7eba6d5e1b557656a17
       values:
         - stack/score/k8s/values/keycloak-operator.yaml
-  helm_version: "3.22.1"
   secrets:
     file: stack/score/secrets.yaml
     k8s_secret: placeframe-secrets
