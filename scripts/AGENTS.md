@@ -40,7 +40,7 @@ Registered in `scripts/pyproject.toml`:
         held_out_selection.py                   -- HeldOutFrameSelector Protocol + stride impl
       tests/
         test_fit_calibration.py
-        test_score_compose_generation.py        -- bundle-split compose generation (five artifacts)
+        test_score_compose_generation.py        -- bundle-split compose generation (four artifacts)
         test_score_k8s_generation.py            -- k8s generation mechanics (GPU, service-port, KEDA)
 
 ### Calibration pipeline data flow
