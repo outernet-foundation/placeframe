@@ -25,3 +25,4 @@ storage/
 artifacts/
 .claude/scheduled_tasks.lock
 bookmark.md
+.placeframe/

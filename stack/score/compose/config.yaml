@@ -1,0 +1,15 @@
+# Config provisioner (compose): local counterpart of k8s/config.yaml.
+# Every output is a literal ${VAR} placeholder rather than a resolved value, so the generated
+# compose.yaml stays hermetic and docker compose resolves it from --env-file at run time. The
+# AUTH_* block carries soft passthroughs (empty => unset => anonymous mode).
+- uri: template://placeframe/config
+  type: placeframe-config
+  description: App config resolved from .env at run time, soft passthroughs for the auth block.
+  outputs:
+    public_url: ${PUBLIC_URL:?err}
+    auth_audience: ${AUTH_AUDIENCE:-}
+    auth_issuer_url: ${AUTH_ISSUER_URL:-}
+    auth_jwks_url: ${AUTH_JWKS_URL:-}
+    auth_authorization_endpoint: ${AUTH_AUTHORIZATION_ENDPOINT:-}
+    auth_token_endpoint: ${AUTH_TOKEN_ENDPOINT:-}
+    deployment_environment: ${DEPLOYMENT_ENVIRONMENT:-development}

@@ -1,0 +1,46 @@
+apiVersion: score.dev/v1b1
+metadata:
+  name: keycloak
+  annotations:
+    outernet.internal/probe-adapter: bash-http
+containers:
+  keycloak:
+    # The lock marker is the digest source: score never substitutes resource outputs into
+    # the image field, so the entry resolves at generation and the digest lands inline in
+    # both renderings (a runtime ${KEYCLOAK_IMAGE:?err} hole would demand the producer's
+    # lock entry from every consumer of the published bundle).
+    image:
+      lock: KEYCLOAK_IMAGE
+    # Tier-neutral by construction: the container is keycloak on both renderings, and
+    # every deployment fact arrives through the oidc-issuer outputs — the one mechanism
+    # that is per-tier by design (compose runtime holes filled from .env and the lock
+    # env-file; k8s secretKeyRefs). Keycloak serves at root; the /auth path in
+    # KC_HOSTNAME is advertise-only, and the edge does the strip (the door's
+    # strip_prefix route, a traefik StripPrefix middleware at the cluster edge).
+    # Score's command maps to the image entrypoint slot (compose entrypoint, k8s command),
+    # so the flags ride as args and the image's own kc.sh entrypoint stands.
+    args: ["start-dev", "--health-enabled=true"]
+    variables:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${resources.auth.admin_password}
+      KC_HOSTNAME: ${resources.auth.hostname}
+      KC_HOSTNAME_ADMIN: ${resources.auth.hostname}
+      KC_PROXY_HEADERS: xforwarded
+      KC_HOSTNAME_STRICT_HTTPS: "true"
+    livenessProbe:
+      httpGet:
+        path: /health/live
+        port: 9000
+    readinessProbe:
+      httpGet:
+        path: /health/ready
+        port: 9000
+service:
+  ports:
+    http:
+      port: 8080
+      targetPort: 8080
+resources:
+  auth:
+    type: oidc-issuer
+    id: placeframe-keycloak
