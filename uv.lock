@@ -104,11 +104,11 @@ wheels = [
 
 [[package]]
 name = "bashrun"
-version = "0.8.0"
+version = "0.8.2.dev91"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/09/26/498509232207b2dc6af9e67f2fe27152611b4e87bf4a1317a71d8bb918ad/bashrun-0.8.0.tar.gz", hash = "sha256:05837243762259743464142fc77a823b059d5d04ee6628f3e00873a08100ce47", size = 31063, upload-time = "2026-10-11T03:34:48.093Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/49/19/df4f9ffb6f7454c1e43525c0b993436efa0777fb084cae17cfb91d991ab7/bashrun-0.8.2.dev91.tar.gz", hash = "sha256:cbba894bc7215e5ad1f24b384e0aa26e5b690d3a4273ab01c59adfbb8b607b2c", size = 31212, upload-time = "2026-10-19T22:31:30.923Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c4/7a/28e2e8962449d61209a3b79c2671f4992589ff9a7e90d82aed7aa5b6338a/bashrun-0.8.0-py3-none-any.whl", hash = "sha256:bfeaf482cfaeee2ccd654fc282b8005e66f7cb2c78555bf8f6c57931f3a07896", size = 7795, upload-time = "2026-10-11T03:34:47.028Z" },
+    { url = "https://files.pythonhosted.org/packages/d1/99/ebda9db0cf5036ef5fec49dab4828450d1791d1a48d0b964a1e5b4c7ba3f/bashrun-0.8.2.dev91-py3-none-any.whl", hash = "sha256:681d1aa23342b0fdc9c4f75979ff4569dadc242b9f7e7ce8c212278db64a1ad3", size = 7866, upload-time = "2026-10-19T22:31:30.024Z" },
 ]
 
 [[package]]
@@ -1046,14 +1046,14 @@ wheels = [
 
 [[package]]
 name = "logger-conf"
-version = "0.3.0"
+version = "0.3.2.dev59"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "python-json-logger" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/98/2f/247ee806496b948cc2c4da8f9408f8b11be25f7375d7931779ded1f583fd/logger_conf-0.3.0.tar.gz", hash = "sha256:8490625bdf47c8503b06400f467695fcdec226442aec0d206bd3c52b1fea7442", size = 37080, upload-time = "2026-10-11T05:13:47.491Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a7/ba/1e44a28cae2f420e5c9cb7b0126d18dd29c0b3759f464964b5dfaa22fedf/logger_conf-0.3.2.dev59.tar.gz", hash = "sha256:3152ee3a3612398d8ad6effcfcda78f6c1db7ef86ece762262fdb6a9fa3e1897", size = 37192, upload-time = "2026-10-19T22:16:47.494Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/48/6d/b968bc7d51082f798bb912b360d82040bffbcd501ad55ab4e34d0efc1995/logger_conf-0.3.0-py3-none-any.whl", hash = "sha256:647565871334e32f3ce20ecd062e33b8f7a41aa8480151a03e49ff7a204f1ac3", size = 8453, upload-time = "2026-10-11T05:13:46.366Z" },
+    { url = "https://files.pythonhosted.org/packages/ed/ed/6534378dd79411d3a60648555f11df403292c848cd6fc609193f2e40bf6b/logger_conf-0.3.2.dev59-py3-none-any.whl", hash = "sha256:3fa1dfe7709bb2a83ab3949995dc1c2caaf61240a3c6ee683223ba95a44a94e1", size = 8523, upload-time = "2026-10-19T22:16:46.534Z" },
 ]
 
 [package.optional-dependencies]
@@ -1739,7 +1739,7 @@ wheels = [
 
 [[package]]
 name = "openapi-client-codegen"
-version = "0.3.1"
+version = "0.3.3.dev87"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "bashrun" },
@@ -1748,9 +1748,9 @@ dependencies = [
     { name = "strictyaml" },
     { name = "typer" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/80/8b/eabfed748a45c78d0faa29e2a17c506b924bbefc45c2a7b799394e4fe022/openapi_client_codegen-0.3.1.tar.gz", hash = "sha256:70eb0b6e2386f97ebcab617b3f4830a0ea081ffae1f69eff506e8b9c0729f945", size = 49621, upload-time = "2026-10-11T16:42:45.298Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/8c/15/1080d7392cd141827a44438260bf6c0892cf76dce4c545ce43cc96f8aa21/openapi_client_codegen-0.3.3.dev87.tar.gz", hash = "sha256:a418a321a2196574e5dac23e79e6719e0376f9e0c1f716ee04d02c1cfccd0f03", size = 49719, upload-time = "2026-10-19T22:26:03.267Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/12/4d/3a8b6738f4243de60ea3f1621be4820c5f7cc95618fadae1c03241544fa7/openapi_client_codegen-0.3.1-py3-none-any.whl", hash = "sha256:3dfe22ac6898cf429384e7dc90307cbbfcd28fa5192e0c09f5b8b4f0f6bca01d", size = 23458, upload-time = "2026-10-11T16:42:44.33Z" },
+    { url = "https://files.pythonhosted.org/packages/53/a8/929776c39d01fe4028f6729922827754b07f7d378a1390e47970f632a236/openapi_client_codegen-0.3.3.dev87-py3-none-any.whl", hash = "sha256:f898dced9ee0333ce0597bb295b0fb366b917f3ec6de41787a22bad2a3d1df69", size = 23540, upload-time = "2026-10-19T22:26:02.381Z" },
 ]
 
 [[package]]
@@ -1969,7 +1969,7 @@ dev = [
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "ruff", specifier = ">=0.14.11" },
     { name = "scripts", editable = "scripts" },
-    { name = "unity-devkit", specifier = ">=0.1.25" },
+    { name = "unity-devkit", specifier = ">=0.3.5.dev257" },
 ]
 
 [[package]]
@@ -2074,7 +2074,7 @@ requires-dist = [
     { name = "boto3", specifier = ">=1.39.5" },
     { name = "botocore", specifier = ">=1.42.24" },
     { name = "litestar", specifier = ">=2.19.0" },
-    { name = "logger-conf", extras = ["otlp"] },
+    { name = "logger-conf", extras = ["otlp"], specifier = ">=0.3.2.dev59" },
     { name = "pydantic", specifier = ">=2.12.5" },
 ]
 
@@ -2612,16 +2612,16 @@ wheels = [
 
 [[package]]
 name = "python-devkit"
-version = "0.3.0"
+version = "0.3.2.dev73"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "bashrun" },
     { name = "pydantic" },
     { name = "typer" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/fe/c8/2d2b69946a4ddc4fc1e0e49629c3f8fb0d70173bd668625d57d342e23841/python_devkit-0.3.0.tar.gz", hash = "sha256:b6278ca75f750b89019b0809e8d1b04e9aa963bf061329dd69e775557e6779de", size = 35936, upload-time = "2026-10-11T04:03:01.707Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/36/91/5d5944c99beba43aec646b4f318408cf99860f824531eeb9e300c677aac1/python_devkit-0.3.2.dev73.tar.gz", hash = "sha256:74da3e7c2420bd2525b136374708f415cc6cd068fd9348d6025fb65b8e71cca6", size = 36030, upload-time = "2026-10-19T22:20:55.327Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/4b/5c/eaf3ed4fa8990a7dd39f558dd701c3ec486a492c25ca0f68173394b341ed/python_devkit-0.3.0-py3-none-any.whl", hash = "sha256:822e59323ec343258dde1dfefb75159f87cd64987285b823a1f0c3e0340b9c4a", size = 14431, upload-time = "2026-10-11T04:03:00.428Z" },
+    { url = "https://files.pythonhosted.org/packages/f1/28/322f4621e720f1f58d63263f187a92b7da0a83607fe1292196b6d820c90f/python_devkit-0.3.2.dev73-py3-none-any.whl", hash = "sha256:1cf926503a9afac6626ba7789577ce8309cd9efc48a4723a3f62b3fbf7e0ee0f", size = 14510, upload-time = "2026-10-19T22:20:54.416Z" },
 ]
 
 [[package]]
@@ -2948,18 +2948,18 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "bashrun", specifier = ">=0.1.0" },
+    { name = "bashrun", specifier = ">=0.8.2.dev91" },
     { name = "datamodel-code-generator", specifier = ">=0.33.0" },
-    { name = "docker-devkit", specifier = "==0.4.9.dev165" },
+    { name = "docker-devkit", specifier = ">=0.4.9.dev165" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "numpy", specifier = ">=2.1" },
-    { name = "openapi-client-codegen", specifier = ">=0.1.12" },
+    { name = "openapi-client-codegen", specifier = ">=0.3.3.dev87" },
     { name = "placeframe-api-client", editable = "packages/generated/python/api-client" },
     { name = "placeframe-core", editable = "packages/python/core" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2.10" },
     { name = "pydantic", specifier = ">=2" },
     { name = "pyhumps", specifier = ">=3.8.0" },
-    { name = "python-devkit", specifier = ">=0.1.0" },
+    { name = "python-devkit", specifier = ">=0.3.2.dev73" },
     { name = "pytransform3d", specifier = ">=3.5" },
     { name = "scikit-learn", specifier = ">=1.5" },
     { name = "scipy", specifier = ">=1.14" },
@@ -3431,7 +3431,7 @@ wheels = [
 
 [[package]]
 name = "unity-devkit"
-version = "0.3.2"
+version = "0.3.5.dev257"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "bashrun" },
@@ -3440,9 +3440,9 @@ dependencies = [
     { name = "pydantic-settings" },
     { name = "typer" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/72/cd/a3d323e9799e65b560e17d6be8e84d6814b98cb83f9ffd6b98d1c990f783/unity_devkit-0.3.2.tar.gz", hash = "sha256:9a75d9f380c8f5e0d2562f9bd041c3d1579803a7e787e606d1d233fe385792c9", size = 15741, upload-time = "2026-10-19T21:44:06.786Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/97/6c/2f2d081a48fa44913261fbb7c3bae5c087409034ad13e9e01b2e79e8778c/unity_devkit-0.3.5.dev257.tar.gz", hash = "sha256:1c1835338a99bb27d5b2d0484888aed617ba8e16c2d18a726147b1a80360e756", size = 18248, upload-time = "2026-10-30T20:03:19.052Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e5/d9/2e73c35479174ea68ebc93069e7fef68e5968b3ab4953e00fae59cc66af3/unity_devkit-0.3.2-py3-none-any.whl", hash = "sha256:33687575151ea41f469eea493e597f2ea2197c5b83c5cc40300277e8d45b7969", size = 18385, upload-time = "2026-10-19T21:44:05.829Z" },
+    { url = "https://files.pythonhosted.org/packages/87/36/0b004a425cbfd85388ecc4b9aaa0b5ccd7b7d5d3af580e259fcef4f8ff01/unity_devkit-0.3.5.dev257-py3-none-any.whl", hash = "sha256:9e561564b4718621272107177795b37c0cf6910e9a911bde07217ff238898a87", size = 20192, upload-time = "2026-10-30T20:03:18.159Z" },
 ]
 
 [[package]]

@@ -3,10 +3,10 @@ name = "scripts"
 version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [
-    "bashrun>=0.1.0",
+    "bashrun>=0.8.2.dev91",
     "docker-devkit>=0.4.9.dev165",
-    "openapi-client-codegen>=0.1.12",
-    "python-devkit>=0.1.0",
+    "openapi-client-codegen>=0.3.3.dev87",
+    "python-devkit>=0.3.2.dev73",
     "placeframe-core",
     "placeframe-api-client",
     "pydantic>=2",
