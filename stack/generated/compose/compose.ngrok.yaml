@@ -1,0 +1,16 @@
+name: placeframe
+services:
+  ngrok:
+    annotations:
+      compose.score.dev/workload-name: ngrok
+      outernet.internal/restart: on-failure
+    entrypoint:
+    - /bin/sh
+    - -c
+    - exec ngrok http --domain=$${NGROK_DOMAIN:-} --upstream-protocol=http1 --log=stdout http://door:8443
+    environment:
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:-}
+      NGROK_DOMAIN: ${NGROK_DOMAIN:-}
+    hostname: ngrok
+    image: ghcr.io/outernet-foundation/mirror/docker.io/ngrok/ngrok:alpine@sha256:85bea0e9c697bdad142b09cd9704420812cc44b5ae417ec4c7ac74d0a49d72f2
+    restart: on-failure
