@@ -16,7 +16,7 @@ services:
       compose.score.dev/workload-name: keycloak
       outernet.internal/probe-adapter: python-urllib
     depends_on:
-      wait-for-resources:
+      wait-for-resources-keycloak:
         condition: service_completed_successfully
         required: true
     entrypoint:
@@ -41,7 +41,7 @@ services:
       retries: 3
       start_period: 5s
     image: ghcr.io/outernet-foundation/mirror/quay.io/keycloak/keycloak:26.8.1@sha256:a78d6b79572168cb25886b80a8b5b8d4ed4390743e3eecb810538683e209dd6b
-  wait-for-resources:
+  wait-for-resources-keycloak:
     command:
     - echo
     depends_on:
