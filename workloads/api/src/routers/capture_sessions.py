@@ -40,9 +40,11 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_session
+from ..settings import get_settings
 from ..storage import get_storage
 
-BUCKET = "dev-captures"
+settings = get_settings()
+
 MIN_TEMPORAL_COVERAGE = 0.5
 
 
@@ -113,14 +115,17 @@ async def create_capture_session(
 
     try:
         get_storage().upload_fileobj(
-            BUCKET, f"{row.id}.tar", cast(BinaryIO, fileobj), data.data.content_type or "application/x-tar"
+            settings.captures_bucket,
+            f"{row.id}.tar",
+            cast(BinaryIO, fileobj),
+            data.data.content_type or "application/x-tar",
         )
     except ReadTimeoutError as e:
         raise HTTPException(status_code=HTTP_504_GATEWAY_TIMEOUT, detail="Upload failed: storage timeout") from e
     except Exception as e:
         raise InternalServerException(detail="Upload failed") from e
 
-    row.size_bytes = get_storage().head_object_size(BUCKET, f"{row.id}.tar")
+    row.size_bytes = get_storage().head_object_size(settings.captures_bucket, f"{row.id}.tar")
     await session.flush()
     await session.refresh(row)
 
@@ -340,7 +345,7 @@ async def download_capture_session_tar(session: AsyncSession, id: UUID) -> Strea
         raise NotFoundException(f"Capture session {id} not found")
 
     try:
-        obj = get_storage().get_object(BUCKET, f"{id}.tar")
+        obj = get_storage().get_object(settings.captures_bucket, f"{id}.tar")
         body = obj["Body"]
     except ReadTimeoutError as e:
         raise HTTPException(status_code=HTTP_504_GATEWAY_TIMEOUT, detail="Download failed: storage timeout") from e
@@ -403,7 +408,7 @@ def _extract_member_bytes(capture_id: UUID, member_name: str) -> bytes:
     # to find the member, so worst case is one full pass per call. A future optimization could
     # store frames.csv + images as separate S3 objects to make these endpoints O(1).
     try:
-        obj = get_storage().get_object(BUCKET, f"{capture_id}.tar")
+        obj = get_storage().get_object(settings.captures_bucket, f"{capture_id}.tar")
         body = obj["Body"]
     except ReadTimeoutError as e:
         raise HTTPException(status_code=HTTP_504_GATEWAY_TIMEOUT, detail="Download failed: storage timeout") from e

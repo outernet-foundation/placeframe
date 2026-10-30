@@ -35,7 +35,6 @@ members = [
     "placeframe-lease-server-client",
     "placeframe-localizer",
     "placeframe-localizer-client",
-    "placeframe-rathole-client",
     "placeframe-reconstructor",
     "s3-initializer",
     "scripts",
@@ -85,11 +84,11 @@ name = "auth-initializer"
 version = "0.1.0"
 source = { editable = "workloads/auth-initializer" }
 dependencies = [
-    { name = "cryptography" },
+    { name = "httpx" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "cryptography", specifier = ">=46.0.3" }]
+requires-dist = [{ name = "httpx", specifier = ">=0.28.1" }]
 
 [[package]]
 name = "basedpyright"
@@ -533,22 +532,17 @@ source = { editable = "packages/python/neural-networks/third-party/deep-image-re
 
 [[package]]
 name = "docker-devkit"
-version = "0.4.2"
-source = { registry = "https://pypi.org/simple" }
+version = "0.5.8"
+source = { git = "https://github.com/outernet-foundation/docker-devkit?rev=7fbed5b173b092c0bb7f3977d99b28a1bd46e365#7fbed5b173b092c0bb7f3977d99b28a1bd46e365" }
 dependencies = [
     { name = "bashrun" },
     { name = "build-artifact-registry" },
     { name = "packaging" },
     { name = "pathspec" },
     { name = "pydantic" },
-    { name = "pydantic-settings" },
     { name = "pyyaml" },
     { name = "strictyaml" },
     { name = "typer" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/7c/1c/2d99de328fc3cfb4d0cfe57adba2f15589df7106ec2263f0053b7ed9f049/docker_devkit-0.4.2.tar.gz", hash = "sha256:7176d1cbef4b295c4043cc78252a809ece34226ba3dc362aebae02783ad1a8cf", size = 66196, upload-time = "2026-10-12T02:02:43.334Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/1b/aa/93567ee2d53a25c39a8d146fb5ff400f015f5047d06e0170b0ad062e0dea/docker_devkit-0.4.2-py3-none-any.whl", hash = "sha256:448c8af2f8d9d16db4a41e0fb09da7b17cd24e679d58201b3b772677aae9d9fb", size = 28051, upload-time = "2026-10-12T02:02:42.307Z" },
 ]
 
 [[package]]
@@ -1955,6 +1949,7 @@ dev = [
     { name = "basedpyright" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
+    { name = "pyyaml" },
     { name = "ruff" },
     { name = "scripts" },
     { name = "unity-devkit" },
@@ -1967,6 +1962,7 @@ dev = [
     { name = "basedpyright", specifier = ">=1.39.10" },
     { name = "pytest", specifier = ">=8.0.0" },
     { name = "pytest-asyncio", specifier = ">=0.24.0" },
+    { name = "pyyaml", specifier = ">=6.0" },
     { name = "ruff", specifier = ">=0.14.11" },
     { name = "scripts", editable = "scripts" },
     { name = "unity-devkit", specifier = ">=0.1.25" },
@@ -2240,17 +2236,6 @@ requires-dist = [
     { name = "python-dateutil", specifier = ">=2.8.2" },
     { name = "typing-extensions", specifier = ">=4.7.1" },
 ]
-
-[[package]]
-name = "placeframe-rathole-client"
-version = "0.1.0"
-source = { editable = "workloads/rathole-client" }
-dependencies = [
-    { name = "jinja2" },
-]
-
-[package.metadata]
-requires-dist = [{ name = "jinja2", specifier = ">=3.1.6" }]
 
 [[package]]
 name = "placeframe-reconstructor"
@@ -2947,11 +2932,9 @@ dependencies = [
     { name = "placeframe-core" },
     { name = "psycopg", extra = ["binary"] },
     { name = "pydantic" },
-    { name = "pydantic-settings" },
     { name = "pyhumps" },
     { name = "python-devkit" },
     { name = "pytransform3d" },
-    { name = "pyyaml" },
     { name = "scikit-learn" },
     { name = "scipy" },
     { name = "sqlacodegen" },
@@ -2963,7 +2946,7 @@ dependencies = [
 requires-dist = [
     { name = "bashrun", specifier = ">=0.1.0" },
     { name = "datamodel-code-generator", specifier = ">=0.33.0" },
-    { name = "docker-devkit", specifier = ">=0.4.2" },
+    { name = "docker-devkit", git = "https://github.com/outernet-foundation/docker-devkit?rev=7fbed5b173b092c0bb7f3977d99b28a1bd46e365" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "numpy", specifier = ">=2.1" },
     { name = "openapi-client-codegen", specifier = ">=0.1.12" },
@@ -2971,11 +2954,9 @@ requires-dist = [
     { name = "placeframe-core", editable = "packages/python/core" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2.10" },
     { name = "pydantic", specifier = ">=2" },
-    { name = "pydantic-settings", specifier = ">=2.9.1" },
     { name = "pyhumps", specifier = ">=3.8.0" },
     { name = "python-devkit", specifier = ">=0.1.0" },
     { name = "pytransform3d", specifier = ">=3.5" },
-    { name = "pyyaml", specifier = ">=6.0" },
     { name = "scikit-learn", specifier = ">=1.5" },
     { name = "scipy", specifier = ">=1.14" },
     { name = "sqlacodegen", specifier = "==3.2.0" },

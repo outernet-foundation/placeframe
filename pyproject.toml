@@ -6,7 +6,15 @@ dependencies = []
 
 
 [dependency-groups]
-dev = ["scripts", "basedpyright>=1.39.10", "ruff>=0.14.11", "pytest>=8.0.0", "pytest-asyncio>=0.24.0", "unity-devkit>=0.1.25"]
+dev = [
+    "scripts",
+    "basedpyright>=1.39.10",
+    "ruff>=0.14.11",
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.24.0",
+    "unity-devkit>=0.1.25",
+    "pyyaml>=6.0",
+]
 
 [tool.uv.workspace]
 members = [
@@ -16,8 +24,6 @@ members = [
     "workloads/auth-initializer",
     "workloads/lease-server",
     "workloads/localizer",
-    "workloads/orchestrator",
-    "workloads/rathole-client",
     "workloads/reconstructor",
     "packages/python/core",
     "packages/python/common",
@@ -60,6 +66,7 @@ placeframe-lease-server-client = { workspace = true }
 placeframe-localizer-client = { workspace = true }
 placeframe_api_client = { workspace = true }
 dirtorch = { workspace = true }
+docker-devkit = { git = "https://github.com/outernet-foundation/docker-devkit", rev = "7fbed5b173b092c0bb7f3977d99b28a1bd46e365" }
 scripts = { workspace = true }
 lightglue = { git = "https://github.com/cvg/LightGlue.git" }
 
@@ -77,4 +84,5 @@ include = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["packages/python/common/tests", "scripts/tests", "workloads/s3-initializer/tests"]
+testpaths = ["packages/python/common/tests", "scripts/tests", "workloads/s3-initializer/tests", "workloads/api/tests"]
+pythonpath = ["workloads/api"]

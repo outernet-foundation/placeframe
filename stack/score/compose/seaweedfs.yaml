@@ -1,0 +1,80 @@
+# Custom Score provisioner: Placeframe SeaweedFS at the FIXED service names the stack's
+# baked-in references require — the entrypoint wrapper renders the fluent audit sink
+# pointing at `seaweedfs-audit`, and loki's config addresses `seaweedfs:8333` — with the
+# real buckets (captures, reconstructions, loki) converged by the real
+# s3-initializer image.
+# Declaring `type: s3` here overrides the built-in, because custom provisioners are
+# matched ahead of the defaults on a first-match policy.
+#
+# HERMETIC BY CONSTRUCTION: the credentials are literal ${VAR:?err} placeholders, matching
+# the S3_ACCESS_KEY / S3_SECRET_KEY consumption everywhere else, so nothing is resolved at
+# generation time and .env stays the single source of truth.
+- uri: template://placeframe/seaweedfs
+  type: s3
+  description: Placeframe SeaweedFS at fixed names with the real buckets, credentials from .env.
+  outputs:
+    endpoint: http://seaweedfs:8333
+    access_key_id: ${S3_ACCESS_KEY:?err}
+    secret_key: ${S3_SECRET_KEY:?err}
+    bucket: reconstructions
+    captures_bucket: captures
+  volumes:
+    seaweedfs-data:
+      driver: local
+  services:
+    seaweedfs:
+      image: ghcr.io/outernet-foundation/placeframe/seaweedfs:{{ env "SEAWEEDFS_SHA" }}
+      entrypoint: /usr/local/bin/entrypoint-wrapper.sh
+      command: >
+        server -filer -s3 -s3.port=8333
+        -s3.config=/etc/seaweedfs/s3.json
+        -s3.auditLogConfig=/etc/seaweedfs/fluent.json
+      environment:
+        S3_ACCESS_KEY: "${S3_ACCESS_KEY:?err}"
+        S3_SECRET_KEY: "${S3_SECRET_KEY:?err}"
+      volumes:
+      - type: volume
+        source: seaweedfs-data
+        target: /data
+      healthcheck:
+        # The readiness contract dependents gate on: master serving AND the S3 listener
+        # accepting connections. weed binds its listeners staggered, so a single-port
+        # check passes before S3 is reachable.
+        test:
+          [
+            "CMD-SHELL",
+            "curl -fsS http://127.0.0.1:9333/cluster/status && curl -s -o /dev/null http://127.0.0.1:8333/",
+          ]
+        interval: 1s
+        retries: 60
+        start_period: 90s
+    # weed's S3 audit log ships over the fluent protocol (no file/stdout mode), so this
+    # relay receives on 24224 and echoes to its own stdout for alloy.
+    seaweedfs-audit:
+      image: ${SEAWEEDFS_AUDIT_IMAGE:?err}
+      depends_on:
+        seaweedfs:
+          condition: service_healthy
+      command: ["-i", "forward", "-p", "listen=0.0.0.0", "-p", "port=24224", "-o", "stdout", "-m", "*"]
+    # `weed admin` derives its worker gRPC port as HTTP port + 10000, which overflows the
+    # 16-bit port range at 59001 — pass an explicit -port.grpc.
+    seaweedfs-admin:
+      image: ghcr.io/outernet-foundation/placeframe/seaweedfs:{{ env "SEAWEEDFS_SHA" }}
+      entrypoint: /usr/local/bin/entrypoint-wrapper.sh
+      depends_on:
+        seaweedfs:
+          condition: service_healthy
+      command: admin -ip=0.0.0.0 -port=59001 -port.grpc=59002 -master=seaweedfs:9333 -adminPassword="${S3_SECRET_KEY:?err}"
+    # Converges the required buckets (verify if present, create if missing) and retries
+    # until the S3 endpoint accepts connections — safe on both cold and warm volumes.
+    # Gated on seaweedfs health, which asserts S3 readiness.
+    initialize-s3:
+      image: ghcr.io/outernet-foundation/placeframe/s3-initializer:{{ env "S3_INITIALIZER_SHA" }}
+      depends_on:
+        seaweedfs:
+          condition: service_healthy
+      environment:
+        S3_ENDPOINT_URL: "http://seaweedfs:8333"
+        S3_ACCESS_KEY: "${S3_ACCESS_KEY:?err}"
+        S3_SECRET_KEY: "${S3_SECRET_KEY:?err}"
+        S3_BUCKETS: "captures reconstructions loki"

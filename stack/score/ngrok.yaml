@@ -1,0 +1,31 @@
+apiVersion: score.dev/v1b1
+metadata:
+  name: ngrok
+  annotations:
+    outernet.internal/restart: on-failure
+containers:
+  ngrok:
+    image:
+      lock: NGROK_IMAGE
+    # The shell wrapper is load-bearing twice over: score does not substitute
+    # resource refs inside command args, and score-compose $$-escapes ${...} in
+    # them to a docker-compose literal — so the shell expands the domain inside
+    # the container from NGROK_DOMAIN below, while the authtoken is read from
+    # the environment natively by ngrok itself. The forward target is the door —
+    # the emitted front door's reserved service name, listening :8443 internally.
+    command:
+      - /bin/sh
+      - -c
+      - exec ngrok http --domain=${NGROK_DOMAIN:-} --upstream-protocol=http1 --log=stdout http://door:8443
+    variables:
+      NGROK_AUTHTOKEN: ${resources.config.ngrok_authtoken}
+      NGROK_DOMAIN: ${resources.config.ngrok_domain}
+service:
+  ports:
+    admin:
+      port: 4040
+      targetPort: 4040
+resources:
+  config:
+    type: tunnel-config
+    id: placeframe-tunnel-config
