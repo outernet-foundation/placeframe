@@ -3,7 +3,6 @@ metadata:
   name: api
   annotations:
     outernet.internal/probe-adapter: python-urllib
-    outernet.internal/publish: 8000/8000,127.0.0.1/${API_DEBUG_PORT:-5679}/5678
     # Dev defaults for the generated dev overlay (up --dev turns the pairs into
     # ${NAME:-default} env holes); the variables below bake prod-safe literals.
     outernet.internal/dev-toggles: RELOAD=true,DEBUG_API=true,DEBUG_WAIT_API=false

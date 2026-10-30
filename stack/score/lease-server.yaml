@@ -3,7 +3,6 @@ metadata:
   name: lease-server
   annotations:
     outernet.internal/probe-adapter: python-urllib
-    outernet.internal/publish: 127.0.0.1/${LEASE_SERVER_DEBUG_PORT:-5683}/5678
     # Dev defaults for the generated dev overlay (up --dev turns the pairs into
     # ${NAME:-default} env holes); the variables below bake prod-safe literals.
     outernet.internal/dev-toggles: RELOAD=true,DEBUG_LEASE_SERVER=false,DEBUG_WAIT_LEASE_SERVER=false

@@ -12,8 +12,8 @@ from docker_devkit.score_generate import generate_k8s
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
-# The generated k8s sources need the root-config variant fields.
-_required_devkit = Version("0.5")
+# The generated k8s sources need the services vocabulary.
+_required_devkit = Version("0.5.5")
 pytestmark = [
     pytest.mark.skipif(which("score-k8s") is None, reason="pinned score-k8s not on PATH"),
     pytest.mark.skipif(
@@ -94,3 +94,30 @@ def test_k8s_generation_patches_gpu_workloads_and_renders_keda_crs(
     ]
 
     assert "Deployment/keda-operator" not in documents
+
+
+def test_k8s_generation_renders_the_tier_neutral_keycloak_deployment(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    documents = _generate_k8s_without_charts(tmp_path / "manifests.yaml", monkeypatch)
+    lock = parse_image_lock(REPO_ROOT / LOCK_PATH).root
+
+    keycloak = documents["Deployment/keycloak"]
+    container = keycloak["spec"]["template"]["spec"]["containers"][0]
+    assert container["image"] == lock["KEYCLOAK_IMAGE"]
+    assert container["readinessProbe"]["httpGet"] == {"path": "/health/ready", "port": 9000}
+    env = {variable["name"]: variable for variable in container["env"]}
+    assert env["KC_BOOTSTRAP_ADMIN_PASSWORD"]["valueFrom"]["secretKeyRef"]["key"] == "KEYCLOAK_ADMIN_PASSWORD"
+    assert env["KC_HOSTNAME"]["valueFrom"]["secretKeyRef"]["key"] == "KEYCLOAK_HOSTNAME"
+
+    realm_job = documents["Job/keycloak-realm"]
+    job_env = {
+        variable["name"]: variable
+        for variable in realm_job["spec"]["template"]["spec"]["containers"][0]["env"]
+    }
+    assert job_env["KEYCLOAK_URL"]["value"] == "http://keycloak:8080"
+
+    assert documents["Service/keycloak"]["spec"]["ports"][0]["port"] == 8080
+    assert "Keycloak/keycloak" not in documents
+    assert not [name for name in documents if name.startswith("Service/") and name.endswith("-service")]
+    assert not [name for name in documents if "keycloak-operator" in name]

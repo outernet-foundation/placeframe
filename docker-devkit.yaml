@@ -1,6 +1,7 @@
-requires: ">=0.5.4"
+requires: ">=0.5.5"
 repository: ghcr.io/outernet-foundation/placeframe
 project_name: placeframe
+gateway: ${GATEWAY_PORT:?err}
 
 base_images:
   UV_BASE_IMAGE: "ghcr.io/astral-sh/uv:0.12.15-python3.13-trixie-slim"
@@ -14,43 +15,72 @@ base_images:
   POSTGIS_IMAGE: "docker.io/postgis/postgis:16-3.4-alpine"
   SEAWEEDFS_IMAGE: "docker.io/chrislusf/seaweedfs:4.47"
   KEYCLOAK_IMAGE: "quay.io/keycloak/keycloak:26.8.1"
-  KEYCLOAK_OPERATOR_IMAGE: "quay.io/keycloak/keycloak-operator:26.8.1"
   NGROK_IMAGE: "docker.io/ngrok/ngrok:alpine"
   SEAWEEDFS_AUDIT_IMAGE: "docker.io/fluent/fluent-bit:5.1.2"
   INITIALIZE_S3_IMAGE: "docker.io/amazon/aws-cli:2.36.9"
 
-bundles:
-  core-cuda:
-    workloads:
-      - api.yaml
-      - lease-server.yaml
-      - reconstructor.yaml
-      - localizer.yaml
-    vars:
-      GPU_VARIANT: cuda
-  core-rocm:
-    workloads:
-      - api.yaml
-      - lease-server.yaml
-      - reconstructor.yaml
-      - localizer.yaml
-    vars:
-      GPU_VARIANT: rocm
-  gateway-open:
-    workloads:
-      - gateway-open.yaml
-  gateway-keycloak:
-    workloads:
-      - gateway-keycloak.yaml
-  tunnel-ngrok:
-    workloads:
-      - tunnel-ngrok.yaml
+services:
+  auth:
+    options:
+      keycloak:
+        workloads:
+          - keycloak.yaml
+        routes:
+          - path: /auth/*
+            upstream: keycloak:8080
+            strip_prefix: true
+  core:
+    options:
+      cuda:
+        workloads:
+          - api.yaml
+          - lease-server.yaml
+          - reconstructor.yaml
+          - localizer.yaml
+        vars:
+          GPU_VARIANT: cuda
+      rocm:
+        workloads:
+          - api.yaml
+          - lease-server.yaml
+          - reconstructor.yaml
+          - localizer.yaml
+        vars:
+          GPU_VARIANT: rocm
+    routes:
+      - path: /grafana/*
+        upstream: grafana:3000
+        protected: true
+      - path: /loki/*
+        upstream: loki:3100
+        protected: true
+      - path: /*
+        upstream: api:8000
+    ports:
+      - service: api
+        host_ip: 127.0.0.1
+        published: "${API_DEBUG_PORT:-5679}"
+        target: "5678"
+      - service: lease-server
+        host_ip: 127.0.0.1
+        published: "${LEASE_SERVER_DEBUG_PORT:-5683}"
+        target: "5678"
+      - service: seaweedfs-admin
+        published: "${SEAWEEDFS_ADMIN_PORT:?err}"
+        target: "59001"
+  tunnel:
+    options:
+      ngrok:
+        workloads:
+          - ngrok.yaml
+        ports:
+          - "4040/4040"
 
 k8s:
   workloads:
     - api.yaml
     - lease-server.yaml
-    - gateway-keycloak.yaml
+    - keycloak.yaml
     - reconstructor.yaml
     - localizer.yaml
   vars:
@@ -61,4 +91,3 @@ k8s:
   charts:
     loki: "oci://ghcr.io/grafana/helm-charts/loki:7.3.0"
     grafana: "oci://ghcr.io/grafana/helm-charts/grafana:10.5.15"
-    keycloak-operator: "oci://quay.io/keycloak/keycloak-operator-helm:26.8.1"
