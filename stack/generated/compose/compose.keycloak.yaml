@@ -1,0 +1,51 @@
+name: placeframe
+services:
+  keycloak-configurator:
+    environment:
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?err}
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KEYCLOAK_ACCESS_TOKEN_LIFESPAN: ${KEYCLOAK_ACCESS_TOKEN_LIFESPAN:?err}
+      KEYCLOAK_SSO_SESSION_IDLE_TIMEOUT: ${KEYCLOAK_SSO_SESSION_IDLE_TIMEOUT:?err}
+      KEYCLOAK_SSO_SESSION_MAX_LIFESPAN: ${KEYCLOAK_SSO_SESSION_MAX_LIFESPAN:?err}
+      KEYCLOAK_URL: http://keycloak:8080
+      PUBLIC_URL: ${PUBLIC_URL:?err}
+      SEED_TEST_USERS: ${SEED_TEST_USERS:-}
+    image: ghcr.io/outernet-foundation/placeframe/auth-initializer:tree-eb404c12f567bbfbe47acac6671afc097be7c346
+  keycloak:
+    annotations:
+      compose.score.dev/workload-name: keycloak
+      outernet.internal/probe-adapter: bash-http
+    command:
+    - start-dev
+    - --health-enabled=true
+    depends_on:
+      wait-for-resources-keycloak:
+        condition: service_completed_successfully
+        required: true
+    environment:
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?err}
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_HOSTNAME: ${PUBLIC_URL:?err}/auth
+      KC_HOSTNAME_ADMIN: ${PUBLIC_URL:?err}/auth
+      KC_HOSTNAME_STRICT_HTTPS: 'true'
+      KC_PROXY_HEADERS: xforwarded
+    hostname: keycloak
+    healthcheck:
+      test:
+      - CMD
+      - bash
+      - -c
+      - 'exec 3<>/dev/tcp/127.0.0.1:9000 && printf ''GET /health/ready HTTP/1.0\r\nHost: localhost\r\n\r\n'' >&3 && read -r status <&3 && case $status in *200*) exit 0;; *) exit 1;; esac'
+      timeout: 5s
+      interval: 5s
+      retries: 3
+      start_period: 5s
+    image: ghcr.io/outernet-foundation/mirror/quay.io/keycloak/keycloak:26.8.1@sha256:a78d6b79572168cb25886b80a8b5b8d4ed4390743e3eecb810538683e209dd6b
+  wait-for-resources-keycloak:
+    command:
+    - echo
+    depends_on:
+      keycloak-configurator:
+        condition: service_started
+        required: true
+    image: ${ALPINE_IMAGE:?err}
