@@ -3,47 +3,46 @@
 ## What this is
 
 The score tier: one authored description per service, compiled into two renderings —
-five Docker compose artifacts under `stack/generated/compose/` (one per assembly bundle,
-the core bundle split per GPU variant) and `stack/generated/k8s/manifests.yaml`
-(Kubernetes, one monolithic artifact). Coverage is the full stack — the hand compose
-files are deleted; `stack/score/` holds the authored sources, `stack/generated/` the
-committed artifacts, and the repo's `docker-devkit.yaml` root `bundles:` plus the
-`BUNDLES=` selector in `.env` assemble the artifacts at `up`/`down`.
+four Docker compose artifacts under `stack/generated/compose/` (one per assembly unit:
+the core bundle split per GPU variant, the keycloak bundle, the relay) and
+`stack/generated/k8s/manifests.yaml` (Kubernetes, one monolithic artifact). Coverage is
+the full stack — the hand compose files are deleted; `stack/score/` holds the authored
+sources, `stack/generated/` the committed artifacts, and the repo's `docker-devkit.yaml`
+root `services:` vocabulary plus the `BUNDLES=` selector in `.env` assemble the artifacts
+at `up`/`down`, with the devkit emitting the front door (caddy) from the config's routes.
 
     stack/score/            authored
       api.yaml              workload contracts (tier-neutral), ${SHA} placeholders for image tags,
       lease-server.yaml     ${GPU_VARIANT} placeholders where a workload is accelerator-carrying
-      gateway-open.yaml     the gateway pair — both `metadata.name: gateway`, one file per
-      gateway-keycloak.yaml auth mode (the file *is* the auth-mode difference)
+      keycloak.yaml         the tier-neutral OIDC provider — the container is keycloak on both
+                            renderings, env fed by the oidc-issuer provisioner outputs
       reconstructor.yaml
       localizer.yaml
-      tunnel-ngrok.yaml     compose-only relay workload — absent from the k8s workload list,
+      ngrok.yaml            compose-only relay workload — absent from the k8s workload list,
                             which is why it has no k8s provisioner twin
       compose/              provisioners for the compose rendering
       k8s/                  provisioners for the k8s rendering
       k8s/values/           helm values for the declared charts (k8s rendering only)
     stack/secrets.yaml      tier-neutral secrets/env declaration (both renderings)
     stack/generated/        committed artifacts, never hand-edited
-      compose/compose.core-{cuda,rocm}.yaml               core bundle per GPU variant
-      compose/compose.gateway-{open,keycloak}.yaml       gateway bundle, anonymous / OIDC edge
-      compose/compose.tunnel-ngrok.yaml                  the ngrok relay artifact
+      compose/compose.{cuda,rocm}.yaml                    core bundle per GPU variant
+      compose/compose.keycloak.yaml                       the OIDC provider bundle
+      compose/compose.ngrok.yaml                          the relay artifact
       k8s/manifests.yaml
       secrets.txt           mint list generated from the secrets declaration
 
-The bundles are declared in `docker-devkit.yaml`'s root `bundles:` map: each bundle
-names its workloads (bare filenames under `stack/score/`) and its `vars` (`GPU_VARIANT`
-for the core pair); the output path derives from the bundle name. Provisioner
-registration derives by resource-type closure over the rendering's workloads — no
-provisioner list is authored anywhere. Deployment-surface behavior — healthchecks, gpu
-plumbing, the relay restart, host publishes, the wait-for-resources pin — is
-annotation-driven through the devkit's built-in patch templates; this repo authors
-no patch template. Consumers assemble a backend by including artifacts —
-`core-cuda + gateway-keycloak + tunnel-ngrok` is the OIDC-with-relay assembly;
-`gateway-open` is the gateway with its auth snippet files and oidc-issuer resource
-absent (the file *is* the auth-mode difference between the gateway artifacts) and
-references no oidc-issuer resource, so keycloak rides only the
-gateway-keycloak artifact. The k8s rendering is deliberately monolithic: Argo applies
-one artifact wholesale, and assembly-by-inclusion is a compose-consumer concept.
+The assembly is declared in `docker-devkit.yaml`'s root `services:` map: groups of
+mutually exclusive `options:` (`auth`/`keycloak`, `core`/`cuda`+`rocm`, `tunnel`/`ngrok`),
+group-level `routes:`/`ports:` that ride unconditionally, and per-option workloads/vars.
+`BUNDLES=` names options only. Provisioner registration derives by resource-type closure
+over the rendering's workloads — no provisioner list is authored anywhere.
+Deployment-surface behavior — healthchecks, gpu plumbing, the relay restart, the
+wait-for-resources pin — is annotation-driven through the devkit's built-in patch
+templates; this repo authors no patch template. Consumers assemble a backend by
+including artifacts — `cuda + keycloak + ngrok` is the OIDC-with-relay assembly;
+omitting keycloak is the anonymous edge. The k8s rendering is deliberately monolithic:
+Argo applies one artifact wholesale, and assembly-by-inclusion is a compose-consumer
+concept; the cluster edge is the Pulumi Ingress (infra repo), not a door.
 
 ## Generate
 
@@ -59,7 +58,7 @@ which is not on the default PATH.
 
 Staleness is gated in CI's build-docker getter, not preflight: its `generate-score --check`
 step fetches the exact pinned score tools itself, regenerates in the runner checkout, and
-fails on any git change under the config-derived outputs (the five compose artifacts,
+fails on any git change under the config-derived outputs (the four compose artifacts,
 `k8s/manifests.yaml`, `secrets.txt`), printing the diff — uncommitted edits heal by
 regeneration, only committed state can drift. Every change inside a service's build
 context (a dependency-lock bump included) re-stales the committed output through the
@@ -70,52 +69,52 @@ are name-derived hashes).
 
 ## Deploy: Docker
 
-`uv run up` / `uv run down` (docker-devkit) assemble the graph from the root
-`bundles:` map of `docker-devkit.yaml`, selected through `BUNDLES=` in `.env` (the
-`COMPOSE_PROFILES` precedence: shell env over `.env`): `BUNDLES=` names declared
-bundles, layering `core-cuda` (or `core-rocm` — the host picks its variant; both GPU
-workloads reserve devices, so a GPU-less host cannot run the core), one gateway
-bundle, and at most one relay. Unknown names refuse loudly listing the vocabulary;
-`uv run down` layers every declared bundle unconditionally so teardown covers prior
-bring-ups under a different selection. The old `AUTH_ISSUER_URL`/`NGROK_AUTHTOKEN`
-env-conditioned axes are dead — the selector is structural (`BUNDLES=`), and the
-auth-mode choice is which gateway bundle the host names; the `AUTH_*` block remains
-the api's own config either way. `up --dev` generates the dev overlay per-run (never
+`uv run up` / `uv run down` (docker-devkit) assemble the graph from the root `services:`
+map of `docker-devkit.yaml`, selected through `BUNDLES=` in `.env` (the
+`COMPOSE_PROFILES` precedence: shell env over `.env`): `BUNDLES=` names options — the
+core variant (`cuda` or `rocm` — the host picks its variant; both GPU workloads reserve
+devices, so a GPU-less host cannot run the core), the auth edge (`keycloak`; omitting it
+is the anonymous edge), and at most the relay (`ngrok`). Unknown names refuse loudly
+listing the vocabulary; `uv run down` materializes a name-only root and hands off
+`down --remove-orphans`, so teardown covers prior bring-ups under any selection without
+resolving a single include. `up --dev` generates the dev overlay per-run (never
 committed): every assembly service whose Dockerfile declares a genuine multi-stage
-`dev` stage gets `image: {repository}/{service}:dev` plus the repo-root→`/app:ro`
-bind, and each workload's `outernet.internal/dev-toggles` pairs become
+`dev` stage gets `image: {repository}/{service}:dev` plus the repo-root→`/app:ro` bind,
+and each workload's `outernet.internal/dev-toggles` pairs become
 `${NAME:-default}` environment holes, so `.env` debug overrides apply only under
 `--dev`. External consumers (Make-it-Sing) assemble by `include:`-ing the published
 OCI bundles instead.
 
-The gateway's published host port is env-driven through its
-`outernet.internal/publish: ${GATEWAY_PORT:-8443}/8443` annotation: an existing
-host's `GATEWAY_PORT` value now governs prod (the old dev overlay remap is gone), so
-retarget deliberately — `.env.sample` ships `GATEWAY_PORT=8443`. The api and
-lease-server debug ports publish always, localhost-bound
-(`127.0.0.1/${API_DEBUG_PORT:-5679}/5678`, `127.0.0.1/${LEASE_SERVER_DEBUG_PORT:-5683}/5678`).
+The front door is emitted by the devkit from the config's routes — never authored here:
+`gateway: ${GATEWAY_PORT:?err}` publishes the door's host port (`.env.sample` ships
+`GATEWAY_PORT=8443`), the door listens `:8443` internally, and the route table
+(`/auth/*` strip-prefix to keycloak, `/grafana/*` and `/loki/*` forward-auth-protected
+when keycloak rides, `/*` to the api) is consumer config, not workload surface. Host
+ports beyond the door live in the config's `ports:` (api and lease-server debug ports,
+localhost-bound; the seaweedfs-admin console) — no workload publishes anything
+(`outernet.internal/publish` is dead and its presence refuses at generation).
 
 ```bash
 docker compose --project-directory . \
   --env-file .env --env-file docker-devkit.lock \
-  -f stack/generated/compose/compose.core-cuda.yaml \
-  -f stack/generated/compose/compose.gateway-keycloak.yaml \
-  -f stack/generated/compose/compose.tunnel-ngrok.yaml up -d
+  -f stack/generated/compose/compose.cuda.yaml \
+  -f stack/generated/compose/compose.keycloak.yaml \
+  -f stack/generated/compose/compose.ngrok.yaml up -d
 # teardown: same command with `down --remove-orphans`
 ```
 
 Raw `docker compose` (the pressure valve) anchors at the repo root
 (`--project-directory .` is required — compose otherwise anchors relative paths at the
-first `-f` file's directory).
+first `-f` file's directory). This raw form has no door — the door exists only in the
+devkit's materialized assembly.
 
 The `tree-<sha>` image tags the generated compose references must exist before `up` — a
 regeneration can reference tags that have never been built or pushed, and the pull fails
-with `not found`. Build the missing services first (`uv run build -t api -t gateway
---gpu none`).
+with `not found`. Build the missing services first (`uv run build -t api --gpu none`).
 
 It reads `.env` the same way any assembly does (`KEYCLOAK_ADMIN_PASSWORD` consumed only by
-the gateway-keycloak artifact — keycloak and its configurator ride that bundle; the core and
-gateway-open never see it). Reach it at `http://localhost:${GATEWAY_PORT:-8443}/schema`.
+the keycloak artifact — keycloak and its configurator ride that option; the anonymous
+core never sees it). Reach the api through the door at `http://localhost:${GATEWAY_PORT:-8443}/schema`.
 
 ## Deploy: Kubernetes
 
@@ -125,8 +124,12 @@ kubectl apply -f stack/generated/k8s/manifests.yaml
 
 The cluster is a precondition. On the real cluster Argo CD applies this file (see the infra
 repo); the Pulumi program creates the `placeframe-secrets` Secret every manifest references
-and installs the Hetzner CSI driver behind the `hcloud-volumes` storage class. No host ports:
-reach the gateway with `kubectl port-forward deploy/gateway 8443:8443`.
+and installs the Hetzner CSI driver behind the `hcloud-volumes` storage class. No host
+ports: reach the api with `kubectl port-forward deploy/api 8000:8000`. The cluster edge is
+the Pulumi Ingress (`/` → api, `/auth` and `/auth/*` → keycloak behind a StripPrefix
+middleware); keycloak itself is the `keycloak` Deployment from this artifact — there is no
+Keycloak CR, no operator, and no ExternalName alias, so `keycloak:8080` resolves natively
+on both tiers.
 
 Against a local cluster (k3d), generate with `--local`: it selects the `local-path` storage
 class and writes to the gitignored `stack/generated/k8s/manifests.local.yaml`, leaving the
@@ -140,10 +143,8 @@ reconstructor sits at zero replicas. With no Pulumi locally, mint the Secret
 first: every key in the generated mint list `stack/generated/secrets.txt` must exist on the
 `placeframe-secrets` Secret (random hex for the credentials, real values or empty strings
 for the passthroughs like `PUBLIC_URL` and the `AUTH_*` block). For OIDC mode mint
-`AUTH_JWKS_URL` as `http://keycloak-service:8080/realms/placeframe-dev/protocol/openid-connect/certs`
-(split-horizon: the api reaches the operator-owned Service directly). The artifact includes
-cluster-scoped CRDs + RBAC from the keycloak-operator chart — the k3d admin context
-admits them; a restricted Argo target must too.
+`AUTH_JWKS_URL` as `http://keycloak:8080/realms/placeframe-dev/protocol/openid-connect/certs`
+(the workload's own Service name — the same reference on both tiers).
 
 k3d pulls through Docker Hub, whose unauthenticated rate limit is low enough to fail a cold
 cluster; preload slow images with `docker save <image> | docker exec -i k3d-score-poc-server-0
@@ -158,11 +159,11 @@ One authored source, two renderings — the deliberate differences, so nobody "f
 - Liveness/readiness: chart probes (loki, grafana) on k8s vs compose healthchecks; the
   built workloads declare `outernet.internal/probe-adapter` and the devkit's built-in
   template converts their httpGet probes into compose healthchecks.
-- Host publishes ride the workloads' `outernet.internal/publish` annotations (api 8000
-  + its localhost debug port, gateway `${GATEWAY_PORT:-8443}`, ngrok 4040) and the
-  `seaweedfs-admin` console's provisioner-emitted hole: all compose-only; the k8s edge
-  is the Pulumi-owned Ingress (`PUBLIC_URL` host, cert-manager issuer — per-site and
-  Secret-resident, un-committable in a deterministic artifact).
+- Host publishes ride the root config's `ports:` (api and lease-server localhost-bound
+  debug ports, the seaweedfs-admin console) and the `gateway:` key's door publish —
+  all compose-only, all consumer config; the k8s edge is the Pulumi-owned Ingress
+  (`PUBLIC_URL` host, cert-manager issuer — per-site and Secret-resident, un-committable
+  in a deterministic artifact).
 - The relay is compose-only (its own artifact); the SaaS cluster has no relay.
 - Grafana: anonymous auth on compose vs credentialed `existingSecret` on k8s; root URL
   spelled from `${PUBLIC_URL}` on compose vs request-derived placeholders on k8s — one
@@ -230,12 +231,11 @@ proliferate.
   wiring off that resource type.
 - **Service names in provisioners are load-bearing DNS names.** `seaweedfs`,
   `seaweedfs-audit`, `pf-postgres`, `keycloak` are addressed by baked-in references (loki's
-  config, the entrypoint wrapper's rendered audit sink, the gateway auth snippets); renaming
-  one breaks the stack at runtime, not at generation. On k8s the operator owns the real
-  keycloak Service (`keycloak-service`, from the Keycloak CR name) and the provisioner
-  emits an ExternalName alias so the single-sourced `keycloak:8080` references in the
-  gateway snippets resolve on both tiers; minted k8s JWKS URLs should target
-  `keycloak-service:8080` directly. **Bucket names are load-bearing contract names
+  config, the entrypoint wrapper's rendered audit sink, the door's auth routes and the
+  configurator's `KEYCLOAK_URL`); renaming one breaks the stack at runtime, not at
+  generation. `keycloak` is the workload's own Service on both tiers — the compose service
+  (collapsed from the doubled name) and the k8s Service are the same name, so the
+  references resolve identically everywhere. **Bucket names are load-bearing contract names
   the same way**: `captures`, `reconstructions`, `loki`, unprefixed in both tiers. The s3
   provisioners create exactly that set (initializer `S3_BUCKETS`) and expose
   `bucket`/`captures_bucket` as resource outputs the api consumes; loki's committed config
@@ -246,7 +246,7 @@ proliferate.
   realm from `workloads/auth-initializer/realm-export/placeframe.json` — substituting the
   `${KEYCLOAK_*}` and `${PUBLIC_URL}` holes from its env (compose `.env` holes, k8s
   `secretKeyRef`s; the mint list carries the three lifespan keys). The file-import path
-  is dead: operator-managed pods carry no initContainers, and KeycloakRealmImport cannot
+  is dead: the realm-configurator Job is a bare Job, and KeycloakRealmImport cannot
   resolve holes. The export seeds no users; the optional `SEED_TEST_USERS` pairs
   (compose soft passthrough, k8s mint-list key) are create-or-updated by the
   configurator with `firstName`/`lastName`/`email` populated — a fresh 26.8.1 realm's
@@ -256,9 +256,9 @@ proliferate.
   linted.** The keycloak realm `placeframe-dev` is baked into
   `workloads/auth-initializer/realm-export/placeframe.json` and every OIDC path derives
   from it. It is declared in the two oidc-issuer provisioner states and the compose
-  observability state (bodies template `{{ .State.realm }}`); the gateway receives it as
-  the `AUTH_REALM` env from the oidc-issuer resource output and the forward_auth snippet
-  addresses it via the caddy `{$AUTH_REALM}` placeholder. Uids: loki runs as uid 10001
+  observability state (bodies template `{{ .State.realm }}`); the door receives it as
+  the `AUTH_REALM` env fact in keycloak mode and the forward_auth uri addresses it via the
+  caddy `{$AUTH_REALM}` placeholder. Uids: loki runs as uid 10001
   — compose fixes volume ownership via the initialize-loki chown sidecar, k8s via the
   chart's default securityContext. Keycloak's k8s half is H2-ephemeral (no data PVC,
   no fsGroup concern) until a db spec lands; same number, different mechanisms per tier
@@ -286,9 +286,9 @@ proliferate.
   whose `alpine` default image is redirected through the `${ALPINE_IMAGE:?err}` lock hole by
   the devkit's built-in gate-pin template — the artifact carries no
   unpinned image. The gate emits only where a provisioner carries services, so the
-  gateway-open and tunnel artifacts carry none.
-- **The relay is a compose-only workload** (`tunnel-ngrok.yaml`, absent from the k8s
-  workload list). Score workload specs cannot carry runtime `${VAR}`
+  ngrok artifact carries none.
+- **The relay is a compose-only workload** (`ngrok.yaml`, absent from the k8s workload
+  list). Score workload specs cannot carry runtime `${VAR}`
   holes — score validates placeholders as dotted resource references — so the relay
   credentials ride the outputs-only `compose/tunnel.yaml` provisioner (`type:
   tunnel-config`, no services, no k8s twin) exactly like the placeframe-config valve.
@@ -299,19 +299,17 @@ proliferate.
   by the devkit's built-in restart template, the value validated against the compose
   restart-policy enum at generation) sets `restart: on-failure` — the
   relay is a long-lived agent whose control endpoint flaps. No compose profile exists
-  anywhere in the five artifacts; the relay forwards to the gateway by Docker DNS name, so
-  an assembly without it simply has no public edge.
-- **Third-party k8s stamp-outs are charts where an OCI chart exists** — loki, grafana, and
-  the keycloak operator render from tag-form upstream-native OCI refs declared in
-  `docker-devkit.yaml`'s root `k8s.charts` map (`oci://host/path:tag`), resolved to
-  digests through the `{NAME}_CHART` entries `build --lock-only` writes into
-  `docker-devkit.lock` — generation renders the lock's mirror-prefixed digest ref
-  (`helm template` against it), so a declared chart without its lock entry refuses at
-  generation naming the relock path. The CI mirror job copies chart declarations like
-  image declarations; declaring a chart the mirror job has not copied yet makes k8s
-  generation fail until it runs. The operator chart ships its CRDs under
-  `templates/crds/`, so `helm template` renders
-  them into the artifact — Argo/kubectl-apply sees the CRDs before the Keycloak CR.
+  anywhere in the four artifacts; the relay forwards to the door by its reserved service
+  name (`http://door:8443`), so an assembly without it simply has no public edge.
+- **Third-party k8s stamp-outs are charts where an OCI chart exists** — loki and grafana
+  render from tag-form upstream-native OCI refs declared in `docker-devkit.yaml`'s root
+  `k8s.charts` map (`oci://host/path:tag`), resolved to digests through the `{NAME}_CHART`
+  entries `build --lock-only` writes into `docker-devkit.lock` — generation renders the
+  lock's mirror-prefixed digest ref (`helm template` against it), so a declared chart
+  without its lock entry refuses at generation naming the relock path. The CI mirror job
+  copies chart declarations like image declarations; declaring a chart the mirror job has
+  not copied yet makes k8s generation fail until it runs. Keycloak runs as the workload
+  Deployment (no chart — the operator managed a statefulness keycloak doesn't have).
   Chart values never carry secret values: they reference the existing `placeframe-secrets`
   Secret (`envValueFrom`/`extraEnvFrom`/`existingSecret`) or `${VAR}` config holes
   expanded in-container. Alloy has no upstream OCI chart, so `k8s/observability.yaml`
@@ -367,11 +365,12 @@ proliferate.
   regenerates the k8s manifests from the real sources (charts stripped: their mirror gap is
   environmental, not structural) and asserts the GPU patches, the service-port URLs, and the
   KEDA CRs — and that no KEDA operator documents ride the artifact. The compose bundle split
-  has its twin in `scripts/tests/test_score_compose_generation.py`: five outputs, zero
-  profiles, zero binds, the collapsed service names, the snippet/auth difference between
-  the gateway artifacts, and the relay restart/passthrough mechanics. Both skip when the
+  has its twin in `scripts/tests/test_score_compose_generation.py`: four outputs, zero
+  profiles, zero binds, zero published ports, the collapsed service names, the tier-neutral
+  keycloak shapes (lock-pinned image, poll-gated configurator), and the relay
+  restart/passthrough mechanics. Both skip when the
   pinned tool is off PATH or the
-  installed docker-devkit predates the root-config bundle fields.
+  installed docker-devkit predates the services vocabulary.
 
 ## See also
 
