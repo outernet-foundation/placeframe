@@ -396,14 +396,14 @@ spec:
     metadata:
       annotations:
         k8s.score.dev/workload-name: keycloak
-        outernet.internal/probe-adapter: python-urllib
+        outernet.internal/probe-adapter: bash-http
       labels:
         app.kubernetes.io/instance: keycloak-d63f4a0cda
         app.kubernetes.io/managed-by: score-k8s
         app.kubernetes.io/name: keycloak
     spec:
       containers:
-        - command:
+        - args:
             - start-dev
             - --health-enabled=true
           env:
