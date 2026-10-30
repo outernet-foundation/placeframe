@@ -86,7 +86,9 @@ def test_bundle_generation_splits_the_stack_by_assembly_unit(tmp_path: Path, mon
     assert keycloak["image"] == lock["KEYCLOAK_IMAGE"]
     assert keycloak["environment"]["KC_HOSTNAME"] == "${PUBLIC_URL:?err}/auth"
     assert "${KEYCLOAK_ADMIN_PASSWORD:?err}" in list(keycloak["environment"].values())
-    assert "urllib.request" in " ".join(keycloak["healthcheck"]["test"])
+    assert keycloak["healthcheck"]["test"][:3] == ["CMD", "bash", "-c"]
+    assert "/dev/tcp/127.0.0.1:9000" in keycloak["healthcheck"]["test"][3]
+    assert "/health/ready" in keycloak["healthcheck"]["test"][3]
     assert keycloak["depends_on"]["wait-for-resources-keycloak"]["condition"] == "service_completed_successfully"
     assert keycloak_bundle["wait-for-resources-keycloak"]["depends_on"]["keycloak-configurator"]["condition"] == (
         "service_started"

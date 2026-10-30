@@ -2,7 +2,7 @@ apiVersion: score.dev/v1b1
 metadata:
   name: keycloak
   annotations:
-    outernet.internal/probe-adapter: python-urllib
+    outernet.internal/probe-adapter: bash-http
 containers:
   keycloak:
     # The lock marker is the digest source: score never substitutes resource outputs into
@@ -17,7 +17,9 @@ containers:
     # env-file; k8s secretKeyRefs). Keycloak serves at root; the /auth path in
     # KC_HOSTNAME is advertise-only, and the edge does the strip (the door's
     # strip_prefix route, a traefik StripPrefix middleware at the cluster edge).
-    command: ["start-dev", "--health-enabled=true"]
+    # Score's command maps to the image entrypoint slot (compose entrypoint, k8s command),
+    # so the flags ride as args and the image's own kc.sh entrypoint stands.
+    args: ["start-dev", "--health-enabled=true"]
     variables:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${resources.auth.admin_password}

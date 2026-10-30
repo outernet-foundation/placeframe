@@ -14,14 +14,14 @@ services:
   keycloak:
     annotations:
       compose.score.dev/workload-name: keycloak
-      outernet.internal/probe-adapter: python-urllib
+      outernet.internal/probe-adapter: bash-http
+    command:
+    - start-dev
+    - --health-enabled=true
     depends_on:
       wait-for-resources-keycloak:
         condition: service_completed_successfully
         required: true
-    entrypoint:
-    - start-dev
-    - --health-enabled=true
     environment:
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?err}
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
@@ -33,9 +33,9 @@ services:
     healthcheck:
       test:
       - CMD
-      - python
+      - bash
       - -c
-      - import urllib.request; urllib.request.urlopen('http://localhost:9000/health/ready')
+      - 'exec 3<>/dev/tcp/127.0.0.1:9000 && printf ''GET /health/ready HTTP/1.0\r\nHost: localhost\r\n\r\n'' >&3 && read -r status <&3 && case $status in *200*) exit 0;; *) exit 1;; esac'
       timeout: 5s
       interval: 5s
       retries: 3
