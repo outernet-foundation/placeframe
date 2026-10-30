@@ -17,7 +17,7 @@ mirror-images ─→ preflight ─┬→ compile-check-unity ─────┐
 
 - `preflight` (calling-job permissions `contents: read, packages: read` — the DB battery pulls the mirrored postgres) runs lint-workflows, validate-release-plan, and the repo battery from `scripts/preflight.py` (the python battery via `preflight-python`, then the repo checks in-process, then `generate-clients --check`).
 - `compile-check-unity` forwards the `UNITY_*` secrets; its legs run on the self-hosted `unity` pool.
-- `build-docker` fans out via docker-devkit's matrix (the cross-compile cohort splits into its own legs; each leg shelves its own digest-manifest shard) and embeds the compose publishing: the toolkit reusable derives the publish legs from `uv run --locked publish-compose --plan` (the devkit verb, seam mode — artifact names are the seam names) and its embedded `publish-compose` job runs the verb for all five seam artifacts (`core-{cuda,rocm}`, `gateway-{open,keycloak}`, `tunnel-ngrok`), each as `<sha>` and `<branch>` tags under `ghcr.io/outernet-foundation/placeframe/`.
+- `build-docker` fans out via docker-devkit's matrix (the cross-compile cohort splits into its own legs; each leg shelves its own digest-manifest shard) and embeds the compose publishing: the toolkit reusable derives the publish legs from `uv run --locked publish-compose --plan` (the devkit verb, seam mode — artifact names are the seam names) and its embedded `publish-compose` job runs the verb for all four seam artifacts (`cuda`, `rocm`, `keycloak`, `ngrok`), each as `<sha>` and `<branch>` tags under `ghcr.io/outernet-foundation/placeframe/`.
 - `release-pr-builds` needs the terminal build legs (`build-docker`, `compile-check-unity`).
 
 ## Delivery notes
