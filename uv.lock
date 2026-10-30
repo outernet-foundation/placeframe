@@ -532,8 +532,8 @@ source = { editable = "packages/python/neural-networks/third-party/deep-image-re
 
 [[package]]
 name = "docker-devkit"
-version = "0.5.4"
-source = { git = "https://github.com/outernet-foundation/docker-devkit?rev=202c7e7d44da1a298d6809f268a43b88976a23f9#202c7e7d44da1a298d6809f268a43b88976a23f9" }
+version = "0.5.5"
+source = { git = "https://github.com/outernet-foundation/docker-devkit?rev=1ad7ea0b97477f0a7122961cee4139524faade2f#1ad7ea0b97477f0a7122961cee4139524faade2f" }
 dependencies = [
     { name = "bashrun" },
     { name = "build-artifact-registry" },
@@ -2946,7 +2946,7 @@ dependencies = [
 requires-dist = [
     { name = "bashrun", specifier = ">=0.1.0" },
     { name = "datamodel-code-generator", specifier = ">=0.33.0" },
-    { name = "docker-devkit", git = "https://github.com/outernet-foundation/docker-devkit?rev=202c7e7d44da1a298d6809f268a43b88976a23f9" },
+    { name = "docker-devkit", git = "https://github.com/outernet-foundation/docker-devkit?rev=1ad7ea0b97477f0a7122961cee4139524faade2f" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "numpy", specifier = ">=2.1" },
     { name = "openapi-client-codegen", specifier = ">=0.1.12" },
