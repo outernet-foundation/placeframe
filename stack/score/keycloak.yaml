@@ -2,7 +2,7 @@ apiVersion: score.dev/v1b1
 metadata:
   name: keycloak
   annotations:
-    outernet.internal/probe-adapter: python-urllib
+    outernet.internal/probe-adapter: bash-http
 containers:
   keycloak:
     # The lock marker is the digest source: score never substitutes resource outputs into
