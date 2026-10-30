@@ -50,10 +50,12 @@ services:
     routes:
       - path: /grafana/*
         upstream: grafana:3000
-        protected: true
+        # protected: true — re-add once the auth bundle ships its oauth2-proxy validator
+        # sidecar and the door's forward_auth treaty targets it (see compose-consumer-model.md,
+        # "Edge protection — stripped"); until then grafana rides the door unprotected.
       - path: /loki/*
         upstream: loki:3100
-        protected: true
+        # protected: true — same treaty; until then loki accepts unauthenticated pushes.
       - path: /*
         upstream: api:8000
     ports:
