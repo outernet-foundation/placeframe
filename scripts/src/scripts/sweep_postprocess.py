@@ -10,7 +10,8 @@ from uuid import UUID
 import numpy as np
 import typer
 from bashrun.bash import bash, bash_output
-from docker_devkit.modes import parse_env_file
+from docker_devkit.config import LOCK_PATH
+from docker_devkit.host import parse_env_file
 
 from .displacement_check import (
     DEFAULT_SEQUENTIAL_WINDOW,
@@ -209,7 +210,7 @@ def persist_mapping(classified: list[ClassifiedReconstruction], mapping_path: Pa
 
 def awscli_s3(arguments: str, volume_dir: Path) -> None:
     env = parse_env_file(REPO_ROOT / ".env")
-    lock = parse_env_file(REPO_ROOT / "workloads" / "images.lock")
+    lock = parse_env_file(REPO_ROOT / LOCK_PATH)
     bash(
         "docker run --rm --network placeframe_default "
         f"-e AWS_ACCESS_KEY_ID={env['S3_ACCESS_KEY']} -e AWS_SECRET_ACCESS_KEY={env['S3_SECRET_KEY']} "

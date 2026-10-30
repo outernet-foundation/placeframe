@@ -2,9 +2,9 @@
 
 ## What this is
 
-`scripts/` is a Python workspace member that ships the repo's Python CLI surface as `uv run` commands registered in `pyproject.toml`'s `[project.scripts]`. Three cohorts: codegen and repo-CI tooling (`generate-datamodels`, `publish-compose`, the CI sidecar `scripts/preflight.py`), small operational utilities (Unity adb-forward, Docker debug-target listing, Loki query), and the calibration pipeline (`fit-calibration`, `tune-reconstruction`, the held-out selector registry, the shared auth helper). The Docker-stack lifecycle commands (`up`, `down`, `build`) live in the standalone [`docker-devkit`](https://github.com/outernet-foundation/docker-devkit) repo; `lock-python` and `preflight-python` live in [`python-devkit`](https://github.com/outernet-foundation/python-devkit); `install` (download or build-then-install Unity APKs / linux executables) lives in the standalone [`unity-devkit`](https://github.com/outernet-foundation/unity-devkit) repo so cross-repo consumers can use it. The calibration pipeline and `publish-compose`'s config inlining carry the directory's tests; the operational utilities are small self-contained shell-out scripts.
+`scripts/` is a Python workspace member that ships the repo's Python CLI surface as `uv run` commands registered in `pyproject.toml`'s `[project.scripts]`. Three cohorts: codegen and repo-CI tooling (`generate-datamodels`, the CI sidecar `scripts/preflight.py`), small operational utilities (Unity adb-forward, Docker debug-target listing, Loki query), and the calibration pipeline (`fit-calibration`, `tune-reconstruction`, the held-out selector registry, the shared auth helper). The Docker-stack lifecycle commands (`up`, `down`, `build`, `publish-compose`, `generate-score`) live in the standalone [`docker-devkit`](https://github.com/outernet-foundation/docker-devkit) repo; `lock-python` and `preflight-python` live in [`python-devkit`](https://github.com/outernet-foundation/python-devkit); `install` (download or build-then-install Unity APKs / linux executables) lives in the standalone [`unity-devkit`](https://github.com/outernet-foundation/unity-devkit) repo so cross-repo consumers can use it. The calibration pipeline carries the directory's tests; the operational utilities are small self-contained shell-out scripts.
 
-`scripts/preflight.py` is the CI preflight sidecar and must stay at the directory root: github-actions-toolkit's preflight reusable invokes it by that exact path (`uv run --locked scripts/preflight.py`). It runs the python battery (`uv run --locked preflight-python`), then the repo checks in-process (image refs, image version couplings, database setup, datamodel codegen staleness), then the client staleness gate (`uv run --locked generate-clients --config openapi-client-codegen.yaml --check`).
+`scripts/preflight.py` is the CI preflight sidecar and must stay at the directory root: github-actions-toolkit's preflight reusable invokes it by that exact path (`uv run --locked scripts/preflight.py`). It runs the python battery (`uv run --locked preflight-python`), then the repo checks in-process (image refs, image version couplings, database setup — an isolated throwaway `pf-preflight-postgres` container on host port 55432, built from the wrapper image and torn down at the next run, so it never touches a running stack — then datamodel codegen staleness), then the client staleness gate (`uv run --locked generate-clients --config openapi-client-codegen.yaml --check`).
 
 ## Shape
 
@@ -16,7 +16,6 @@ Registered in `scripts/pyproject.toml`:
 |---|---|---|
 | `generate-clients` | `openapi_client_codegen.cli:app` (alias) | Entry into [`openapi-client-codegen`](https://github.com/outernet-foundation/openapi-client-codegen)'s config-driven orchestrator; `openapi-client-codegen.yaml` at the repo root carries identity and spec commands. Needs Java 11+ on PATH. |
 | `generate-datamodels` | `generate_datamodels.py` | Runs `sqlacodegen` (custom `PlaceframeDeclarativeGenerator` in `sqlacodegen_generator.py`) against the live postgres → `packages/generated/python/datamodels/` (SQLAlchemy + Pydantic DTOs). Requires the stack up; see the generation-pipeline ordering in the root `AGENTS.md`. |
-| `publish-compose` | `publish_compose.py` | CI-only: bakes the compose bundle (var substituted, configs inlined, image refs digest-pinned) and publishes it to ghcr per cuda/rocm variant. Invoked from `integrate.yml`'s local `publish-compose` job; assumes the CI environment (GitHub token, ghcr login). |
 | `forward-unity-android-debug-port` | `forward_unity_android_debug_port.py` | Auto-detects the single adb device, finds the listening Unity debugger port in 56000–56999 via `/proc/net/tcp{,6}`, and `adb forward tcp:56000 tcp:{found}`. |
 | `list-debug-targets` | `list_debug_targets.py` | Enumerates Docker containers with a `service` label that publishes `5678/tcp`. Prints `{host_port}|{service} | {name} {job} {task}` lines for VS Code's attach picker. |
 | `loki-query` | `loki_query.py` | Run a LogQL query against the local Loki via `docker exec placeframe-loki-1 wget`, formatting each entry as `HH:MM:SS LEVEL [logGroup] message` (plus exception chain when present). Flags: `--limit`, `--direction`, `--since`, `--raw`. Use this instead of hand-rolling URL-encoded `wget` invocations — the URL encoding is fragile (`+`/`%7C`/quote-escapes) and easy to get subtly wrong. |
@@ -33,7 +32,6 @@ Registered in `scripts/pyproject.toml`:
       src/scripts/
         generate_datamodels.py                  -- sqlacodegen datamodel generation
         sqlacodegen_generator.py                -- custom sqlacodegen DeclarativeGenerator (enums, passive deletes, ARRAY binding)
-        publish_compose.py                      -- CI compose-bundle publish per variant
         api_auth.py                             -- async auth: read .env, POST Keycloak, default-header inject
         forward_unity_android_debug_port.py     -- adb port forward for Unity debug
         list_debug_targets.py                   -- enumerate docker containers exposing :5678
@@ -42,7 +40,8 @@ Registered in `scripts/pyproject.toml`:
         held_out_selection.py                   -- HeldOutFrameSelector Protocol + stride impl
       tests/
         test_fit_calibration.py
-        test_publish_compose.py                 -- config inlining (_inline_configs)
+        test_score_compose_generation.py        -- bundle-split compose generation (four artifacts)
+        test_score_k8s_generation.py            -- k8s generation mechanics (GPU, service-port, KEDA)
 
 ### Calibration pipeline data flow
 
@@ -152,7 +151,7 @@ Deterministic, scales to capture length, gives even temporal spacing → roughly
 
 ## See also
 
-- [`docker-devkit`](https://github.com/outernet-foundation/docker-devkit) — the standalone package holding the Docker-stack lifecycle (`up`, `down`, `build`) and the SHA/auth helpers, a PyPI dependency of this package (`docker-devkit>=0.4`). `scripts/` imports from it (`docker_devkit.modes.parse_env_file` in `api_auth.py`); the inverse does not hold.
+- [`docker-devkit`](https://github.com/outernet-foundation/docker-devkit) — the standalone package holding the Docker-stack lifecycle (`up`, `down`, `build`) and the SHA/auth helpers, a floored PyPI dependency of this package (the first release carrying the root-config vocabulary sets the floor in `pyproject.toml`). `scripts/` imports from it (`docker_devkit.host.parse_env_file` in `api_auth.py`); the inverse does not hold.
 - [`unity-devkit`'s `AGENTS.md`](https://github.com/outernet-foundation/unity-devkit/blob/main/AGENTS.md) — the standalone Unity build toolkit, which also hosts the `install` command. `scripts/` no longer imports from it; the dependency was dropped when `install.py` moved.
 - `workloads/localizer/AGENTS.md` — defines the `/version` and `/localize` endpoints that `fit-calibration` consumes and the `pipeline_version` baked into the localizer image.
 - `workloads/reconstructor/AGENTS.md` — defines the single-anchor truth-frame alignment and the Procrustes-residual diagnostic metrics that Algorithm 1 step 2 relies on.

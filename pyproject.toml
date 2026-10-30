@@ -6,7 +6,15 @@ dependencies = []
 
 
 [dependency-groups]
-dev = ["scripts", "basedpyright>=1.39.10", "ruff>=0.14.11", "pytest>=8.0.0", "pytest-asyncio>=0.24.0", "unity-devkit>=0.1.25"]
+dev = [
+    "scripts",
+    "basedpyright>=1.39.10",
+    "ruff>=0.14.11",
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.24.0",
+    "unity-devkit>=0.3.5.dev257",
+    "pyyaml>=6.0",
+]
 
 [tool.uv.workspace]
 members = [
@@ -16,8 +24,6 @@ members = [
     "workloads/auth-initializer",
     "workloads/lease-server",
     "workloads/localizer",
-    "workloads/orchestrator",
-    "workloads/rathole-client",
     "workloads/reconstructor",
     "packages/python/core",
     "packages/python/common",
@@ -77,4 +83,5 @@ include = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["packages/python/common/tests", "scripts/tests", "workloads/s3-initializer/tests"]
+testpaths = ["packages/python/common/tests", "scripts/tests", "workloads/s3-initializer/tests", "workloads/api/tests"]
+pythonpath = ["workloads/api"]
