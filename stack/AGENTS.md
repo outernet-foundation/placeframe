@@ -88,8 +88,11 @@ OCI bundles instead.
 The front door is emitted by the devkit from the config's routes — never authored here:
 `gateway: ${GATEWAY_PORT:?err}` publishes the door's host port (`.env.sample` ships
 `GATEWAY_PORT=8443`), the door listens `:8443` internally, and the route table
-(`/auth/*` strip-prefix to keycloak, `/grafana/*` and `/loki/*` forward-auth-protected
-when keycloak rides, `/*` to the api) is consumer config, not workload surface. Host
+(`/auth/*` strip-prefix to keycloak when it rides, `/grafana/*` and `/loki/*`
+unprotected, `/*` to the api) is consumer config, not workload surface — the door does
+no token validation (the `protected` flag and its forward_auth emission are stripped;
+re-protection is a bundle-shipped oauth2-proxy sidecar treaty, tracked as commented-out
+route lines in `docker-devkit.yaml`). Host
 ports beyond the door live in the config's `ports:` (api and lease-server debug ports,
 localhost-bound; the seaweedfs-admin console) — no workload publishes anything
 (`outernet.internal/publish` is dead and its presence refuses at generation).
@@ -256,9 +259,9 @@ proliferate.
   linted.** The keycloak realm `placeframe-dev` is baked into
   `workloads/auth-initializer/realm-export/placeframe.json` and every OIDC path derives
   from it. It is declared in the two oidc-issuer provisioner states and the compose
-  observability state (bodies template `{{ .State.realm }}`); the door receives it as
-  the `AUTH_REALM` env fact in keycloak mode and the forward_auth uri addresses it via the
-  caddy `{$AUTH_REALM}` placeholder. Uids: loki runs as uid 10001
+  observability state (bodies template `{{ .State.realm }}`); it never leaves the
+  bundle — the door does no token validation, and the eventual oauth2-proxy validator
+  sidecar gets it baked at generation the same way. Uids: loki runs as uid 10001
   — compose fixes volume ownership via the initialize-loki chown sidecar, k8s via the
   chart's default securityContext. Keycloak's k8s half is H2-ephemeral (no data PVC,
   no fsGroup concern) until a db spec lands; same number, different mechanisms per tier
