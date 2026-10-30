@@ -75,20 +75,20 @@ def test_bundle_generation_splits_the_stack_by_assembly_unit(tmp_path: Path, mon
             "initialize-loki",
             "alloy",
             "grafana",
-            "wait-for-resources",
+            f"wait-for-resources-{variant}",
         }
     assert core["api"]["environment"]["AUTH_JWKS_URL"] == "${AUTH_JWKS_URL:-}"
     assert core["api"]["environment"]["DEBUG_API"] == "false"
 
     keycloak_bundle = artifacts["keycloak"]["services"]
-    assert set(keycloak_bundle) == {"keycloak", "keycloak-configurator", "wait-for-resources"}
+    assert set(keycloak_bundle) == {"keycloak", "keycloak-configurator", "wait-for-resources-keycloak"}
     keycloak = keycloak_bundle["keycloak"]
     assert keycloak["image"] == lock["KEYCLOAK_IMAGE"]
     assert keycloak["environment"]["KC_HOSTNAME"] == "${PUBLIC_URL:?err}/auth"
     assert "${KEYCLOAK_ADMIN_PASSWORD:?err}" in list(keycloak["environment"].values())
     assert "urllib.request" in " ".join(keycloak["healthcheck"]["test"])
-    assert keycloak["depends_on"]["wait-for-resources"]["condition"] == "service_completed_successfully"
-    assert keycloak_bundle["wait-for-resources"]["depends_on"]["keycloak-configurator"]["condition"] == (
+    assert keycloak["depends_on"]["wait-for-resources-keycloak"]["condition"] == "service_completed_successfully"
+    assert keycloak_bundle["wait-for-resources-keycloak"]["depends_on"]["keycloak-configurator"]["condition"] == (
         "service_started"
     )
     configurator = keycloak_bundle["keycloak-configurator"]
