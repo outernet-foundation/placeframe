@@ -66,7 +66,7 @@ placeframe-lease-server-client = { workspace = true }
 placeframe-localizer-client = { workspace = true }
 placeframe_api_client = { workspace = true }
 dirtorch = { workspace = true }
-docker-devkit = { git = "https://github.com/outernet-foundation/docker-devkit", rev = "202c7e7d44da1a298d6809f268a43b88976a23f9" }
+docker-devkit = { git = "https://github.com/outernet-foundation/docker-devkit", rev = "44e89caf07a3e5c3583348450ac509b82c666822" }
 scripts = { workspace = true }
 lightglue = { git = "https://github.com/cvg/LightGlue.git" }
 

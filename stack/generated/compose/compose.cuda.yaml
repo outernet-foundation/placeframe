@@ -22,7 +22,7 @@ services:
       outernet.internal/dev-toggles: RELOAD=true,DEBUG_API=true,DEBUG_WAIT_API=false
       outernet.internal/probe-adapter: python-urllib
     depends_on:
-      wait-for-resources:
+      wait-for-resources-cuda:
         condition: service_completed_successfully
         required: true
     environment:
@@ -128,7 +128,7 @@ services:
       outernet.internal/dev-toggles: RELOAD=true,DEBUG_LEASE_SERVER=false,DEBUG_WAIT_LEASE_SERVER=false
       outernet.internal/probe-adapter: python-urllib
     depends_on:
-      wait-for-resources:
+      wait-for-resources-cuda:
         condition: service_completed_successfully
         required: true
     environment:
@@ -160,7 +160,7 @@ services:
       outernet.internal/gpu: 'true'
       outernet.internal/probe-adapter: python-urllib
     depends_on:
-      wait-for-resources:
+      wait-for-resources-cuda:
         condition: service_completed_successfully
         required: true
     deploy:
@@ -299,7 +299,7 @@ services:
       compose.score.dev/workload-name: reconstructor
       outernet.internal/gpu: 'true'
     depends_on:
-      wait-for-resources:
+      wait-for-resources-cuda:
         condition: service_completed_successfully
         required: true
     deploy:
@@ -378,7 +378,7 @@ services:
         condition: service_healthy
         required: false
     image: ${SEAWEEDFS_AUDIT_IMAGE:?err}
-  wait-for-resources:
+  wait-for-resources-cuda:
     command:
     - echo
     depends_on:
