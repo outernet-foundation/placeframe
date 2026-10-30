@@ -12,5 +12,5 @@ services:
       NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:-}
       NGROK_DOMAIN: ${NGROK_DOMAIN:-}
     hostname: ngrok
-    image: ghcr.io/outernet-foundation/mirror/docker.io/ngrok/ngrok:alpine@sha256:85bea0e9c697bdad142b09cd9704420812cc44b5ae417ec4c7ac74d0a49d72f2
+    image: ghcr.io/outernet-foundation/mirror/docker.io/ngrok/ngrok:alpine@sha256:a51a7637a70be573615b01852af0419c4ab9dc857601b3d61ea2a082be3ec0d3
     restart: on-failure
