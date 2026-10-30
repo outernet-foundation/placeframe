@@ -111,10 +111,7 @@ def test_k8s_generation_renders_the_tier_neutral_keycloak_deployment(
     assert env["KC_HOSTNAME"]["valueFrom"]["secretKeyRef"]["key"] == "KEYCLOAK_HOSTNAME"
 
     realm_job = documents["Job/keycloak-realm"]
-    job_env = {
-        variable["name"]: variable
-        for variable in realm_job["spec"]["template"]["spec"]["containers"][0]["env"]
-    }
+    job_env = {variable["name"]: variable for variable in realm_job["spec"]["template"]["spec"]["containers"][0]["env"]}
     assert job_env["KEYCLOAK_URL"]["value"] == "http://keycloak:8080"
 
     assert documents["Service/keycloak"]["spec"]["ports"][0]["port"] == 8080
