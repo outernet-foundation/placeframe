@@ -15,13 +15,13 @@ services:
     annotations:
       compose.score.dev/workload-name: keycloak
       outernet.internal/probe-adapter: python-urllib
+    command:
+    - start-dev
+    - --health-enabled=true
     depends_on:
       wait-for-resources-keycloak:
         condition: service_completed_successfully
         required: true
-    entrypoint:
-    - start-dev
-    - --health-enabled=true
     environment:
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?err}
       KC_BOOTSTRAP_ADMIN_USERNAME: admin

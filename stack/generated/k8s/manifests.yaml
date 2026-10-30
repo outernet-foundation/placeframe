@@ -403,7 +403,7 @@ spec:
         app.kubernetes.io/name: keycloak
     spec:
       containers:
-        - command:
+        - args:
             - start-dev
             - --health-enabled=true
           env:
