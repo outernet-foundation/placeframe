@@ -17,13 +17,12 @@ that opens by reading this doc must check this section first.
 1. **Decision session (complete, 2026-10-31).** All six open questions in
    [Open questions](#open-questions) are closed; the `Decision:` lines are
    the ADR of record.
-2. **Plan session (next).** Turn the ADR into a plan document in `design/`
-   (phased implementation units, per-unit verification,
-   codegen/regen sequencing). Close the session — do not begin
-   implementation in it.
-3. **Execution session(s).** Execute the plan. On completion, fold whatever
-   hardened into the co-located `AGENTS.md` files per `design/AGENTS.md`
-   promotion conventions; this note then stops being load-bearing.
+2. **Plan session (complete, 2026-10-31).** The plan lives in
+   [shared-gpu-coordination-plan.md](shared-gpu-coordination-plan.md).
+3. **Execution session(s) (next).** One phase per session, per the plan's
+   execution protocol. On completion, fold whatever hardened into the
+   co-located `AGENTS.md` files per `design/AGENTS.md` promotion
+   conventions; this note then stops being load-bearing.
 
 Do not reorder the sequence. Each session ends deliberately.
 
