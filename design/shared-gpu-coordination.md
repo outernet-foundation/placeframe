@@ -1,5 +1,5 @@
 ---
-updated: 2026-10-30
+updated: 2026-10-31
 ---
 
 # Shared-GPU coordination — localizer / reconstructor mutual exclusion
@@ -14,14 +14,13 @@ nothing here is built. Code references describe the tree as of 2026-10-30
 This document is the entry point for a fixed sequence of sessions. A session
 that opens by reading this doc must check this section first.
 
-1. **Decision session (next).** First point of order: close **all six** open
-   questions in [Open questions](#open-questions) with the operator. Record
-   each decision in place (fill the `Decision:` line), update the frontmatter
-   date, and commit. When all six are closed, this document **is** the
-   finished ADR. Close the session — do not proceed to planning in it.
-2. **Plan session.** Turn the ADR into a plan document in `design/` (phased
-   implementation units, per-unit verification, codegen/regen sequencing).
-   Close the session — do not begin implementation in it.
+1. **Decision session (complete, 2026-10-31).** All six open questions in
+   [Open questions](#open-questions) are closed; the `Decision:` lines are
+   the ADR of record.
+2. **Plan session (next).** Turn the ADR into a plan document in `design/`
+   (phased implementation units, per-unit verification,
+   codegen/regen sequencing). Close the session — do not begin
+   implementation in it.
 3. **Execution session(s).** Execute the plan. On completion, fold whatever
    hardened into the co-located `AGENTS.md` files per `design/AGENTS.md`
    promotion conventions; this note then stops being load-bearing.
@@ -177,8 +176,8 @@ Decided in design discussion; reopen only with cause.
 
 ## Open questions
 
-Six decisions for the operator. The decision session closes all six, fills
-the `Decision:` lines, and this doc becomes the ADR.
+Six decisions for the operator. All six were closed on 2026-10-31; the
+`Decision:` entries below are the ADR of record.
 
 ### 1. Deadlock escape — and is multi-user contention in scope?
 
@@ -195,7 +194,10 @@ operator can't make another person stop.
 - (c) Scope to compose/desktop now; LAN multi-user explicitly out of scope
   for this feature.
 
-Decision:
+Decision: (b) — ship the explicit operator escape (`uv run localizer yield`
+verb / admin control that manually unloads). Preemption exists only as a
+deliberate human act, never automatic. Works for single-user and LAN alike:
+whoever operates the box holds the lever.
 
 ### 2. Idle-unload policy — always, or only under contention?
 
@@ -209,7 +211,14 @@ Decision:
 Sub-fork: when work *is* queued, does the idle timeout shorten (5 min → 30 s
 "expedited yield")?
 
-Decision:
+Decision: (a) — always unload after N idle minutes, whether or not anything
+is queued. Desktop citizenship: idle VRAM is released for the whole machine;
+the seconds-long reload on next use is the accepted cost.
+
+Sub-fork decision: no expedited yield — single flat idle timeout. The blocked
+reconstruction always gets a message saying why it is stuck (live localizer
+session), and the operator yield verb is the fast preemption path; simpler
+wins.
 
 ### 3. Queue continuity — batch-drain or strict alternation?
 
@@ -220,7 +229,11 @@ With multiple captures queued and job 1 finishing:
 - (b) Localizer gets a shot after every job (interleaves; but a localize
   burst between jobs re-blocks the queue and adds reload cycles).
 
-Decision:
+Decision: (a) — batch-drain. The reconstructor holds the GPU until the queue
+empties; mid-batch AR lockout is acceptable because the typed 503 makes it
+legible (a reconstruction is active — per decision 5 the payload carries the
+`code` only, with detail living in reconstruction status), and the operator
+can stop the reconstructor container as the manual lever (the job requeues).
 
 ### 4. Wiring scope
 
@@ -231,7 +244,24 @@ Decision:
 Confirm k8s is never. If (a): support `LOCALIZER_IDLE_TIMEOUT=0` =
 never-unload as the LAN-server escape hatch?
 
-Decision:
+Decision: (a) — default-on for all compose core bundles, plus an explicit off
+switch: the localizer treats an explicitly empty `LOCALIZER_LEASE_SERVER_URL`
+as absent (presence check becomes present-and-non-empty), and the score
+source wires the URL via interpolation-with-default so an empty override in
+`.env` selects exclusive mode without editing generated files. Multi-GPU
+compose hosts are rare and are served by pinning disjoint GPUs in exclusive
+mode; dynamic multi-GPU assignment is k8s-tier work.
+
+Sub-fork decision: yes — `LOCALIZER_IDLE_TIMEOUT=0` means never-unload
+(shared mode stays on; AR-supremacy posture where reconstructions run only
+after an operator yield). Semantics: 0 disables the timer; it does not mean
+unload-immediately. Distinct from the mode-off switch, which drops
+coordination entirely.
+
+k8s confirmed never-wired: dedicated GPU nodes mean nothing to mutually
+exclude, a single session row would wrongly gate the whole fleet, and KEDA
+scale-to-zero already provides per-job loading. Revisit only via a dedicated
+design pass if a shared-GPU k8s case actually appears.
 
 ### 5. Client UX on refusal — retry or surface-and-stop?
 
@@ -244,7 +274,18 @@ Also: is poll-derived status good enough for the capture tool's blocked
 state, or does it need to be live? Wording of both user-facing messages
 belongs to the operator.
 
-Decision:
+Decision: (b) — no SDK auto-retry; the typed error surfaces immediately.
+Payload is minimal: the typed `code` discriminator only (distinguishes
+`gpu_busy_reconstruction_active` from coordinator-unreachable; drives toast
+wording) — no reconstruction id, phase, or progress in the localizer 503
+(the capture tool reads those from reconstruction status, a separate channel;
+`retryable` is dropped as redundant). Client posture: pause the localization
+request loop, toast what happened, resume by blind probing (a fresh
+localization with a new query image; each probe is cheap). Exact toast
+wording belongs to the app repos.
+
+Sub-fork decision: poll-derived is fine — `blocked_by: localizer_active`
+rides the existing reconstruction status poll; no push channel.
 
 ### 6. Calibration coupling — accept the refit tax?
 
@@ -259,7 +300,13 @@ invalidating calibration).
   refit-driving changes where possible).
 - (b) Narrow the hash scope (doctrine change, needs its own justification).
 
-Decision:
+Decision: moot. The calibration system is dead code — never productionized,
+no consumers, no existing calibrations; the placeholder sentinel makes every
+LOCALIZER_SHA bump (this feature's included) free. This initiative's only
+obligation is to leave the coarse-hash doctrine untouched and bump the SHA
+normally. The coarse-vs-narrow scope question is deferred to the future
+initiative that productionizes calibration, which will face the real refit
+cost and iteration cadence and may redesign the SHA coupling entirely.
 
 ## Carrying costs
 
