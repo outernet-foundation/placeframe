@@ -18,6 +18,39 @@ const STATUS_STYLE: Record<number, { colour: string; label: string }> = {
   [MATCH_NO_POINT3D]: { colour: "#60a5fa", label: "no 3D point" },
 };
 
+// Header tooltips for the pairs table. Each funnel column is a subset of the one before it:
+// Matches >= 2D-3D >= Inliers.
+const PAIR_COLUMNS: { label: string; hint: string }[] = [
+  { label: "#", hint: "Retrieval rank: 0 is the map image most similar to the query." },
+  { label: "Database image", hint: "Map image retrieved as a candidate for this query." },
+  {
+    label: "Score",
+    hint: "Global-descriptor (DIR) similarity between the whole query and this map image. Higher is more alike. Decides which images get matched; does not affect the pose.",
+  },
+  { label: "Matches", hint: "Raw LightGlue keypoint matches between the query and this map image." },
+  {
+    label: "2D-3D",
+    hint: "Matches whose map keypoint has a triangulated 3D point, so PnP can use them. The rest are shown as \"no 3D point\".",
+  },
+  {
+    label: "Inliers",
+    hint: "This image's share of the final pose's inliers. All rows' 2D-3D matches go into one combined RANSAC PnP; this counts the inliers that came from this row.",
+  },
+  {
+    label: "Ratio",
+    hint: "Inliers / 2D-3D. Low means this image's matches mostly disagree with the final pose: a wrong place or a lookalike.",
+  },
+  {
+    label: "Reproj",
+    hint: "Median reprojection error of this row's inliers under the final pose, in pixels. Always below the RANSAC threshold; lower is better.",
+  },
+  {
+    label: "Dist",
+    hint: "Distance between the estimated query camera and this map image's camera, in map units (metres for metric reconstructions).",
+  },
+  { label: "Angle", hint: "Angle between the query camera's and this map image's viewing directions, in degrees." },
+];
+
 function useLoadedImage(url: string | null): HTMLImageElement | null {
   const [image, setImage] = useState<HTMLImageElement | null>(null);
   useEffect(() => {
@@ -275,16 +308,11 @@ export function DetailsDialog({
             <table className="data-table detail-pairs">
               <thead>
                 <tr>
-                  <th>#</th>
-                  <th>Database image</th>
-                  <th>Score</th>
-                  <th>Matches</th>
-                  <th>2D-3D</th>
-                  <th>Inliers</th>
-                  <th>Ratio</th>
-                  <th>Reproj</th>
-                  <th>Dist</th>
-                  <th>Angle</th>
+                  {PAIR_COLUMNS.map((column) => (
+                    <th key={column.label} title={column.hint}>
+                      {column.label}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>

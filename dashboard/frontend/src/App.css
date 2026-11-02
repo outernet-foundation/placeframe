@@ -519,6 +519,12 @@ button.pencil:hover {
   display: inline-block;
 }
 
+.detail-pairs th[title] {
+  cursor: help;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+
 .detail-pairs tbody tr:hover {
   background: #22262e;
 }
