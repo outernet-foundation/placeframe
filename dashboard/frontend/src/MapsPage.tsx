@@ -16,6 +16,11 @@ function placement(map: LocalizationMap): string {
   return `${x.toFixed(1)}, ${y.toFixed(1)}, ${z.toFixed(1)}`;
 }
 
+// The same viewer window the Captures tab opens for the map's reconstruction.
+function openViewer(reconstructionId: string): void {
+  window.open(`/viewer?reconstruction=${reconstructionId}`, "_blank", "width=1280,height=900");
+}
+
 export function MapsPage() {
   const [maps, setMaps] = useState<LocalizationMap[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -83,6 +88,7 @@ export function MapsPage() {
               <td className="mono">{map.created_at ? map.created_at.slice(0, 10) : "—"}</td>
               <td>
                 <div className="actions">
+                  <button onClick={() => openViewer(map.reconstruction_id)}>Visualize</button>
                   <button
                     disabled={busy === map.id}
                     title="Withdraw from devices; the reconstruction and its stored map data are untouched"
