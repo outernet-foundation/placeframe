@@ -11,9 +11,11 @@ import {
   type LabelledPose,
   type CameraMode,
   type LocCameraMode,
+  type MeasureOverlay,
   type PointSize,
   type Projection,
 } from "./PointCloudScene";
+import { ScaleBar, SegmentOverlay } from "./MeasureOverlay";
 import "./viewer.css";
 
 const POINT_SIZE_LEVELS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
@@ -104,10 +106,11 @@ export function ViewerPage() {
   const [locCameraMode, setLocCameraModeState] = useState<LocCameraMode>("frustum");
   const [layers, setLayers] = useState<Layer[]>([]);
   const [querySummary, setQuerySummary] = useState<QuerySummary | null>(null);
+  const [measure, setMeasure] = useState<MeasureOverlay>({ metresPerPixel: null, segment: null });
 
   useEffect(() => {
     if (!containerRef.current || reconstructionIds.length === 0) return;
-    const scene = new PointCloudScene({ container: containerRef.current });
+    const scene = new PointCloudScene({ container: containerRef.current, onOverlayChange: setMeasure });
     sceneRef.current = scene;
 
     // The listing only names the layers; the geometry does not wait for it, and a failed listing
@@ -315,58 +318,72 @@ export function ViewerPage() {
       {status === "error" && <div className="viewer-banner viewer-banner-error">{error}</div>}
       {message && <div className="viewer-banner viewer-banner-success">{message}</div>}
 
-      <div ref={containerRef} className="viewer-canvas" />
+      <div className="viewer-stage">
+        <div ref={containerRef} className="viewer-canvas" />
+        {measure.segment && <SegmentOverlay segment={measure.segment} />}
+      </div>
 
-      {/* The legend: one row per overlaid map, with its own switches for the cloud and the
-          camera trail. Shown for a single map too, since the counts are useful there as well. */}
-      {layers.length > 0 && (
-        <div className="viewer-legend">
-          {layers.map((layer, i) => (
-            <div className="viewer-legend-row" key={layer.id}>
-              <span
-                className="viewer-legend-swatch"
-                style={{ background: i === 0 && layer.poses > 0 ? "#ff9500" : layer.cameraColor }}
-                title="Camera trail colour"
-              />
-              <span className="viewer-legend-name" title={layer.id}>
-                {layer.name}
-              </span>
-              <label>
-                <input type="checkbox" checked={layer.showPoints} onChange={() => toggleLayer(layer.id, "points")} />
-                points ({layer.points.toLocaleString()})
-              </label>
-              <label className={layer.poses === 0 ? "viewer-legend-muted" : undefined}>
-                <input
-                  type="checkbox"
-                  checked={layer.showCameras}
-                  disabled={layer.poses === 0}
-                  onChange={() => toggleLayer(layer.id, "cameras")}
+      <div className="viewer-bottom-left">
+        {/* Measuring is only offered where one scale holds across the screen: an XY / XZ / YZ view
+            under orthographic projection. */}
+        {measure.metresPerPixel !== null && (
+          <div className="viewer-measure">
+            <div className="viewer-measure-hint">Shift + drag to measure a distance</div>
+            <ScaleBar metresPerPixel={measure.metresPerPixel} />
+          </div>
+        )}
+
+        {/* The legend: one row per overlaid map, with its own switches for the cloud and the
+            camera trail. Shown for a single map too, since the counts are useful there as well. */}
+        {layers.length > 0 && (
+          <div className="viewer-legend">
+            {layers.map((layer, i) => (
+              <div className="viewer-legend-row" key={layer.id}>
+                <span
+                  className="viewer-legend-swatch"
+                  style={{ background: i === 0 && layer.poses > 0 ? "#ff9500" : layer.cameraColor }}
+                  title="Camera trail colour"
                 />
-                cameras ({layer.poses.toLocaleString()})
-              </label>
-            </div>
-          ))}
-          {querySummary && (
-            <>
-              <div className="viewer-legend-row">
-                <span className="viewer-legend-swatch" style={{ background: hex(QUERY_POSE_COLOR) }} />
-                <span>
-                  {querySummary.final === null
-                    ? `query ${querySummary.index}: no pooled pose`
-                    : `query ${querySummary.index}: pooled pose (${querySummary.final} by the confidence gate)`}
+                <span className="viewer-legend-name" title={layer.id}>
+                  {layer.name}
                 </span>
+                <label>
+                  <input type="checkbox" checked={layer.showPoints} onChange={() => toggleLayer(layer.id, "points")} />
+                  points ({layer.points.toLocaleString()})
+                </label>
+                <label className={layer.poses === 0 ? "viewer-legend-muted" : undefined}>
+                  <input
+                    type="checkbox"
+                    checked={layer.showCameras}
+                    disabled={layer.poses === 0}
+                    onChange={() => toggleLayer(layer.id, "cameras")}
+                  />
+                  cameras ({layer.poses.toLocaleString()})
+                </label>
               </div>
-              <div className="viewer-legend-row">
-                <span className="viewer-legend-swatch" style={{ background: hex(PAIR_POSE_COLOR) }} />
-                <span>
-                  pose from each map image on its own: {querySummary.posed} of {querySummary.retrieved} retrieved
-                  (labels are the Details table's #)
-                </span>
-              </div>
-            </>
-          )}
-        </div>
-      )}
+            ))}
+            {querySummary && (
+              <>
+                <div className="viewer-legend-row">
+                  <span className="viewer-legend-swatch" style={{ background: hex(QUERY_POSE_COLOR) }} />
+                  <span>
+                    {querySummary.final === null
+                      ? `query ${querySummary.index}: no pooled pose`
+                      : `query ${querySummary.index}: pooled pose (${querySummary.final} by the confidence gate)`}
+                  </span>
+                </div>
+                <div className="viewer-legend-row">
+                  <span className="viewer-legend-swatch" style={{ background: hex(PAIR_POSE_COLOR) }} />
+                  <span>
+                    pose from each map image on its own: {querySummary.posed} of {querySummary.retrieved} retrieved
+                    (labels are the Details table's #)
+                  </span>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
 
       {editingTitle && (
         <div className="dialog-overlay" onClick={() => setEditingTitle(false)}>

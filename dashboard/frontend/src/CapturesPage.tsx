@@ -784,8 +784,7 @@ export function CapturesPage() {
             {done && run.reconstruction_id && (
               <>
                 <button onClick={() => openViewer(run.reconstruction_id as string, run.run_id)}>Visualize</button>
-                <button onClick={() => toggleResults(run.run_id)}>{showing ? "Hide results" : "Results"}</button>
-                <button onClick={() => setDialog({ kind: "save", saveKind: "table", runId: run.run_id })}>Save table</button>
+                <button onClick={() => toggleResults(run.run_id)}>{showing ? "Hide images" : "Images"}</button>
                 <button onClick={() => setDialog({ kind: "save", saveKind: "images", runId: run.run_id })}>Save images</button>
               </>
             )}

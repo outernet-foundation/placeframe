@@ -46,8 +46,17 @@ body,
   padding: 6px 8px;
 }
 
+/* Holds the canvas and the measured segment drawn over it, in the same coordinates. */
+.viewer-stage {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  display: flex;
+}
+
 .viewer-canvas {
   flex: 1;
+  min-width: 0;
   position: relative;
 }
 
@@ -127,12 +136,73 @@ body,
   gap: 8px;
 }
 
-/* Legend for overlaid maps: bottom-left of the canvas, one row per reconstruction. */
-.viewer-legend {
+/* Bottom-left of the canvas, stacked upward: the measuring hint and scale bar, then the legend. */
+.viewer-bottom-left {
   position: absolute;
   left: 12px;
   bottom: 12px;
   z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.viewer-bottom-left > * {
+  pointer-events: auto;
+}
+
+.viewer-measure {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px 2px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid #d0d3d8;
+}
+
+.viewer-measure-hint {
+  font-size: 12px;
+  color: #33363d;
+}
+
+.viewer-scale {
+  display: block;
+}
+
+.viewer-scale-text {
+  fill: #1a1a1a;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.viewer-measure-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.viewer-measure-label {
+  position: absolute;
+  transform: translate(-50%, calc(-100% - 10px));
+  pointer-events: none;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: #ff00aa;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Legend for overlaid maps: one row per reconstruction. */
+.viewer-legend {
   display: flex;
   flex-direction: column;
   gap: 6px;

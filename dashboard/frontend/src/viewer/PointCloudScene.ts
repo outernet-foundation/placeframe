@@ -424,6 +424,24 @@ function buildPoseLabels(
 
 export interface PointCloudSceneOptions {
   container: HTMLElement;
+  // Called whenever the measurement overlay (scale bar, measured segment) needs redrawing.
+  onOverlayChange?: (overlay: MeasureOverlay) => void;
+}
+
+/** A point in canvas pixels, origin at the top-left. */
+export interface ScreenPoint {
+  x: number;
+  y: number;
+}
+
+/**
+ * What the page draws over the canvas for measuring. Only an axis-on view (XY / XZ / YZ) under
+ * orthographic projection has one scale across the whole screen, so `metresPerPixel` is null in
+ * every other view and no measuring is possible there.
+ */
+export interface MeasureOverlay {
+  metresPerPixel: number | null;
+  segment: { a: ScreenPoint; b: ScreenPoint; lengthMetres: number } | null;
 }
 
 /** A camera pose in the map's frame (world_from_camera, quaternion xyzw) with the text drawn at it. */
@@ -535,8 +553,18 @@ export class PointCloudScene {
   private disposed = false;
   private animationHandle = 0;
 
-  constructor({ container }: PointCloudSceneOptions) {
+  // True while the camera looks straight down a world axis, as setPlaneView left it. Panning and
+  // zooming keep it; orbiting or recentering ends it.
+  private onAxisView = false;
+  // The measured segment's endpoints in (recentered) world space, so it stays on the same spot of
+  // the map while the view pans and zooms. `measuring` is true while shift-dragging one out.
+  private segment: { a: THREE.Vector3; b: THREE.Vector3 } | null = null;
+  private measuring = false;
+  private readonly onOverlayChange: ((overlay: MeasureOverlay) => void) | undefined;
+
+  constructor({ container, onOverlayChange }: PointCloudSceneOptions) {
     this.container = container;
+    this.onOverlayChange = onOverlayChange;
 
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(SCENE_BACKGROUND_COLOR);
@@ -681,6 +709,7 @@ export class PointCloudScene {
     this.initialDistance = this.distance;
     this.minDistance = cloudRadius * 0.02;
     this.maxDistance = cloudRadius * 50;
+    this.segment = null;
     this.updateCamera();
   }
 
@@ -707,12 +736,16 @@ export class PointCloudScene {
     this.cameraOrientation.copy(DEFAULT_ORIENTATION);
     this.target.set(0, 0, 0);
     this.distance = this.initialDistance;
+    this.onAxisView = false;
+    this.segment = null;
     this.updateCamera();
   }
 
   setPlaneView(rightAxis: Axis, upAxis: Axis): void {
     this.cameraOrientation.copy(planeViewQuaternion(rightAxis, upAxis));
     this.target.set(0, 0, 0);
+    this.onAxisView = true;
+    this.segment = null;
     this.updateCamera();
   }
 
@@ -764,6 +797,7 @@ export class PointCloudScene {
   setProjection(projection: Projection): void {
     if (projection === this.projection) return;
     this.projection = projection;
+    this.segment = null;
     for (const layer of this.layers) {
       const material = layer.points.material as THREE.PointsMaterial;
       material.sizeAttenuation = projection === "perspective";
@@ -879,6 +913,51 @@ export class PointCloudScene {
       camera.quaternion.copy(this.cameraOrientation);
     }
     this.updateOrthographicFrustum();
+    this.emitOverlay();
+  }
+
+  private canMeasure(): boolean {
+    return this.onAxisView && this.projection === "orthographic";
+  }
+
+  // Reports the scale and the segment's on-screen endpoints to the page. Recomputed on every
+  // camera change, since panning or zooming moves the segment across the screen.
+  private emitOverlay(): void {
+    if (!this.onOverlayChange) return;
+    if (!this.canMeasure()) {
+      this.onOverlayChange({ metresPerPixel: null, segment: null });
+      return;
+    }
+    const camera = this.orthographicCamera;
+    camera.updateMatrixWorld();
+    const height = this.container.clientHeight || 1;
+    const segment = this.segment
+      ? { a: this.toScreen(this.segment.a), b: this.toScreen(this.segment.b), lengthMetres: this.segment.a.distanceTo(this.segment.b) }
+      : null;
+    this.onOverlayChange({ metresPerPixel: (camera.top - camera.bottom) / height, segment });
+  }
+
+  private toScreen(point: THREE.Vector3): ScreenPoint {
+    const ndc = point.clone().project(this.orthographicCamera);
+    return {
+      x: ((ndc.x + 1) / 2) * this.container.clientWidth,
+      y: ((1 - ndc.y) / 2) * this.container.clientHeight,
+    };
+  }
+
+  // The world point under the pointer, on the plane through the orbit target facing the camera.
+  // Only meaningful under orthographic projection, where every pixel is the same size in metres.
+  private worldAt(event: PointerEvent): THREE.Vector3 {
+    const box = this.renderer.domElement.getBoundingClientRect();
+    const ndcX = ((event.clientX - box.left) / box.width) * 2 - 1;
+    const ndcY = 1 - ((event.clientY - box.top) / box.height) * 2;
+    const camera = this.orthographicCamera;
+    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(this.cameraOrientation);
+    const up = new THREE.Vector3(0, 1, 0).applyQuaternion(this.cameraOrientation);
+    return this.target
+      .clone()
+      .addScaledVector(right, ndcX * camera.right)
+      .addScaledVector(up, ndcY * camera.top);
   }
 
   // The orthographic frustum is sized to frame exactly what the perspective camera frames from the
@@ -904,6 +983,7 @@ export class PointCloudScene {
     this.perspectiveCamera.aspect = width / height;
     this.perspectiveCamera.updateProjectionMatrix();
     this.updateOrthographicFrustum();
+    this.emitOverlay();
   }
 
   private animate = (): void => {
@@ -914,6 +994,16 @@ export class PointCloudScene {
 
   private handlePointerDown = (event: PointerEvent): void => {
     if (event.button !== 0 && event.button !== 2) return;
+    // Shift + drag measures instead of orbiting: point A where the button goes down, point B
+    // where it comes up. It replaces any segment already drawn.
+    if (event.button === 0 && event.shiftKey && this.canMeasure()) {
+      const start = this.worldAt(event);
+      this.segment = { a: start, b: start.clone() };
+      this.measuring = true;
+      this.renderer.domElement.setPointerCapture(event.pointerId);
+      this.emitOverlay();
+      return;
+    }
     this.dragButton = event.button;
     this.lastX = event.clientX;
     this.lastY = event.clientY;
@@ -922,13 +1012,21 @@ export class PointCloudScene {
   };
 
   private handlePointerMove = (event: PointerEvent): void => {
+    if (this.measuring && this.segment) {
+      this.segment.b = this.worldAt(event);
+      this.emitOverlay();
+      return;
+    }
     if (this.dragButton === null) return;
     const dx = event.clientX - this.lastX;
     const dy = event.clientY - this.lastY;
     this.lastX = event.clientX;
     this.lastY = event.clientY;
 
-    if (this.dragButton === 0) {
+    if (this.dragButton === 0 && (dx !== 0 || dy !== 0)) {
+      // Orbiting leaves the axis-on view, and with it the scale the segment was measured in.
+      this.onAxisView = false;
+      this.segment = null;
       // Orbit: yaw about the fixed world-up axis, pitch about the camera's current local-right
       // axis. Composed as incremental quaternions (premultiply), never converted to Euler angles,
       // so there is no pole/gimbal singularity at any orientation.
@@ -947,6 +1045,12 @@ export class PointCloudScene {
   };
 
   private handlePointerUp = (event: PointerEvent): void => {
+    if (this.measuring) {
+      this.measuring = false;
+      // A shift-click without a drag draws nothing.
+      if (this.segment && this.segment.a.distanceTo(this.segment.b) === 0) this.segment = null;
+      this.emitOverlay();
+    }
     if (this.dragButton === 0 && this.gizmoGroup) this.gizmoGroup.visible = false;
     this.dragButton = null;
     if (this.renderer.domElement.hasPointerCapture(event.pointerId)) {

@@ -519,6 +519,92 @@ button.pencil:hover {
   display: inline-block;
 }
 
+.run-charts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: 16px 24px;
+  margin-bottom: 16px;
+}
+
+.run-chart {
+  min-width: 0;
+}
+
+.run-chart-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  align-content: flex-start;
+  gap: 4px 16px;
+  /* Room for a title plus a wrapped legend, so plots in the same row start at the same height. */
+  min-height: 38px;
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+
+.run-chart-title {
+  color: #e6e6e6;
+  font-weight: 500;
+}
+
+.run-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  color: #a8adb8;
+  font-size: 12px;
+}
+
+.run-chart-legend-item,
+.run-chart-tooltip-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.run-chart-key {
+  width: 12px;
+  height: 2px;
+  border-radius: 1px;
+  display: inline-block;
+}
+
+.run-chart-plot {
+  position: relative;
+}
+
+.run-chart-tick {
+  fill: #8a909c;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.run-chart-tooltip {
+  position: absolute;
+  top: 8px;
+  pointer-events: none;
+  background: #22262e;
+  border: 1px solid #363a42;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: #e6e6e6;
+  display: grid;
+  gap: 2px;
+  white-space: nowrap;
+}
+
+.run-chart-tooltip-title {
+  color: #a8adb8;
+}
+
+.run-chart-tooltip-value {
+  margin-left: auto;
+  padding-left: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
 .detail-pairs th[title] {
   cursor: help;
   text-decoration: underline dotted;

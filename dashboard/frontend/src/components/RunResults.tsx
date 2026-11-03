@@ -3,9 +3,11 @@ import { getLocalization } from "../api";
 import { errorText } from "../storage";
 import type { LocalizationImage, LocalizationResult } from "../types";
 import { DetailsDialog } from "./DetailsDialog";
+import { RunCharts } from "./RunCharts";
 
-// A localization run's per-image table (thumbnail, status, pose, match quality), shown inline
-// under the run. results.json is fetched once per run and cached for the page's lifetime.
+// A localization run's per-image summary charts followed by its per-image table (thumbnail,
+// status, pose, match quality), shown inline under the run. results.json is fetched once per
+// run and cached for the page's lifetime.
 const cache = new Map<string, LocalizationResult>();
 
 export function RunResults({ runId }: { runId: string }) {
@@ -32,6 +34,7 @@ export function RunResults({ runId }: { runId: string }) {
 
   return (
     <>
+      {result.images.length > 0 && <RunCharts images={result.images} />}
       {!anyDetail && (
         <div className="node-meta">
           No per-image diagnostics in this run — re-run the localization with Detail enabled to inspect
