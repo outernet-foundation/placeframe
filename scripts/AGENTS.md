@@ -108,7 +108,7 @@ The procedure `fit-calibration` runs per capture (`fit_calibration.py` and the r
 7. **Fit Σ_meas scaling.** For each held-out localization, compute SE(3) residual `e = log(P_truth_in_map * P_estimated^-1) ∈ R^6`. Solve scalar `α, β` that maximize `sum_i log N(e_i; 0, alpha * PnP_cov_i + beta * I)` via `scipy.optimize.minimize(L-BFGS-B)`. The scalars carry the empirical "actual pose-error spread relative to PnP_cov" signal that PnP_cov alone misses.
 8. **Optional 10% holdout** for Brier score and reliability diagram in fit metadata.
 
-Output: `CalibrationArtifact(tight, loose, sigma_meas_alpha, sigma_meas_beta, loose_min, tight_min, ...)` written to `workloads/localizer/calibration/global.json` by default. Schema: `packages/python/core/AGENTS.md` "Calibration".
+Output: `CalibrationArtifact(tight, loose, sigma_meas_alpha, sigma_meas_beta_rotation, sigma_meas_beta_translation, loose_min, tight_min, ...)` written to `workloads/localizer/calibration/global.json` by default. Schema: `packages/python/core/AGENTS.md` "Calibration".
 
 ### Driver-side localization
 

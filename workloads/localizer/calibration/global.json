@@ -1,6 +1,6 @@
 {
-  "_note": "Hand-tuned placeholder calibration. No fit-calibration corpus exists yet; these values are a guess set to close the degenerate failure mode where 5-inlier PnP \"results\" reach the client with placeholder confidence 0.5. The loose tolerance model is a 1-feature logistic on log1p(num_inliers) with weight 1.2 and intercept -5.5, gating at loose_min=0.25 (≈ 38 inliers). The tight model copies the loose one; tight_min=0.0 keeps the tight gate a no-op until tolerance-specific features can be fit. sigma_meas_alpha=1.0 preserves PnP's covariance shape; sigma_meas_beta=1.0e-3 floors translation σ at ~3 cm and rotation σ at ~1.8°, so the client's innovation gate corresponds to ~14 cm translation or ~7.4° rotation single-axis residual. Replace via `uv run fit-calibration` against a real ground-truthed capture corpus before relying on either tolerance gate. pipeline_version stays the `placeholder` sentinel — these values are not pipeline-dependent (no map-feature weights), so the LOCALIZER_SHA check disarms correctly. See BUG-makeitsing-localizations-rejected.md for the rationale.",
-  "schema_version": 2,
+  "_note": "Hand-tuned placeholder calibration. No fit-calibration corpus exists yet; these values are a guess set to close the degenerate failure mode where 5-inlier PnP \"results\" reach the client with placeholder confidence 0.5. The loose tolerance model is a 1-feature logistic on log1p(num_inliers) with weight 1.2 and intercept -5.5, gating at loose_min=0.25 (≈ 38 inliers). The tight model copies the loose one; tight_min=0.0 keeps the tight gate a no-op until tolerance-specific features can be fit. sigma_meas_alpha=1.0 preserves PnP's covariance shape; sigma_meas_beta_rotation=2.7416e-5 rad² and sigma_meas_beta_translation=0.04 m² floor rotation σ at 0.3° and translation σ at 20 cm: about the fix-to-fix scatter seen in recorded runs (σ ≈ 0.17° and 16 cm per axis), where the old single beta=1.0e-3 floored both at ~1.8° / ~3.2 cm and made the client's innovation gate reject most good fixes. Replace via `uv run fit-calibration` against a real ground-truthed capture corpus before relying on either tolerance gate. pipeline_version stays the `placeholder` sentinel — these values are not pipeline-dependent (no map-feature weights), so the LOCALIZER_SHA check disarms correctly. See BUG-makeitsing-localizations-rejected.md for the rationale.",
+  "schema_version": 3,
   "pipeline_version": "placeholder",
   "fit_at": "2026-05-12T00:00:00+00:00",
   "fit_by": "manual hand-tuned stopgap",
@@ -38,7 +38,8 @@
     "isotonic_y_breakpoints": []
   },
   "sigma_meas_alpha": 1.0,
-  "sigma_meas_beta": 1.0e-3,
+  "sigma_meas_beta_rotation": 2.7416e-5,
+  "sigma_meas_beta_translation": 0.04,
   "loose_min": 0.25,
   "tight_min": 0.0
 }
