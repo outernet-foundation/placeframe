@@ -4,11 +4,11 @@ import math
 import sys
 from pathlib import Path
 
-from numpy import interp, log1p
+from numpy import diag, dtype, float64, interp, log1p, ndarray
 from pydantic import BaseModel
 
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 # Sentinel `pipeline_version` value that bypasses the pipeline-version check in
 # `load_global_calibration`. Use only with placeholder calibrations whose values
@@ -84,9 +84,17 @@ class CalibrationArtifact(BaseModel):
     tight: ToleranceModel
     loose: ToleranceModel
     sigma_meas_alpha: float
-    sigma_meas_beta: float
+    # Variance floors added to the measurement covariance's diagonal: rad² on the three rotation
+    # axes, m² on the three translation axes. Separate because one number can't be a sensible floor
+    # in both units.
+    sigma_meas_beta_rotation: float
+    sigma_meas_beta_translation: float
     loose_min: float
     tight_min: float
+
+    def measurement_covariance_floor(self) -> ndarray[tuple[int, int], dtype[float64]]:
+        """The 6x6 floor, ordered [rotation, translation] like the covariance it is added to."""
+        return diag([self.sigma_meas_beta_rotation] * 3 + [self.sigma_meas_beta_translation] * 3)
 
     def write(self, path: Path) -> None:
         path.write_text(self.model_dump_json(indent=2) + "\n", encoding="utf-8")

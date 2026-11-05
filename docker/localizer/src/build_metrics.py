@@ -1,7 +1,7 @@
 from typing import Any
 
 from core.localization_metrics import LocalizationMetrics
-from numpy import asarray, eye, float64, hypot, median, ndarray
+from numpy import asarray, float64, hypot, median, ndarray
 from numpy.linalg import norm
 from numpy.typing import NDArray  # noqa: TID251 — tracked in PLE-233
 from pycolmap import Camera as ColmapCamera
@@ -84,7 +84,7 @@ def build_localization_metrics(
 
     pnp_covariance = pnp_result["covariance"]
     measurement_covariance = (
-        calibration.sigma_meas_alpha * pnp_covariance + calibration.sigma_meas_beta * eye(6)
+        calibration.sigma_meas_alpha * pnp_covariance + calibration.measurement_covariance_floor()
     ).tolist()
 
     return LocalizationMetrics(

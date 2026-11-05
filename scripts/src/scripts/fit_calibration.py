@@ -19,7 +19,7 @@ from core.calibration import (
 )
 from core.capture_session_manifest import CaptureSessionManifest
 from core.localization_metrics import RANSAC_THRESHOLD_DEFAULT, RETRIEVAL_TOP_K_DEFAULT
-from numpy import asarray, degrees, eye, float64, inf, unique
+from numpy import asarray, degrees, diag, float64, inf, unique
 from numpy.linalg import LinAlgError, norm
 from numpy.typing import NDArray  # noqa: TID251 — Phase T piece 3 follow-up migration
 from pydantic import BaseModel, ValidationError
@@ -64,9 +64,9 @@ LOOSE_T_M = 0.30
 LOOSE_R_DEG = 5.0
 
 # scipy.optimize bounds and seed for the (alpha, beta) Σ_meas fit.
-_SIGMA_MEAS_INITIAL = (1.0, 1.0e-4)
-_SIGMA_MEAS_BOUNDS = ((1.0e-6, 1.0e6), (0.0, 1.0e3))
-_IDENTITY_6 = eye(6, dtype=float64)
+# alpha, then the rotation (rad²) and translation (m²) floors.
+_SIGMA_MEAS_INITIAL = (1.0, 1.0e-4, 1.0e-4)
+_SIGMA_MEAS_BOUNDS = ((1.0e-6, 1.0e6), (0.0, 1.0e3), (0.0, 1.0e3))
 
 # Hand-set gate thresholds written into the artifact. The starter's tight model is degenerate
 # (no positive class to fit on), so tight_min=0.0 no-ops the tight gate; loose_min=0.25 sits
@@ -209,7 +209,9 @@ async def _run(
     echo(f"\nPipeline version:   {artifact.pipeline_version}")
     echo(f"Sample count:       {artifact.sample_count}")
     echo(f"sigma_meas alpha:   {artifact.sigma_meas_alpha:.6g}")
-    echo(f"sigma_meas beta:    {artifact.sigma_meas_beta:.6g}")
+    echo(
+        f"sigma_meas beta:    {artifact.sigma_meas_beta_rotation:.6g} rad², {artifact.sigma_meas_beta_translation:.6g} m²"
+    )
     echo(f"\nArtifact written to {output}")
 
 
@@ -477,10 +479,9 @@ def fit_calibration_from_corpus(corpus: list[CorpusRow], *, pipeline_version: st
             bounds=_SIGMA_MEAS_BOUNDS,
             method="L-BFGS-B",
         )
-        sigma_meas_alpha = float(sigma_meas_result.x[0])
-        sigma_meas_beta = float(sigma_meas_result.x[1])
+        sigma_meas_alpha, beta_rotation, beta_translation = (float(x) for x in sigma_meas_result.x)
     else:
-        sigma_meas_alpha, sigma_meas_beta = 1.0, 0.0
+        sigma_meas_alpha, beta_rotation, beta_translation = 1.0, 0.0, 0.0
 
     return CalibrationArtifact(
         schema_version=SCHEMA_VERSION,
@@ -491,7 +492,8 @@ def fit_calibration_from_corpus(corpus: list[CorpusRow], *, pipeline_version: st
         tight=fit_logistic_with_isotonic(features_matrix, tight_labels),
         loose=fit_logistic_with_isotonic(features_matrix, loose_labels),
         sigma_meas_alpha=sigma_meas_alpha,
-        sigma_meas_beta=sigma_meas_beta,
+        sigma_meas_beta_rotation=beta_rotation,
+        sigma_meas_beta_translation=beta_translation,
         loose_min=STARTER_LOOSE_MIN,
         tight_min=STARTER_TIGHT_MIN,
     )
@@ -536,10 +538,11 @@ def _success_label(err_t_m: float, err_r_deg: float, max_t_m: float, max_r_deg: 
 def _negative_log_likelihood(
     parameters: NDArray[float64], pnp_covariances: NDArray[float64], se3_residuals: NDArray[float64]
 ) -> float:
-    alpha, beta = float(parameters[0]), float(parameters[1])
+    alpha, beta_rotation, beta_translation = (float(x) for x in parameters)
+    floor = diag([beta_rotation] * 3 + [beta_translation] * 3)
     try:
         return -sum(
-            float(multivariate_normal.logpdf(residual, cov=alpha * covariance + beta * _IDENTITY_6))
+            float(multivariate_normal.logpdf(residual, cov=alpha * covariance + floor))
             for residual, covariance in zip(se3_residuals, pnp_covariances)
         )
     except (ValueError, LinAlgError):

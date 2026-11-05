@@ -132,7 +132,7 @@ class TestFitCalibrationFromCorpus:
     def test_produces_artifact_with_all_required_blocks(self):
         artifact = fit_calibration_from_corpus(self._make_corpus(), pipeline_version="abc123")
 
-        assert artifact.schema_version == 2
+        assert artifact.schema_version == 3
         assert artifact.pipeline_version == "abc123"
         assert artifact.sigma_meas_alpha > 0
         assert artifact.sample_count == 12

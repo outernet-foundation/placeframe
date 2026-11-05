@@ -70,7 +70,9 @@ def _make_map(
     )
 
 
-def _make_calibration(*, sigma_meas_alpha: float = 1.0, sigma_meas_beta: float = 0.0) -> CalibrationArtifact:
+def _make_calibration(
+    *, sigma_meas_alpha: float = 1.0, beta_rotation: float = 0.0, beta_translation: float = 0.0
+) -> CalibrationArtifact:
     empty_tolerance = ToleranceModel(
         logistic_weights=Features.zeros(),
         logistic_intercept=0.0,
@@ -78,7 +80,7 @@ def _make_calibration(*, sigma_meas_alpha: float = 1.0, sigma_meas_beta: float =
         isotonic_y_breakpoints=[],
     )
     return CalibrationArtifact(
-        schema_version=2,
+        schema_version=3,
         pipeline_version="test",
         fit_at="2026-05-03T00:00:00Z",
         fit_by="test",
@@ -86,7 +88,8 @@ def _make_calibration(*, sigma_meas_alpha: float = 1.0, sigma_meas_beta: float =
         tight=empty_tolerance,
         loose=empty_tolerance,
         sigma_meas_alpha=sigma_meas_alpha,
-        sigma_meas_beta=sigma_meas_beta,
+        sigma_meas_beta_rotation=beta_rotation,
+        sigma_meas_beta_translation=beta_translation,
         loose_min=0.0,
         tight_min=0.0,
     )
@@ -144,13 +147,15 @@ class TestBuildLocalizationMetricsSigmaMeas:
     def _make_pycolmap_camera(self):
         # Avoid importing pycolmap.Camera; build_localization_metrics only calls
         # `pycolmap_camera.img_from_cam(points)` which we can stub with a closure.
-        return SimpleNamespace(img_from_cam=lambda pts: pts[:, :2])
+        return SimpleNamespace(img_from_cam=lambda cam_points: cam_points[:, :2])
 
-    def test_sigma_meas_uses_alpha_beta_formula(self):
+    def test_sigma_meas_uses_alpha_and_per_block_floors(self):
         rng = np.random.default_rng(0)
         covariance = rng.normal(size=(6, 6)) @ rng.normal(size=(6, 6)).T + np.eye(6)
-        alpha, beta = 0.7, 0.3
-        calibration = _make_calibration(sigma_meas_alpha=alpha, sigma_meas_beta=beta)
+        alpha, beta_rotation, beta_translation = 0.7, 0.3, 0.05
+        calibration = _make_calibration(
+            sigma_meas_alpha=alpha, beta_rotation=beta_rotation, beta_translation=beta_translation
+        )
 
         n = 50
         points2d = rng.normal(size=(n, 2)) * 10 + 100
@@ -170,13 +175,14 @@ class TestBuildLocalizationMetricsSigmaMeas:
             map=_make_map(),  # type: ignore[arg-type]
         )
 
-        expected = (alpha * covariance + beta * np.eye(6)).tolist()
+        floor = np.diag([beta_rotation] * 3 + [beta_translation] * 3)
+        expected = (alpha * covariance + floor).tolist()
         assert_allclose(np.asarray(metrics.measurement_covariance), np.asarray(expected), rtol=1e-12, atol=1e-12)
 
     def test_sigma_meas_alpha_one_beta_zero_passes_pnp_through(self):
         rng = np.random.default_rng(1)
         covariance = rng.normal(size=(6, 6)) @ rng.normal(size=(6, 6)).T + np.eye(6)
-        calibration = _make_calibration(sigma_meas_alpha=1.0, sigma_meas_beta=0.0)
+        calibration = _make_calibration(sigma_meas_alpha=1.0)
 
         n = 20
         points2d = rng.normal(size=(n, 2)) * 10 + 50
