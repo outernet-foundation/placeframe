@@ -27,7 +27,8 @@ metadata.json
 storage/
 tidy-commits.json
 .build-version.json
-artifacts/
+artifacts/*
+!artifacts/vps-fusion.html
 .pnpm-store/
 .placeframe/
 .claude/scheduled_tasks.lock

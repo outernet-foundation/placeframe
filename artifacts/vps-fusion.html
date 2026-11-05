@@ -1,0 +1,680 @@
+<title>VPS Fusion Walkthrough</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+Math&display=swap">
+<style>
+/* Layout: one reading column. Part 1 is the general process as a ruled ledger of stages, each with its gate in a right-hand chip;
+   part 2 is the parameter table; part 3 is the analysis of one run; part 4 is the recommendations. */
+:root {
+  --bg: #f6f8f9;
+  --surface: #ffffff;
+  --ink: #15202a;
+  --ink-2: #44525f;
+  --muted: #6b7a87;
+  --rule: #d9e0e5;
+  --accent: #0b7285;
+  --accent-soft: #e3f2f4;
+  --bad: #c2410c;
+  --bad-soft: #fdeee6;
+  --good: #2f7d32;
+  --good-soft: #e8f4e8;
+  --warn: #a16207;
+  --warn-soft: #fbf3dc;
+  --display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1519; --surface: #161e24; --ink: #e4eaee; --ink-2: #b3bfc8; --muted: #8494a0; --rule: #2a363f;
+    --accent: #4fc3d4; --accent-soft: #123139; --bad: #fb8a5c; --bad-soft: #3a1f14; --good: #7cc47f; --good-soft: #17301a;
+    --warn: #e0b54a; --warn-soft: #33290f; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1519; --surface: #161e24; --ink: #e4eaee; --ink-2: #b3bfc8; --muted: #8494a0; --rule: #2a363f;
+  --accent: #4fc3d4; --accent-soft: #123139; --bad: #fb8a5c; --bad-soft: #3a1f14; --good: #7cc47f; --good-soft: #17301a;
+  --warn: #e0b54a; --warn-soft: #33290f; color-scheme: dark;
+}
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.6; }
+.wrap { max-width: 860px; margin: 0 auto; padding-block: 40px 72px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 56px; }
+section { display: grid; gap: 16px; min-width: 0; }
+h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.15; text-wrap: balance; margin: 0; }
+h1 { font-size: 2.4rem; letter-spacing: -0.01em; }
+h2 { font-size: 1.6rem; }
+h3 { font-size: 1.15rem; }
+p { margin: 0; max-width: 68ch; }
+.eyebrow { font-family: var(--mono); font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+.part { font-family: var(--display); font-size: 0.95rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); border-top: 2px solid var(--rule); padding-top: 10px; margin-bottom: -32px; }
+.lede { font-size: 1.12rem; color: var(--ink-2); }
+code, .mono { font-family: var(--mono); font-size: 0.88em; }
+code { background: var(--accent-soft); padding: 0.05em 0.35em; border-radius: 3px; }
+var { font-family: var(--mono); font-style: italic; font-size: 0.92em; color: var(--accent); }
+.muted { color: var(--muted); }
+header { display: grid; gap: 14px; }
+
+.verdict { background: var(--bad-soft); border: 1px solid color-mix(in srgb, var(--bad) 35%, transparent); border-radius: 6px; padding: 18px 20px; display: grid; gap: 8px; }
+.verdict strong { color: var(--bad); }
+
+/* frames */
+.frames { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+.frame { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 12px 14px; display: grid; gap: 4px; align-content: start; }
+.frame b { font-family: var(--display); font-weight: 600; font-size: 1.02rem; }
+.frame span { color: var(--ink-2); font-size: 0.92rem; }
+
+/* pipeline ledger */
+.ledger { border-top: 2px solid var(--ink); display: grid; }
+.stage { display: grid; grid-template-columns: 2.4rem minmax(0, 1fr) minmax(0, 15rem); gap: 6px 16px; padding: 16px 0; border-bottom: 1px solid var(--rule); align-items: start; }
+.stage .n { font-family: var(--mono); color: var(--muted); font-size: 0.85rem; padding-top: 3px; }
+.stage .body { display: grid; gap: 8px; min-width: 0; }
+.stage .body > p, .stage .body li { color: var(--ink-2); font-size: 0.95rem; }
+.stage ul { margin: 0; padding-left: 1.2em; display: grid; gap: 4px; max-width: 68ch; }
+.where { font-family: var(--mono); font-size: 0.74rem; color: var(--muted); letter-spacing: 0.04em; text-transform: uppercase; }
+.gate { font-family: var(--mono); font-size: 0.8rem; line-height: 1.45; border-radius: 4px; padding: 8px 10px; background: var(--accent-soft); color: var(--ink); display: grid; gap: 2px; }
+.gate .k { font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); }
+.gate.problem { background: var(--bad-soft); }
+.gate.problem .k { color: var(--bad); }
+.gate.caution { background: var(--warn-soft); }
+.gate.caution .k { color: var(--warn); }
+.stage.hot h3::after { content: "see analysis"; font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--bad); border: 1px solid var(--bad); border-radius: 3px; padding: 0 5px; margin-left: 8px; vertical-align: 3px; }
+.math { font-family: var(--mono); font-size: 0.86rem; background: var(--surface); border: 1px solid var(--rule); border-radius: 4px; padding: 10px 12px; overflow-x: auto; white-space: pre; color: var(--ink); }
+.math.tex { white-space: normal; font-family: inherit; font-size: 1.02rem; padding: 12px 14px; }
+.math.tex math { font-family: "Noto Sans Math", "STIX Two Math", "Cambria Math", math; font-size: 1.05em; }
+.math.tex { overflow-x: auto; }
+.math.ubeq { display: flex; justify-content: center; align-items: baseline; flex-wrap: wrap; gap: 0 0.45em; white-space: normal; font-family: var(--body); padding: 14px 14px 10px; }
+.ubeq .tm math { font-size: 1.2rem; }
+.ub { display: inline-flex; flex-direction: column; align-items: center; }
+.ub-brace { align-self: stretch; position: relative; height: 6px; margin: 4px 1px 0; border: 1.5px solid var(--muted); border-top: 0; border-radius: 0 0 7px 7px; }
+.ub-brace::after { content: ""; position: absolute; left: 50%; bottom: -6px; width: 1.5px; height: 5px; background: var(--muted); transform: translateX(-50%); }
+.ub-label { margin-top: 7px; font-size: 0.72rem; line-height: 1.2; color: var(--muted); white-space: nowrap; }
+.tm { white-space: nowrap; font-family: var(--mono); font-size: 0.9em; }
+.tm math { font-family: "Noto Sans Math", "STIX Two Math", "Cambria Math", math; font-size: 1.12rem; }
+.math.tex mtable { width: auto !important; }
+/* Chrome's MathML ignores columnalign, so align KaTeX's aligned columns here: right, then left (the "=" column). */
+.math.tex mtd { padding: 0.25em 0 !important; }
+.math.tex mtd:nth-child(odd) { text-align: right; }
+.math.tex mtd:nth-child(even) { text-align: left; }
+/* Matrices nested inside an equation stay centred, with a gap between columns. */
+.math.tex mtable mtable mtd { text-align: center; }
+.math.tex mtable mtable mtd + mtd { padding-left: 0.9em !important; }
+.math.tex .err { color: var(--bad); font-family: var(--mono); font-size: 0.8rem; }
+.param { border-left: 3px solid var(--accent); background: var(--surface); border-radius: 0 4px 4px 0; padding: 10px 12px; display: grid; gap: 6px; }
+.param.note { border-left-color: var(--warn); }
+.param-head { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; font-weight: 600; }
+.param p { font-size: 0.92rem; color: var(--ink-2); }
+@media (max-width: 640px) {
+  .stage { grid-template-columns: 2rem minmax(0, 1fr); }
+  .stage .gate { grid-column: 2; }
+}
+
+/* charts */
+.figure { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 16px; display: grid; gap: 10px; min-width: 0; }
+.figure .scroll { overflow-x: auto; }
+.figure svg { display: block; width: 100%; min-width: 520px; height: auto; }
+.figure .cap { font-size: 0.85rem; color: var(--muted); }
+.legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: 0.85rem; color: var(--ink-2); }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 50%; vertical-align: -1px; margin-right: 6px; }
+.svg-axis { stroke: var(--rule); stroke-width: 1; }
+.svg-grid { stroke: var(--rule); stroke-width: 1; stroke-dasharray: 2 4; }
+.svg-tick { fill: var(--muted); font-family: var(--mono); font-size: 11px; }
+.svg-label { fill: var(--ink); font-family: var(--display); font-size: 14px; font-weight: 600; }
+.svg-sub { fill: var(--muted); font-family: var(--body); font-size: 11.5px; }
+.svg-note { fill: var(--ink-2); font-family: var(--mono); font-size: 11.5px; }
+.m-rep { fill: var(--surface); stroke: var(--bad); stroke-width: 2.5; }
+.m-obs { fill: var(--accent); stroke: var(--surface); stroke-width: 2; }
+.m-whisk { stroke: var(--accent); stroke-width: 2; stroke-linecap: round; }
+.m-gap { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; }
+.m-curve { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; }
+.m-thresh { stroke: var(--warn); stroke-width: 1.5; stroke-dasharray: 5 4; }
+.m-reject { fill: var(--warn-soft); }
+.m-dot { fill: var(--warn); stroke: var(--surface); stroke-width: 2; }
+.legend .rep { border: 2.5px solid var(--bad); background: var(--surface); box-sizing: border-box; }
+.legend .obs { background: var(--accent); }
+.m-rej { fill: var(--surface); stroke: var(--warn); stroke-width: 2; }
+.m-still { fill: var(--bg); }
+.m-prop { fill: var(--good); stroke: var(--surface); stroke-width: 2; }
+.legend .prop { background: var(--good); }
+.legend .rej { border: 2px solid var(--warn); background: var(--surface); box-sizing: border-box; }
+
+/* stat strip */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.stat { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 12px 14px; display: grid; gap: 2px; align-content: start; }
+.stat .v { font-family: var(--display); font-size: 1.7rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.stat .v small { font-size: 0.9rem; color: var(--muted); font-weight: 500; }
+.stat .d { font-size: 0.86rem; color: var(--ink-2); line-height: 1.4; }
+
+/* causes */
+.causes { display: grid; gap: 14px; counter-reset: c; }
+.cause { display: grid; grid-template-columns: 2rem minmax(0, 1fr); gap: 4px 12px; }
+.cause::before { counter-increment: c; content: counter(c); font-family: var(--display); font-weight: 600; font-size: 1.05rem; color: var(--bad); grid-row: span 2; }
+.cause p { color: var(--ink-2); font-size: 0.97rem; }
+.cause.minor::before { color: var(--warn); }
+
+/* tables */
+.tbl { overflow-x: auto; border: 1px solid var(--rule); border-radius: 6px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; min-width: 620px; font-size: 0.9rem; }
+th, td { padding: 8px 12px; text-align: right; border-bottom: 1px solid var(--rule); font-variant-numeric: tabular-nums; }
+th:first-child, td:first-child { text-align: left; }
+th { font-family: var(--mono); font-weight: 500; font-size: 0.72rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
+td { font-family: var(--mono); font-size: 0.86rem; }
+td:first-child { font-family: var(--body); font-size: 0.9rem; }
+tbody tr.group td { background: var(--bg); font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--accent); padding-top: 10px; }
+td.best { color: var(--good); font-weight: 600; }
+td.worst { color: var(--bad); }
+tr.base td:first-child::after { content: " (today)"; color: var(--muted); }
+table.params { min-width: 800px; }
+table.params td, table.params th { text-align: left; vertical-align: top; }
+table.params td { font-family: var(--body); font-size: 0.88rem; color: var(--ink-2); }
+table.params td.sym { font-family: var(--mono); font-style: italic; color: var(--accent); white-space: nowrap; }
+table.params td.pname { font-family: var(--mono); font-size: 0.8rem; color: var(--ink); }
+table.params td.pval { font-family: var(--mono); font-size: 0.82rem; color: var(--ink); white-space: nowrap; }
+.src { font-family: var(--mono); font-size: 0.72rem; color: var(--muted); }
+.pill { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.05em; text-transform: uppercase; border-radius: 3px; padding: 1px 6px; white-space: nowrap; }
+.pill.ok { background: var(--good-soft); color: var(--good); }
+.pill.review { background: var(--warn-soft); color: var(--warn); }
+.pill.bad { background: var(--bad-soft); color: var(--bad); }
+
+/* recs */
+.recs { display: grid; gap: 12px; }
+.rec { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 14px 16px; display: grid; gap: 6px; }
+.rec header { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: baseline; }
+.rec .tag { font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase; border-radius: 3px; padding: 1px 6px; }
+.tag.now { background: var(--good-soft); color: var(--good); }
+.tag.next { background: var(--accent-soft); color: var(--accent); }
+.tag.later { background: var(--warn-soft); color: var(--warn); }
+.rec p { color: var(--ink-2); font-size: 0.95rem; }
+.rec .try { font-family: var(--mono); font-size: 0.8rem; color: var(--muted); }
+ul.plain { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; max-width: 68ch; color: var(--ink-2); }
+footer { color: var(--muted); font-size: 0.85rem; display: grid; gap: 8px; border-top: 1px solid var(--rule); padding-top: 16px; }
+</style>
+
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">Placeframe · VPS localizer and RelocalizationFilter</div>
+  <h1>How VPS and VIO are fused</h1>
+  <p class="lede">The headset tracks itself smoothly with VIO, but VIO's world has an arbitrary origin and drifts. VPS answers "where is this camera in the map?" now and then, with noise. The fusion filter keeps one estimate of how the VIO world sits inside the map, and nudges it with each VPS fix it trusts.</p>
+  <p>Parts 1 and 2 describe the general process and its parameters, with the values currently set in code and calibration. Part 3 analyses one recorded localization run. Part 4 recommends changes.</p>
+</header>
+
+<div class="part">Part 1 · The process</div>
+
+<section>
+  <div class="eyebrow">Vocabulary</div>
+  <h2>Three coordinate frames and one alignment</h2>
+  <div class="frames">
+    <div class="frame"><b>Unity world, U</b><span>Where VIO puts the camera: <span class="tm" data-tex="{}^{U}T_{C}">unity_from_camera</span>, the device tracker's pose converted to Unity axes, plus the camera's mounting offset. Smooth and fast, but its origin is wherever tracking started, and it drifts as the user walks.</span></div>
+    <div class="frame"><b>Map, M</b><span>The reconstruction's frame. VPS reports the camera's pose in it: <span class="tm" data-tex="{}^{C}T_{M}">camera_from_map</span>.</span></div>
+    <div class="frame"><b>ECEF, E</b><span>The geo frame content is authored in, related to the map by <span class="tm" data-tex="{}^{E}T_{M}">ecef_from_map</span>.</span></div>
+    <div class="frame"><b><span class="tm" data-tex="{}^{U}T_{E}">unity_from_ecef</span></b><span>The "alignment": the one rigid transform the filter estimates. A point <var>x</var> in the map frame renders in Unity world at <span class="tm" data-tex="{}^{U}T_{E}\cdot{}^{E}T_{M}\cdot x">unity_from_ecef · ecef_from_map · x</span>.</span></div>
+  </div>
+  <p><var>x</var> is a 3-D point in the map frame, such as a map point or content anchored to the map, written as the homogeneous 4-vector [x, y, z, 1]. Transforms are 4×4 matrices written <span class="tm" data-tex="{}^{a}T_{b}">a_from_b</span>: they take coordinates in frame <i>b</i> to frame <i>a</i>. They chain right to left, and matching inner frames cancel: <span class="tm" data-tex="{}^{a}T_{b}\cdot{}^{b}T_{c} = {}^{a}T_{c}">a_from_b · b_from_c = a_from_c</span>, and <span class="tm" data-tex="\left({}^{a}T_{b}\right)^{-1} = {}^{b}T_{a}">inv(a_from_b) = b_from_a</span>. The frames are U (Unity world), M (map), E (ECEF) and C (camera). The code spells <span class="tm" data-tex="{}^{a}T_{b}">a_from_b</span> as <code>a_from_b</code>. Elsewhere on this page "alignment" always means <span class="tm" data-tex="{}^{U}T_{E}">unity_from_ecef</span>.</p>
+  <p>Every fix and every VIO pose of the same still together imply one <span class="tm" data-tex="{}^{U}T_{E}">unity_from_ecef</span>. If VPS and VIO were perfect, every fix would imply the same <span class="tm" data-tex="{}^{U}T_{E}">unity_from_ecef</span>. The filter's job is to average the ones that disagree only by noise, and ignore the ones that are wrong.</p>
+  <h3>Conventions</h3>
+  <div class="tbl">
+  <table class="params">
+    <thead><tr><th>Frame</th><th>Native convention</th><th>What the filter sees</th><th>Converted by</th></tr></thead>
+    <tbody>
+      <tr><td class="pname">Unity world</td><td>Unity: left-handed, x right, y up, z forward, metres. The origin is where tracking started. The device tracker's own space is converted to this by Unity's XR plugin.</td><td>Unchanged.</td><td class="src">Unity XR plugin</td></tr>
+      <tr><td class="pname">Camera</td><td>Inside the localizer, OpenCV/COLMAP: right-handed, x right, y down, z forward. Pixels have their origin at the top-left, u right, v down, in the canonical upright image (1820 × 1024 for ML2 stills).</td><td>Unity camera axes: x right, y up, z forward (left-handed). <span class="tm" data-tex="{}^{U}T_{C}">unity_from_camera</span> comes from Unity in these axes.</td><td class="src">diag(1, −1, 1)<br>core/axis_convention.py</td></tr>
+      <tr><td class="pname">Map</td><td>COLMAP, right-handed, gravity-aligned: <b>+Y points along gravity (down)</b>. After SfM the reconstructor takes the median gravity direction from the capture poses and rotates it onto +Y. It then moves the origin to the first registered camera's position. Heading about the vertical and scale are whatever SfM produced. Recorded as <code>gravity_aligned_in_map_frame</code> in the reconstruction metrics.</td><td>Unity axes, so +y is up and gravity is −y. The device requests <code>axis_convention=UNITY</code>, so the server flips y on both the map and the camera before returning <span class="tm" data-tex="{}^{C}T_{M}">camera_from_map</span>.</td><td class="src">reconstructor/colmap.py (gravity)<br>diag(1, −1, 1)<br>core/axis_convention.py</td></tr>
+      <tr><td class="pname">ECEF</td><td>Earth-centred, Earth-fixed: right-handed, origin at the Earth's centre, z through the North Pole, x through 0° latitude and 0° longitude, metres. The map's placement in it is the localization map's stored pose (<code>MapTransform</code>).</td><td>A y-mirrored copy of ECEF, so all the filter's matrix maths stays in one handedness. <span class="tm" data-tex="{}^{U}T_{E}">unity_from_ecef</span> maps from this mirrored frame. If a localization map's pose is the identity, "ECEF" is just the map frame again.</td><td class="src">diag(1, −1, 1)<br>MathUtil.ChangeBasisUnityFromEcef</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <ul class="plain">
+    <li><b>Transforms:</b> <span class="tm" data-tex="{}^{a}T_{b}">a_from_b</span> is a 4×4 matrix acting on column vectors. In code: <span class="tm" data-tex="{}^{U}T_{C}">unity_from_camera</span> = <code>unity_from_camera</code>, <span class="tm" data-tex="{}^{C}T_{M}">camera_from_map</span> = <code>camera_from_map</code>, <span class="tm" data-tex="{}^{M}T_{C}">map_from_camera</span> = <code>map_from_camera</code>, <span class="tm" data-tex="{}^{E}T_{M}">ecef_from_map</span> = <code>ecef_from_map</code>, <span class="tm" data-tex="{}^{M}T_{E}">map_from_ecef</span> = <code>map_from_ecef</code>, <span class="tm" data-tex="{}^{U}T_{E}">unity_from_ecef</span> = <code>unity_from_ecef</code>. Quaternions are xyzw, in both Unity and the API.</li>
+    <li><b>Tangent vectors:</b> ordered [rotation, translation], with rotation as a rotation vector in radians. The exception is <var>Σ_pnp</var>'s rotation block, which uses quaternion half-angle units (stage 4).</li>
+    <li><b>Units:</b> metres and radians throughout. Degrees appear only in the text.</li>
+  </ul>
+  <h3 id="estimates">What the filter estimates</h3>
+  <p>The one unknown is the alignment <var>X</var> = <span class="tm" data-tex="{}^{U}T_{E}">unity_from_ecef</span>. It is the transform that makes VPS's camera pose, carried into Unity, land on VIO's camera pose:</p>
+  <div class="math ubeq"><span class="tm" data-tex="{}^{U}T_{E}\cdot">unity_from_ecef ·</span><span class="ub"><span class="tm" data-tex="{}^{E}T_{M}\cdot{}^{M}T_{C}">ecef_from_map · map_from_camera</span><span class="ub-brace"></span><span class="ub-label">VPS camera pose in ECEF</span></span><span class="tm" data-tex="=">=</span><span class="ub"><span class="tm" data-tex="{}^{U}T_{C}">unity_from_camera</span><span class="ub-brace"></span><span class="ub-label">VIO camera pose</span></span></div>
+  <ul class="plain">
+    <li><b>Camera pose</b> (<span class="tm" data-tex="{}^{U}T_{C}">unity_from_camera</span>): an input from VIO. It changes every frame as the user moves.</li>
+    <li><b>Measurement <var>Z</var></b>, with covariance <var>R</var>: one fix's value of <var>X</var>, solved from that equation for a single still (stage 5). It carries that fix's full noise.</li>
+    <li><b>Estimate <var>X̂</var></b>, with covariance <var>P</var>: the filter's fused estimate of <var>X</var> from every accepted measurement, known in code as the filter's mean. Stage 7 compares each new <var>Z</var> with it, and stage 8 moves it partway toward <var>Z</var>.</li>
+  </ul>
+  <p class="muted">The notation is standard Kalman-filter notation. A hat marks the filter's estimate. A superscript ⁻ means predicted, before a measurement is applied. Without it, <var>X̂</var> and <var>P</var> are the filter's current state, which stage 8 overwrites with each accepted fix. <var>ỹ</var> is the innovation, and <var>K</var> the gain.</p>
+  <p>The alignment should stay nearly constant, changing only slowly as VIO drifts. So measurements taken seconds apart and from different places should agree. Their scatter is noise to be averaged out, unless a fix is simply wrong.</p>
+</section>
+
+<section>
+  <div class="eyebrow">Start to finish</div>
+  <h2>From a camera still to the alignment content uses</h2>
+  <div class="ledger">
+
+    <div class="stage">
+      <div class="n">1</div>
+      <div class="body"><div class="where">device</div><h3>Pick a still to localize</h3>
+        <p>The camera produces stills continuously. Every <var>Δt_req</var> = 1 s (the interval both the Capture Tool and Make it Sing pass to <code>StartLocalizing</code>), the device takes the latest one and sends it to the server. If a request is still in flight, that tick is skipped rather than queued. The answer arrives after a network and server latency <var>L</var>, by which time the user has moved on. The filter therefore pairs each answer with the VIO pose recorded when the still was taken, not the current one.</p></div>
+      <div class="gate"><span class="k">throttle</span>one request per <var>Δt_req</var> = 1 s<br>skip while busy<br>answer after <var>L</var></div>
+    </div>
+
+    <div class="stage">
+      <div class="n">2</div>
+      <div class="body"><div class="where">server · localizer</div><h3>Retrieve, match, solve PnP</h3>
+        <p>Find similar map images, then match the still's features to map points. Many matches are wrong, so RANSAC repeatedly solves a pose from a few random matches. Each time, it projects every matched map point and counts the inliers: matches that land within <var>τ</var> pixels of their feature. The pose with the most inliers is refined by pycolmap using only those inliers. The result is <span class="tm" data-tex="{}^{C}T_{M}">camera_from_map</span>, the <var>N</var> inlier matches, and <var>Σ_pnp</var>: pycolmap's 6×6 uncertainty of the camera pose.</p>
+        <div class="param"><div class="param-head"><code>RANSAC_THRESHOLD_DEFAULT</code> = <var>τ</var> = 8.0 px <span class="src">core/localization_metrics.py</span></div>
+          <p>The largest reprojection error a match can have and still count as an inlier. Raising it accepts more matches, including some wrong ones. Lowering it accepts fewer matches, and more stills end with no pose. A request can override it with <code>ransac_threshold</code>.</p>
+          <p>In angle, <var>τ</var> px is <var>τ / f</var> radians for focal length <var>f</var> px. At scene depth <var>Z</var>, a match can be off by about <var>Z · τ / f</var> sideways and still count as an inlier. For the ML2 still camera at the localizer's 1820 px width (<var>f</var> ≈ 1,430 px), 8 px is about 0.32°: 6 cm at 10 m, 17 cm at 30 m, 56 cm at 100 m. pycolmap's <var>Σ_pnp</var> assumes inliers are accurate to about 1 px, whatever <var>τ</var> is.</p></div></div>
+      <div class="gate"><span class="k">RANSAC</span>inlier: reprojects within <var>τ</var> = 8 px<br>no pose → no fix<br>("Pose estimation failed")</div>
+    </div>
+
+    <div class="stage">
+      <div class="n">3</div>
+      <div class="body"><div class="where">server · build_metrics, localize</div><h3>Confidence gate</h3>
+        <p>The server estimates how likely the pose is to be right, and refuses to return fixes that are probably wrong. It computes two confidences, each a <b>probability between 0 and 1, with no units</b>:</p>
+        <ul>
+          <li><var>c_loose</var>: the probability that the pose is within 30 cm and 5° of the truth.</li>
+          <li><var>c_tight</var>: the probability that it is within 5 cm and 1°.</li>
+        </ul>
+        <p>Each is a logistic regression over nine features of the fix, optionally followed by an isotonic remap that makes the output a calibrated probability. The features are log inliers, inlier ratio, normalised reprojection error, inlier coverage of the image, log matches, and four properties of the map: image count, point count, mean track length and viewpoint diversity.</p>
+        <div class="math" data-tex="\begin{aligned} c &amp;= \operatorname{isotonic}\left(\operatorname{sigmoid}\left(b + \textstyle\sum_i w_i\,\text{feature}_i\right)\right) \\ &amp;\text{reject if }\; c_{\text{loose}} \lt c_{\text{loose,min}} \;\text{ or }\; c_{\text{tight}} \lt c_{\text{tight,min}} \end{aligned}">c = isotonic( sigmoid( b + Σ wᵢ · featureᵢ ) )
+reject if  c_loose &lt; c_loose,min   or   c_tight &lt; c_tight,min</div>
+        <p>A rejected fix comes back as an error ("Confidence below gate: loose=…, tight=…"). The device gets no pose, so the filter never sees it. The dashboard's Details view still shows the pose and the two confidences.</p>
+        <div class="param note"><div class="param-head">The deployed calibration is a placeholder <span class="src">docker/localizer/calibration/global.json</span></div>
+          <p>Only the inlier weight is set (<var>w</var> = 1.2, <var>b</var> = −5.5, no isotonic step), and the tight model copies the loose one. Confidence is therefore just a function of the inlier count, <var>c</var> = sigmoid(1.2 · ln(1 + <var>N</var>) − 5.5). It is not a calibrated probability. The curve crosses <var>c_loose,min</var> = 0.25 at <var>N</var> ≈ 38.2, so a fix passes exactly when <var>N</var> ≥ 39 (38 inliers gives 0.249). Here <var>N</var> is RANSAC's inlier count from stage 2: matches within <var>τ</var> = 8 px of the RANSAC pose, counted before refinement. <var>c_tight,min</var> = 0, so the tight gate never rejects.</p>
+          <p>When the localizer loads this file, it warns that "Tight/loose confidence gates are no-ops". That is only true of the tight gate. The loose gate does reject fixes.</p></div>
+        <div class="figure">
+          <div class="scroll">
+          <svg viewBox="0 0 660 222" role="img" aria-label="Placeholder confidence versus inlier count. Confidence crosses the 0.25 gate at 38.2 inliers, so 39 is the minimum that passes, 0.5 at about 100, and 0.94 at 1000.">
+            <rect class="m-reject" x="60" y="20" width="164.5" height="160"/>
+            <line class="svg-grid" x1="60" y1="100" x2="620" y2="100"/>
+            <line class="svg-grid" x1="60" y1="20" x2="620" y2="20"/>
+            <line class="svg-axis" x1="60" y1="180" x2="620" y2="180"/>
+            <line class="svg-axis" x1="60" y1="20" x2="60" y2="180"/>
+            <g class="svg-tick" text-anchor="end">
+              <text x="52" y="184">0</text><text x="52" y="144">0.25</text><text x="52" y="104">0.5</text><text x="52" y="24">1</text>
+            </g>
+            <g class="svg-tick" text-anchor="middle">
+              <text x="60" y="198">5</text><text x="116" y="198">10</text><text x="303" y="198">100</text><text x="490" y="198">1000</text><text x="620" y="198">5000</text>
+            </g>
+            <text class="svg-sub" x="340" y="216" text-anchor="middle">inliers N (log scale)</text>
+            <line class="m-thresh" x1="60" y1="140" x2="620" y2="140"/>
+            <polyline class="m-curve" points="60,174.6 116.2,169.1 172.4,158.2 224.5,140.2 246.7,129.8 302.9,98.6 359,67.7 433.3,39.8 489.5,29.3 620,21.4"/>
+            <circle class="m-dot" cx="224.5" cy="140" r="5"><title>c_loose = 0.25 at N ≈ 38.2; N = 39 is the first that passes</title></circle>
+            <text class="svg-note" x="70" y="40">rejected</text>
+            <text class="svg-note" x="234" y="156">c_loose,min = 0.25 → pass at N ≥ 39</text>
+          </svg>
+          </div>
+          <p class="cap">Placeholder confidence as a function of inlier count. Fixes in the shaded band are refused by the server.</p>
+        </div>
+      </div>
+      <div class="gate caution"><span class="k">confidence</span><var>c_loose</var> ≥ <var>c_loose,min</var> = 0.25 (N ≥ 39)<br><var>c_tight</var> ≥ <var>c_tight,min</var> = 0 (off)<br>probabilities, 0–1<br>server-side, no app toggle</div>
+    </div>
+
+    <div class="stage hot">
+      <div class="n">4</div>
+      <div class="body"><div class="where">server · build_metrics</div><h3>Measurement covariance</h3>
+        <p>The uncertainty sent to the device with each fix is the PnP covariance scaled by <var>α</var>, plus <var>β</var> on every diagonal entry. The same <var>β</var> is added to rotation entries (rad²) and translation entries (m²), so it sets a floor of <var>√β</var> radians on rotation and <var>√β</var> metres on translation. The deployed <var>α</var> = 1 and <var>β</var> = 1e-3 give floors of 0.032 rad (1.8°) and 0.032 m (3.2 cm).</p>
+        <div class="math" data-tex="R = \alpha\,\Sigma_{\text{pnp}} + \beta\,I_6">R = α · Σ_pnp + β · I₆</div>
+        <div class="param"><div class="param-head"><var>Σ_pnp</var>: what pycolmap computes <span class="src">pycolmap 4.0.4 · estimate_and_refine_absolute_pose(return_covariance=True)</span></div>
+          <p>Inputs: the <var>N</var> RANSAC inliers <var>i</var> (matches within <var>τ</var> = 8 px), each a map point <var>X_i</var> (m, COLMAP map) and its keypoint <var>u_i</var> (px, upright 1820×1024 image); fixed pinhole intrinsics <var>f_x</var>, <var>f_y</var>, <var>c_x</var>, <var>c_y</var>; and the pose (<var>R</var>, <var>t</var>) = <span class="tm" data-tex="{}^{C}T_{M}">cam_from_world</span> (pycolmap's <code>cam_from_world</code>), map → camera.</p>
+          <div class="math" data-tex="\begin{aligned} r_i &amp;= \pi(R\,X_i + t) - u_i \\ s_i &amp;= \lVert r_i \rVert^2 \\ \pi(p) &amp;= \begin{bmatrix} f_x\,p_x/p_z + c_x \\ f_y\,p_y/p_z + c_y \end{bmatrix} \\[6pt] (\hat R, \hat t) &amp;= \arg\min_{R,\,t}\, \sum_i \rho(s_i) \\ \rho(s) &amp;= c^2 \ln\left(1 + \frac{s}{c^2}\right), \qquad c = 1\ \text{px} \\[6pt] R &amp;\leftarrow \operatorname{Exp}(2\,\delta\theta)\,R \\ t &amp;\leftarrow t + \delta t \\ \xi &amp;= \begin{bmatrix} \delta\theta \\ \delta t \end{bmatrix} \\ J_i &amp;= \frac{\partial r_i}{\partial \xi} = \Pi_i \begin{bmatrix} -2\,[q_i]_\times &amp; I_3 \end{bmatrix} \qquad (2\times 6) \\ q_i &amp;= \hat R\,X_i \\ p_i &amp;= q_i + \hat t \\ \Pi_i &amp;= \begin{bmatrix} f_x/p_z &amp; 0 &amp; -f_x\,p_x/p_z^2 \\ 0 &amp; f_y/p_z &amp; -f_y\,p_y/p_z^2 \end{bmatrix} \\[6pt] w_i &amp;= \rho&#x27;(s_i) = \frac{1}{1 + s_i/c^2} \\ \Sigma_{\text{pnp}} &amp;= \left(\sum_i w_i\,J_i^{\top} J_i\right)^{-1} \end{aligned}">p_i = R X_i + t                                  point in camera coordinates (OpenCV axes)
+π(p) = [ f_x p_x / p_z + c_x ,  f_y p_y / p_z + c_y ]
+r_i = π(R X_i + t) − u_i                         reprojection residual (px)
+s_i = ‖r_i‖²
+
+refine:    (R̂, t̂) = argmin Σ_i ρ(s_i)       ρ(s) = c² ln(1 + s/c²),  c = 1 px (Cauchy)
+
+perturb:   R ← Exp(2 δθ) · R                  half-angle, applied on the left
+           t ← t + δt                          ξ = [δθ ; δt],  order [rotation, translation]
+
+J_i   = ∂r_i / ∂ξ  at (R̂, t̂)                 2×6
+w_i   = ρ′(s_i) = 1 / (1 + s_i / c²)          Cauchy weight
+H     = Σ_i  w_i · J_iᵀ J_i                    6×6 Gauss–Newton information
+Σ_pnp = H⁻¹                                    implicitly × σ², σ = 1 px</div>
+          <p>Reading the lines in order: <var>r_i</var> is each inlier's reprojection residual in pixels through the pinhole projection <var>π</var>; the pose is refined under a Cauchy loss <var>ρ</var> with scale <var>c</var> = 1 px; the pose is perturbed by <var>ξ</var> = [δθ; δt], rotation first; <var>J_i</var> is the residual's 2×6 Jacobian at the refined pose: two pixel rows, six pose columns. In it, <var>Π_i</var> is the projection's 2×3 Jacobian at <var>p_i</var>, and [<var>q_i</var>]× is the cross-product matrix of <var>q_i</var>, the map point rotated into camera axes but not translated. The rotation columns use <var>q_i</var> rather than <var>p_i</var> because δθ pivots about the map origin, and the factor 2 comes from the half-angle; <var>w_i</var> is the Cauchy weight; and <var>Σ_pnp</var> is the inverse of the weighted Gauss–Newton information, implicitly scaled by σ² with σ = 1 px.</p>
+          <p>δθ rotates the map about its own origin, in camera axes, by twice ‖δθ‖ (half-angle, applied on the left), so the rotation block's variance is ¼ of the rotation-vector variance the filter assumes. δt moves the map origin, also in camera axes. The units are half-angle rad² and m².</p>
+          <p>Each point is treated as an independent observation with 1 px noise, and the map points as exact. Residual size enters only through the weights <var>w_i</var>. These widen <var>Σ_pnp</var> roughly in proportion to each point's squared residual, but there is no other rescaling: with the loss switched off, 1 px and 3 px noise give the same covariance. Correlated errors between points, map-point error and wrong matches are not modelled.</p>
+          <p>These equations were checked against pycolmap on synthetic data. With the weights, they reproduce its covariance exactly (the eigenvalues of the ratio are 1.000 at 1 px and 3 px of noise).</p></div>
+        <div class="param note"><div class="param-head">Into the filter's tangent space</div>
+          <p>The gate needs <var>R</var> in the alignment's tangent space, the same space as <var>ỹ</var>. When <span class="tm" data-tex="{}^{E}T_{M}">ecef_from_map</span> is identity, carrying <var>Σ_pnp</var> there is block-diagonal. The floor is meant in the filter's units already, so it is added afterwards:</p>
+          <div class="math" data-tex="\begin{aligned} R &amp;= \alpha\,A\,\Sigma_{\text{pnp}}\,A^{\top} + \beta\,I_6 \\ A &amp;= \begin{bmatrix} 2Q &amp; 0 \\ 0 &amp; Q \end{bmatrix} \end{aligned}">R = α · A Σ_pnp Aᵀ + β · I₆,      A = [ 2Q   0 ]
+                                    [ 0    Q ]</div>
+          <p><var>Q</var> is the fixed 3×3 rotation from the camera's axes to the filter's ECEF axes, with the axis flips folded in. No lever-arm term is needed: pycolmap's δθ is already a rotation about the map origin, the point the alignment's tangent also uses. So the coupling that comes from the camera sitting far from that origin is already inside <var>Σ_pnp</var>'s off-diagonal blocks. This was checked numerically on a fix 24 m from the map origin: the off-diagonal block of <var>A</var> came out at 1.4e-8. Today the server and stage 5 use <var>A</var> = I, so <var>Σ_pnp</var> stays in camera axes with rotation in half-angle units.</p></div>
+        <div class="param"><div class="param-head"><code>fit-calibration</code> <span class="src">scripts/src/scripts/fit_calibration.py · uv run fit-calibration</span></div>
+          <p>The offline tool meant to produce <code>global.json</code> from ground truth. It:</p>
+          <ul>
+            <li>takes capture sessions with known camera poses (<code>frames.csv</code>), holds some frames out, and builds a reconstruction from the rest;</li>
+            <li>localizes each held-out frame through the API at default settings, and stores its metrics, <var>Σ_pnp</var> and its error against the known pose (<code>err_t_m</code>, <code>err_r_deg</code>, and the 6-D <code>se3_residual</code>);</li>
+            <li>fits the stage 3 confidence models. These are logistic plus isotonic, labelled by whether the error is under 30 cm and 5° (loose) or 5 cm and 1° (tight);</li>
+            <li>fits <var>α</var> and <var>β</var> by maximising the Gaussian likelihood of the residuals under <var>α·Σ_pnp + β·I</var>;</li>
+            <li>writes <code>global.json</code>.</li>
+          </ul>
+          <p>The deployed file was never produced this way: it records <code>sample_count</code> 0 and <code>pipeline_version</code> "placeholder". Even once fitted, the model has one <var>β</var> shared between rad² and m².</p></div>
+        <div class="param note"><div class="param-head">Is <var>R</var> measured or fixed?</div>
+          <p>It is computed for each fix, but the floor usually dominates. A rotation floor of 1.8° is far larger than PnP's rotation σ for any well-constrained fix, so the rotation part of <var>R</var> is effectively constant. The translation part rises above 3.2 cm only when PnP's own translation σ is comparable to it: few inliers, far points, or points bunched in one part of the image.</p></div></div>
+      <div class="gate problem"><span class="k">measurement σ</span>per fix, but floor-dominated<br>rotation ≥ <var>√β</var> = 1.8°<br>translation ≥ <var>√β</var> = 3.2 cm<br>placeholder <var>α</var> = 1, <var>β</var> = 1e-3</div>
+    </div>
+
+    <div class="stage">
+      <div class="n">5</div>
+      <div class="body"><div class="where">device · filter</div><h3>One fix's estimate of <span class="tm" data-tex="{}^{U}T_{E}">unity_from_ecef</span></h3>
+        <p>Solve the equation from <a href="#estimates">What the filter estimates</a> for a single still. Three inputs go in:</p>
+        <ul>
+          <li><span class="tm" data-tex="{}^{U}T_{C}">unity_from_camera</span>, <b>measured by VIO</b>: the camera's pose in Unity world when the still was taken.</li>
+          <li><span class="tm" data-tex="{}^{M}T_{C}">map_from_camera</span>, <b>measured by VPS</b>: the camera's pose in the map for that still. The server returns its inverse, <span class="tm" data-tex="{}^{C}T_{M}">camera_from_map</span>.</li>
+          <li><span class="tm" data-tex="{}^{M}T_{E}">map_from_ecef</span>, <b>fixed and known</b>: the inverse of the localization map's stored placement, <span class="tm" data-tex="{}^{E}T_{M}">ecef_from_map</span>.</li>
+        </ul>
+        <div class="math ubeq"><span class="tm" data-tex="Z =">Z =</span><span class="ub"><span class="tm" data-tex="{}^{U}T_{C}">unity_from_camera</span><span class="ub-brace"></span><span class="ub-label">VIO</span></span><span class="tm" data-tex="\cdot">·</span><span class="ub"><span class="tm" data-tex="\left({}^{M}T_{C}\right)^{-1}">map_from_camera⁻¹</span><span class="ub-brace"></span><span class="ub-label">VPS</span></span><span class="tm" data-tex="\cdot">·</span><span class="ub"><span class="tm" data-tex="{}^{M}T_{E}">map_from_ecef</span><span class="ub-brace"></span><span class="ub-label">known</span></span></div>
+        <p><var>Z</var> is the measurement. By construction it puts the camera exactly at its VIO position. <code>ComputeAlignmentFromResult</code> builds <var>Z</var>'s rotation and translation separately, and writes the translation as "anchored on the camera". The result is still this same matrix. So the lever arm the code comment describes is not removed here. It enters in stages 7 and 8, where <var>Z</var> is compared with <var>X̂</var> and blended into it about the ECEF origin.</p>
+        <p><var>R</var> from stage 4 is passed through unchanged as <var>Z</var>'s covariance, although it describes the uncertainty of <span class="tm" data-tex="{}^{C}T_{M}">camera_from_map</span>, not of <var>Z</var>.</p></div>
+      <div class="gate"><span class="k">measurement</span><var>Z</var>: one fix's <span class="tm" data-tex="{}^{U}T_{E}">unity_from_ecef</span><br>4×4 rigid transform<br>covariance <var>R</var>, unconverted</div>
+    </div>
+
+    <div class="stage">
+      <div class="n">6</div>
+      <div class="body"><div class="where">device · filter</div><h3>Predict: let uncertainty grow</h3>
+        <p>Before comparing, the filter widens the covariance <var>P</var> of its estimate <var>X̂</var> to allow for VIO drift since the last accepted fix. The estimate itself does not move: <var>X̂⁻</var> = <var>X̂</var>. <var>P</var> is whatever the previous cycle left: the result of the last stage 8 update, the widened <var>P⁻</var> from a rejection, or <var>P₀</var> before any fix. <var>d</var> is the straight-line VIO displacement since the last accepted fix, not the path length, so walking in a loop or turning in place adds nothing. After a rejection the full (<var>k_drift</var> · <var>d</var>)² is added again at the next fix, so the drift term grows faster than <var>d</var>². Before any fix, <var>P</var> starts at the bootstrap values, which are wide enough that the first fix always passes.</p>
+        <div class="math" data-tex="\begin{aligned} {\smash[t]{\hat X}}^{-} &amp;= \hat X \\ P^- &amp;= P + \operatorname{diag}(q_r I_3,\ q_t I_3) + (k_{\text{drift}}\,d)^2\,I_6 \\[6pt] \hat X_0 &amp;= I_4 \\ P_0 &amp;= \operatorname{diag}(\sigma_{r0}^2 I_3,\ \sigma_{t0}^2 I_3) \\[6pt] q_r &amp;= 10^{-6}\ \text{rad}^2 \\ q_t &amp;= 10^{-4}\ \text{m}^2 \\ k_{\text{drift}} &amp;= 0.01\ \text{m}^{-1} \\ \sigma_{r0} &amp;= \pi\ \text{rad} \\ \sigma_{t0} &amp;= 100\ \text{m} \end{aligned}">X̂⁻ = X̂                                   (the estimate itself does not move)
+P⁻ = P + diag(q_r ×3, q_t ×3) + (k_drift · d)² · I₆
+X̂₀ = I₄     P₀ = diag(σ_r0² ×3, σ_t0² ×3)
+
+q_r = 1e-6 rad²   q_t = 1e-4 m²   k_drift = 0.01 per m   σ_r0 = π rad   σ_t0 = 100 m</div>
+        <p>Because <var>k_drift</var> is added to all six axes, it allows 1 cm of translation and 0.01 rad (0.57°) of rotation per metre walked.</p></div>
+      <div class="gate caution"><span class="k">process noise</span><var>k_drift</var> = 0.01 per metre, on all six axes<br>bootstrap <var>σ_t0</var> = 100 m, <var>σ_r0</var> = π</div>
+    </div>
+
+    <div class="stage hot">
+      <div class="n">7</div>
+      <div class="body"><div class="where">device · filter</div><h3>Innovation gate</h3>
+        <p>Compute the innovation <var>ỹ</var>: the difference between the predicted estimate <var>X̂⁻</var> and the measurement <var>Z</var>, as a 6-vector in the alignment's tangent space. Weigh it by the combined uncertainty to get m², the squared Mahalanobis distance (<code>MahalanobisSquared</code> in code). Reject the fix if it is too unlikely.</p>
+        <div class="math" data-tex="\begin{aligned} \tilde y &amp;= \log\left(\left({\smash[t]{\hat X}}^{-}\right)^{-1} Z\right) \\ m^2 &amp;= \tilde y^{\top} (P^- + R)^{-1}\,\tilde y \\ &amp;\text{reject if } m^2 \gt \chi^2_{\text{gate}} \end{aligned}">ỹ  = log( (X̂⁻)⁻¹ · Z )        [rotation, translation]
+m² = ỹᵀ (P⁻ + R)⁻¹ ỹ     reject if m² &gt; χ²_gate</div>
+        <p>If <var>P⁻</var> and <var>R</var> are honest, m² follows a χ² distribution with 6 degrees of freedom, and <var>χ²_gate</var> = 16.81 is its 99th percentile. When a fix is rejected, <var>X̂</var> stays as it was, and the widened <var>P⁻</var>, capped at the bootstrap value, becomes the new <var>P</var>. The gate is then wider for the next fix. It widens quickly only while the user walks; the figure under stage 8 shows the cycle.</p>
+        <div class="param note"><div class="param-head">The first fix</div>
+          <p>The first fix goes through this same gate; it is not exempt. <var>P₀</var> is set very high (<var>σ_r0</var> = π rad, <var>σ_t0</var> = 100 m) so that the gate passes it. With <var>P⁻</var> ≈ <var>P₀</var>, m² ≈ |θ|²/π² + |t|²/(100 m)², where θ and t are the rotation and translation of <var>Z</var>. The rotation term is at most 1, so the fix passes whenever |t| ≲ 400 m. That holds when the filter's ECEF is the map frame (<code>map_transform</code> = identity), since <var>Z</var>'s translation is then only the distance between the Unity and map origins. For a map placed at real ECEF coordinates (|t| ≈ 6,400 km) the first fix would be rejected. Because <var>P</var> is capped at <var>P₀</var>, no later fix could pass either.</p>
+          <p>Once the first fix passes, <var>K</var> ≈ 1 on every axis, so <var>X̂</var> ≈ <var>Z</var> and <var>P</var> ≈ <var>R</var>, and the published alignment snaps to it.</p></div>
+        <p class="muted">Capture Tool: "Bypass innovation gate" accepts every fix that reaches the device.</p></div>
+      <div class="gate problem"><span class="k">gate</span>m² &gt; <var>χ²_gate</var> = 16.81 → reject<br>only as good as <var>R</var></div>
+    </div>
+
+    <div class="stage">
+      <div class="n">8</div>
+      <div class="body"><div class="where">device · filter</div><h3>Kalman update</h3>
+        <p>An accepted fix moves the estimate part of the way toward the measurement, weighted by the gain <var>K</var>. The gain is large when the filter is unsure and small when it is confident.</p>
+        <div class="math" data-tex="\begin{aligned} K &amp;= P^- (P^- + R)^{-1} \\ \hat X &amp;\leftarrow {\smash[t]{\hat X}}^{-} \exp(K\,\tilde y) \\ P &amp;\leftarrow (I - K)\,P^- \qquad \left(\text{Note: } P^{-1} \leftarrow (P^-)^{-1} + R^{-1}\right) \end{aligned}">K  = P⁻ (P⁻ + R)⁻¹
+X̂  ← X̂⁻ · exp(K ỹ)
+P  ← (I − K) P⁻      (Note: P⁻¹ ← (P⁻)⁻¹ + R⁻¹)</div>
+        <div class="param note"><div class="param-head">How much an accepted fix shrinks <var>P</var></div>
+          <p>The update is always <var>P</var> ← (<var>I</var> − <var>K</var>)<var>P⁻</var>. Substituting <var>K</var> gives <var>P</var> = <var>P⁻</var>(<var>P⁻</var> + <var>R</var>)⁻¹<var>R</var>, which is the note's form: the information from the prediction and from the fix add. Per axis, <var>P</var> = <var>P⁻R</var> / (<var>P⁻</var> + <var>R</var>), so the new <var>P</var> is always smaller than both <var>P⁻</var> and <var>R</var>. How much smaller depends on their ratio:</p>
+          <ul>
+            <li><b><var>P⁻</var> ≫ <var>R</var></b> (the first fix, or after many rejections): <var>K</var> ≈ <var>I</var>, the estimate jumps to the fix, and <var>P</var> ≈ <var>R</var>.</li>
+            <li><b><var>P⁻</var> ≈ <var>R</var></b> (typical between accepted fixes): <var>K</var> ≈ ½<var>I</var>, the estimate moves halfway, and <var>P</var> ≈ <var>R</var>/2.</li>
+            <li><b><var>P⁻</var> ≪ <var>R</var></b> (a fix much less certain than the estimate): <var>K</var> ≈ 0, and the fix barely changes <var>X̂</var> or <var>P</var>.</li>
+          </ul>
+          <p>The middle case is the usual one once the filter is running. After an accept, the prediction adds only the process noise before the next fix: 1 cm² plus (1 cm per metre walked)². For a user standing still with <var>R</var> = (3.2 cm)², <var>P⁻</var> ≈ 10.2 + 1 ≈ 11 cm², and the update gives <var>P</var> ≈ 11 · 10.2 / 21 ≈ 5.4 cm², about half of <var>R</var>. Over successive accepts with little walking, <var>P</var> keeps shrinking roughly like <var>R</var>/<var>n</var> until it balances the process noise. So the filter tightens with every accepted fix, and the next fix must agree more closely to pass the gate.</p>
+          <p>"Bypass Kalman update" (below) sets <var>P</var> ← <var>R</var> instead, whatever <var>P⁻</var> was. That is always the first case's result, so it never tightens the way the real update does.</p></div>
+        <div class="figure">
+          <div class="legend"><span><i class="obs"></i>accepted fix (after update)</span><span><i class="rej"></i>rejected fix (P⁻ kept)</span></div>
+          <div class="scroll">
+          <svg viewBox="0 0 700 236" role="img" aria-label="Illustration of the translation sigma of P over 16 evaluated fixes. Each accepted fix drops it to about the square root of R, 3 cm. Rejections while walking raise it to about 12 cm within four fixes; rejections while standing still raise it by only a few millimetres.">
+            <rect class="m-still" x="251" y="24" width="190" height="176"/>
+            <line class="svg-grid" x1="60" y1="132.3" x2="670" y2="132.3"/>
+            <line class="svg-grid" x1="60" y1="64.6" x2="670" y2="64.6"/>
+            <line class="svg-axis" x1="60" y1="200" x2="670" y2="200"/>
+            <line class="svg-axis" x1="60" y1="24" x2="60" y2="200"/>
+            <line class="m-gap" x1="60" y1="157.2" x2="670" y2="157.2"/>
+            <g class="svg-tick" text-anchor="end"><text x="52" y="204">0</text><text x="52" y="136">5 cm</text><text x="52" y="69">10 cm</text></g>
+            <g class="svg-tick" text-anchor="middle"><text x="80" y="216">0</text><text x="232" y="216">4</text><text x="422" y="216">9</text><text x="574" y="216">13</text><text x="650" y="216">15</text></g>
+            <text class="svg-sub" x="365" y="232" text-anchor="middle">evaluated fixes</text>
+            <path class="m-curve" d="M80,14 V157.2 H118 V147.6 H156 V123.4 H194 V87.5 H232 V43.2 V158.7 H270 V156.5 H308 V154.5 H346 V152.5 H384 V150.6 H422 V148.8 H460 V140.6 H498 V118.4 H536 V84.1 H574 V40.8 V158.7 H612 V148.8 H650 V124.2 H668"/>
+            <g class="m-rej"><circle cx="118" cy="147.6" r="4.5"/><circle cx="156" cy="123.4" r="4.5"/><circle cx="194" cy="87.5" r="4.5"/><circle cx="270" cy="156.5" r="4.5"/><circle cx="308" cy="154.5" r="4.5"/><circle cx="346" cy="152.5" r="4.5"/><circle cx="384" cy="150.6" r="4.5"/><circle cx="422" cy="148.8" r="4.5"/><circle cx="460" cy="140.6" r="4.5"/><circle cx="498" cy="118.4" r="4.5"/><circle cx="536" cy="84.1" r="4.5"/><circle cx="612" cy="148.8" r="4.5"/><circle cx="650" cy="124.2" r="4.5"/></g>
+            <g class="m-obs"><circle cx="80" cy="157.2" r="5"/><circle cx="232" cy="158.7" r="5"/><circle cx="574" cy="158.7" r="5"/></g>
+            <text class="svg-note" x="88" y="22">P₀ = (100 m)², off scale</text>
+            <text class="svg-note" x="226" y="52" text-anchor="end">accept: P ≈ R</text>
+            <text class="svg-note" x="346" y="112" text-anchor="middle">standing still:</text>
+            <text class="svg-note" x="346" y="127" text-anchor="middle">only q_t grows P</text>
+            <text class="svg-note" x="530" y="62" text-anchor="end">walking: (k_drift·d)²</text>
+            <text class="svg-note" x="668" y="175" text-anchor="end">√R_t = √β = 3.2 cm</text>
+          </svg>
+          </div>
+          <p class="cap">How <var>P</var> evolves from fix to fix: per-axis translation σ, an illustration using the code's constants. <var>R</var> sits at the β floor, the user walks 2 m between fixes except during fixes 5–9, and which fixes pass was chosen for illustration. Each accept drops <var>P</var> to just under √<var>R</var>, because <var>K</var> is close to 1. Each rejection keeps <var>P⁻</var>, so <var>P</var> climbs until a fix falls inside the gate. While the user stands still, only <var>q_t</var> adds variance, and the gate barely widens.</p>
+        </div>
+        <p class="muted">Capture Tool: "Bypass Kalman update" sets <var>X̂</var> ← <var>Z</var> outright, sets <var>P</var> ← <var>R</var> (the fix's own covariance), and snaps. The next fix is still gated against this one; turn on both bypasses to accept and snap every fix. (Before commit c03614ad it reset <var>P</var> to <var>P</var><sub>0</sub>, which made <var>m</var>² ≈ 0 for every later fix, so this toggle silently opened the gate too.)</p></div>
+      <div class="gate"><span class="k">update</span>on SE(3), no scale</div>
+    </div>
+
+    <div class="stage">
+      <div class="n">9</div>
+      <div class="body"><div class="where">device · filter</div><h3>Snap or slew what content sees</h3>
+        <p>Content does not use <var>X̂</var> directly. It uses a published alignment, which eases toward the updated <var>X̂</var> with a smoothstep over <var>T_slew</var> = 0.5 s. It jumps instead on the first fix, or when the change, weighed by the updated <var>P</var>, exceeds <var>s_snap</var> = 36 (a 6σ shift).</p></div>
+      <div class="gate"><span class="k">publish</span>snap if shift m² &gt; <var>s_snap</var> = 36<br>else slew over <var>T_slew</var> = 0.5 s</div>
+    </div>
+
+  </div>
+</section>
+
+<div class="part">Part 2 · Parameters</div>
+
+<section>
+  <div class="eyebrow">Reference</div>
+  <h2>Every parameter in the pipeline</h2>
+  <p>All the parameters from part 1 in one place, with their names in code, where they are set, and their deployed values. "Placeholder" means hand-set and never fitted to data. The status column reflects the analysis in part 3.</p>
+  <div class="tbl">
+  <table class="params">
+    <thead><tr><th>Stage</th><th>Symbol</th><th>In code</th><th>Default</th><th>Purpose</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr class="group"><td colspan="6">Device · Unity package, Core/Runtime</td></tr>
+      <tr><td>1</td><td class="sym">Δt_req</td><td class="pname">intervalSeconds<div class="src">VisualPositioningSystem.StartLocalizing</div></td><td class="pval">1 s</td><td>How often the device asks for a fix.</td><td><span class="pill ok">ok</span></td></tr>
+      <tr><td>1</td><td class="sym">·</td><td class="pname">AwaitOperation.Drop<div class="src">VisualPositioningSystem.cs</div></td><td class="pval">skip tick</td><td>Skips a tick while a request is in flight, so stale requests don't queue up.</td><td><span class="pill ok">ok</span></td></tr>
+      <tr class="group"><td colspan="6">Server · localizer and calibration/global.json</td></tr>
+      <tr><td>2</td><td class="sym">τ</td><td class="pname">RANSAC_THRESHOLD_DEFAULT<div class="src">core/localization_metrics.py</div></td><td class="pval">8.0 px</td><td>Largest reprojection error for a match to count as an inlier. Requests can override it with ransac_threshold.</td><td><span class="pill review">review</span></td></tr>
+      <tr><td>3</td><td class="sym">w, b</td><td class="pname">loose / tight<div class="src">global.json</div></td><td class="pval">w_inliers 1.2, b −5.5</td><td>Logistic weights and intercept that turn the fix's features into a confidence. Other weights are 0, and there is no isotonic step.</td><td><span class="pill review">placeholder</span></td></tr>
+      <tr><td>3</td><td class="sym">c_loose,min</td><td class="pname">loose_min<div class="src">global.json</div></td><td class="pval">0.25 (N ≥ 39)</td><td>Fixes below this probability of being within 30 cm and 5° are refused.</td><td><span class="pill review">placeholder</span></td></tr>
+      <tr><td>3</td><td class="sym">c_tight,min</td><td class="pname">tight_min<div class="src">global.json</div></td><td class="pval">0.0</td><td>Same for 5 cm and 1°. Off.</td><td><span class="pill review">placeholder</span></td></tr>
+      <tr><td>4</td><td class="sym">α</td><td class="pname">sigma_meas_alpha<div class="src">global.json</div></td><td class="pval">1.0</td><td>Scales pycolmap's PnP covariance.</td><td><span class="pill bad">problem</span></td></tr>
+      <tr><td>4</td><td class="sym">β</td><td class="pname">sigma_meas_beta<div class="src">global.json</div></td><td class="pval">1e-3 · I₆</td><td>Floor added to all six axes: √β = 0.032 rad (1.8°) on rotation, 0.032 m (3.2 cm) on translation.</td><td><span class="pill bad">problem</span></td></tr>
+      <tr class="group"><td colspan="6">Filter · RelocalizationFilter.cs</td></tr>
+      <tr><td>6</td><td class="sym">σ_t0, σ_r0</td><td class="pname">BootstrapSigma…<div class="src">Translation, Rotation</div></td><td class="pval">100 m, π rad</td><td>Starting uncertainty before any fix, so the first fix is always accepted.</td><td><span class="pill ok">ok</span></td></tr>
+      <tr><td>6</td><td class="sym">q_t, q_r</td><td class="pname">BaseProcessNoise…VariancePerTick</td><td class="pval">1e-4 m², 1e-6 rad²</td><td>Uncertainty added at every prediction, before each fix is compared.</td><td><span class="pill ok">ok</span></td></tr>
+      <tr><td>6</td><td class="sym">k_drift</td><td class="pname">DriftPerMeter</td><td class="pval">0.01 per m</td><td>VIO drift allowance per metre walked since the last accepted fix. Applied to all six axes, so 1 cm and 0.57° per metre.</td><td><span class="pill review">review</span></td></tr>
+      <tr><td>7</td><td class="sym">χ²_gate</td><td class="pname">Chi2_99_6dof</td><td class="pval">16.81</td><td>Innovation gate: the 99th percentile of χ² with 6 degrees of freedom. Sound, provided the covariances are honest.</td><td><span class="pill ok">ok</span></td></tr>
+      <tr><td>9</td><td class="sym">s_snap</td><td class="pname">SnapThresholdSigmasSquared</td><td class="pval">36</td><td>Above this shift, the published alignment jumps instead of easing.</td><td><span class="pill ok">ok</span></td></tr>
+      <tr><td>9</td><td class="sym">T_slew</td><td class="pname">SlewDurationSeconds</td><td class="pval">0.5 s</td><td>How long the published alignment takes to ease to a new estimate.</td><td><span class="pill ok">ok</span></td></tr>
+      <tr class="group"><td colspan="6">Capture Tool · diagnostic switches, Metrics dialog</td></tr>
+      <tr><td>7</td><td class="sym">·</td><td class="pname">BypassInnovationGate</td><td class="pval">off</td><td>Accept every fix that reaches the device.</td><td><span class="pill ok">diagnostic</span></td></tr>
+      <tr><td>8</td><td class="sym">·</td><td class="pname">BypassKalman</td><td class="pval">off</td><td>Replace the estimate with each accepted fix, take its covariance (<var>P</var> ← <var>R</var>), and snap. The gate still applies.</td><td><span class="pill ok">diagnostic</span></td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<div class="part">Part 3 · Analysis of one run</div>
+
+<section>
+  <div class="eyebrow">Run cd35267b · map 261022_fosun_zed · ML2</div>
+  <h2>The covariance is wrong in both directions</h2>
+  <div class="verdict">
+    <p><strong>The short version.</strong> With the placeholder <var>β</var>, each fix tells the filter its position is good to about <b>±3 cm</b>. In this run, fix positions actually scatter by about <b>±16 cm</b>, with p90 near ±50 cm. Rotation is the opposite: fixes claim ±1.8° but agree to about ±0.2°. The filter trusts position 5× too much, so two out of three fixes look impossible to it and get thrown away.</p>
+  </div>
+  <p>How this run looks at each stage:</p>
+  <ul class="plain">
+    <li><b>Stage 1:</b> <var>Δt_req</var> = 1 s, and answers took <var>L</var> ≈ 2 s. Stills arrived at 4 Hz, so 249 stills were recorded and the device's schedule would have sent 33.</li>
+    <li><b>Stage 2:</b> <var>τ</var> = 8 px with <var>f</var> ≈ 1,430 px is about 0.3°. Matched features sit 20–100 m away, typically 60–80 m, so an inlier can be 35–40 cm off sideways. The median inlier error was 2.8 px.</li>
+    <li><b>Stage 2:</b> PnP failed outright on only 1 of 249 stills. It returned "poses" from as few as 3 inliers.</li>
+    <li><b>Stage 3:</b> 26 of 249 stills fell below <var>c_loose,min</var>. Their inlier counts split in two: 18 had 3–11 inliers, almost certainly chance alignments, and 8 had 26–36, which were borderline. Accepted fixes had at least 41 inliers, with a median of about 1,800. The gate catches the junk tail, but above 39 inliers it accepts everything, so it says nothing about the quality of a typical fix.</li>
+    <li><b>Stage 4:</b> PnP's own σ is tiny: 1.0 cm median for translation, and 0.006° for rotation in pycolmap's half-angle units (0.012° as an angle). PnP supplies 0.001% of <var>R</var>'s rotation variance (at most 0.17%), so rotation in <var>R</var> is constant. For translation it supplies 10% at the median and 63% at p90. 65% of fixes report within 10% of the 3.2 cm floor, with p90 5.2 cm and a maximum of 18 cm.</li>
+    <li><b>Stage 7:</b> 27 of 33 scheduled fixes were rejected.</li>
+  </ul>
+  <p>The filter has no ground truth to check fixes against, but it does have neighbours: fixes from consecutive stills, 0.25–0.5 s apart. Neighbours see nearly the same scene, so they should imply nearly the same alignment, and their disagreement measures VPS noise directly. The chart converts it to a per-fix, per-axis σ and puts it next to what each fix reports. Data: 216 consecutive pairs out of 222 successful offline fixes.</p>
+
+  <div class="figure">
+    <h3>Uncertainty (σ) of VPS pose estimate dimensions</h3>
+    <div class="legend"><span><i class="rep"></i>Reported by VPS (median σ per axis, essentially the β floor)</span><span><i class="obs"></i>Observed from neighbouring fixes (median, line to p90)</span><span><i class="prop"></i>Proposed floor (0.3°, 20 cm)</span></div>
+    <div class="scroll">
+    <svg viewBox="0 0 760 250" role="img" aria-label="Reported, observed and proposed VPS uncertainty per axis. Rotation: reported 1.8 degrees, observed 0.17 degrees, proposed floor 0.3 degrees. Translation: reported 3.3 centimetres, observed 16 centimetres, proposed floor 20 centimetres.">
+      <text class="svg-label" x="0" y="44">Rotation</text>
+      <text class="svg-sub" x="0" y="62">degrees, log</text>
+      <line class="svg-axis" x1="120" y1="70" x2="720" y2="70"/>
+      <g class="svg-tick" text-anchor="middle">
+        <line class="svg-axis" x1="120" y1="66" x2="120" y2="74"/><text x="120" y="90">0.05</text>
+        <line class="svg-axis" x1="210" y1="66" x2="210" y2="74"/><text x="210" y="90">0.1</text>
+        <line class="svg-axis" x1="420" y1="66" x2="420" y2="74"/><text x="420" y="90">0.5</text>
+        <line class="svg-axis" x1="510" y1="66" x2="510" y2="74"/><text x="510" y="90">1</text>
+        <line class="svg-axis" x1="720" y1="66" x2="720" y2="74"/><text x="720" y="90">5</text>
+      </g>
+      <line class="m-gap" x1="279" y1="44" x2="587" y2="44"/>
+      <text class="svg-note" x="433" y="34" text-anchor="middle">reported is ~10× too loose</text>
+      <line class="m-whisk" x1="279" y1="56" x2="400" y2="56"><title>Observed p90 ≈ 0.43° per axis</title></line>
+      <circle class="m-obs" cx="279" cy="56" r="7"><title>Observed: ≈ 0.17° per axis (pairs differ by 0.37° median)</title></circle>
+      <circle class="m-rep" cx="587" cy="56" r="7"><title>Reported: 1.81° per axis (median)</title></circle>
+      <circle class="m-prop" cx="353.4" cy="56" r="7"><title>Proposed floor: 0.3° per axis</title></circle>
+
+      <text class="svg-label" x="0" y="164">Translation</text>
+      <text class="svg-sub" x="0" y="182">centimetres, log</text>
+      <line class="svg-axis" x1="120" y1="190" x2="720" y2="190"/>
+      <g class="svg-tick" text-anchor="middle">
+        <line class="svg-axis" x1="120" y1="186" x2="120" y2="194"/><text x="120" y="210">1</text>
+        <line class="svg-axis" x1="330" y1="186" x2="330" y2="194"/><text x="330" y="210">5</text>
+        <line class="svg-axis" x1="420" y1="186" x2="420" y2="194"/><text x="420" y="210">10</text>
+        <line class="svg-axis" x1="630" y1="186" x2="630" y2="194"/><text x="630" y="210">50</text>
+        <line class="svg-axis" x1="720" y1="186" x2="720" y2="194"/><text x="720" y="210">100</text>
+      </g>
+      <line class="m-gap" x1="275" y1="164" x2="481" y2="164"/>
+      <text class="svg-note" x="378" y="154" text-anchor="middle">reported is ~5× too tight</text>
+      <line class="m-whisk" x1="481" y1="176" x2="629" y2="176"><title>Observed p90 ≈ 50 cm per axis</title></line>
+      <circle class="m-rep" cx="275" cy="176" r="7"><title>Reported: 3.3 cm per axis (median)</title></circle>
+      <circle class="m-obs" cx="481" cy="176" r="7"><title>Observed: ≈ 16 cm per axis (pairs differ by 35 cm median)</title></circle>
+      <circle class="m-prop" cx="510.3" cy="176" r="7"><title>Proposed floor: 20 cm per axis</title></circle>
+      <text class="svg-sub" x="0" y="242">Observed σ = pair difference ÷ (√2 · 1.54), the median of a 3-D Gaussian's length. Measured in the alignment's tangent space, the space the gate uses.</text>
+    </svg>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><span class="v">51 <small>vs 5.35</small></span><span class="d">Median m² between neighbouring fixes, against the median a correct covariance would give</span></div>
+    <div class="stat"><span class="v">66%</span><span class="d">of neighbouring pairs exceed <var>χ²_gate</var>, though they are seconds apart and nothing moved</span></div>
+    <div class="stat"><span class="v">22×</span><span class="d">How much translation variance would need inflating for m² to come out right</span></div>
+    <div class="stat"><span class="v">0.02 <small>vs 2.37</small></span><span class="d">Rotation-only median m². Rotation is so over-padded that it never triggers the gate</span></div>
+  </div>
+
+  <h3>Why this R rejects good fixes</h3>
+  <p>Start from stage 7's gate:</p>
+  <div class="math" data-tex="m^2 = \tilde y^{\top} (P^- + R)^{-1}\,\tilde y \qquad \text{reject if } m^2 \gt \chi^2_{\text{gate}} = 16.81">m² = ỹᵀ (P⁻ + R)⁻¹ ỹ     reject if m² &gt; χ²_gate = 16.81</div>
+  <p>The rotation terms contribute almost nothing (median 0.02), so only the three translation axes matter. Treating each as independent:</p>
+  <div class="math" data-tex="m^2 \approx \sum_{\text{3 translation axes}} \frac{\tilde y^2}{P^- + R}">m² ≈ Σ over 3 axes of  ỹ² / (P⁻ + R)</div>
+
+  <p><b>With today's R.</b> Per axis, typical values for this run:</p>
+  <div class="math" data-tex="\begin{aligned} m^2 &amp;\approx 3 \times \frac{(23\ \text{cm})^2}{(3.8\ \text{cm})^2 + (3.2\ \text{cm})^2} \\ &amp;= 3 \times \frac{529}{14.4 + 10.2} \\ &amp;\approx 65 \;\gt\; 16.81 \;\Rightarrow\; \text{reject} \end{aligned}">m² ≈ 3 × (23 cm)² / ( (3.8 cm)² + (3.2 cm)² )
+   = 3 × 529 / (14.4 + 10.2)
+   ≈ 65                                     &gt; 16.81 → reject</div>
+  <ul class="plain">
+    <li><b><var>ỹ</var> ≈ 23 cm:</b> the last accepted fix had <var>K</var> ≈ 1, so <var>X̂</var> is essentially that fix. <var>ỹ</var> is then the gap between two fixes. Each fix scatters by about 16 cm per axis (see the chart above), so the gap between two is about 16 × √2 ≈ 23 cm.</li>
+    <li><b><var>P⁻</var> ≈ (3.8 cm)²:</b> after that accept, <var>P</var> fell to just under <var>R</var>, about (3.05 cm)². Stage 6 then adds <var>q_t</var> = (1 cm)² plus (<var>k_drift</var> · <var>d</var>)² = (2 cm)² for about 2 m of walking before the next fix.</li>
+    <li><b><var>R</var> ≈ (3.2 cm)²:</b> the β floor, √(1e-3) m. PnP's own share is small for most fixes.</li>
+    <li><b>m² ≈ 65:</b> about four times the threshold. The fix is rejected although nothing is wrong with it. The gate's yardstick, √(<var>P⁻</var> + <var>R</var>) ≈ 4.9 cm, is a fifth of the real gap between fixes. <var>P</var> has to climb to about (9 cm)² before a typical fix passes; see the figure under stage 8.</li>
+  </ul>
+
+  <p><b>With the proposed R = (20 cm)².</b> Fixes are now accepted routinely, so <var>X̂</var> and <var>P</var> settle at different values too:</p>
+  <div class="math" data-tex="\begin{aligned} m^2 &amp;\approx 3 \times \frac{(17.4\ \text{cm})^2}{(6.9\ \text{cm})^2 + (20\ \text{cm})^2} \\ &amp;= 3 \times \frac{303}{47 + 400} \\ &amp;\approx 2.0 \;\lt\; 16.81 \;\Rightarrow\; \text{accept} \end{aligned}">m² ≈ 3 × (17.4 cm)² / ( (6.9 cm)² + (20 cm)² )
+   = 3 × 303 / (47 + 400)
+   ≈ 2.0                                    &lt; 16.81 → accept</div>
+  <ul class="plain">
+    <li><b><var>ỹ</var> ≈ 17 cm:</b> <var>K</var> is now well below 1, so <var>X̂</var> is an average of recent fixes rather than a copy of the last one. <var>ỹ</var> is the new fix's own scatter (16 cm, as observed) combined with <var>X̂</var>'s smaller error (about 6.9 cm): √(16² + 6.9²) ≈ 17.4 cm.</li>
+    <li><b><var>P⁻</var> ≈ (6.9 cm)²:</b> the steady state when every fix is accepted. Each update shrinks <var>P</var> (<var>P</var>⁻¹ ← (<var>P⁻</var>)⁻¹ + <var>R</var>⁻¹), and each prediction adds back <var>q_t</var> + (<var>k_drift</var> · 2 m)² ≈ (2.2 cm)². The two balance at about 6.9 cm.</li>
+    <li><b><var>R</var> = (20 cm)²:</b> the proposed translation floor, slightly above the fixes' observed per-axis scatter of 16 cm, to leave some margin.</li>
+    <li><b>m² ≈ 2.0:</b> a perfectly matched <var>R</var> would give about 3 over three axes on average. The proposed <var>R</var> is slightly conservative, so m² comes out a little lower. A typical fix passes with plenty of margin, and only real outliers reach 16.81.</li>
+  </ul>
+</section>
+
+<section>
+  <div class="eyebrow">Why</div>
+  <h2>Where the bad covariance comes from</h2>
+  <div class="causes">
+    <div class="cause"><h3>The calibration is a placeholder</h3>
+      <p>The note in <code>global.json</code> says it is hand-tuned and that no fit-calibration corpus exists yet. <var>α</var> = 1 keeps pycolmap's covariance as is. <var>β</var> = 1e-3 was picked so the gate would roughly match "14 cm or 7.4°". That cutoff is reasonable for one axis at a time. But m² sums all six axes, and neighbouring fixes in this run are typically 35 cm apart.</p></div>
+    <div class="cause"><h3>One floor for two units</h3>
+      <p><var>β</var>·I adds the same number to rad² and m². 1e-3 rad² is generous for rotation (1.8°) and stingy for translation (3.2 cm). Because rotation needs a smaller floor and translation a larger one, no single <var>β</var> can be right for both.</p></div>
+    <div class="cause"><h3>PnP's covariance is small, but it ranks fixes well</h3>
+      <p>pycolmap assumes 1 px pixel noise, with no map-point error and no wrong matches, while <var>τ</var> admits inliers up to 8 px off. Its translation σ is 1 cm here, an underestimate of about √150 ≈ 12×. Its rotation block is also in half-angle units, so the filter reads PnP's rotation σ as half the real angle. Its shape still carries information: its translation σ ranks the fixes' real disagreement with Spearman 0.71. The inlier count, which drives the stage 3 confidence, manages only −0.22. Scaled up properly, <var>Σ_pnp</var> is worth keeping.</p></div>
+    <div class="cause"><h3>The scene is far away</h3>
+      <p>At 60–80 m, turning the camera 0.3° looks almost the same as moving it 35 cm sideways. PnP then pins rotation well and position poorly, with the two strongly coupled. The <var>β</var> floor throws that coupling away.</p></div>
+    <div class="cause"><h3>The covariance is in the wrong frame</h3>
+      <p><var>Σ_pnp</var> is expressed in the camera's axes, with rotation in half-angle units. The gate compares it with innovations in the alignment's tangent space, in ECEF axes. Stage 5 passes <var>R</var> through unchanged. The conversion it skips is only an axis rotation <var>Q</var> and a factor of 2 on rotation (stage 4). No lever-arm term is missing: pycolmap already measures rotation about the map origin, so the coupling from the camera sitting 24 m from it is already in <var>Σ_pnp</var>. That coupling is real; the observed alignment noise has a rotation–translation correlation of 0.64. Today the floor hides all of this, because <var>β</var>·I looks the same in any axes. Once <var>α</var> scales <var>Σ_pnp</var> up, its long axis, typically depth along the camera's view, would be applied along the wrong ECEF direction.</p></div>
+    <div class="cause minor"><h3>Secondary: process noise mixes units, and recovery depends on walking</h3>
+      <p><var>k_drift</var> goes on all six axes, so rotation grows 0.57° per metre walked, far more than the ML2's real VIO drift. After rejections, <var>P</var> opens up quickly only while the user walks, so someone standing still keeps being rejected. For a fix 23 cm off per axis to pass, <var>P⁻</var> must grow from about (3.05 cm)² to about (9.2 cm)². Standing still, only <var>q_t</var> = 1e-4 m² is added per evaluated fix, so that takes about 76 fixes. At one fix every 2 s, that is about 150 s, or 2½ minutes. Walking about 2 m between fixes, the drift term gets there in about 4 fixes, or 8 s.</p></div>
+    <div class="cause minor"><h3>Separate issue: map scale</h3>
+      <p>Map distances come out 1.16× the tracked distances in this run (1.13 on 1b7ec841). An SE(3) filter can't represent scale, so content drifts in proportion to distance from the last accepted fix. This is independent of the covariance problem. The window algorithm's Sim(3) option in fusion-test was built to probe it.</p></div>
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow">Evidence</div>
+  <h2>What happens if the covariance is honest</h2>
+  <p>The same Kalman filter was replayed in fusion-test with only <var>R</var> swapped. Each schedule was run with all three models, and the window algorithm is included for comparison. Best per column in green.</p>
+  <div class="tbl">
+  <table>
+    <thead><tr><th>Measurement covariance R</th><th>Accepted</th><th>Rejected</th><th>Reg. px median</th><th>Ref error median cm</th><th>Ref error p90 cm</th><th>Jumps &gt; 5 cm</th><th>Max jump cm</th></tr></thead>
+    <tbody>
+      <tr class="group"><td colspan="8">Device schedule · 1 s interval, 2 s latency · 33 requests</td></tr>
+      <tr class="base"><td>α·Σ_pnp + 1e-3·I</td><td class="worst">5</td><td class="worst">27</td><td>10.8</td><td class="worst">47.7</td><td class="worst">101.2</td><td>5</td><td>33.4</td></tr>
+      <tr><td>Diagonal: 0.3°, 20 cm</td><td class="best">18</td><td class="best">14</td><td class="best">9.9</td><td>41.1</td><td class="best">91.4</td><td>1</td><td>5.1</td></tr>
+      <tr><td>144·Σ_pnp + floor 0.1°, 5 cm</td><td>13</td><td>19</td><td>10.8</td><td>38.9</td><td>100.7</td><td>5</td><td class="worst">43.9</td></tr>
+      <tr><td>Window algorithm (for reference)</td><td class="best">18</td><td class="best">14</td><td>11.6</td><td class="best">37.8</td><td>99.8</td><td class="best">0</td><td class="best">4.6</td></tr>
+      <tr class="group"><td colspan="8">Every still · 4 Hz, 0.5 s latency · 247 requests</td></tr>
+      <tr class="base"><td>α·Σ_pnp + 1e-3·I</td><td class="worst">31</td><td class="worst">216</td><td>9.4</td><td class="worst">40.5</td><td class="worst">104.8</td><td>5</td><td class="worst">100.6</td></tr>
+      <tr><td>Diagonal: 0.3°, 20 cm</td><td class="best">161</td><td class="best">86</td><td>8.4</td><td>34.9</td><td class="best">74.7</td><td class="best">2</td><td class="best">5.3</td></tr>
+      <tr><td>144·Σ_pnp + floor 0.1°, 5 cm</td><td>105</td><td>142</td><td>8.3</td><td>34.4</td><td>90.4</td><td>7</td><td>37.9</td></tr>
+      <tr><td>Window algorithm (for reference)</td><td>154</td><td>93</td><td class="best">7.0</td><td class="best">28.5</td><td>75.0</td><td class="worst">24</td><td>12.5</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <ul class="plain">
+    <li>A plain diagonal with honest numbers more than triples accepted fixes and nearly removes jumps.</li>
+    <li>Scaling PnP's own covariance helps less. It is still passed in camera axes with rotation in half-angle units, so its long axes and its rotation–translation coupling point along the wrong ECEF directions. Once it is propagated properly it should beat the diagonal, since it already ranks fixes well.</li>
+    <li>Everything still sits around 35–40 cm from the reference. That floor comes from VPS's own noise and from the map scale. Averaging more fixes helps: the window algorithm with every still gets to 28.5 cm.</li>
+  </ul>
+  <p class="muted">"Reg. px" projects VPS's inlier map points with the fused pose and measures how far they land from the features they matched. "Ref error" is the distance from a consensus of strong fixes within ±1.5 s. That reference is built from VPS itself, so it is a stand-in for ground truth, not ground truth. This is one run on one map.</p>
+</section>
+
+<div class="part">Part 4 · Recommendations</div>
+
+<section>
+  <div class="eyebrow">What to change</div>
+  <h2>Recommended changes, in order</h2>
+  <div class="recs">
+    <div class="rec"><header><span class="tag now">now</span><h3>Separate rotation and translation floors</h3></header>
+      <p>Replace <var>β</var>·I with diag(<var>β_r</var> ×3, <var>β_t</var> ×3). Start from 0.3° and 20 cm, the values that gave the gain shown in part 3. This one-line calibration change can live on the server (<code>global.json</code> gains two fields) or as a device-side override while testing.</p>
+      <p class="try">fusion-test: add a covariance_model option to KalmanParams (raw | diag | scaled_pnp | propagated) and sweep it.</p></div>
+    <div class="rec"><header><span class="tag next">next</span><h3>Put the covariance in the frame the filter uses</h3></header>
+      <p>Carry <var>Σ_pnp</var> into the alignment's tangent space before adding the floor, <var>R</var> = <var>α</var> · <var>A Σ_pnp Aᵀ</var> + <var>β</var> · I, where <var>A</var> = blockdiag(2<var>Q</var>, <var>Q</var>) (stage 4). <var>Q</var> rotates camera axes into the filter's ECEF axes, and the 2 converts pycolmap's half-angle rotation. No lever-arm Jacobian is needed, because <var>Σ_pnp</var> already measures rotation about the map origin. A non-identity <span class="tm" data-tex="{}^{E}T_{M}">ecef_from_map</span> would add its own rotation to <var>Q</var>, plus a lever-arm term from the map origin's offset in ECEF. <var>A</var> depends only on the fix's own pose, so the server can apply it. This matters once <var>α</var> lifts <var>Σ_pnp</var> above the floor; with the diagonal floor alone it changes nothing.</p></div>
+    <div class="rec"><header><span class="tag next">next</span><h3>Fit the calibration on data</h3></header>
+      <p>Run <code>fit-calibration</code> on a ground-truthed corpus to fit <var>α</var>, separate floors, and the stage 3 confidence models. The one run here suggests <var>α</var> ≈ 150. Consider a depth-aware term, σ_t ≈ <var>Z</var> × angular noise, since far scenes are where position falls apart. Until a ground-truth corpus exists, neighbour consistency (the method in part 3) can stand in as the likelihood. Also correct the localizer's "gates are no-ops" warning, since the loose gate is live.</p></div>
+    <div class="rec"><header><span class="tag later">later</span><h3>Make rejection softer and recovery time-based</h3></header>
+      <p>Gate rotation and camera position separately, so one bad axis doesn't hide the other. Downweight large residuals (Huber or Student-t) instead of a hard cut. Grow uncertainty with time as well as distance, and re-bootstrap after a run of consecutive rejections, so a user standing still can recover.</p></div>
+    <div class="rec"><header><span class="tag later">later</span><h3>Fix process-noise units, and address scale</h3></header>
+      <p>Split <var>k_drift</var> into separate rotation (closer to 0.05°/m) and translation (1 cm/m) terms. Then decide whether to correct map 1b7ec841's scale or let the filter estimate scale (Sim(3)). The window algorithm's <code>fit_scale</code> in fusion-test is the place to try the second option first.</p></div>
+  </div>
+</section>
+
+<footer>
+  <p>Part 3 numbers come from <span class="mono">fusion-test/runs/cd35267b_77963c74</span>: 249 stills, 222 successful offline fixes, replayed with the Kalman port in <span class="mono">fusion/algorithms/kalman.py</span>. Code references: <span class="mono">docker/localizer/src/build_metrics.py</span> and <span class="mono">localize.py</span> (stages 2–4), <span class="mono">calibration/global.json</span> (<var>w</var>, <var>b</var>, gates, <var>α</var>, <var>β</var>), <span class="mono">RelocalizationFilter.cs</span> (stages 5–9), <span class="mono">apps/CaptureTool/…/AppUI.cs</span> (bypass toggles).</p>
+  <p>Reproduce the baseline with <span class="mono">../.venv/bin/python experiment.py runs/cd35267b_77963c74 --algo kalman --algo window</span>.</p>
+</footer>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script>
+/* Render each equation block from its data-tex as MathML. If KaTeX fails to load, the plain-text version stays. */
+if (window.katex) {
+  document.querySelectorAll(".math[data-tex]").forEach(function (el) {
+    try {
+      katex.render(el.dataset.tex, el, { displayMode: true, output: "mathml", throwOnError: true });
+      el.classList.add("tex");
+    } catch (e) {
+      console.warn("TeX error", e.message, el.dataset.tex);
+    }
+  });
+  document.querySelectorAll(".tm[data-tex]").forEach(function (el) {
+    try {
+      katex.render(el.dataset.tex, el, { displayMode: false, output: "mathml", throwOnError: true });
+    } catch (e) {
+      console.warn("TeX error", e.message, el.dataset.tex);
+    }
+  });
+}
+</script>
