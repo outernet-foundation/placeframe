@@ -381,14 +381,14 @@ namespace Placeframe.Core.Tests
             var seeded = RelocalizationFilter.ApplyMeasurement(RelocalizationFilter.InitialState(), measurement, frame).NewState;
 
             // Without bypass, a second identical measurement gets Kalman-merged with the prior.
-            // With bypass, the posterior snaps to the raw measurement and the covariance re-bootstraps.
+            // With bypass, the posterior snaps to the raw measurement and takes its covariance.
             var result = RelocalizationFilter.ApplyMeasurement(seeded, measurement, frame, new ApplyMeasurementOptions { BypassKalman = true });
 
             Assert.That(result.Rejection, Is.EqualTo(MeasurementRejection.None));
             Assert.That(result.Snapped, Is.True);
-            var bootstrap = RelocalizationFilter.BootstrapCovariance();
+            var sigmaMeas = RelocalizationFilter.BuildCovarianceMatrix(measurement.Metrics.MeasurementCovariance);
             for (int i = 0; i < 6; i++)
-                Assert.That(result.NewState.AlignmentCovariance[i, i], Is.EqualTo(bootstrap[i, i]).Within(1e-9));
+                Assert.That(result.NewState.AlignmentCovariance[i, i], Is.EqualTo(sigmaMeas[i, i]).Within(1e-9));
         }
 
         private static LocalizationMetrics BuildMetrics()

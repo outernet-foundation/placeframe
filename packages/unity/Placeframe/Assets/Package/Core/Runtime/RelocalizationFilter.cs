@@ -151,7 +151,9 @@ namespace Placeframe.Core
             PosteriorUpdate posterior;
             if (options.BypassKalman)
             {
-                posterior = new PosteriorUpdate { NewMean = measurementMean, NewCovariance = BootstrapCovariance() };
+                // Take the fix as it is, with its own uncertainty, so the next fix is still gated
+                // against this one (resetting to bootstrap here would leave the gate always open).
+                posterior = new PosteriorUpdate { NewMean = measurementMean, NewCovariance = sigmaMeas };
             }
             else
             {
