@@ -1,5 +1,8 @@
 import type {
   CaptureSession,
+  FusionResult,
+  FusionRunParams,
+  FusionRunSummary,
   Job,
   LocalizationDetail,
   LocalizationMap,
@@ -497,4 +500,33 @@ export function saveScreenshot(
     method: "POST",
     body: JSON.stringify({ plot_title: plotTitle, image_base64: imageBase64, localization_id: localizationId ?? null }),
   });
+}
+
+// ── Offline fusion ──────────────────────────────────────────────────────────
+
+export function startFusion(
+  reconstructionId: string,
+  tarPath: string,
+  params: FusionRunParams,
+): Promise<{ job_id: string; run_id: string }> {
+  return request("/api/fusion", {
+    method: "POST",
+    body: JSON.stringify({ reconstruction_id: reconstructionId, tar_path: tarPath, params }),
+  });
+}
+
+export function listFusionRuns(): Promise<FusionRunSummary[]> {
+  return request("/api/fusion-runs");
+}
+
+export function getFusionRun(runId: string): Promise<FusionResult> {
+  return request(`/api/fusion-runs/${runId}`);
+}
+
+export function fusionFrameUrl(runId: string, index: number): string {
+  return `${API_BASE}/api/fusion-runs/${runId}/frames/${index}`;
+}
+
+export function deleteFusionRun(runId: string): Promise<void> {
+  return deleteRequest(`/api/fusion-runs/${runId}`);
 }

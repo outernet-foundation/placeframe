@@ -618,3 +618,116 @@ button.pencil:hover {
 .detail-pairs tbody tr.selected {
   background: #2d3a4d;
 }
+
+
+/* Offline fusion player: the rendered frame beside its fusion state, scrubber below. */
+.fusion-overlay {
+  z-index: 30;
+}
+
+.fusion-player {
+  background: #1c1f26;
+  border: 1px solid #363a42;
+  border-radius: 8px;
+  padding: 16px;
+  width: min(1100px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fusion-stage {
+  display: flex;
+  gap: 16px;
+  min-height: 0;
+}
+
+/* The frame shrinks to whatever the side panel leaves, so the panel is never pushed off-screen. */
+.fusion-frame {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: min(calc(100vh - 170px), 1000px);
+  object-fit: contain;
+  object-position: left top;
+  border-radius: 4px;
+  background: #000;
+}
+
+.fusion-side {
+  flex: 0 0 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+}
+
+.fusion-side h3 {
+  margin: 0;
+}
+
+.fusion-facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  margin: 0;
+  font-size: 13px;
+}
+
+.fusion-facts dt {
+  color: #a8adb8;
+}
+
+.fusion-facts dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.fusion-controls {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.fusion-track {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fusion-track input[type="range"] {
+  width: 100%;
+}
+
+.fusion-ticks {
+  position: relative;
+  height: 14px;
+  margin: 0 8px;
+}
+
+.fusion-tick {
+  position: absolute;
+  top: 2px;
+  width: 9px;
+  height: 9px;
+  margin-left: -4px;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.fusion-tick-request {
+  border: 2px solid;
+  box-sizing: border-box;
+  background: #1c1f26;
+}
+
+.fusion-tick-span {
+  position: absolute;
+  top: 6px;
+  height: 1px;
+  opacity: 0.6;
+}

@@ -22,6 +22,8 @@ export const STORAGE_KEYS = {
   localizeImageDir: "placeframe-dashboard.localize.imageDir",
   localizeFovDeg: "placeframe-dashboard.localize.fovDeg",
   importTar: "placeframe-dashboard.localize.importTar",
+  fusionRecordingTar: "placeframe-dashboard.fusion.recordingTar",
+  fusionParams: "placeframe-dashboard.fusion.params",
   focalLength: "placeframe-dashboard.reconstruct.poselessFocalLength",
   exportZipDir: "placeframe-dashboard.visualize.exportZipOutputDir",
   exportPosesDir: "placeframe-dashboard.tools.exportPosesOutputDir",

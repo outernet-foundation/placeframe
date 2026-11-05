@@ -12,17 +12,23 @@ import {
   startReconstruct,
 } from "../api";
 import type { ImportResult, SphericalOptions, VideoInfo, VideoSettings } from "../api";
-import { estimateVideoCapture } from "../api";
+import { estimateVideoCapture, startFusion } from "../api";
 import { errorText, joinPath, parentDir, readStored, store, STORAGE_KEYS } from "../storage";
-import type { CaptureSession, PoselessImageSet, Reconstruction } from "../types";
+import type { CaptureSession, FusionParams, FusionRunParams, PoselessImageSet, Reconstruction, VpsParams } from "../types";
 import { DirectoryBrowserDialog } from "./DirectoryBrowserDialog";
 
 // ── Shared pieces ───────────────────────────────────────────────────────────
 
-function Modal({ title, busy, onClose, children }: { title: string; busy?: boolean; onClose: () => void; children: ReactNode }) {
+function Modal({ title, busy, onClose, children, width }: {
+  title: string;
+  busy?: boolean;
+  onClose: () => void;
+  children: ReactNode;
+  width?: number;
+}) {
   return (
     <div className="dialog-overlay" onClick={() => !busy && onClose()}>
-      <div className="dialog" onClick={(e) => e.stopPropagation()}>
+      <div className="dialog" style={width ? { width } : undefined} onClick={(e) => e.stopPropagation()}>
         <h3>{title}</h3>
         {children}
       </div>
@@ -475,6 +481,124 @@ export function LocalizeDialog({ reconstructionLabel, reconstructionId, onClose,
       </div>
       {error && <div className="banner banner-error">{error}</div>}
       <Actions busy={busy} disabled={!imageDir.trim()} label="Run" busyLabel="Starting…" onCancel={onClose} onSubmit={() => void submit()} />
+    </Modal>
+  );
+}
+
+// ── Offline fusion: replay a recorded run's VPS and VIO/VPS fusion ─────────
+
+type ParamField<K extends string> = { key: K; label: string; placeholder: string; hint: string };
+
+// Placeholders are the device's own values (VisualPositioningSystem, RelocalizationFilter.cs); an
+// empty field sends nothing, so offline_fusion's defaults -- the same values -- apply.
+const VPS_FIELDS: ParamField<keyof VpsParams>[] = [
+  { key: "interval_s", label: "Request interval (s)", placeholder: "1.0", hint: "How often the device asks for a fix" },
+  { key: "latency_s", label: "Latency (s)", placeholder: "2.0", hint: "Request to response; a fix lands this much later" },
+  { key: "retrieval_top_k", label: "Retrieval top-K", placeholder: "server", hint: "Map images matched per query" },
+  { key: "ransac_threshold", label: "RANSAC threshold (px)", placeholder: "server", hint: "PnP inlier threshold" },
+];
+
+const FUSION_FIELDS: ParamField<keyof FusionParams>[] = [
+  { key: "gate_chi2", label: "Innovation gate (χ²)", placeholder: "16.81", hint: "Reject a fix beyond this Mahalanobis² (6 DOF, 99%)" },
+  { key: "snap_sigmas_sq", label: "Snap threshold (σ²)", placeholder: "36", hint: "Jump instead of slewing past this shift" },
+  { key: "slew_s", label: "Slew duration (s)", placeholder: "0.5", hint: "How long a correction is eased in" },
+  { key: "drift_per_m", label: "VIO drift per metre", placeholder: "0.01", hint: "σ added per metre walked (m and rad)" },
+  { key: "base_translation_variance", label: "Base translation var (m²)", placeholder: "1e-4", hint: "Process noise per fix" },
+  { key: "base_rotation_variance", label: "Base rotation var (rad²)", placeholder: "1e-6", hint: "Process noise per fix" },
+];
+
+type StoredFusionForm = { vps: Record<string, string>; fusion: Record<string, string>; flags: Record<string, boolean> };
+
+function readFusionForm(): StoredFusionForm {
+  try {
+    const parsed = JSON.parse(readStored(STORAGE_KEYS.fusionParams, "")) as Partial<StoredFusionForm>;
+    return { vps: parsed.vps ?? {}, fusion: parsed.fusion ?? {}, flags: parsed.flags ?? {} };
+  } catch {
+    return { vps: {}, fusion: {}, flags: {} };
+  }
+}
+
+function numbersOf(values: Record<string, string>): Record<string, number> {
+  return Object.fromEntries(
+    Object.entries(values)
+      .filter(([, v]) => v.trim() !== "" && Number.isFinite(Number(v)))
+      .map(([k, v]) => [k, Number(v)]),
+  );
+}
+
+function ParamGrid<K extends string>({ fields, values, onChange }: {
+  fields: ParamField<K>[];
+  values: Record<string, string>;
+  onChange: (key: K, value: string) => void;
+}) {
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+      {fields.map((f) => (
+        <label key={f.key} title={f.hint}>
+          {f.label}
+          <input type="text" inputMode="decimal" placeholder={f.placeholder} value={values[f.key] ?? ""} onChange={(e) => onChange(f.key, e.target.value)} />
+        </label>
+      ))}
+    </div>
+  );
+}
+
+export function FusionDialog({ reconstructionLabel, reconstructionId, onClose, onStarted }: {
+  reconstructionLabel: string;
+  reconstructionId: string;
+  onClose: () => void;
+  onStarted: (runId: string) => void;
+}) {
+  const [tarPath, setTarPath] = useRemembered(STORAGE_KEYS.fusionRecordingTar);
+  const [form, setForm] = useState<StoredFusionForm>(readFusionForm);
+  function update(next: StoredFusionForm): void {
+    setForm(next);
+    store(STORAGE_KEYS.fusionParams, JSON.stringify(next));
+  }
+  const params: FusionRunParams = {
+    vps: { ...numbersOf(form.vps), ...(form.flags.no_chunking ? { use_chunking: false } : {}) },
+    fusion: {
+      ...numbersOf(form.fusion),
+      ...(form.flags.bypass_gate ? { bypass_gate: true } : {}),
+      ...(form.flags.bypass_kalman ? { bypass_kalman: true } : {}),
+    },
+  };
+  const { busy, error, submit } = useSubmit(
+    () => startFusion(reconstructionId, tarPath.trim(), params),
+    ({ run_id }) => onStarted(run_id),
+  );
+  const flag = (key: string, label: string) => (
+    <label style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+      <input type="checkbox" checked={!!form.flags[key]} onChange={(e) => update({ ...form, flags: { ...form.flags, [key]: e.target.checked } })} />
+      {label}
+    </label>
+  );
+  return (
+    <Modal title={`Offline fusion against ${reconstructionLabel}`} busy={busy} onClose={onClose} width={600}>
+      <PathField
+        label="Localization recording (.tar)"
+        value={tarPath}
+        onChange={setTarPath}
+        placeholder="/path/to/recording.tar"
+        browseTitle="Choose a localization recording"
+        fileExtensions={[".tar"]}
+      />
+      <div style={{ ...HINT, marginTop: -8 }}>
+        Recorded on the Capture Tool's Validate tab. Its stills are localized against this map on the device's schedule,
+        the fusion filter runs over its VIO, and every video frame is rendered with the map's points where the fused pose
+        puts them. Empty fields take the device's values; localizations are cached, so changing only fusion settings is quick.
+      </div>
+      <h4 style={{ margin: "4px 0 0" }}>VPS</h4>
+      <ParamGrid fields={VPS_FIELDS} values={form.vps} onChange={(k, v) => update({ ...form, vps: { ...form.vps, [k]: v } })} />
+      {flag("no_chunking", "Disable chunked matching")}
+      <h4 style={{ margin: "4px 0 0" }}>Fusion</h4>
+      <ParamGrid fields={FUSION_FIELDS} values={form.fusion} onChange={(k, v) => update({ ...form, fusion: { ...form.fusion, [k]: v } })} />
+      <div style={{ display: "flex", gap: 20 }}>
+        {flag("bypass_gate", "Bypass innovation gate")}
+        {flag("bypass_kalman", "Bypass Kalman (snap to each fix)")}
+      </div>
+      {error && <div className="banner banner-error">{error}</div>}
+      <Actions busy={busy} disabled={!tarPath.trim()} label="Process" busyLabel="Starting…" onCancel={onClose} onSubmit={() => void submit()} />
     </Modal>
   );
 }

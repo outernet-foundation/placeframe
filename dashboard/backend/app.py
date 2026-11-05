@@ -37,6 +37,8 @@ PLACEFRAME_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = PLACEFRAME_ROOT / "data"
 RECONSTRUCTIONS_DIR = DATA_DIR / "reconstructions"
 LOCALIZATIONS_DIR = DATA_DIR / "localizations"
+# Mirrors howard_test.FUSION_RUNS_DIR: each offline fusion run's results.json and rendered frames.
+FUSION_RUNS_DIR = DATA_DIR / "fusion" / "runs"
 # Mirrors howard_test.LOCALIZATION_DETAILS_DIRNAME; this project is deliberately not a member of
 # the placeframe workspace, so the name is duplicated rather than imported.
 LOCALIZATION_DETAILS_DIRNAME = "details"
@@ -61,7 +63,7 @@ _HOWARD_TEST_ENV = {k: v for k, v in os.environ.items() if k != "VIRTUAL_ENV"}
 RECONSTRUCT_POLL_TIMEOUT_S = 1800.0
 RECONSTRUCT_POLL_INTERVAL_S = 3.0
 
-JobKind = Literal["reconstruct", "visualize", "localize", "import", "icp", "merge"]
+JobKind = Literal["reconstruct", "visualize", "localize", "import", "icp", "merge", "fusion"]
 # Started from the align page, which the operator may close at once: the captures page lists these
 # and shows each as a row until the reconstruction it makes is in the tree.
 ALIGN_JOB_KINDS: frozenset[str] = frozenset({"icp", "merge"})
@@ -747,6 +749,149 @@ async def delete_localization(run_id: str) -> None:
     await asyncio.to_thread(_delete_localization, run_id)
 
 
+# Offline fusion (howard-test offline-fusion): a localization recording replayed against a map, VPS
+# and fusion run on this machine and every frame rendered. request.json is written up front so the
+# run is listed (with its progress) while it works; results.json describes a finished one.
+@dataclass
+class FusionRequest:
+    reconstruction_id: str
+    tar_path: str
+    # offline_fusion.VpsParams / FusionParams fields under "vps" / "fusion"; omitted ones take the
+    # device's values.
+    params: dict[str, Any] = field(default_factory=dict)
+
+
+def _fusion_job(run_id: str) -> Job | None:
+    return next((job for job in JOBS.values() if job.kind == "fusion" and job.run_id == run_id), None)
+
+
+@post("/api/fusion")
+async def start_fusion(data: FusionRequest) -> dict[str, str]:
+    tar = await asyncio.to_thread(_resolve_tar, data.tar_path)
+    run_id = str(uuid.uuid4())
+    job = Job(id=str(uuid.uuid4()), kind="fusion", reconstruction_id=data.reconstruction_id, run_id=run_id)
+    JOBS[job.id] = job
+
+    def write_request() -> None:
+        run_dir = FUSION_RUNS_DIR / run_id
+        run_dir.mkdir(parents=True, exist_ok=True)
+        (run_dir / "request.json").write_text(
+            json.dumps({
+                "run_id": run_id,
+                "reconstruction_id": data.reconstruction_id,
+                "recording_tar": tar,
+                "recording": Path(tar).stem,
+                "params": data.params,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            })
+        )
+
+    await asyncio.to_thread(write_request)
+    _spawn(_run_fusion_job(job, data, tar, run_id))
+    return {"job_id": job.id, "run_id": run_id}
+
+
+async def _run_fusion_job(job: Job, data: FusionRequest, tar: str, run_id: str) -> None:
+    def record(progress: dict[str, Any]) -> None:
+        job.progress = progress
+
+    try:
+        job.result = await asyncio.to_thread(
+            partial(
+                _run_howard_test_json_streaming,
+                "offline-fusion",
+                data.reconstruction_id,
+                tar,
+                "--params-json",
+                json.dumps(data.params),
+                "--run-id",
+                run_id,
+                on_progress=record,
+            )
+        )
+        job.progress = None
+        job.status = "succeeded"
+    except Exception as exc:
+        job.status = "failed"
+        job.error = str(exc)
+
+
+def _list_fusion_runs() -> list[dict[str, Any]]:
+    if not FUSION_RUNS_DIR.exists():
+        return []
+    runs: list[dict[str, Any]] = []
+    for run_dir in FUSION_RUNS_DIR.iterdir():
+        if not run_dir.is_dir():
+            continue
+        result = _read_json(run_dir / "results.json")
+        request = _read_json(run_dir / "request.json")
+        source = result or request or {}
+        job = _fusion_job(run_dir.name)
+        if result is not None:
+            status, error = "done", None
+        elif job is not None and job.status == "running":
+            status, error = "running", None
+        elif job is not None and job.status == "failed":
+            status, error = "failed", job.error
+        else:
+            status, error = "incomplete", None
+        requests = (result or {}).get("requests", [])
+        runs.append({
+            "run_id": source.get("run_id", run_dir.name),
+            "reconstruction_id": source.get("reconstruction_id"),
+            "recording": source.get("recording"),
+            "created_at": source.get("created_at"),
+            # What was asked for (only the parameters changed from the device's), not results.json's full set.
+            "params": (request or source).get("params"),
+            "status": status,
+            "error": error,
+            "progress": job.progress if job is not None and status == "running" else None,
+            "frame_count": (result or {}).get("frame_count"),
+            "request_count": len(requests),
+            "accepted_count": sum(1 for r in requests if r.get("status") == "accepted"),
+            "rejected_count": sum(1 for r in requests if r.get("status") == "rejected"),
+        })
+    runs.sort(key=lambda r: r["created_at"] or "", reverse=True)
+    return runs
+
+
+@get("/api/fusion-runs")
+async def list_fusion_runs() -> list[dict[str, Any]]:
+    return await asyncio.to_thread(_list_fusion_runs)
+
+
+@get("/api/fusion-runs/{run_id:str}")
+async def get_fusion_run(run_id: str) -> dict[str, Any]:
+    result = await asyncio.to_thread(_read_json, FUSION_RUNS_DIR / run_id / "results.json")
+    if result is None:
+        raise NotFoundException(f"No finished fusion run {run_id}")
+    return result
+
+
+@get("/api/fusion-runs/{run_id:str}/frames/{index:int}")
+async def get_fusion_frame(run_id: str, index: int) -> File:
+    path = FUSION_RUNS_DIR / run_id / "frames" / f"{index}.jpg"
+    if not await asyncio.to_thread(path.is_file):
+        raise NotFoundException(f"Fusion run {run_id} has no frame {index}")
+    # A run's frames never change once rendered (a new run gets a new id), so the browser may keep them.
+    return File(path=path, media_type="image/jpeg", headers={"Cache-Control": "max-age=86400, immutable"})
+
+
+def _delete_fusion_run(run_id: str) -> None:
+    run_dir = (FUSION_RUNS_DIR / run_id).resolve()
+    if run_dir.parent != FUSION_RUNS_DIR.resolve() or not run_dir.is_dir():
+        raise NotFoundException(f"No fusion run {run_id}")
+    job = _fusion_job(run_id)
+    if job is not None and job.status == "running":
+        raise ValueError(f"Fusion run {run_id} is still running")
+    shutil.rmtree(run_dir)
+
+
+@delete("/api/fusion-runs/{run_id:str}")
+async def delete_fusion_run(run_id: str) -> None:
+    await asyncio.to_thread(_delete_fusion_run, run_id)
+
+
 @get("/api/localizations")
 async def list_localizations() -> list[dict[str, Any]]:
     return await asyncio.to_thread(_list_localizations)
@@ -1378,6 +1523,11 @@ app = Litestar(
         save_alignment,
         list_alignments,
         list_localizations,
+        start_fusion,
+        list_fusion_runs,
+        get_fusion_run,
+        get_fusion_frame,
+        delete_fusion_run,
         delete_localization,
         register_poseless_set,
         list_poseless_sets,

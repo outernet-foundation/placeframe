@@ -2,10 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import {
   cancelReconstruction,
   deleteCapture,
+  deleteFusionRun,
   deleteLocalization,
   deleteReconstruction,
   getJob,
   listCaptures,
+  listFusionRuns,
   listLocalizations,
   listPoselessSets,
   listReconstructions,
@@ -21,6 +23,7 @@ import {
   ConfirmDialog,
   ExportDialog,
   ExportViewsDialog,
+  FusionDialog,
   ImportDialog,
   LocalizeDialog,
   optionsSummary,
@@ -29,10 +32,11 @@ import {
   SaveRunDialog,
   type ExportKind,
 } from "./components/ActionDialogs";
+import { FusionPlayer } from "./components/FusionPlayer";
 import { Menu } from "./components/Menu";
 import { RunResults } from "./components/RunResults";
 import { errorText, readStored, store, STORAGE_KEYS } from "./storage";
-import type { CaptureSession, Job, JobProgress, LocalizationSummary, PoselessImageSet, Reconstruction } from "./types";
+import type { CaptureSession, FusionRunSummary, Job, JobProgress, LocalizationSummary, PoselessImageSet, Reconstruction } from "./types";
 import { TERMINAL_STATUSES, isViewerOnly } from "./types";
 
 // One page, one tree: capture → its reconstructions (one per set of options) → each
@@ -44,6 +48,7 @@ type Dialog =
   | { kind: "reconstruct"; capture: CaptureSession }
   | { kind: "poseless"; set: PoselessImageSet }
   | { kind: "localize"; reconstruction: Reconstruction; label: string }
+  | { kind: "fusion"; reconstruction: Reconstruction; label: string }
   | { kind: "import" }
   | { kind: "export"; exportKind: ExportKind; reconstruction: Reconstruction }
   | { kind: "exportViews"; capture: CaptureSession }
@@ -178,6 +183,9 @@ export function CapturesPage() {
   const [captures, setCaptures] = useState<CaptureSession[]>([]);
   const [reconstructions, setReconstructions] = useState<Reconstruction[]>([]);
   const [runs, setRuns] = useState<LocalizationSummary[]>([]);
+  // Offline fusion runs (data/fusion/runs/*), shown under their reconstruction beside its localization runs.
+  const [fusionRuns, setFusionRuns] = useState<FusionRunSummary[]>([]);
+  const [playingFusion, setPlayingFusion] = useState<string | null>(null);
   const [sets, setSets] = useState<PoselessImageSet[]>([]);
   const [frameStats, setFrameStats] = useState<Record<string, FrameStats>>({});
   const [loaded, setLoaded] = useState(false);
@@ -207,10 +215,17 @@ export function CapturesPage() {
   // ── Loading ───────────────────────────────────────────────────────────────
 
   const refreshFast = useCallback(async (): Promise<void> => {
-    const [c, r, l, s] = await Promise.all([listCaptures(), listReconstructions(false), listLocalizations(), listPoselessSets()]);
+    const [c, r, l, s, f] = await Promise.all([
+      listCaptures(),
+      listReconstructions(false),
+      listLocalizations(),
+      listPoselessSets(),
+      listFusionRuns(),
+    ]);
     setCaptures(c);
     setReconstructions(r);
     setRuns(l);
+    setFusionRuns(f);
     setSets(s);
     setLoaded(true);
     setLoadError(null);
@@ -263,13 +278,15 @@ export function CapturesPage() {
 
   const active =
     pendingJobs > 0 ||
-    alignJobs.some((j) => j.status === "running") || reconstructions.some((r) => !TERMINAL_STATUSES.has(r.status)) || runs.some((r) => r.status === "running");
+    alignJobs.some((j) => j.status === "running") || reconstructions.some((r) => !TERMINAL_STATUSES.has(r.status)) ||
+    runs.some((r) => r.status === "running") ||
+    fusionRuns.some((r) => r.status === "running");
 
   useEffect(() => {
     if (!active) return;
     const timer = window.setTimeout(() => void refreshFast().catch(() => undefined), POLL_MS);
     return () => window.clearTimeout(timer);
-  }, [active, reconstructions, runs, refreshFast]);
+  }, [active, reconstructions, runs, fusionRuns, refreshFast]);
 
   // The align page's jobs are polled all the time, not only while something here is active: they
   // are started in another tab, so nothing on this page knows when one begins. The listing is the
@@ -656,6 +673,8 @@ export function CapturesPage() {
 
   function reconstructionNode(r: Reconstruction): ReactNode {
     const children = tree.byReconstruction.get(r.id) ?? [];
+    const fusionChildren = fusionRuns.filter((f) => f.reconstruction_id === r.id);
+    const childCount = children.length + fusionChildren.length;
     const open = isOpen(r.id, false);
     const stats = frameStats[r.id];
     const total = stats?.total_frame_count ?? r.total_frame_count;
@@ -674,7 +693,7 @@ export function CapturesPage() {
       <div className="node node-reconstruction" key={r.id}>
         <div className="node-row">
           <Check selectionKey={`reconstruction:${r.id}`} />
-          {children.length > 0 ? <Toggle open={open} onClick={() => setOpen(r.id, !open)} /> : <span className="toggle-spacer" />}
+          {childCount > 0 ? <Toggle open={open} onClick={() => setOpen(r.id, !open)} /> : <span className="toggle-spacer" />}
           <div className="node-main">
             <div className="node-title">
               <span className="node-name">{r.label ?? "Reconstruction"}</span>
@@ -688,6 +707,11 @@ export function CapturesPage() {
               {children.length > 0 && (
                 <button className="link" onClick={() => setOpen(r.id, !open)}>
                   {children.length} localization run{children.length === 1 ? "" : "s"}
+                </button>
+              )}
+              {fusionChildren.length > 0 && (
+                <button className="link" onClick={() => setOpen(r.id, !open)}>
+                  {fusionChildren.length} fusion run{fusionChildren.length === 1 ? "" : "s"}
                 </button>
               )}
             </div>
@@ -724,6 +748,12 @@ export function CapturesPage() {
                 </button>
                 <button onClick={() => openViewer(r.id)}>Visualize</button>
                 <button onClick={() => setDialog({ kind: "localize", reconstruction: r, label: reconstructionLabel(r) })}>Localize…</button>
+                <button
+                  title="Replay a recorded localization run's VPS and VIO/VPS fusion against this map, frame by frame"
+                  onClick={() => setDialog({ kind: "fusion", reconstruction: r, label: reconstructionLabel(r) })}
+                >
+                  Offline fusion…
+                </button>
                 <Menu
                   label="Export"
                   items={[
@@ -748,7 +778,65 @@ export function CapturesPage() {
             {DELETABLE_STATUSES.has(r.status) && <button onClick={() => setDialog({ kind: "deleteReconstruction", reconstruction: r })}>Delete</button>}
           </div>
         </div>
-        {open && children.length > 0 && <div className="node-children">{children.map(runNode)}</div>}
+        {open && childCount > 0 && (
+          <div className="node-children">
+            {fusionChildren.map(fusionRunNode)}
+            {children.map(runNode)}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  function fusionRunNode(run: FusionRunSummary): ReactNode {
+    const done = run.status === "done";
+    const vps = run.params?.vps ?? {};
+    const fusion = run.params?.fusion ?? {};
+    const changed = [
+      ...Object.entries(vps).map(([k, v]) => `${k}=${String(v)}`),
+      ...Object.entries(fusion).map(([k, v]) => `${k}=${String(v)}`),
+    ];
+    return (
+      <div className="node node-run" key={run.run_id}>
+        <div className="node-row">
+          <span className="toggle-spacer" />
+          <div className="node-main">
+            <div className="node-title">
+              <span className="node-name">Offline fusion</span>
+              {statusChip(run.status)}
+              <span className="node-count">{formatDate(run.created_at)}</span>
+              {done && (
+                <span className="node-count">
+                  {run.frame_count} frames · {run.accepted_count}/{run.request_count} VPS accepted
+                  {run.rejected_count > 0 && <>, {run.rejected_count} rejected</>}
+                </span>
+              )}
+            </div>
+            <div className="node-meta">
+              recording <span className="mono">{run.recording?.slice(0, 8) ?? "—"}</span> ·{" "}
+              <span className="mono">{changed.length > 0 ? changed.join(" ") : "device defaults"}</span>
+              <span className="mono"> · {run.run_id.slice(0, 8)}</span>
+            </div>
+            {run.status === "running" && run.progress && (
+              progressBar(run.progress.current, run.progress.total, run.progress.phase === "rendering" ? "frames rendered" : "stills localized")
+            )}
+            {run.error && <div className="node-error">{run.error}</div>}
+          </div>
+          <div className="node-actions">
+            {done && <button onClick={() => setPlayingFusion(run.run_id)}>Play</button>}
+            {run.status !== "running" && (
+              <button
+                onClick={() =>
+                  void deleteFusionRun(run.run_id)
+                    .then(refreshFast)
+                    .catch((err: unknown) => notify("error", errorText(err)))
+                }
+              >
+                Delete
+              </button>
+            )}
+          </div>
+        </div>
       </div>
     );
   }
@@ -923,6 +1011,19 @@ export function CapturesPage() {
           }}
         />
       )}
+      {dialog?.kind === "fusion" && (
+        <FusionDialog
+          reconstructionLabel={dialog.label}
+          reconstructionId={dialog.reconstruction.id}
+          onClose={() => setDialog(null)}
+          onStarted={() => {
+            setDialog(null);
+            setOpen(dialog.reconstruction.id, true);
+            void refreshFast().catch((err: unknown) => notify("error", errorText(err)));
+          }}
+        />
+      )}
+      {playingFusion && <FusionPlayer runId={playingFusion} onClose={() => setPlayingFusion(null)} />}
       {dialog?.kind === "import" && (
         <ImportDialog
           onClose={() => setDialog(null)}

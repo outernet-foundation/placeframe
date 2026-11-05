@@ -204,3 +204,100 @@ export interface LocalizationSummary {
   image_count: number;
   valid_count: number;
 }
+
+// Offline fusion (howard-test offline-fusion): a localization recording replayed against a map.
+// Field names are offline_fusion.VpsParams / FusionParams'; null leaves the server's default.
+export interface VpsParams {
+  interval_s: number;
+  latency_s: number;
+  retrieval_top_k: number | null;
+  ransac_threshold: number | null;
+  use_chunking: boolean;
+}
+
+export interface FusionParams {
+  gate_chi2: number;
+  bypass_gate: boolean;
+  bypass_kalman: boolean;
+  snap_sigmas_sq: number;
+  slew_s: number;
+  drift_per_m: number;
+  base_translation_variance: number;
+  base_rotation_variance: number;
+  bootstrap_sigma_translation_m: number;
+  bootstrap_sigma_rotation_rad: number;
+}
+
+export interface FusionRunParams {
+  vps: Partial<VpsParams>;
+  fusion: Partial<FusionParams>;
+}
+
+export type FusionRunStatus = "done" | "running" | "failed" | "incomplete";
+
+export interface FusionRunSummary {
+  run_id: string;
+  reconstruction_id: string | null;
+  recording: string | null;
+  created_at: string | null;
+  params: FusionRunParams | null;
+  status: FusionRunStatus;
+  error: string | null;
+  // howard-test's progress while running: {phase: "localizing" | "rendering", current, total}.
+  progress: { phase: string; current?: number; total?: number } | null;
+  frame_count: number | null;
+  request_count: number;
+  accepted_count: number;
+  rejected_count: number;
+}
+
+// One video frame's fusion state. fused_position is the camera's position in the map under the
+// published alignment: what jumps when a fix lands, and drifts with VIO between fixes.
+export interface FusionFrame {
+  index: number;
+  t: number;
+  timestamp_ns: number;
+  tracking_state: string;
+  has_fix: boolean;
+  slewing: boolean;
+  sigma_translation_m: number;
+  sigma_rotation_deg: number;
+  vps_applied: number[];
+  fused_position: [number, number, number] | null;
+  // How far this frame's change in the alignment moved the camera in the map (VIO motion excluded):
+  // the visible jump of a snap, or a slew's step. Null without a fix and on the first frame with one.
+  correction_m?: number | null;
+}
+
+// "not_applied": localized, but its fix would have landed after the recording ended.
+export type FusionRequestStatus = "accepted" | "rejected" | "failed" | "not_applied";
+
+export interface FusionRequest {
+  index: number;
+  still_timestamp_ns: number;
+  request_s: number;
+  apply_s: number;
+  request_frame: number;
+  status: FusionRequestStatus;
+  error: string | null;
+  mahalanobis_sq: number | null;
+  snapped: boolean | null;
+  num_inliers: number | null;
+  inlier_ratio: number | null;
+}
+
+export interface FusionResult {
+  run_id: string;
+  reconstruction_id: string;
+  recording: string;
+  created_at: string;
+  params: { vps: VpsParams; fusion: FusionParams };
+  device_model: string | null;
+  width: number;
+  height: number;
+  frame_count: number;
+  still_count: number;
+  map_point_count: number;
+  frames: FusionFrame[];
+  requests: FusionRequest[];
+}

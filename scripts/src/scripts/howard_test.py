@@ -11,12 +11,12 @@ import zipfile
 from asyncio import gather, run, sleep, to_thread
 from collections.abc import Callable
 from datetime import datetime, timezone
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from io import BytesIO, TextIOWrapper
 from json import dumps, loads
 from shutil import rmtree
 from pathlib import Path
-from struct import pack
+from struct import pack, unpack
 from typing import Annotated, Any, NoReturn, cast
 from uuid import UUID, uuid4
 
@@ -60,7 +60,7 @@ from placeframe_api_client import (
     ReconstructionStatus,
 )
 
-from . import icp_align
+from . import icp_align, offline_fusion
 from .api_auth import authenticated_api_client
 
 app = typer.Typer(add_completion=False, no_args_is_help=True)
@@ -2396,6 +2396,307 @@ def localize(
     _print_table(
         ["#", "Filename", "Status", "X", "Y", "Z", "Roll", "Pitch", "Yaw"],
         [_localization_row(image) for image in result["images"]],
+    )
+
+
+# Offline fusion (offline_fusion.py): a localization recording from the Capture Tool's Validate tab
+# replayed against a map -- VPS on its stills on the device's schedule, the fusion filter over its
+# VIO, and every video frame rendered with the map's points where the device would have drawn them.
+# A recording is unpacked once under FUSION_DIR/recordings/<tar stem>/, with each localization of one
+# of its stills cached there, so a run that changes only fusion parameters localizes nothing again.
+FUSION_DIR = DATA_DIR / "fusion"
+FUSION_RECORDINGS_DIR = FUSION_DIR / "recordings"
+FUSION_RUNS_DIR = FUSION_DIR / "runs"
+LOCALIZATION_RECORDING_TYPE = "localization_recording"
+FUSION_FRAME_QUALITY = 82
+
+
+def _unpack_recording(tar_path: Path) -> Path:
+    directory = FUSION_RECORDINGS_DIR / tar_path.stem
+    if (directory / "manifest.json").exists():
+        return directory
+    partial_directory = directory.with_name(f"{directory.name}.partial")
+    rmtree(partial_directory, ignore_errors=True)
+    partial_directory.mkdir(parents=True)
+    with tarfile.open(tar_path) as tar:
+        tar.extractall(partial_directory, filter="data")
+    manifest = loads((partial_directory / "manifest.json").read_text())
+    if manifest.get("type") != LOCALIZATION_RECORDING_TYPE:
+        rmtree(partial_directory, ignore_errors=True)
+        _fail_message(f"{tar_path.name} is not a localization recording (manifest type {manifest.get('type')!r})")
+    partial_directory.rename(directory)
+    return directory
+
+
+def _still_camera(camera: dict[str, Any], still: offline_fusion.Frame) -> PinholeCameraConfig:
+    """The recorded intrinsics, scaled to the still's own size (version 1 recordings stored full
+    resolution, which is what the manifest describes)."""
+    with Image.open(still.path) as image:
+        width, height = image.size
+    scale = width / camera["width"]
+    return PinholeCameraConfig(
+        width=width,
+        height=height,
+        orientation=camera["orientation"],
+        fx=camera["fx"] * scale,
+        fy=camera["fy"] * scale,
+        cx=camera["cx"] * scale,
+        cy=camera["cy"] * scale,
+    )
+
+
+async def _localize_requests(
+    reconstruction_id: UUID,
+    recording: offline_fusion.Recording,
+    requests: list[offline_fusion.VpsRequest],
+    vps: offline_fusion.VpsParams,
+) -> tuple[NDArray[np.float64], list[dict[str, Any] | None]]:
+    """Localize each request's still against the map (cached per still and VPS setting), and fetch
+    the map's points in Unity axes. Returns the points and each request's detail, if any."""
+    cache_dir = recording.directory / "localizations"
+    cache_dir.mkdir(exist_ok=True)
+    details: list[dict[str, Any] | None] = []
+    async with authenticated_api_client() as api:
+        try:
+            map_id = await _get_or_create_localization_map(api, reconstruction_id)
+            payload = await api.get_reconstruction_points(id=reconstruction_id, axis_convention=AxisConvention.UNITY)
+        except ApiException as exception:
+            _fail(exception)
+        count = unpack("<I", payload[:4])[0]
+        points = np.frombuffer(payload[4 : 4 + count * 12], dtype="<f4").reshape(count, 3).astype(np.float64)
+
+        for index, request in enumerate(requests):
+            emit_progress("localizing", index, len(requests))
+            key = (
+                f"{reconstruction_id}_{request.still.timestamp_ns}_{vps.retrieval_top_k}_"
+                f"{vps.ransac_threshold}_{int(vps.use_chunking)}.json"
+            )
+            cache_path = cache_dir / key
+            cached: dict[str, Any]
+            if cache_path.exists():
+                cached = loads(cache_path.read_text())
+            else:
+                cached = {"response": None, "error": None}
+                try:
+                    responses = await api.localize_image(
+                        map_ids=[map_id],
+                        camera_config=_still_camera(recording.camera, request.still),
+                        axis_convention=AxisConvention.UNITY,
+                        image=(request.still.path.name, request.still.path.read_bytes()),
+                        retrieval_top_k=vps.retrieval_top_k,
+                        ransac_threshold=vps.ransac_threshold,
+                        use_chunking=vps.use_chunking,
+                        detail=True,
+                    )
+                    if responses:
+                        cached["response"] = responses[0].model_dump(mode="json")
+                    else:
+                        cached["error"] = "No localization match"
+                except ApiException as exception:
+                    cached["error"] = _localization_failure(exception)[0]
+                cache_path.write_text(dumps(cached))
+            response = cached["response"]
+            request.response = response
+            request.error = cached["error"]
+            details.append(response.get("detail") if response else None)
+    emit_progress("localizing", len(requests), len(requests))
+    return points, details
+
+
+def _fusion_hud(
+    recording: offline_fusion.Recording,
+    index: int,
+    state: offline_fusion.FrameState,
+    requests: list[offline_fusion.VpsRequest],
+    last_applied: int | None,
+) -> list[str]:
+    frame = recording.video[index]
+    elapsed = (frame.timestamp_ns - recording.video[0].timestamp_ns) / 1e9
+    lines = [
+        f"t {elapsed:7.3f}s  frame {index + 1}/{len(recording.video)}  tracking {frame.tracking_state}",
+        (
+            f"fix: sigma {state.sigma_translation_m * 100:.1f} cm / {state.sigma_rotation_deg:.2f} deg"
+            f"{'  slewing' if state.slewing else ''}"
+            if state.alignment is not None
+            else "no VPS fix yet"
+        ),
+    ]
+    if last_applied is not None:
+        request = requests[last_applied]
+        ago = (frame.timestamp_ns - request.apply_ns) / 1e9
+        if request.step is None:
+            lines.append(f"VPS #{last_applied + 1} ({ago:.1f}s ago): failed - {request.error}")
+        else:
+            verdict = "accepted" if request.step.accepted else "REJECTED"
+            how = " snap" if request.step.snapped else ""
+            lines.append(
+                f"VPS #{last_applied + 1} ({ago:.1f}s ago): {verdict}{how}  m2 {request.step.mahalanobis_sq:.1f}"
+            )
+    return lines
+
+
+def _fusion_request_dict(index: int, request: offline_fusion.VpsRequest, start_ns: int) -> dict[str, Any]:
+    response: dict[str, Any] = request.response or {}
+    metrics = cast("dict[str, Any]", response.get("metrics") or {})
+    return {
+        "index": index,
+        "still_timestamp_ns": request.still.timestamp_ns,
+        "request_s": (request.request_ns - start_ns) / 1e9,
+        "apply_s": (request.apply_ns - start_ns) / 1e9,
+        # "not_applied": localized, but its fix would only have landed after the recording ended.
+        "status": (
+            ("failed" if request.response is None else "not_applied")
+            if request.step is None
+            else ("accepted" if request.step.accepted else "rejected")
+        ),
+        "error": request.error,
+        "mahalanobis_sq": request.step.mahalanobis_sq if request.step else None,
+        "snapped": request.step.snapped if request.step else None,
+        "num_inliers": metrics.get("num_inliers"),
+        "inlier_ratio": metrics.get("inlier_ratio"),
+    }
+
+
+@app.command(name="offline-fusion")
+def offline_fusion_command(
+    reconstruction_id: Annotated[UUID, typer.Argument(help="Reconstruction to localize against")],
+    tar_path: Annotated[Path, typer.Argument(help="Localization recording tar from the Capture Tool")],
+    params_json: Annotated[
+        str | None,
+        typer.Option(
+            help="JSON object of VPS and fusion parameters (offline_fusion.VpsParams and FusionParams "
+            'fields), under "vps" and "fusion"; anything left out takes the device\'s value'
+        ),
+    ] = None,
+    run_id: Annotated[
+        str | None, typer.Option("--run-id", help="Use this run id instead of generating a fresh one")
+    ] = None,
+    json_output: Annotated[bool, typer.Option("--json", help="Emit JSON instead of text")] = False,
+) -> None:
+    """Replay a recorded localization run's VPS and fusion against a map, rendering every frame.
+
+    Writes data/fusion/runs/<run>/: results.json (per-frame fusion state and each VPS request) and
+    frames/<index>.jpg, each video frame with the map's points where the fused pose puts them.
+    """
+    if not tar_path.is_file():
+        _fail_message(f"Not a file: {tar_path}")
+    params = cast("dict[str, dict[str, Any]]", loads(params_json) if params_json else {})
+    vps = offline_fusion.VpsParams(**params.get("vps", {}))
+    fusion = offline_fusion.FusionParams(**params.get("fusion", {}))
+
+    resolved_run_id = run_id or str(uuid4())
+    run_dir = FUSION_RUNS_DIR / resolved_run_id
+    frames_dir = run_dir / "frames"
+    frames_dir.mkdir(parents=True, exist_ok=True)
+
+    emit_progress("unpacking")
+    recording = offline_fusion.load_recording(_unpack_recording(tar_path))
+    if not recording.video:
+        _fail_message(f"{tar_path.name} has no frames")
+    requests = offline_fusion.schedule_requests(recording, vps)
+    points, details = run(_localize_requests(reconstruction_id, recording, requests, vps))
+    states = offline_fusion.fuse(recording, requests, fusion)
+
+    orientation = recording.camera["orientation"]
+    with Image.open(recording.video[0].path) as first:
+        stored_width, stored_height = first.size
+    intrinsics = offline_fusion.upright_intrinsics(recording.camera, stored_width, stored_height)
+    upright_width = stored_height if orientation == "LEFT_TOP" else stored_width
+    upright_height = stored_width if orientation == "LEFT_TOP" else stored_height
+    # Detail keypoints live in the localizer's canonical image: upright, scaled to a 1024 px shorter side.
+    feature_scale = min(upright_width, upright_height) / 1024
+    features_by_still = {
+        request.still.timestamp_ns: offline_fusion.inlier_features(detail, feature_scale)
+        for request, detail in zip(requests, details, strict=True)
+    }
+    # A still is one of the video's frames (the same camera frame, at full resolution), so its
+    # features are drawn on the video frame with its timestamp, or the nearest one.
+    video_timestamps = np.array([frame.timestamp_ns for frame in recording.video])
+    features_at_frame: dict[int, NDArray[np.float64] | None] = {}
+    request_frames: list[int] = []
+    for request in requests:
+        frame_index = int(np.argmin(np.abs(video_timestamps - request.still.timestamp_ns)))
+        features_at_frame[frame_index] = features_by_still[request.still.timestamp_ns]
+        request_frames.append(frame_index)
+
+    start_ns = recording.video[0].timestamp_ns
+    frame_entries: list[dict[str, Any]] = []
+    last_applied: int | None = None
+    previous_alignment: NDArray[np.float64] | None = None
+    for index, (frame, state) in enumerate(zip(recording.video, states, strict=True)):
+        if index % 15 == 0:
+            emit_progress("rendering", index, len(recording.video))
+        if state.applied:
+            last_applied = state.applied[-1]
+        image = offline_fusion.render_frame(
+            frame,
+            orientation,
+            intrinsics,
+            points,
+            state.alignment,  # the map is placed at ECEF's identity, as an unregistered map is
+            _fusion_hud(recording, index, state, requests, last_applied),
+            features_at_frame.get(index),
+        )
+        image.save(frames_dir / f"{index}.jpg", quality=FUSION_FRAME_QUALITY)
+        fused_position = None
+        # How far the alignment's change since the last frame moved this frame's camera in the map:
+        # a fix snapping or slewing in, with the camera's own (VIO) motion taken out.
+        correction_m = None
+        if state.alignment is not None:
+            fused = (np.linalg.inv(state.alignment) @ frame.unity_from_camera)[:3, 3]
+            fused_position = fused.tolist()
+            if previous_alignment is not None:
+                before = (np.linalg.inv(previous_alignment) @ frame.unity_from_camera)[:3, 3]
+                correction_m = float(np.linalg.norm(fused - before))
+        previous_alignment = state.alignment
+        frame_entries.append({
+            "index": index,
+            "t": (frame.timestamp_ns - start_ns) / 1e9,
+            "timestamp_ns": frame.timestamp_ns,
+            "tracking_state": frame.tracking_state,
+            "has_fix": state.alignment is not None,
+            "slewing": state.slewing,
+            "sigma_translation_m": state.sigma_translation_m,
+            "sigma_rotation_deg": state.sigma_rotation_deg,
+            "vps_applied": state.applied,
+            # The camera's fused position in the map, and how much of this frame's change in it the
+            # fusion made (zero between fixes; a snap or a slew's step when one lands).
+            "fused_position": fused_position,
+            "correction_m": correction_m,
+        })
+    emit_progress("rendering", len(recording.video), len(recording.video))
+
+    request_entries = [_fusion_request_dict(i, request, start_ns) for i, request in enumerate(requests)]
+    for entry, frame_index in zip(request_entries, request_frames, strict=True):
+        entry["request_frame"] = frame_index
+    result: dict[str, Any] = {
+        "run_id": resolved_run_id,
+        "reconstruction_id": str(reconstruction_id),
+        "recording_tar": str(tar_path.resolve()),
+        "recording": tar_path.stem,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "params": {"vps": asdict(vps), "fusion": asdict(fusion)},
+        "device_model": recording.manifest.get("device_model"),
+        "width": upright_width,
+        "height": upright_height,
+        "frame_count": len(recording.video),
+        "still_count": len(recording.stills),
+        "map_point_count": len(points),
+        # A Magic Leap 2's camera poses come in a tracking space of their own; how well they were fitted
+        # into Unity world (absent for a phone, whose poses already are).
+        "pose_space_fit": recording.pose_space_fit,
+        "frames": frame_entries,
+        "requests": request_entries,
+    }
+    (run_dir / "results.json").write_text(dumps(result))
+
+    if json_output:
+        typer.echo(dumps({k: v for k, v in result.items() if k != "frames"}))
+        return
+    accepted = sum(1 for entry in request_entries if entry["status"] == "accepted")
+    typer.echo(
+        f"Run {resolved_run_id}: {len(recording.video)} frames, {len(requests)} VPS requests "
+        f"({accepted} accepted) -> {frames_dir}"
     )
 
 
