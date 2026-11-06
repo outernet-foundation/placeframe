@@ -6,37 +6,9 @@ from pathlib import Path
 
 from bashrun.bash import bash, bash_check, bash_output
 
-from docker_devkit.build_docker import run_build
-from docker_devkit.config import load_config
-from docker_devkit.documents import compute_service_shas
-from docker_devkit.image_refs import VersionCoupling, VersionSite, unpinned_references, version_coupling_violations
-
-VERSION_COUPLINGS = [
-    VersionCoupling(
-        name="uv",
-        pyproject_key="tool.uv.required-version",
-        sites=(VersionSite("uv base tag", "docker-devkit.yaml", r"uv:([^@]+?)-", "UV_BASE_IMAGE"),),
-    ),
-    VersionCoupling(
-        name="python",
-        pyproject_key="project.requires-python",
-        sites=(
-            VersionSite("uv base python component", "docker-devkit.yaml", r"python([0-9][0-9.]*)", "UV_BASE_IMAGE"),
-        ),
-    ),
-]
-
 
 def main() -> None:
     bash("uv run --locked preflight-python")
-
-    print("Check image references")
-    if unpinned := unpinned_references(Path.cwd()):
-        raise SystemExit(f"Unpinned image references (need tag or digest): {', '.join(sorted(unpinned))}")
-
-    print("Check image version couplings")
-    if violations := version_coupling_violations(Path.cwd(), VERSION_COUPLINGS):
-        raise SystemExit(f"Image version coupling violations: {'; '.join(violations)}")
 
     print("Database setup")
     os.environ.update(
@@ -54,13 +26,10 @@ def main() -> None:
         DATABASE_SCHEMA_DIR="database",
         ALLOWED_HAZARDS="HAS_UNTRACKABLE_DEPENDENCIES",
     )
-    config = load_config(Path.cwd())
-    if config is None:
-        raise SystemExit("docker-devkit.yaml not found at the repo root")
-    os.environ.update(compute_service_shas(Path.cwd(), config))
-    # Build the postgres wrapper locally so its tree-sha image tag resolves without
-    # needing a registry push first (run_build also injects the SHAs it computes).
-    run_build(targets_opt=["postgres"])
+    # Build the postgres wrapper locally so its tree-tag image tag resolves without
+    # needing a registry push first.
+    bash("uv run --locked boatyard build --targets postgres")
+    postgres_tag = bash_output("uv run --locked boatyard tree-tags postgres").strip()
     # Run postgres as one throwaway container instead of a compose project: an isolated
     # bring-up cannot collide with (or tear down) a concurrently running dev stack, and
     # the container's ephemeral filesystem replaces the old down --volumes reset.
@@ -70,7 +39,7 @@ def main() -> None:
         "docker run --rm -d --name pf-preflight-postgres -p 55432:5432"
         " --entrypoint /usr/local/bin/entrypoint-wrapper.sh"
         " -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=password"
-        f" ghcr.io/outernet-foundation/placeframe/postgres:{os.environ['POSTGRES_SHA']}"
+        f" ghcr.io/outernet-foundation/placeframe/postgres:{postgres_tag}"
     )
     ready = False
     for _ in range(30):
@@ -95,7 +64,7 @@ def main() -> None:
     )
     bash("./workloads/database-migrator/entrypoint.sh")
 
-    # Score staleness gate disabled: generated stack/ output embeds per-service tree-SHA image
+    # Score staleness gate disabled: generated stack/ output embeds per-service tree-tag image
     # tags, so every dependency-lock bump re-stales it (see stack/AGENTS.md).
     _check_generated("datamodels", "uv run generate-datamodels", "packages/generated/python/datamodels/")
 

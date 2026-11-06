@@ -139,6 +139,22 @@ wheels = [
 ]
 
 [[package]]
+name = "boatyard"
+version = "0.6.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "bashrun" },
+    { name = "packaging" },
+    { name = "pydantic" },
+    { name = "pyyaml" },
+    { name = "typer" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/92/ea/214af356ed02b0ad15a2e56ecb171bd41d7aed5b4b62d3c711219dff1dce/boatyard-0.6.3.tar.gz", hash = "sha256:6e2ddaf9a21829fa4db0bebca74301ca24b2755680a7261df8b38fb1e27fb192", size = 160633, upload-time = "2026-11-06T10:06:56.647Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/81/31/ee1d5eb4d878f6152a3d58ce6d02f21e6b79c3d15e8ade5914282c3474e4/boatyard-0.6.3-py3-none-any.whl", hash = "sha256:bef59298ece5cb0ca3d7a34facfa092d847df5374ff04a58af073963b5386f67", size = 61367, upload-time = "2026-11-06T10:06:55.513Z" },
+]
+
+[[package]]
 name = "boto3"
 version = "1.42.37"
 source = { registry = "https://pypi.org/simple" }
@@ -529,25 +545,6 @@ wheels = [
 name = "dirtorch"
 version = "0.0.0"
 source = { editable = "packages/python/neural-networks/third-party/deep-image-retrieval" }
-
-[[package]]
-name = "docker-devkit"
-version = "0.4.9.dev165"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "bashrun" },
-    { name = "build-artifact-registry" },
-    { name = "packaging" },
-    { name = "pathspec" },
-    { name = "pydantic" },
-    { name = "pyyaml" },
-    { name = "strictyaml" },
-    { name = "typer" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/47/2f/daa552b0f44f8e01048fb135447b564fcc1c6ad00c2302802ce1e3b1eb1f/docker_devkit-0.4.9.dev165.tar.gz", hash = "sha256:042ac7a25fad74f5405aefbec0312c11f0461c68137b9fd9a0a5a58d2aab6bfc", size = 141553, upload-time = "2026-10-30T05:45:07.159Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/65/c4/3af7080afc3a8444da87b76565afb71bc5947ead0db1982ff1a24b07d699/docker_devkit-0.4.9.dev165-py3-none-any.whl", hash = "sha256:8d2b1b06ebab7a9f78201e2fc300d5b958303e61798af1639c0a894ed177cb6d", size = 59447, upload-time = "2026-10-30T05:45:05.911Z" },
-]
 
 [[package]]
 name = "faiss-cpu"
@@ -2927,8 +2924,8 @@ version = "0.1.0"
 source = { editable = "scripts" }
 dependencies = [
     { name = "bashrun" },
+    { name = "boatyard" },
     { name = "datamodel-code-generator" },
-    { name = "docker-devkit" },
     { name = "httpx" },
     { name = "numpy" },
     { name = "openapi-client-codegen" },
@@ -2939,6 +2936,7 @@ dependencies = [
     { name = "pyhumps" },
     { name = "python-devkit" },
     { name = "pytransform3d" },
+    { name = "pyyaml" },
     { name = "scikit-learn" },
     { name = "scipy" },
     { name = "sqlacodegen" },
@@ -2949,8 +2947,8 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "bashrun", specifier = ">=0.8.2.dev91" },
+    { name = "boatyard", specifier = "==0.6.3" },
     { name = "datamodel-code-generator", specifier = ">=0.33.0" },
-    { name = "docker-devkit", specifier = ">=0.4.9.dev165" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "numpy", specifier = ">=2.1" },
     { name = "openapi-client-codegen", specifier = ">=0.3.3.dev87" },
@@ -2961,6 +2959,7 @@ requires-dist = [
     { name = "pyhumps", specifier = ">=3.8.0" },
     { name = "python-devkit", specifier = ">=0.3.2.dev73" },
     { name = "pytransform3d", specifier = ">=3.5" },
+    { name = "pyyaml", specifier = ">=6" },
     { name = "scikit-learn", specifier = ">=1.5" },
     { name = "scipy", specifier = ">=1.14" },
     { name = "sqlacodegen", specifier = "==3.2.0" },

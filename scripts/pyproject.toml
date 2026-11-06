@@ -4,12 +4,13 @@ version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [
     "bashrun>=0.8.2.dev91",
-    "docker-devkit>=0.4.9.dev165",
+    "boatyard==0.6.3",
     "openapi-client-codegen>=0.3.3.dev87",
     "python-devkit>=0.3.2.dev73",
     "placeframe-core",
     "placeframe-api-client",
     "pydantic>=2",
+    "pyyaml>=6",
     "httpx>=0.28.1",
     "typer>=0.15",
     "numpy>=2.1",
@@ -24,7 +25,7 @@ dependencies = [
 ]
 
 [tool.deptry.per_rule_ignores]
-DEP002 = ["datamodel-code-generator", "psycopg", "openapi-client-codegen", "python-devkit"]
+DEP002 = ["datamodel-code-generator", "psycopg", "openapi-client-codegen", "python-devkit", "boatyard"]
 
 [build-system]
 requires = ["hatchling"]

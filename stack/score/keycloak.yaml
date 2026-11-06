@@ -5,12 +5,11 @@ metadata:
     outernet.internal/probe-adapter: bash-http
 containers:
   keycloak:
-    # The lock marker is the digest source: score never substitutes resource outputs into
-    # the image field, so the entry resolves at generation and the digest lands inline in
-    # both renderings (a runtime ${KEYCLOAK_IMAGE:?err} hole would demand the producer's
+    # The image slot resolves from the lock at generation: score never substitutes resource
+    # outputs into the image field, so the entry resolves here and the digest lands inline
+    # in both renderings (a runtime ${KEYCLOAK_IMAGE:?err} slot would demand the producer's
     # lock entry from every consumer of the published bundle).
-    image:
-      lock: KEYCLOAK_IMAGE
+    image: ${KEYCLOAK_IMAGE}
     # Tier-neutral by construction: the container is keycloak on both renderings, and
     # every deployment fact arrives through the oidc-issuer outputs — the one mechanism
     # that is per-tier by design (compose runtime holes filled from .env and the lock

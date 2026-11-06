@@ -1,7 +1,13 @@
-requires: ">=0.4.9.dev165"
+requires: ">=0.6.3"
 repository: ghcr.io/outernet-foundation/placeframe
 project_name: placeframe
 gateway: ${GATEWAY_PORT:?err}
+platforms:
+  - linux/amd64
+variants:
+  TORCH_DEVICE:
+    - cuda
+    - rocm
 
 base_images:
   UV_BASE_IMAGE: "ghcr.io/astral-sh/uv:0.12.15-python3.13-trixie-slim"
@@ -62,21 +68,23 @@ services:
       - service: api
         host_ip: 127.0.0.1
         published: "${API_DEBUG_PORT:-5679}"
-        target: "5678"
+        target: 5678
       - service: lease-server
         host_ip: 127.0.0.1
         published: "${LEASE_SERVER_DEBUG_PORT:-5683}"
-        target: "5678"
+        target: 5678
       - service: seaweedfs-admin
         published: "${SEAWEEDFS_ADMIN_PORT:?err}"
-        target: "59001"
+        target: 59001
   tunnel:
     options:
       ngrok:
         workloads:
           - ngrok.yaml
         ports:
-          - "4040/4040"
+          - service: ngrok
+            published: 4040
+            target: 4040
 
 k8s:
   workloads:

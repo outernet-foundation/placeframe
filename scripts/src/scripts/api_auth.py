@@ -6,10 +6,14 @@ from os import environ
 from pathlib import Path
 from typing import cast
 
-from docker_devkit.host import parse_env_file
+import yaml
 from httpx import AsyncClient
+from pydantic import TypeAdapter
 
 from placeframe_api_client import ApiClient, Configuration, DefaultApi, ServerInfo
+
+VALUES_FILE = Path("boatyard.values.yaml")
+_VALUES_DOCUMENT = TypeAdapter(dict[str, object])
 
 
 @asynccontextmanager
@@ -32,19 +36,20 @@ async def authenticated_api_client() -> AsyncGenerator[DefaultApi]:
 def _read_public_url() -> str:
     public_url = environ.get("PUBLIC_URL")
     if not public_url:
-        public_url = parse_env_file(_find_env_file()).get("PUBLIC_URL")
+        document = _VALUES_DOCUMENT.validate_python(yaml.safe_load(_find_values_file().read_text(encoding="utf-8")))
+        public_url = str(document.get("public_url") or document.get("PUBLIC_URL") or "")
 
     if not public_url:
-        raise RuntimeError("PUBLIC_URL not found in environment or .env")
+        raise RuntimeError("PUBLIC_URL not found in environment or boatyard.values.yaml")
     return public_url
 
 
-def _find_env_file() -> Path:
+def _find_values_file() -> Path:
     for directory in (Path.cwd(), *Path.cwd().parents):
-        candidate = directory / ".env"
+        candidate = directory / VALUES_FILE
         if candidate.is_file():
             return candidate
-    raise RuntimeError("No .env found in the current directory or any parent; run from inside the repo")
+    raise RuntimeError("No boatyard.values.yaml found in the current directory or any parent; run from inside the repo")
 
 
 async def _fetch_keycloak_token(server_info: ServerInfo) -> str:
