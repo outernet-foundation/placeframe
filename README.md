@@ -69,7 +69,7 @@ uv run boatyard down
 
 While the server is running, you can visit `${PUBLIC_URL}` in a web browser to browse the OpenAPI schema and test requests.
 
-The backend provides a reference [Keycloak](https://www.keycloak.org/) implementation for authentication and authorization, so you will need to authorize yourself in order to test requests. By default, you can use the username "user", and the password "password". This is configured in the [Keycloak realm configuration file](workloads/auth-initializer/realm-export/placeframe.json).
+The backend provides a reference [Keycloak](https://www.keycloak.org/) implementation for authentication and authorization, so you will need to authorize yourself in order to test requests. The [realm configuration file](workloads/auth-initializer/realm-export/placeframe.json) defines the realm and its clients but no users — test users are seeded at boot only when `SEED_TEST_USERS` is set, so add `SEED_TEST_USERS: user:password` to `boatyard.values.yaml` (see `boatyard.values.yaml.sample`) and run `uv run boatyard up`; you can then log in with the username "user" and the password "password".
 
 ## Capture Tool
 
