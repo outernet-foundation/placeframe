@@ -140,18 +140,19 @@ wheels = [
 
 [[package]]
 name = "boatyard"
-version = "0.6.3"
+version = "0.6.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "bashrun" },
+    { name = "build-artifact-registry" },
     { name = "packaging" },
     { name = "pydantic" },
     { name = "pyyaml" },
     { name = "typer" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/92/ea/214af356ed02b0ad15a2e56ecb171bd41d7aed5b4b62d3c711219dff1dce/boatyard-0.6.3.tar.gz", hash = "sha256:6e2ddaf9a21829fa4db0bebca74301ca24b2755680a7261df8b38fb1e27fb192", size = 160633, upload-time = "2026-11-06T10:06:56.647Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/3b/65/8e9c768b504a932c94d27e383a0834ffc9de13d5f463cd96a882c76f1bea/boatyard-0.6.5.tar.gz", hash = "sha256:137ddcbb5df4b8dfdff04f0aeaf1db4b6ff3cb438db4beb72e683e2dcffb82c8", size = 166626, upload-time = "2026-11-06T12:29:12.593Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/81/31/ee1d5eb4d878f6152a3d58ce6d02f21e6b79c3d15e8ade5914282c3474e4/boatyard-0.6.3-py3-none-any.whl", hash = "sha256:bef59298ece5cb0ca3d7a34facfa092d847df5374ff04a58af073963b5386f67", size = 61367, upload-time = "2026-11-06T10:06:55.513Z" },
+    { url = "https://files.pythonhosted.org/packages/98/1a/f3b3c33db17fafff05789c14f36790fa2b2799c958551f42f77d249789c7/boatyard-0.6.5-py3-none-any.whl", hash = "sha256:d880ed156fef24cedd72e58a11f9c1a4ade63627f9f9df3dd33d3159bed57c29", size = 62032, upload-time = "2026-11-06T12:29:11.696Z" },
 ]
 
 [[package]]
@@ -226,16 +227,16 @@ wheels = [
 
 [[package]]
 name = "build-artifact-registry"
-version = "0.2.0"
+version = "0.2.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "bashrun" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e3/c5/dd1b222592181f5c0c69eac76401eda5cc6281b0438e91f198f70d53950f/build_artifact_registry-0.2.0.tar.gz", hash = "sha256:9f1dc56637386cbc6cf188ceaf5cf59fcfd8e4573b8ee6c04b5e3f6d232469ad", size = 38123, upload-time = "2026-10-11T03:56:06.461Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/50/5f/c976fa05bab9e534c771cc8d847f7c86c58d75f18b2f8559cc9f70e4cf54/build_artifact_registry-0.2.2.tar.gz", hash = "sha256:1ffcc011e41629b74f1d470e7db3c435d161b5d03753f6ca2f1820802e8a870a", size = 38707, upload-time = "2026-10-15T22:18:28.164Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/4f/a5/52dd28891340c73dd427b2d7612aa677f089bf8c5a38cc137e1df9ee34f8/build_artifact_registry-0.2.0-py3-none-any.whl", hash = "sha256:cbcd10a6a570983ffce1b2c6a6265c9beac020759b8755c8b2d718129ba43e54", size = 10567, upload-time = "2026-10-11T03:56:05.527Z" },
+    { url = "https://files.pythonhosted.org/packages/f9/8f/acdc636d3a30b1ba1f045c1b04cd7d187097bdc38d0b625c98c6e68927aa/build_artifact_registry-0.2.2-py3-none-any.whl", hash = "sha256:a8c59694268b2d9a8e6303d43d494d18a83e1ddbba23b18ca4bb245477b12138", size = 10811, upload-time = "2026-10-15T22:18:27.174Z" },
 ]
 
 [[package]]
@@ -2947,7 +2948,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "bashrun", specifier = ">=0.8.2.dev91" },
-    { name = "boatyard", specifier = "==0.6.3" },
+    { name = "boatyard", specifier = "==0.6.5" },
     { name = "datamodel-code-generator", specifier = ">=0.33.0" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "numpy", specifier = ">=2.1" },
