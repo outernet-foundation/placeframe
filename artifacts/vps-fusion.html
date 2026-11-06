@@ -1,3 +1,6 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>VPS Fusion Walkthrough</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -193,8 +196,14 @@ footer { color: var(--muted); font-size: 0.85rem; display: grid; gap: 8px; borde
 <header>
   <div class="eyebrow">Placeframe · VPS localizer and RelocalizationFilter</div>
   <h1>How VPS and VIO are fused</h1>
-  <p class="lede">The headset tracks itself smoothly with VIO, but VIO's world has an arbitrary origin and drifts. VPS answers "where is this camera in the map?" now and then, with noise. The fusion filter keeps one estimate of how the VIO world sits inside the map, and nudges it with each VPS fix it trusts.</p>
-  <p>Parts 1 and 2 describe the general process and its parameters, with the values currently set in code and calibration. Part 3 analyses one recorded localization run. Part 4 recommends changes.</p>
+  <p class="lede">The headset tracks itself smoothly with VIO, 
+    but VIO's Unity frame is arbitrary and drifts with respect to
+    the ECEF frame. VPS pose estimates are in the map (reconstruction)
+    frame, which have a fixed and known transform for relating it to
+    the ECEF. Given these VPS pose fixes, the Kalman Filter described 
+    here estimates the Unity-ECEF transform and nudges it with each VPS 
+    fix it trusts.  </p>
+<p>Parts 1 and 2 describe the general process and its parameters, with the values currently set in code and calibration. Part 3 analyses one recorded localization run. Part 4 recommends changes.</p>
 </header>
 
 <div class="part">Part 1 · The process</div>
@@ -228,12 +237,17 @@ footer { color: var(--muted); font-size: 0.85rem; display: grid; gap: 8px; borde
     <li><b>Units:</b> metres and radians throughout. Degrees appear only in the text.</li>
   </ul>
   <h3 id="estimates">What the filter estimates</h3>
-  <p>The one unknown is the alignment <var>X</var> = <span class="tm" data-tex="{}^{U}T_{E}">unity_from_ecef</span>. It is the transform that makes VPS's camera pose, carried into Unity, land on VIO's camera pose:</p>
+  <p>The state estimated by the filter is the alignment <var>X</var> = <span class="tm" data-tex="{}^{U}T_{E}">unity_from_ecef</span>. It is the transform that makes VPS's camera pose, carried into Unity, land on VIO's camera pose:</p>
   <div class="math ubeq"><span class="tm" data-tex="{}^{U}T_{E}\cdot">unity_from_ecef ·</span><span class="ub"><span class="tm" data-tex="{}^{E}T_{M}\cdot{}^{M}T_{C}">ecef_from_map · map_from_camera</span><span class="ub-brace"></span><span class="ub-label">VPS camera pose in ECEF</span></span><span class="tm" data-tex="=">=</span><span class="ub"><span class="tm" data-tex="{}^{U}T_{C}">unity_from_camera</span><span class="ub-brace"></span><span class="ub-label">VIO camera pose</span></span></div>
   <ul class="plain">
     <li><b>Camera pose</b> (<span class="tm" data-tex="{}^{U}T_{C}">unity_from_camera</span>): an input from VIO. It changes every frame as the user moves.</li>
-    <li><b>Measurement <var>Z</var></b>, with covariance <var>R</var>: one fix's value of <var>X</var>, solved from that equation for a single still (stage 5). It carries that fix's full noise.</li>
-    <li><b>Estimate <var>X̂</var></b>, with covariance <var>P</var>: the filter's fused estimate of <var>X</var> from every accepted measurement, known in code as the filter's mean. Stage 7 compares each new <var>Z</var> with it, and stage 8 moves it partway toward <var>Z</var>.</li>
+    <li><b>Measurement <var>Z</var></b>, with covariance <var>R</var>:
+      If a given VPS pose estimate is reliable enough (Stage 3), a measurement of the alignment can be computed
+      from this pose and the current noisy VIO camera pose (Stage 5). 
+     </li>
+    <li><b>Estimate <var>X̂</var></b>, with covariance <var>P</var>: 
+      If the measurement is not an outlier (Stage 7), judged according to its covariance (Stage 4), then it gets
+  processed by the Kalman Filter to nudge the alignment estimate <var>X</var>(Stage 8).</li>
   </ul>
   <p class="muted">The notation is standard Kalman-filter notation. A hat marks the filter's estimate. A superscript ⁻ means predicted, before a measurement is applied. Without it, <var>X̂</var> and <var>P</var> are the filter's current state, which stage 8 overwrites with each accepted fix. <var>ỹ</var> is the innovation, and <var>K</var> the gain.</p>
   <p>The alignment should stay nearly constant, changing only slowly as VIO drifts. So measurements taken seconds apart and from different places should agree. Their scatter is noise to be averaged out, unless a fix is simply wrong.</p>
