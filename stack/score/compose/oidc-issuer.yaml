@@ -2,8 +2,8 @@
 # The type is named for the protocol, not the provider — a swapped issuer implementation
 # registers a different provisioner for the same `oidc-issuer` type. The keycloak service
 # itself is the keycloak workload container; this provisioner carries the workload's env
-# surface (image ref, admin credentials, advertised hostname — runtime holes filled from
-# .env and the lock env-file) plus the post-boot configurator (auth-initializer image):
+# surface (image ref, admin credentials, advertised hostname — runtime slots filled from
+# boatyard.values.yaml and the lock env file) plus the post-boot configurator (auth-initializer image):
 # it polls the admin API, then creates or updates the realm from the committed export,
 # substituting the KEYCLOAK_* and PUBLIC_URL holes from env. The poll loop is the
 # ordering mechanism — no depends_on: the wait-for-resources gate passes on
@@ -11,7 +11,7 @@
 #
 # certs_url is a soft passthrough, not the keycloak literal: the api treats issuer-unset
 # with any auth endpoint set as a boot error (anonymous mode must receive it empty), and
-# .env carries the keycloak JWKS URL whenever OIDC mode runs.
+# boatyard.values.yaml carries the keycloak JWKS URL whenever OIDC mode runs.
 - uri: template://placeframe/oidc-issuer
   type: oidc-issuer
   description: Keycloak env surface with the realm converged by the admin-API configurator.

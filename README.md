@@ -42,20 +42,21 @@ Inspired by (and heavily borrowing from) the extremely useful [Hierarchical-Loca
 
 1. **Sign up** at [ngrok.com](https://ngrok.com) and grab your authtoken from the dashboard.
 2. **Reserve a domain** (ngrok's free tier gives one static subdomain on `*.ngrok-free.app`; paid tiers can use a custom domain).
-3. **Copy `.env.sample` to `.env`** and fill in:
+3. **Copy `boatyard.values.yaml.sample` to `boatyard.values.yaml`** (gitignored) and fill in:
 
    | Variable | Value |
    |---|---|
-   | `PUBLIC_URL` | `https://<your-ngrok-domain>` — the URL Unity clients will hit |
+   | `public_url` / `PUBLIC_URL` | `https://<your-ngrok-domain>` — the URL Unity clients will hit |
    | `NGROK_DOMAIN` | `<your-ngrok-domain>` (just the host portion, no scheme) |
    | `NGROK_AUTHTOKEN` | The token from step 1 |
+   | `bundles` | Your assembly — e.g. `[core-cuda, auth-keycloak, tunnel-ngrok]` (the OIDC-with-relay shape; the sample documents the known-good sets) |
 
 ## Backend
 
-Once `.env` is filled in, bring up the backend with:
+Once `boatyard.values.yaml` is filled in, bring up the backend with:
 
 ```
-uv run up
+uv run boatyard up
 ```
 
 You can pass `--attached` to this command in order to stream interlaced server container logs, but this is very difficult to read. The VS Code extension [ms-azuretools.vscode-docker](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-docker) is a better alternative for easily viewing individual container logs.
@@ -63,7 +64,7 @@ You can pass `--attached` to this command in order to stream interlaced server c
 To bring down the backend, run:
 
 ```
-uv run down
+uv run boatyard down
 ```
 
 While the server is running, you can visit `${PUBLIC_URL}` in a web browser to browse the OpenAPI schema and test requests.

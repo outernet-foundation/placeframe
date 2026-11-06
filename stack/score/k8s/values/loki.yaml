@@ -1,5 +1,5 @@
 # Values for the loki chart (ghcr.io/grafana/helm-charts/loki, digest-pinned in
-# docker-devkit.yaml). The entire config is the committed workloads/loki/config.yaml —
+# boatyard.yml). The entire config is the committed workloads/loki/config.yaml —
 # the same file the compose tier binds — substituted verbatim into the chart's
 # loki.config string override (the chart's templated config and structured sections
 # are replaced wholesale). Credentials never carry values: the S3 keys ride the
