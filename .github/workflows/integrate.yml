@@ -17,21 +17,21 @@ jobs:
     permissions:
       contents: read
       packages: write
-    uses: outernet-foundation/github-actions-toolkit/.github/workflows/mirror.yml@44bcf9be6f4456ba978ae4e1438be9e8fbf35a32
+    uses: outernet-foundation/github-actions-toolkit/.github/workflows/mirror.yml@f2d576acbceeca8afb324152aad8e4928d5a769b
 
   preflight:
     needs: [mirror-images]
     permissions:
       contents: read
       packages: read
-    uses: outernet-foundation/github-actions-toolkit/.github/workflows/preflight.yml@44bcf9be6f4456ba978ae4e1438be9e8fbf35a32
+    uses: outernet-foundation/github-actions-toolkit/.github/workflows/preflight.yml@f2d576acbceeca8afb324152aad8e4928d5a769b
 
   compile-check-unity:
     needs: [preflight]
     permissions:
       contents: read
       packages: write
-    uses: outernet-foundation/github-actions-toolkit/.github/workflows/compile-check-unity.yml@44bcf9be6f4456ba978ae4e1438be9e8fbf35a32
+    uses: outernet-foundation/github-actions-toolkit/.github/workflows/compile-check-unity.yml@f2d576acbceeca8afb324152aad8e4928d5a769b
     secrets:
       unity-email: ${{ secrets.UNITY_EMAIL }}
       unity-password: ${{ secrets.UNITY_PASSWORD }}
@@ -42,11 +42,11 @@ jobs:
     permissions:
       contents: read
       packages: write
-    uses: outernet-foundation/github-actions-toolkit/.github/workflows/build-docker.yml@44bcf9be6f4456ba978ae4e1438be9e8fbf35a32
+    uses: outernet-foundation/github-actions-toolkit/.github/workflows/build-docker.yml@f2d576acbceeca8afb324152aad8e4928d5a769b
 
   release-pr-builds:
     needs: [build-docker, compile-check-unity]
     permissions:
       contents: write
       packages: read
-    uses: outernet-foundation/github-actions-toolkit/.github/workflows/release-pr-builds.yml@44bcf9be6f4456ba978ae4e1438be9e8fbf35a32
+    uses: outernet-foundation/github-actions-toolkit/.github/workflows/release-pr-builds.yml@f2d576acbceeca8afb324152aad8e4928d5a769b
