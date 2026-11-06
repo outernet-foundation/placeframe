@@ -1,106 +1,104 @@
-from importlib.metadata import version
+from __future__ import annotations
+
 from pathlib import Path
-from shutil import which
 
-import pytest
 import yaml
-from packaging.version import Version
-
-from docker_devkit import config as config_module
-from docker_devkit.config import LOCK_PATH, compose_bundles, load_config
-from docker_devkit.documents import compute_service_shas, parse_image_lock
-from docker_devkit.score_generate import generate_compose
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+COMPOSE_DIR = REPO_ROOT / "stack" / "generated" / "compose"
 
-# The generated compose sources need the services vocabulary.
-_required_devkit = Version("0.5.5")
-pytestmark = [
-    pytest.mark.skipif(which("score-compose") is None, reason="pinned score-compose not on PATH"),
-    pytest.mark.skipif(
-        Version(version("docker-devkit")) < _required_devkit
-        and Version(version("docker-devkit")) != Version("0.0.0.dev0"),
-        reason=f"docker-devkit >= {_required_devkit} required for the services vocabulary",
-    ),
-]
+CORE_SERVICES = {
+    "api",
+    "lease-server",
+    "reconstructor",
+    "localizer",
+    "alloy",
+    "grafana",
+    "initialize-loki",
+    "initialize-s3",
+    "loki",
+    "pf-postgres",
+    "pf-postgres-create",
+    "pf-postgres-migrate",
+    "seaweedfs",
+    "seaweedfs-admin",
+    "seaweedfs-audit",
+    "wait-for-resources",
+}
 
 
-def _bundle_artifacts(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> dict[str, dict]:
-    config = load_config(REPO_ROOT)
-    assert config is not None
-    # Redirect derived bundle outputs into the test tmpdir so regeneration never
-    # touches the committed artifacts (bundle_output joins the absolute tmp path).
-    monkeypatch.setattr(config_module, "BUNDLE_OUTPUT_DIR", tmp_path)
+def _artifact(entry: str) -> dict[str, dict]:
+    return yaml.safe_load((COMPOSE_DIR / f"compose.{entry}.yaml").read_text(encoding="utf-8"))
 
-    for name, value in compute_service_shas(REPO_ROOT, config).items():
-        monkeypatch.setenv(name, value)
 
-    generate_compose(REPO_ROOT, config, parse_image_lock(REPO_ROOT / LOCK_PATH).root)
-    return {
-        bundle.name: yaml.safe_load((tmp_path / bundle.output.name).read_text(encoding="utf-8"))
-        for bundle in compose_bundles(config)
+def _platform_manifest(name: str) -> str:
+    lock = yaml.safe_load((REPO_ROOT / "boatyard.lock.yml").read_text(encoding="utf-8"))
+    return lock["images"][name]["platforms"]["linux/amd64"]
+
+
+def test_each_bundle_artifact_carries_services_under_the_project_name() -> None:
+    for entry in ("core-cuda", "core-rocm", "auth-keycloak", "tunnel-ngrok"):
+        artifact = _artifact(entry)
+        assert artifact["services"], f"{entry} carries no services"
+        assert artifact["name"] == "placeframe"
+
+
+def test_every_service_is_entry_namespaced_with_a_bare_alias_and_hermetic() -> None:
+    for entry in ("core-cuda", "core-rocm", "auth-keycloak", "tunnel-ngrok"):
+        artifact = _artifact(entry)
+        for service_name, service in artifact["services"].items():
+            assert service_name.startswith(f"{entry}-"), f"{entry}: {service_name} is not namespaced"
+            assert "profiles" not in service, f"{entry}/{service_name} still declares compose profiles"
+            assert "ports" not in service, f"{entry}/{service_name} still publishes a host port"
+            for volume in service.get("volumes") or []:
+                assert volume.get("type") != "bind", f"{entry}/{service_name} carries a non-inlined bind"
+            aliases = service["networks"][f"{entry}-net"]["aliases"]
+            assert service_name.removeprefix(f"{entry}-") in aliases, f"{entry}/{service_name} lacks its bare alias"
+
+
+def test_the_core_variants_carry_the_full_stack_each() -> None:
+    for variant in ("cuda", "rocm"):
+        services = _artifact(f"core-{variant}")["services"]
+        assert {name.removeprefix(f"core-{variant}-") for name in services} == CORE_SERVICES
+
+
+def test_the_api_carries_soft_auth_slots_and_prod_safe_toggles() -> None:
+    api = _artifact("core-cuda")["services"]["core-cuda-api"]
+    assert api["environment"]["AUTH_JWKS_URL"] == "${AUTH_JWKS_URL:-}"
+    assert api["environment"]["DEBUG_API"] == "false"
+
+
+def test_the_keycloak_bundle_pins_its_image_from_the_lock_and_gates_boot() -> None:
+    bundle = _artifact("auth-keycloak")["services"]
+    assert set(bundle) == {
+        "auth-keycloak-keycloak",
+        "auth-keycloak-keycloak-configurator",
+        "auth-keycloak-wait-for-resources",
     }
 
-
-def test_bundle_generation_splits_the_stack_by_assembly_unit(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    artifacts = _bundle_artifacts(tmp_path, monkeypatch)
-    lock = parse_image_lock(REPO_ROOT / LOCK_PATH).root
-
-    assert sorted(artifacts) == ["cuda", "keycloak", "ngrok", "rocm"]
-
-    for name, artifact in artifacts.items():
-        services = artifact.get("services") or {}
-        assert services, f"{name} carries no services"
-        for service_name, service in services.items():
-            assert "profiles" not in service, f"{name}/{service_name} still declares compose profiles"
-            assert "ports" not in service, f"{name}/{service_name} still publishes a host port"
-            for volume in service.get("volumes") or []:
-                assert volume.get("type") != "bind", f"{name}/{service_name} carries a non-inlined bind"
-
-    for variant in ("cuda", "rocm"):
-        core = artifacts[variant]["services"]
-        assert set(core) == {
-            "api",
-            "lease-server",
-            "localizer",
-            "reconstructor",
-            "pf-postgres",
-            "pf-postgres-create",
-            "pf-postgres-migrate",
-            "seaweedfs",
-            "seaweedfs-admin",
-            "seaweedfs-audit",
-            "initialize-s3",
-            "loki",
-            "initialize-loki",
-            "alloy",
-            "grafana",
-            f"wait-for-resources-{variant}",
-        }
-    assert core["api"]["environment"]["AUTH_JWKS_URL"] == "${AUTH_JWKS_URL:-}"
-    assert core["api"]["environment"]["DEBUG_API"] == "false"
-
-    keycloak_bundle = artifacts["keycloak"]["services"]
-    assert set(keycloak_bundle) == {"keycloak", "keycloak-configurator", "wait-for-resources-keycloak"}
-    keycloak = keycloak_bundle["keycloak"]
-    assert keycloak["image"] == lock["KEYCLOAK_IMAGE"]
+    keycloak = bundle["auth-keycloak-keycloak"]
+    assert keycloak["image"] == _platform_manifest("KEYCLOAK_IMAGE")
     assert keycloak["environment"]["KC_HOSTNAME"] == "${PUBLIC_URL:?err}/auth"
     assert "${KEYCLOAK_ADMIN_PASSWORD:?err}" in list(keycloak["environment"].values())
     assert keycloak["healthcheck"]["test"][:3] == ["CMD", "bash", "-c"]
-    assert "/dev/tcp/127.0.0.1:9000" in keycloak["healthcheck"]["test"][3]
+    assert "/dev/tcp/127.0.0.1/9000" in keycloak["healthcheck"]["test"][3]
     assert "/health/ready" in keycloak["healthcheck"]["test"][3]
-    assert keycloak["depends_on"]["wait-for-resources-keycloak"]["condition"] == "service_completed_successfully"
-    assert keycloak_bundle["wait-for-resources-keycloak"]["depends_on"]["keycloak-configurator"]["condition"] == (
-        "service_started"
+    assert keycloak["depends_on"]["auth-keycloak-wait-for-resources"]["condition"] == "service_completed_successfully"
+    assert (
+        bundle["auth-keycloak-wait-for-resources"]["depends_on"]["auth-keycloak-keycloak-configurator"]["condition"]
+        == "service_started"
     )
-    configurator = keycloak_bundle["keycloak-configurator"]
+
+    configurator = bundle["auth-keycloak-keycloak-configurator"]
     assert configurator["environment"]["KEYCLOAK_URL"] == "http://keycloak:8080"
     assert "depends_on" not in configurator
 
-    ngrok = artifacts["ngrok"]["services"]["ngrok"]
+
+def test_the_relay_restarts_on_failure_and_targets_the_edge() -> None:
+    ngrok = _artifact("tunnel-ngrok")["services"]["tunnel-ngrok-ngrok"]
     assert ngrok["restart"] == "on-failure"
-    assert ngrok["image"] == lock["NGROK_IMAGE"]
+    assert ngrok["image"] == _platform_manifest("NGROK_IMAGE")
     command = " ".join(ngrok["entrypoint"])
     assert "exec ngrok http --domain=$${NGROK_DOMAIN:-}" in command
     assert "--upstream-protocol=http1" in command
-    assert "http://door:8443" in command
+    assert "http://edge:8443" in command

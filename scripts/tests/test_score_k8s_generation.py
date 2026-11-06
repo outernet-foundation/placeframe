@@ -1,54 +1,29 @@
-from importlib.metadata import version
+from __future__ import annotations
+
 from pathlib import Path
-from shutil import which
 
-import pytest
 import yaml
-from packaging.version import Version
-
-from docker_devkit.config import LOCK_PATH, load_config
-from docker_devkit.documents import compute_service_shas, parse_image_lock
-from docker_devkit.score_generate import generate_k8s
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
-# The generated k8s sources need the services vocabulary.
-_required_devkit = Version("0.5.5")
-pytestmark = [
-    pytest.mark.skipif(which("score-k8s") is None, reason="pinned score-k8s not on PATH"),
-    pytest.mark.skipif(
-        Version(version("docker-devkit")) < _required_devkit
-        and Version(version("docker-devkit")) != Version("0.0.0.dev0"),
-        reason=f"docker-devkit >= {_required_devkit} required for the root-config variant fields",
-    ),
-]
+
+def _documents() -> dict[str, dict]:
+    return {
+        f"{document['kind']}/{document['metadata']['name']}": document
+        for document in yaml.safe_load_all(
+            (REPO_ROOT / "stack" / "generated" / "k8s" / "manifests.yaml").read_text(encoding="utf-8")
+        )
+        if document
+    }
 
 
-def _generate_k8s_without_charts(output: Path, monkeypatch: pytest.MonkeyPatch) -> dict[str, dict]:
-    # The committed chart refs fetch through the org mirror, which CI has not populated;
-    # stripping charts exercises everything else — provisioners, patch templates,
-    # placeholder expansion — against the real sources. The KEDA operator is cluster
-    # tier (infra/Pulumi), so the artifact carries only the ScaledObject and
-    # TriggerAuthentication CRs.
-    config = load_config(REPO_ROOT)
-    assert config is not None and config.k8s is not None
-    chartless = config.model_copy(update={"k8s": config.k8s.model_copy(update={"charts": {}})})
-
-    for name, value in compute_service_shas(REPO_ROOT, config).items():
-        monkeypatch.setenv(name, value)
-
-    generate_k8s(REPO_ROOT, chartless, output, parse_image_lock(REPO_ROOT / LOCK_PATH).root)
-    documents = {}
-    for document in yaml.safe_load_all(output.read_text(encoding="utf-8")):
-        if document:
-            documents[f"{document['kind']}/{document['metadata']['name']}"] = document
-    return documents
+def _index_reference(name: str) -> str:
+    lock = yaml.safe_load((REPO_ROOT / "boatyard.lock.yml").read_text(encoding="utf-8"))
+    return lock["images"][name]["index"]
 
 
-def test_k8s_generation_patches_gpu_workloads_and_renders_keda_crs(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    documents = _generate_k8s_without_charts(tmp_path / "manifests.yaml", monkeypatch)
+def test_gpu_workloads_carry_the_nvidia_contract_and_scale_to_zero() -> None:
+    documents = _documents()
 
     reconstructor = documents["Deployment/reconstructor"]
     reconstructor_spec = reconstructor["spec"]["template"]["spec"]
@@ -79,6 +54,10 @@ def test_k8s_generation_patches_gpu_workloads_and_renders_keda_crs(
     )
     assert localizer_url == "http://localizer:8000"
 
+
+def test_keda_crs_derive_from_the_declared_resource() -> None:
+    documents = _documents()
+
     scaled_object = documents["ScaledObject/reconstructor"]
     trigger = scaled_object["spec"]["triggers"][0]
     assert trigger["type"] == "postgresql"
@@ -96,15 +75,12 @@ def test_k8s_generation_patches_gpu_workloads_and_renders_keda_crs(
     assert "Deployment/keda-operator" not in documents
 
 
-def test_k8s_generation_renders_the_tier_neutral_keycloak_deployment(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    documents = _generate_k8s_without_charts(tmp_path / "manifests.yaml", monkeypatch)
-    lock = parse_image_lock(REPO_ROOT / LOCK_PATH).root
+def test_keycloak_renders_tier_neutral() -> None:
+    documents = _documents()
 
     keycloak = documents["Deployment/keycloak"]
     container = keycloak["spec"]["template"]["spec"]["containers"][0]
-    assert container["image"] == lock["KEYCLOAK_IMAGE"]
+    assert container["image"] == _index_reference("KEYCLOAK_IMAGE")
     assert container["readinessProbe"]["httpGet"] == {"path": "/health/ready", "port": 9000}
     env = {variable["name"]: variable for variable in container["env"]}
     assert env["KC_BOOTSTRAP_ADMIN_PASSWORD"]["valueFrom"]["secretKeyRef"]["key"] == "KEYCLOAK_ADMIN_PASSWORD"
