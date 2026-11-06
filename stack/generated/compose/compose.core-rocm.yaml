@@ -4,7 +4,7 @@ services:
       core-rocm-wait-for-resources:
         condition: service_completed_successfully
         required: true
-    image: ghcr.io/outernet-foundation/placeframe/api:tree-f2bb131439bd37ca94c3b75b3c9ea10cb6fead71
+    image: ghcr.io/outernet-foundation/placeframe/api:tree-7438e574ef45a7b78c5e95a11ee936915d378792
     networks:
       core-rocm-net:
         aliases:
@@ -40,7 +40,7 @@ services:
       S3_ACCESS_KEY: ${S3_ACCESS_KEY:?err}
       S3_ENDPOINT_URL: http://seaweedfs:8333
       S3_SECRET_KEY: ${S3_SECRET_KEY:?err}
-      SERVICE_VERSION: tree-f2bb131439bd37ca94c3b75b3c9ea10cb6fead71
+      SERVICE_VERSION: tree-7438e574ef45a7b78c5e95a11ee936915d378792
     hostname: api
     healthcheck:
       test:
@@ -57,7 +57,7 @@ services:
       core-rocm-wait-for-resources:
         condition: service_completed_successfully
         required: true
-    image: ghcr.io/outernet-foundation/placeframe/lease-server:tree-4f8324da174dcd2b1761fab59fa2168108da03ec
+    image: ghcr.io/outernet-foundation/placeframe/lease-server:tree-9c35af0bdf144cf8a6644b37c73f6c4e6ae03478
     networks:
       core-rocm-net:
         aliases:
@@ -76,7 +76,7 @@ services:
       OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4317
       POSTGRES_HOST: pf-postgres
       RELOAD: 'false'
-      SERVICE_VERSION: tree-4f8324da174dcd2b1761fab59fa2168108da03ec
+      SERVICE_VERSION: tree-9c35af0bdf144cf8a6644b37c73f6c4e6ae03478
     hostname: lease-server
     healthcheck:
       test:
@@ -93,7 +93,7 @@ services:
       core-rocm-wait-for-resources:
         condition: service_completed_successfully
         required: true
-    image: ghcr.io/outernet-foundation/placeframe/reconstructor-rocm:tree-b63d39e6acba42a6a98b126732b5c664df9d7c18
+    image: ghcr.io/outernet-foundation/placeframe/reconstructor-rocm:tree-2df865cbad9fb994de6785ec7fc1a6234a98d1b4
     networks:
       core-rocm-net:
         aliases:
@@ -115,7 +115,7 @@ services:
       S3_ACCESS_KEY: ${S3_ACCESS_KEY:?err}
       S3_ENDPOINT_URL: http://seaweedfs:8333
       S3_SECRET_KEY: ${S3_SECRET_KEY:?err}
-      SERVICE_VERSION: tree-b63d39e6acba42a6a98b126732b5c664df9d7c18
+      SERVICE_VERSION: tree-2df865cbad9fb994de6785ec7fc1a6234a98d1b4
     group_add:
     - '44'
     - '110'
@@ -125,7 +125,7 @@ services:
       core-rocm-wait-for-resources:
         condition: service_completed_successfully
         required: true
-    image: ghcr.io/outernet-foundation/placeframe/localizer-rocm:tree-82b654197ddbeedf4b6e46f27b8f3d315bca848c
+    image: ghcr.io/outernet-foundation/placeframe/localizer-rocm:tree-648d90289ba3d492ef30643119ffd058da647912
     networks:
       core-rocm-net:
         aliases:
@@ -146,7 +146,7 @@ services:
       S3_ACCESS_KEY: ${S3_ACCESS_KEY:?err}
       S3_ENDPOINT_URL: http://seaweedfs:8333
       S3_SECRET_KEY: ${S3_SECRET_KEY:?err}
-      SERVICE_VERSION: tree-82b654197ddbeedf4b6e46f27b8f3d315bca848c
+      SERVICE_VERSION: tree-648d90289ba3d492ef30643119ffd058da647912
     group_add:
     - '44'
     - '110'
@@ -240,7 +240,7 @@ services:
       core-rocm-seaweedfs:
         condition: service_healthy
         required: false
-    image: ghcr.io/outernet-foundation/placeframe/s3-initializer:tree-cf3cf0a8a526738ae75c1a8f02389e9da680e42c
+    image: ghcr.io/outernet-foundation/placeframe/s3-initializer:tree-98677df602f8190811e8d59c8a90a9a0a140fed4
     networks:
       core-rocm-net:
         aliases:
@@ -293,7 +293,7 @@ services:
     - type: volume
       source: pf-postgres-data
       target: /var/lib/postgresql/data
-    image: ghcr.io/outernet-foundation/placeframe/postgres:tree-74446d020d74734fc823a2d051971c497bff8fd9
+    image: ghcr.io/outernet-foundation/placeframe/postgres:tree-9417c43d620afaa5218aea984ba484b13de850aa
     networks:
       core-rocm-net:
         aliases:
@@ -324,7 +324,7 @@ services:
       core-rocm-pf-postgres:
         condition: service_healthy
         required: false
-    image: ghcr.io/outernet-foundation/placeframe/database-manager:tree-069b630d7d723016f0676d31fc949d2cd2d0ba4d
+    image: ghcr.io/outernet-foundation/placeframe/database-manager:tree-53079917f120e8ec0bb5df2786783c6acddb7ba9
     networks:
       core-rocm-net:
         aliases:
@@ -357,7 +357,7 @@ services:
       core-rocm-pf-postgres-create:
         condition: service_completed_successfully
         required: false
-    image: ghcr.io/outernet-foundation/placeframe/database-migrator:tree-16dbc3a8ac894efdb6e427fde4fca3396440cd14
+    image: ghcr.io/outernet-foundation/placeframe/database-migrator:tree-7d2329fdb48cd175b6013971ef1dc1c75317cdb6
     networks:
       core-rocm-net:
         aliases:
@@ -375,7 +375,7 @@ services:
     - type: volume
       source: seaweedfs-data
       target: /data
-    image: ghcr.io/outernet-foundation/placeframe/seaweedfs:tree-b4e300b9ed76295b7354e8d0405d914059eef213
+    image: ghcr.io/outernet-foundation/placeframe/seaweedfs:tree-8a7e0696911ecbe8e42685f3a024ab7c9c934e75
     networks:
       core-rocm-net:
         aliases:
@@ -404,7 +404,7 @@ services:
       core-rocm-seaweedfs:
         condition: service_healthy
         required: false
-    image: ghcr.io/outernet-foundation/placeframe/seaweedfs:tree-b4e300b9ed76295b7354e8d0405d914059eef213
+    image: ghcr.io/outernet-foundation/placeframe/seaweedfs:tree-8a7e0696911ecbe8e42685f3a024ab7c9c934e75
     networks:
       core-rocm-net:
         aliases:
