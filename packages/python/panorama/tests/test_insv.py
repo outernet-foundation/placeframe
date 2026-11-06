@@ -10,6 +10,7 @@ import struct
 from pathlib import Path
 
 import numpy as np
+import pytest
 
 from panorama import insv
 
@@ -53,13 +54,14 @@ def _metadata() -> bytes:
     )
 
 
-def _insv_with_trailer(tmp_path: Path) -> Path:
+def _insv_with_trailer(tmp_path: Path, extra: dict[int, bytes] | None = None) -> Path:
     """A file whose tail is a trailer laid out as the X4 writes it: records, an index record, a
     72-byte footer ending in the size, version and magic."""
-    meta = _metadata()
-    body = b"\x00" * 128 + meta  # the trailer starts at the first byte of `body`
-    meta_offset = 128
-    index = b"\x00" * 10 + struct.pack("<BBII", 1, 1, len(meta), meta_offset)
+    body = b"\x00" * 128  # the trailer starts at the first byte of `body`
+    index = b"\x00" * 10
+    for rid, payload in {insv.METADATA_RECORD: _metadata(), **(extra or {})}.items():
+        index += struct.pack("<BBII", rid, 1 if rid == insv.METADATA_RECORD else 0, len(payload), len(body))
+        body += payload
     index_record = index + struct.pack("<HI", 0, len(index))
     footer_lead = b"\x00" * 32
     trailer_wo_size = body + index_record + footer_lead
@@ -133,3 +135,29 @@ def test_equirect_width_carries_the_lens_resolution() -> None:
     cal = _calibration()
     # ~1073 video px per radian at the axis -> a 2*pi circumference of ~6740 px, rounded to 64
     assert cal.equirect_width == 6720
+
+
+def test_imu_and_frame_times_are_decoded_onto_lens_0(tmp_path: Path) -> None:
+    """A still camera, lens 0 level, turning about its own vertical: gravity reads up the IMU's x
+    axis (lens 0's -y) and the turn on the IMU's x axis is lens 0's y."""
+    imu = np.zeros(3, dtype=insv.IMU_SAMPLE)
+    imu["t_us"] = [996_116_312, 996_117_312, 996_118_312]
+    imu["counts"] = 32768
+    imu["counts"][:, 0] = 32768 - 1000  # -1 g along IMU x: specific force up, so lens 0 points up -y
+    imu["counts"][:, 3] = 32768 + 164  # +10 deg/s about IMU x
+    frames = np.zeros(2, dtype=insv.FRAME_TIME)
+    frames["t_us"] = [996_083_928, 996_117_296]
+    frames["exposure_s"] = 0.005
+    path = _insv_with_trailer(tmp_path, {insv.IMU_RECORD: imu.tobytes(), insv.FRAME_TIMES_RECORD: frames.tobytes()})
+
+    decoded = insv.read_imu(path)
+    assert np.allclose(np.diff(decoded.t_s), 1e-3)
+    assert np.allclose(decoded.accel, [0.0, -insv.STANDARD_GRAVITY, 0.0])
+    assert np.allclose(decoded.gyro, [0.0, np.radians(10.0), 0.0])
+    assert np.allclose(insv.read_frame_times(path), [996.083928, 996.117296])
+
+
+def test_a_truncated_imu_record_is_refused(tmp_path: Path) -> None:
+    path = _insv_with_trailer(tmp_path, {insv.IMU_RECORD: b"\x00" * 30})
+    with pytest.raises(ValueError, match="20-byte"):
+        insv.read_imu(path)

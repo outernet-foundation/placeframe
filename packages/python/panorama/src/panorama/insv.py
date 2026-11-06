@@ -35,9 +35,24 @@ median -- what the lenses' ~3 cm separation produces for objects a few metres aw
 precision the seam itself allows (freeing the centres too gains 2 arcmin by absorbing parallax).
 With too few matches the fit falls back to a clean half turn.
 
-Not used (yet): tangential distortion (p1, p2 ~ 1e-3) and fx != fy (0.03%), and the trailer's IMU
-record (id 3: 56-byte samples, timestamp + accelerometer + gyroscope, ~358 Hz), which could give
-real orientation priors in place of the synthetic trajectory a video import writes.
+Motion
+------
+Record 3 is the IMU at 1 kHz: 20-byte samples of a timestamp (u64 LE, microseconds) and six
+offset-binary u16s (value - 32768), accelerometer then gyroscope, on the IMU's own axes. The
+accelerometer counts milli-g (a still camera reads ~1000); the gyroscope counts 1/16.4 deg/s, the
++-2000 deg/s range. Record 4 is one 16-byte entry per frame: a timestamp (u64 LE, microseconds,
+the IMU's clock) and the exposure in seconds (f64 LE). It holds 8-9 entries more than the video
+has frames; entry i is taken as frame i here.
+
+Both were checked against rotations measured from lens 0 itself, between frames a tenth of a
+second apart, on the Fosun X4 file: the gyroscope's scale came out at 0.0611 deg/s per count on
+all three axes, its axes a signed permutation of lens 0's (LENS0_FROM_IMU, to within ~1 degree),
+and 0.18 degrees RMS left over. The motion lines up with the frames only when the IMU's timestamps
+are read ~195 ms later than record 4's (about six frames, steady from start to end of the
+recording), so whoever relates the IMU to frames fits that offset per file rather than trusting
+record 4's alignment.
+
+Not used (yet): tangential distortion (p1, p2 ~ 1e-3) and fx != fy (0.03%).
 """
 
 from __future__ import annotations
@@ -62,6 +77,15 @@ from numpy.typing import NDArray  # noqa: TID251 — tracked in PLE-233
 MAGIC = b"8db42d694ccc418790edff439fe026bf"
 FOOTER = 72
 METADATA_RECORD = 1
+IMU_RECORD = 3
+FRAME_TIMES_RECORD = 4
+IMU_SAMPLE = np.dtype([("t_us", "<u8"), ("counts", "<u2", 6)])
+FRAME_TIME = np.dtype([("t_us", "<u8"), ("exposure_s", "<f8")])
+STANDARD_GRAVITY = 9.80665
+ACCEL_MPS2_PER_COUNT = 1e-3 * STANDARD_GRAVITY
+GYRO_RADPS_PER_COUNT = np.radians(1 / 16.4)
+# lens 0's OpenCV axes (x right, y down, z out of the lens) in terms of the IMU's: x = IMU z, ...
+LENS0_FROM_IMU = np.array([[0.0, 0.0, 1.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]])
 CALIBRATION_FIELD = 54  # the Mei model, both lenses
 VIDEO_SIZE_FIELD = 19  # {1: width, 2: height} of each lens video
 CROP_FIELD = 27  # {1: sensor w, 2: sensor h, 3: crop w, 4: crop h}
@@ -227,6 +251,45 @@ def read_calibration(
 
 Image = NDArray[np.uint8]
 Floats = NDArray[np.float64]
+
+
+# --- motion --------------------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class Imu:
+    """The IMU's samples, on lens 0's OpenCV axes (the stitched sphere's camera frame)."""
+
+    t_s: Floats  # (n,) seconds, on the clock frame_times reads
+    accel: Floats  # (n, 3) specific force, m/s^2: a still, upright camera reads ~(0, -9.81, 0)
+    gyro: Floats  # (n, 3) angular velocity, rad/s
+
+
+def _record_array(path: Path, record: int, dtype: np.dtype[np.void]) -> NDArray[np.void]:
+    data = trailer_records(path).get(record)
+    if data is None:
+        raise ValueError(f"{path.name} has no trailer record {record}")
+    if len(data) % dtype.itemsize:
+        raise ValueError(
+            f"{path.name}: trailer record {record} is {len(data)} bytes, not whole {dtype.itemsize}-byte entries"
+        )
+    return np.frombuffer(data, dtype=dtype)
+
+
+def read_imu(path: Path) -> Imu:
+    """Accelerometer and gyroscope from the trailer, in SI units on lens 0's axes."""
+    samples = _record_array(path, IMU_RECORD, IMU_SAMPLE)
+    counts = samples["counts"].astype(np.float64) - 32768
+    return Imu(
+        t_s=samples["t_us"].astype(np.float64) * 1e-6,
+        accel=counts[:, :3] @ LENS0_FROM_IMU.T * ACCEL_MPS2_PER_COUNT,
+        gyro=counts[:, 3:] @ LENS0_FROM_IMU.T * GYRO_RADPS_PER_COUNT,
+    )
+
+
+def read_frame_times(path: Path) -> Floats:
+    """Each frame's timestamp in seconds, on the IMU's clock (entry i taken as frame i; see Motion)."""
+    return _record_array(path, FRAME_TIMES_RECORD, FRAME_TIME)["t_us"].astype(np.float64) * 1e-6
 
 
 def _open(path: Path) -> tuple[InputContainer, list[VideoStream]]:
