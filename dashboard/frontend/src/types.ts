@@ -7,6 +7,8 @@ export interface CaptureSession {
   device_type: string;
   size_bytes: number;
   recorded_at: string;
+  // The video a spherical capture was imported from on this machine, when the importer recorded it.
+  source_video?: string | null;
 }
 
 export interface Reconstruction {
@@ -34,6 +36,11 @@ export interface Reconstruction {
   alignment?: Record<string, unknown> | null; // the Sim(3) and provenance recorded by transform-reconstruction
 }
 
+/** A copy already scaled to metres by its .insv's IMU, which has nothing left to fit. */
+export function isImuScaled(r: Reconstruction): boolean {
+  return r.alignment?.source === "imu_scale";
+}
+
 /** A transformed copy kept only for the viewer: no artifacts to localize against, so it cannot be published. */
 export function isViewerOnly(r: Reconstruction): boolean {
   return r.alignment?.viewer_only === true;
@@ -54,7 +61,7 @@ export interface LocalizationMap {
   created_at: string | null;
 }
 
-export type JobKind = "reconstruct" | "visualize" | "localize" | "icp" | "merge";
+export type JobKind = "reconstruct" | "visualize" | "localize" | "icp" | "merge" | "imu_scale";
 export type JobStatus = "running" | "succeeded" | "failed";
 
 export interface Job<TResult = unknown> {
@@ -120,6 +127,37 @@ export interface LocalizationImage {
   metrics?: LocalizationMetrics | null;
   has_detail?: boolean;
   thumbnail_base64: string;
+}
+
+// One registered frame of a reconstruction (an equirect, or one stereo pair), from
+// GET /api/reconstructions/{id}/frames. Its images are the views or cameras COLMAP registered for
+// that instant; observations and the mean track reprojection error are summed over all of them.
+export interface ReconstructionFrame {
+  index: number;
+  filename: string;
+  image_count: number;
+  position: { x: number; y: number; z: number };
+  quaternion_xyzw: [number, number, number, number];
+  rpy_deg: { roll: number; pitch: number; yaw: number };
+  observations: number;
+  reprojection_error_mean: number | null;
+  // Null when the capture's images aren't available (an imported reconstruction).
+  thumbnail_base64: string | null;
+}
+
+// One frame's registered images with their keypoints, from
+// GET /api/reconstructions/{id}/frames/{index}/detail. `width`/`height` are the size COLMAP
+// recorded, which the keypoints are in; the served image may be larger and scales uniformly.
+// `keypoints` is flattened x, y, error triples; error is the 3D point's track reprojection error,
+// or -1 for a keypoint that was never triangulated.
+export interface ReconstructionFrameDetail {
+  index: number;
+  images: { name: string; width: number; height: number; keypoints: number[] }[];
+}
+
+export interface ReconstructionFrames {
+  reconstruction_id: string;
+  frames: ReconstructionFrame[];
 }
 
 // `status` of one raw LightGlue match. NO_POINT3D is a match the matcher liked but PnP never

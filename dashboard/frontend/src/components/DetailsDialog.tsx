@@ -51,7 +51,7 @@ const PAIR_COLUMNS: { label: string; hint: string }[] = [
   { label: "Angle", hint: "Angle between the query camera's and this map image's viewing directions, in degrees." },
 ];
 
-function useLoadedImage(url: string | null): HTMLImageElement | null {
+export function useLoadedImage(url: string | null): HTMLImageElement | null {
   const [image, setImage] = useState<HTMLImageElement | null>(null);
   useEffect(() => {
     if (!url) {
@@ -360,7 +360,7 @@ export function DetailsDialog({
   );
 }
 
-function Summary({ label, value, hint }: { label: string; value: string; hint?: string }) {
+export function Summary({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <div className="detail-summary-item">
       <div className="detail-summary-label">{label}</div>

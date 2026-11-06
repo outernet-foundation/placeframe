@@ -7,6 +7,7 @@ import {
   importPath,
   saveLocalizationImages,
   saveLocalizationTable,
+  startImuScale,
   startLocalize,
   startPoselessReconstruct,
   startReconstruct,
@@ -127,8 +128,8 @@ function useSubmit<T>(action: () => Promise<T>, onDone: (result: T) => void) {
 
 const HINT = { fontSize: 13, color: "#a8adb8" } as const;
 
-// howard_test.py's POSELESS_POSE_PRIOR_SIGMA_M: an image folder's synthetic trajectory gets a pose
-// prior this weak so that feature matches, not the fake poses, decide the geometry.
+// howard_test.py's POSELESS_POSE_PRIOR_SIGMA_M: an image folder's or a spherical video's synthetic
+// trajectory gets a pose prior this weak so that feature matches, not the fake poses, decide the geometry.
 const POSELESS_PRIOR_SIGMA_M = 1000;
 
 export function formatOptionValue(value: unknown): string {
@@ -298,7 +299,12 @@ export function ReconstructDialog({ captureName, captureId, isSpherical: listedS
     () => {
       const typed = {
         ...(spherical
-          ? { spherical_layout: views.layout, spherical_view_fov_deg: views.viewFovDeg, spherical_sequential_views: views.pairing }
+          ? {
+              spherical_layout: views.layout,
+              spherical_view_fov_deg: views.viewFovDeg,
+              spherical_sequential_views: views.pairing,
+              pose_prior_position_sigma_m: POSELESS_PRIOR_SIGMA_M,
+            }
           : {}),
         ...matchingOptions(matching),
       };
@@ -599,6 +605,50 @@ export function FusionDialog({ reconstructionLabel, reconstructionId, onClose, o
       </div>
       {error && <div className="banner banner-error">{error}</div>}
       <Actions busy={busy} disabled={!tarPath.trim()} label="Process" busyLabel="Starting…" onCancel={onClose} onSubmit={() => void submit()} />
+    </Modal>
+  );
+}
+
+// ── Metric scale from an .insv's IMU ───────────────────────────────────────
+
+export function ImuScaleDialog({ reconstruction, capture, onClose, onStarted }: {
+  reconstruction: Reconstruction;
+  capture: CaptureSession | null;
+  onClose: () => void;
+  onStarted: (jobId: string) => void;
+}) {
+  const recorded = capture?.source_video ?? "";
+  const [insvPath, setInsvPath] = useState(recorded.toLowerCase().endsWith(".insv") ? recorded : "");
+  const path = insvPath.trim();
+  const { busy, error, submit } = useSubmit(
+    // The recorded video goes as null so howard-test resolves it itself, the same way the CLI would.
+    () => startImuScale(reconstruction.id, path === recorded ? null : path, reconstruction.capture_session_id),
+    ({ job_id }) => onStarted(job_id),
+  );
+  return (
+    <Modal title="Metric scale from IMU" busy={busy} onClose={onClose}>
+      <PathField
+        label="Insta360 .insv the capture was imported from"
+        value={insvPath}
+        onChange={setInsvPath}
+        placeholder="/path/to/VID_….insv"
+        browseTitle="Choose the .insv"
+        fileExtensions={[".insv"]}
+      />
+      <div style={{ ...HINT, marginTop: -8 }}>
+        {recorded
+          ? "Filled in from the capture's import on this machine."
+          : "This capture's source video was not recorded at import, so choose it."}{" "}
+        The gyro is synced to the map's rotations and the accelerometer fitted against the keyframes' motion, which
+        gives the scale. The map must come from the .insv itself: an Insta360 Studio export is stabilised and
+        cannot be synced.
+      </div>
+      <div style={HINT}>
+        Imports a copy scaled to metres and levelled (gravity along +y) under this capture; this map is untouched.
+        The fit is quick, but an uncached map is downloaded first and the copy is uploaded in full.
+      </div>
+      {error && <div className="banner banner-error">{error}</div>}
+      <Actions busy={busy} disabled={!path.toLowerCase().endsWith(".insv")} label="Scale" busyLabel="Starting…" onCancel={onClose} onSubmit={() => void submit()} />
     </Modal>
   );
 }

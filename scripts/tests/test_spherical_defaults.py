@@ -16,6 +16,8 @@ def test_defaults_fill_an_empty_request_and_validate() -> None:
     assert options.max_keypoints_per_image == 5000
     assert options.pair_vio_em_max_rotation_disagreement_deg == 180.0
     assert options.pair_vio_em_max_translation_direction_deg == 180.0
+    # An imported video's trajectory is made up, so its prior must not steer bundle adjustment.
+    assert options.pose_prior_position_sigma_m == 1000.0
 
 
 def test_field_of_view_follows_a_chosen_layout() -> None:

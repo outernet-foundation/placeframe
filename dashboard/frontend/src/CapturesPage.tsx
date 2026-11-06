@@ -25,6 +25,7 @@ import {
   ExportViewsDialog,
   FusionDialog,
   ImportDialog,
+  ImuScaleDialog,
   LocalizeDialog,
   optionsSummary,
   PoselessReconstructDialog,
@@ -34,10 +35,11 @@ import {
 } from "./components/ActionDialogs";
 import { FusionPlayer } from "./components/FusionPlayer";
 import { Menu } from "./components/Menu";
+import { ReconstructionFrames } from "./components/ReconstructionFrames";
 import { RunResults } from "./components/RunResults";
 import { errorText, readStored, store, STORAGE_KEYS } from "./storage";
 import type { CaptureSession, FusionRunSummary, Job, JobProgress, LocalizationSummary, PoselessImageSet, Reconstruction } from "./types";
-import { TERMINAL_STATUSES, isViewerOnly } from "./types";
+import { TERMINAL_STATUSES, isImuScaled, isViewerOnly } from "./types";
 
 // One page, one tree: capture → its reconstructions (one per set of options) → each
 // reconstruction's localization runs. Captures and reconstructions come from the API; runs are the
@@ -49,6 +51,7 @@ type Dialog =
   | { kind: "poseless"; set: PoselessImageSet }
   | { kind: "localize"; reconstruction: Reconstruction; label: string }
   | { kind: "fusion"; reconstruction: Reconstruction; label: string }
+  | { kind: "imuScale"; reconstruction: Reconstruction }
   | { kind: "import" }
   | { kind: "export"; exportKind: ExportKind; reconstruction: Reconstruction }
   | { kind: "exportViews"; capture: CaptureSession }
@@ -97,6 +100,7 @@ function describeProgress(progress: JobProgress | null): string | null {
     queueing: "Queueing reconstruction",
     downloading: "Downloading",
     fitting: "Fitting by ICP",
+    fitting_imu: "Fitting the IMU to the map",
     transforming: "Transforming the map",
   };
   const name = label[progress.phase] ?? progress.phase;
@@ -420,16 +424,18 @@ export function CapturesPage() {
     });
   }
 
-  function toggleResults(runId: string): void {
+  // Keyed by run id or reconstruction id: both open an images table under their row.
+  function toggleResults(id: string): void {
     setResultsOpen((current) => {
       const next = new Set(current);
-      if (next.has(runId)) next.delete(runId);
-      else next.add(runId);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   }
 
   const captureName = (id: string | null) => captures.find((c) => c.id === id)?.name ?? "unknown capture";
+  const captureOf = (r: Reconstruction) => captures.find((c) => c.id === r.capture_session_id) ?? null;
   const reconstructionLabel = (r: Reconstruction) => `${captureName(r.capture_session_id)} · ${r.id.slice(0, 8)}`;
 
   async function commitRename(): Promise<void> {
@@ -538,8 +544,11 @@ export function CapturesPage() {
     const imported = c.size_bytes === 0 && !set;
     // A running job opens its capture even if the operator closed it: the row is the whole point.
     const open = jobs.length > 0 || isOpen(c.id, children.length > 0);
+    // Outlined green when a device can localize against one of its maps; the map itself is
+    // filled green once the capture is open.
+    const published = children.some((r) => r.localization_map_id);
     return (
-      <div className="node node-capture" key={c.id}>
+      <div className={published ? "node node-capture node-published" : "node node-capture"} key={c.id}>
         <div className="node-row">
           <Check selectionKey={`capture:${c.id}`} />
           <Toggle open={open} onClick={() => setOpen(c.id, !open)} />
@@ -680,6 +689,7 @@ export function CapturesPage() {
     const total = stats?.total_frame_count ?? r.total_frame_count;
     const isStereo = stats?.is_stereo ?? r.is_stereo;
     const succeeded = r.status === "succeeded";
+    const showingFrames = resultsOpen.has(r.id);
     const facts = [
       r.map_point_count != null ? `${r.map_point_count.toLocaleString()} pts` : null,
       r.registered_frame_count != null
@@ -690,7 +700,7 @@ export function CapturesPage() {
       isStereo == null ? null : isStereo ? "stereo" : "mono",
     ].filter(Boolean);
     return (
-      <div className="node node-reconstruction" key={r.id}>
+      <div className={r.localization_map_id ? "node node-reconstruction node-published" : "node node-reconstruction"} key={r.id}>
         <div className="node-row">
           <Check selectionKey={`reconstruction:${r.id}`} />
           {childCount > 0 ? <Toggle open={open} onClick={() => setOpen(r.id, !open)} /> : <span className="toggle-spacer" />}
@@ -747,6 +757,7 @@ export function CapturesPage() {
                   {publishing === r.id ? "…" : r.localization_map_id ? "Unpublish" : "Publish"}
                 </button>
                 <button onClick={() => openViewer(r.id)}>Visualize</button>
+                <button onClick={() => toggleResults(r.id)}>{showingFrames ? "Hide images" : "Images"}</button>
                 <button onClick={() => setDialog({ kind: "localize", reconstruction: r, label: reconstructionLabel(r) })}>Localize…</button>
                 <button
                   title="Replay a recorded localization run's VPS and VIO/VPS fusion against this map, frame by frame"
@@ -754,6 +765,14 @@ export function CapturesPage() {
                 >
                   Offline fusion…
                 </button>
+                {captureOf(r)?.is_spherical && !isImuScaled(r) && (
+                  <button
+                    title="Scale this map to metres from the .insv's IMU, as a new reconstruction"
+                    onClick={() => setDialog({ kind: "imuScale", reconstruction: r })}
+                  >
+                    Scale from IMU…
+                  </button>
+                )}
                 <Menu
                   label="Export"
                   items={[
@@ -778,6 +797,11 @@ export function CapturesPage() {
             {DELETABLE_STATUSES.has(r.status) && <button onClick={() => setDialog({ kind: "deleteReconstruction", reconstruction: r })}>Delete</button>}
           </div>
         </div>
+        {showingFrames && succeeded && !isViewerOnly(r) && (
+          <div className="node-children">
+            <ReconstructionFrames reconstructionId={r.id} />
+          </div>
+        )}
         {open && childCount > 0 && (
           <div className="node-children">
             {fusionChildren.map(fusionRunNode)}
@@ -894,7 +918,7 @@ export function CapturesPage() {
   return (
     <div className="panel">
       <div className="panel-header">
-        <h2>Captures</h2>
+        <h2>Captures, Reconstructions, Localization Runs</h2>
         <div className="node-actions">
           {selecting ? (
             <>
@@ -1024,6 +1048,16 @@ export function CapturesPage() {
         />
       )}
       {playingFusion && <FusionPlayer runId={playingFusion} onClose={() => setPlayingFusion(null)} />}
+      {dialog?.kind === "imuScale" && (
+        <ImuScaleDialog
+          reconstruction={dialog.reconstruction}
+          capture={captureOf(dialog.reconstruction)}
+          onClose={() => setDialog(null)}
+          // The job's row (under the capture, from the jobs listing) takes it from here, and its
+          // notice reports the scale and whether to trust it once the copy is in.
+          onStarted={() => setDialog(null)}
+        />
+      )}
       {dialog?.kind === "import" && (
         <ImportDialog
           onClose={() => setDialog(null)}

@@ -10,6 +10,8 @@ import type {
   LocalizationSummary,
   PoselessImageSet,
   Reconstruction,
+  ReconstructionFrameDetail,
+  ReconstructionFrames,
 } from "./types";
 
 const API_BASE = "http://localhost:8010";
@@ -306,6 +308,10 @@ export function startLocalize(
   });
 }
 
+export function getReconstructionFrames(reconstructionId: string): Promise<ReconstructionFrames> {
+  return request(`/api/reconstructions/${reconstructionId}/frames`);
+}
+
 export function getLocalization(runId: string): Promise<LocalizationResult> {
   return request(`/api/localizations/${runId}`);
 }
@@ -318,6 +324,15 @@ export function getLocalizationDetail(runId: string, index: number): Promise<Loc
 // is no reason to pull the bytes through fetch() first.
 export function localizationQueryImageUrl(runId: string, index: number): string {
   return `${API_BASE}/api/localizations/${runId}/images/${index}/image`;
+}
+
+export function getReconstructionFrameDetail(reconstructionId: string, index: number): Promise<ReconstructionFrameDetail> {
+  return request(`/api/reconstructions/${reconstructionId}/frames/${index}/detail`);
+}
+
+// Resolved by getReconstructionFrameDetail, which must have been called for the image's frame.
+export function reconstructionImageUrl(reconstructionId: string, name: string): string {
+  return `${API_BASE}/api/reconstructions/${reconstructionId}/map-image?name=${encodeURIComponent(name)}`;
 }
 
 export function localizationPairImageUrl(runId: string, index: number, rank: number): string {
@@ -485,6 +500,19 @@ export interface IcpMatchRequest {
 // as a new reconstruction. Returns at once; the job carries on in the backend.
 export function startIcpMatch(body: IcpMatchRequest): Promise<{ job_id: string; alignment_id: string }> {
   return request("/api/icp-matches", { method: "POST", body: JSON.stringify(body) });
+}
+
+// Fits the .insv's IMU to a spherical map and imports the map, scaled to metres and levelled, as a
+// new reconstruction under the same capture. `insvPath` null uses the video recorded at import.
+export function startImuScale(
+  reconstructionId: string,
+  insvPath: string | null,
+  captureSessionId: string | null,
+): Promise<{ job_id: string }> {
+  return request(`/api/reconstructions/${reconstructionId}/imu-scale`, {
+    method: "POST",
+    body: JSON.stringify({ insv_path: insvPath, capture_session_id: captureSessionId }),
+  });
 }
 
 export interface ScreenshotResult {

@@ -60,7 +60,7 @@ from placeframe_api_client import (
     ReconstructionStatus,
 )
 
-from . import icp_align, offline_fusion
+from . import icp_align, imu_scale, offline_fusion
 from .api_auth import authenticated_api_client
 
 app = typer.Typer(add_completion=False, no_args_is_help=True)
@@ -95,6 +95,8 @@ LOCALIZATION_DETAILS_DIRNAME = "details"
 # capture's views from the spheres it holds, and re-downloading those for every export would be a
 # multi-GB fetch per click.
 CAPTURES_DIR = DATA_DIR / "captures"
+# Each IMU-scaled copy's fit report, by the copy's id; also recorded in the copy's manifest.
+IMU_SCALE_DIR = DATA_DIR / "imu_scale"
 
 # A spherical capture's spheres, as build_spherical_capture_tar writes them: one per instant, named
 # by capture timestamp. The views rendered from them are what an export writes.
@@ -153,14 +155,17 @@ SPHERICAL_LAYOUT = "tetrahedron"
 # What a spherical capture is reconstructed with unless the caller says otherwise; a camera capture
 # keeps ReconstructionOptions' own defaults. Twelve narrow views, sequential pairs only between
 # neighbouring views, twice the keypoints, and the pose-consistency checks off (180 degrees),
-# because an imported video's poses are a made-up straight line that never turns. The dashboard's
-# reconstruct dialog (ActionDialogs.tsx) holds the same values.
+# because an imported video's poses are a made-up straight line that never turns. For the same
+# reason the position prior is made negligible: a spherical capture has one camera, so the
+# reconstructor treats it as monocular and would otherwise pull bundle adjustment towards that line
+# at the server's 5 cm. The dashboard's reconstruct dialog (ActionDialogs.tsx) holds the same values.
 SPHERICAL_RECONSTRUCTION_DEFAULTS: dict[str, Any] = {
     "spherical_layout": "dodecahedron",
     "spherical_sequential_views": "neighbouring",
     "max_keypoints_per_image": 5000,
     "pair_vio_em_max_rotation_disagreement_deg": 180.0,
     "pair_vio_em_max_translation_direction_deg": 180.0,
+    "pose_prior_position_sigma_m": POSELESS_POSE_PRIOR_SIGMA_M,
 }
 # The field of view each layout gets by default: a little over the narrowest that covers the sphere.
 SPHERICAL_LAYOUT_FOV_DEG: dict[str, float] = {
@@ -1367,6 +1372,90 @@ async def _icp_align(
     return reconstruction, record
 
 
+@app.command(name="imu-scale")
+def imu_scale_command(
+    reconstruction_id: Annotated[
+        UUID, typer.Argument(help="Reconstruction of a spherical capture imported from an .insv")
+    ],
+    video: Annotated[
+        Path | None,
+        typer.Option(
+            "--insv",
+            help="The .insv the capture was imported from. Omitted, it is the one recorded when the capture was "
+            "imported on this machine",
+        ),
+    ] = None,
+    window_s: Annotated[
+        float, typer.Option("--window-s", help="Length of the windows the scale is refitted over, for the drift test")
+    ] = imu_scale.DRIFT_WINDOW_S,
+    json_output: Annotated[bool, typer.Option("--json", help="Emit JSON instead of text")] = False,
+) -> None:
+    """Scale a spherical map to metres from its .insv's IMU, and import it as a new reconstruction.
+
+    The fit syncs the gyro to the map's rotations and solves the accelerometer against the
+    keyframes' displacements (see imu_scale). The copy is scaled about the map's origin and turned
+    so gravity is +y; it lands under the same capture, with the fit's report recorded in its
+    manifest and written to data/imu_scale/<copy id>.json. The map itself is untouched.
+    """
+    reconstruction, report = run(_imu_scale(reconstruction_id, video, window_s))
+    if json_output:
+        typer.echo(dumps({**_reconstruction_to_dict(reconstruction), "imu_scale": report}))
+        return
+    typer.echo(
+        f"Metric copy {reconstruction.id} of {reconstruction_id}: {report['scale']:.4f} ± {report['scale_sigma']:.4f} "
+        f"m per unit, path {report['path_length_m']:.1f} m, |g| free fit {report['free_gravity_norm_mps2']:.2f}, "
+        f"drift p = {report['drift_p_value']:.2f}"
+    )
+
+
+async def _imu_scale(
+    reconstruction_id: UUID, video: Path | None, window_s: float
+) -> tuple[ReconstructionReadWithQueue, dict[str, Any]]:
+    async with authenticated_api_client() as api:
+        try:
+            source = await api.get_reconstruction(id=reconstruction_id)
+            emit_progress("downloading", detail="map")
+            tar_path = await _ensure_cached_tar(api, reconstruction_id)
+        except ApiException as exception:
+            _fail(exception)
+    if video is None:
+        recorded = read_capture_sources().get(str(source.capture_session_id))
+        if recorded is None:
+            _fail_message(
+                f"No source video is recorded for capture {source.capture_session_id}: it was imported elsewhere or "
+                "before sources were recorded. Pass the .insv it came from with --insv."
+            )
+        video = Path(recorded)
+    video = video.expanduser()
+    if not video.is_file():
+        _fail_message(f"{video} does not exist")
+    if not insv.is_insv(video):
+        _fail_message(
+            f"{video.name} is not an Insta360 .insv; only an .insv carries the IMU, and an Insta360 Studio export "
+            "is stabilised, so its map's rotations no longer follow the camera"
+        )
+    emit_progress("fitting_imu")
+    report, sim3 = await to_thread(imu_scale.scale_reconstruction, tar_path, video, window_s)
+    transform: Sim3 = (
+        float(sim3["scale"]),
+        np.asarray(sim3["R"], dtype=np.float64),
+        np.asarray(sim3["translation"], dtype=np.float64),
+    )
+    record = {
+        **sim3,
+        "imu_scale": report,
+        "source_reconstruction_id": str(reconstruction_id),
+        "viewer_only": False,
+    }
+    label = f"Metric from IMU (×{report['scale']:.3f})"
+    reconstruction = await _transform_reconstruction(reconstruction_id, transform, label, record)
+    IMU_SCALE_DIR.mkdir(parents=True, exist_ok=True)
+    (IMU_SCALE_DIR / f"{reconstruction.id}.json").write_text(
+        dumps({**record, "reconstruction_id": str(reconstruction.id)}, indent=2)
+    )
+    return reconstruction, report
+
+
 @app.command()
 def reconstruct(
     capture_id: Annotated[UUID, typer.Argument(help="Capture session to reconstruct")],
@@ -1936,6 +2025,320 @@ def export_poses(
         typer.echo(dumps({"output_path": str(output_path), "count": len(images)}))
         return
     typer.echo(f"Exported {len(images)} poses from reconstruction {reconstruction_id} to {output_path}")
+
+
+def _cached_frames_path(reconstruction_id: UUID) -> Path:
+    return RECONSTRUCTIONS_DIR / f"{reconstruction_id}.frames.json"
+
+
+@dataclass
+class _SfmFrame:
+    rig_id: str
+    world_from_rig: NDArray[np.float64]
+    position: NDArray[np.float64]
+    image_names: list[str]
+    observations: int
+    error_sum: float
+    # Parallel to image_names; only filled when _sfm_frames is asked for keypoints.
+    image_ids: list[int]
+
+
+@dataclass
+class _SfmKeypoints:
+    """Every image's keypoints and camera size, for drawing a frame's features over its images."""
+
+    camera_sizes: dict[int, tuple[int, int]]
+    image_cameras: dict[int, int]
+    # Per image, rows of (x, y, track reprojection error); the error is -1 for a keypoint with no
+    # triangulated 3D point.
+    keypoints: dict[int, NDArray[np.float32]]
+
+
+def _sfm_frames(tar: tarfile.TarFile, keypoints: _SfmKeypoints | None = None) -> list[_SfmFrame]:
+    """Each registered frame of a COLMAP text model, with what it saw.
+
+    A frame is one capture instant -- one equirect for a spherical capture, one stereo pair for a
+    Zed -- so its images (the rendered views or the rig's cameras) are folded together: their
+    observations summed and their tracks' reprojection errors averaged. A model written before
+    rigs (no frames.txt) treats every image as its own frame. Pass `keypoints` to have it filled
+    in as the model is read, rather than reading images.txt a second time.
+    """
+
+    def text(member: str) -> list[str] | None:
+        try:
+            extracted = tar.extractfile(member)
+        except KeyError:
+            return None
+        return None if extracted is None else extracted.read().decode().splitlines()
+
+    images_lines = text("sfm_model/images.txt")
+    points_lines = text("sfm_model/points3D.txt")
+    if images_lines is None or points_lines is None:
+        raise RuntimeError("The reconstruction tar has no sfm_model/images.txt or points3D.txt")
+
+    point_errors: dict[int, float] = {}
+    for line in points_lines:
+        if line.startswith("#") or not line.strip():
+            continue
+        fields = line.split(maxsplit=8)
+        point_errors[int(fields[0])] = float(fields[7])
+
+    # images.txt alternates a pose line and a points2D line, and the points2D line is empty for an
+    # image with no observations, so pair the lines up rather than skipping blanks.
+    body = [line for line in images_lines if not line.startswith("#")]
+    images: dict[int, tuple[str, NDArray[np.float64], NDArray[np.float64], list[int]]] = {}
+    for pose_line, points_line in zip(body[0::2], body[1::2], strict=False):
+        fields = pose_line.split()
+        if len(fields) < 10:
+            continue
+        cam_from_world = Rotation.from_quat([float(fields[2]), float(fields[3]), float(fields[4]), float(fields[1])])
+        translation = np.array([float(v) for v in fields[5:8]])
+        point_ids = [int(v) for v in points_line.split()[2::3]]
+        if keypoints is not None:
+            rows = np.array(points_line.split(), dtype=np.float64).reshape(-1, 3)
+            errors = [point_errors.get(point, -1.0) if point != -1 else -1.0 for point in point_ids]
+            keypoints.keypoints[int(fields[0])] = np.column_stack([rows[:, :2], errors]).astype(np.float32)
+            keypoints.image_cameras[int(fields[0])] = int(fields[8])
+        images[int(fields[0])] = (
+            fields[9],
+            cam_from_world.as_matrix(),
+            translation,
+            [i for i in point_ids if i != -1 and i in point_errors],
+        )
+
+    groups: list[tuple[str, NDArray[np.float64], NDArray[np.float64], list[int]]] = []
+    frames_lines = text("sfm_model/frames.txt")
+    if frames_lines is not None:
+        for line in frames_lines:
+            if line.startswith("#") or not line.strip():
+                continue
+            fields = line.split()
+            rig_from_world = Rotation.from_quat([
+                float(fields[3]),
+                float(fields[4]),
+                float(fields[5]),
+                float(fields[2]),
+            ]).as_matrix()
+            data_ids = [int(fields[10 + index * 3 + 2]) for index in range(int(fields[9]))]
+            groups.append((
+                fields[1],
+                rig_from_world,
+                np.array([float(v) for v in fields[6:9]]),
+                [i for i in data_ids if i in images],
+            ))
+    else:
+        groups = [
+            ("0", rotation, translation, [image_id]) for image_id, (_, rotation, translation, _) in images.items()
+        ]
+
+    if keypoints is not None:
+        for line in text("sfm_model/cameras.txt") or []:
+            if line.startswith("#") or not line.strip():
+                continue
+            fields = line.split()
+            keypoints.camera_sizes[int(fields[0])] = (int(fields[2]), int(fields[3]))
+
+    frames: list[_SfmFrame] = []
+    for rig_id, rig_from_world, translation, image_ids in groups:
+        if not image_ids:
+            continue
+        observed = [point for image_id in image_ids for point in images[image_id][3]]
+        world_from_rig = rig_from_world.T
+        ordered = sorted(image_ids, key=lambda image_id: _natural_sort_key(images[image_id][0]))
+        frames.append(
+            _SfmFrame(
+                rig_id=rig_id,
+                world_from_rig=world_from_rig,
+                position=-world_from_rig @ translation,
+                image_names=[images[i][0] for i in ordered],
+                observations=len(observed),
+                error_sum=sum(point_errors[point] for point in observed),
+                image_ids=ordered,
+            )
+        )
+    frames.sort(key=lambda frame: (frame.rig_id, _natural_sort_key(frame.image_names[0])))
+    return frames
+
+
+def _frame_thumbnail_member(name: str, members: set[str]) -> str | None:
+    """The capture-tar member that shows a frame: the image itself for a rig capture, or the
+    equirect a spherical view was rendered from (`rig0/camera0_C/1.jpg` -> `rig0/camera0/1.jpg`;
+    see `_resolve_map_images` for that naming)."""
+    if name in members:
+        return name
+    parts = name.split("/")
+    if len(parts) != 3:
+        return None
+    source_camera, separator, _view = parts[1].rpartition("_")
+    sphere = f"{parts[0]}/{source_camera}/{parts[2]}"
+    return sphere if separator and sphere in members else None
+
+
+def _frame_thumbnail(tar: tarfile.TarFile, member: str) -> str | None:
+    extracted = tar.extractfile(member)
+    if extracted is None:
+        return None
+    with Image.open(BytesIO(extracted.read())) as opened:
+        # draft() lets the JPEG decoder skip straight to a reduced scale, which is most of the
+        # cost saved on a several-thousand-pixel equirect.
+        opened.draft("RGB", LOCALIZATION_THUMBNAIL_SIZE)
+        image = opened.convert("RGB")
+    image.thumbnail(LOCALIZATION_THUMBNAIL_SIZE)
+    buffer = BytesIO()
+    image.save(buffer, format="JPEG", quality=80)
+    return f"data:image/jpeg;base64,{base64.b64encode(buffer.getvalue()).decode('ascii')}"
+
+
+def _reconstruction_frames(
+    reconstruction_id: UUID, reconstruction_tar: Path, capture_tar: Path | None
+) -> dict[str, Any]:
+    with tarfile.open(reconstruction_tar) as tar:
+        frames = _sfm_frames(tar)
+
+    # Named after what the thumbnail shows (the equirect, for a spherical capture) rather than
+    # after one of the views rendered from it.
+    filenames = [frame.image_names[0] for frame in frames]
+    thumbnails: list[str | None] = [None] * len(frames)
+    if capture_tar is not None:
+        with tarfile.open(capture_tar) as tar:
+            members = {member.name for member in tar.getmembers() if member.isfile()}
+            for index, frame in enumerate(frames):
+                member = _frame_thumbnail_member(frame.image_names[0], members)
+                if member is not None:
+                    filenames[index] = member
+                    thumbnails[index] = _frame_thumbnail(tar, member)
+
+    entries: list[dict[str, Any]] = []
+    for index, (frame, filename, thumbnail) in enumerate(zip(frames, filenames, thumbnails, strict=True)):
+        world_from_rig = Rotation.from_matrix(frame.world_from_rig)
+        roll, pitch, yaw = world_from_rig.as_euler("xyz", degrees=True)
+        entries.append({
+            "index": index,
+            "filename": filename,
+            "image_count": len(frame.image_names),
+            "position": {"x": float(frame.position[0]), "y": float(frame.position[1]), "z": float(frame.position[2])},
+            "quaternion_xyzw": [float(v) for v in world_from_rig.as_quat()],
+            "rpy_deg": {"roll": float(roll), "pitch": float(pitch), "yaw": float(yaw)},
+            "observations": frame.observations,
+            "reprojection_error_mean": frame.error_sum / frame.observations if frame.observations else None,
+            "thumbnail_base64": thumbnail,
+        })
+    return {"reconstruction_id": str(reconstruction_id), "frames": entries}
+
+
+async def _fetch_reconstruction_frames(reconstruction_id: UUID) -> dict[str, Any]:
+    async with authenticated_api_client() as api:
+        try:
+            reconstruction = await api.get_reconstruction(id=reconstruction_id)
+            reconstruction_tar = await _ensure_cached_tar(api, reconstruction_id)
+            capture_id = reconstruction.capture_session_id
+            capture_tar = None if capture_id is None else await _ensure_cached_capture_tar(api, capture_id)
+        except ApiException as exception:
+            _fail(exception)
+    return await to_thread(_reconstruction_frames, reconstruction_id, reconstruction_tar, capture_tar)
+
+
+@app.command(name="reconstruction-frames")
+def reconstruction_frames(
+    reconstruction_id: Annotated[UUID, typer.Argument(help="Reconstruction whose registered frames to list")],
+    refresh: Annotated[bool, typer.Option("--refresh", help="Recompute even if a cached listing exists")] = False,
+    _json_output: Annotated[
+        bool, typer.Option("--json", help="Accepted for symmetry; the output is always JSON")
+    ] = False,
+) -> None:
+    """Each registered frame's pose, observations, reprojection error and thumbnail, as JSON.
+
+    The same row shape as a localization run's images, so the dashboard shows both alike. Cached
+    next to the reconstruction tar: a reconstruction never changes once it has succeeded.
+    """
+    cached = _cached_frames_path(reconstruction_id)
+    if refresh or not cached.exists():
+        result = run(_fetch_reconstruction_frames(reconstruction_id))
+        RECONSTRUCTIONS_DIR.mkdir(parents=True, exist_ok=True)
+        cached.write_text(dumps(result))
+    typer.echo(cached.read_text())
+
+
+def _keypoints_cache_path(reconstruction_id: UUID) -> Path:
+    return RECONSTRUCTIONS_DIR / f"{reconstruction_id}.keypoints.npz"
+
+
+# Keypoint coordinates are stored in eighths of a pixel as uint16, which covers images up to
+# 8191 px wide at a precision far below what a drawn dot shows, in a third of float32's space.
+_KEYPOINT_SUBPIXELS = 8
+
+
+def _write_keypoints_cache(reconstruction_tar: Path, output: Path) -> None:
+    """Every frame's images and keypoints in one array file, ordered as the frames listing is.
+
+    Reading the text model is the expensive part (tens of seconds for a large spherical map), so
+    it is done once; each frame is then a slice. `frame_offsets` indexes the image arrays and
+    `image_offsets` indexes the keypoint arrays.
+    """
+    found = _SfmKeypoints(camera_sizes={}, image_cameras={}, keypoints={})
+    with tarfile.open(reconstruction_tar) as tar:
+        frames = _sfm_frames(tar, found)
+    image_ids = [image_id for frame in frames for image_id in frame.image_ids]
+    rows = [found.keypoints[image_id] for image_id in image_ids]
+    stacked = np.concatenate(rows) if rows else np.empty((0, 3), dtype=np.float32)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    np.savez(
+        output,
+        xy=np.round(stacked[:, :2] * _KEYPOINT_SUBPIXELS).astype(np.uint16),
+        error=stacked[:, 2].astype(np.float16),
+        image_offsets=np.cumsum([0, *(len(r) for r in rows)]),
+        image_names=np.array([name for frame in frames for name in frame.image_names]),
+        image_sizes=np.array(
+            [found.camera_sizes.get(found.image_cameras[image_id], (0, 0)) for image_id in image_ids], dtype=np.int32
+        ).reshape(-1, 2),
+        frame_offsets=np.cumsum([0, *(len(frame.image_ids) for frame in frames)]),
+    )
+
+
+def _frame_detail(cache: Path, index: int) -> dict[str, Any]:
+    with np.load(cache) as data:
+        frame_offsets = data["frame_offsets"]
+        if not 0 <= index < len(frame_offsets) - 1:
+            _fail_message(f"No frame {index}; the reconstruction has {len(frame_offsets) - 1}")
+        image_offsets = data["image_offsets"]
+        images: list[dict[str, Any]] = []
+        for image in range(int(frame_offsets[index]), int(frame_offsets[index + 1])):
+            begin, end = int(image_offsets[image]), int(image_offsets[image + 1])
+            xy = data["xy"][begin:end].astype(np.float32) / _KEYPOINT_SUBPIXELS
+            error = data["error"][begin:end].astype(np.float32)
+            width, height = (int(v) for v in data["image_sizes"][image])
+            images.append({
+                "name": str(data["image_names"][image]),
+                "width": width,
+                "height": height,
+                # Flattened x, y, error triples; error is the 3D point's track reprojection error,
+                # or -1 for a keypoint that was never triangulated.
+                "keypoints": [round(float(v), 2) for v in np.column_stack([xy, error]).reshape(-1)],
+            })
+    return {"index": index, "images": images}
+
+
+@app.command(name="reconstruction-frame-detail")
+def reconstruction_frame_detail(
+    reconstruction_id: Annotated[UUID, typer.Argument(help="Reconstruction the frame belongs to")],
+    index: Annotated[int, typer.Argument(help="The frame's index in the reconstruction-frames listing")],
+    _json_output: Annotated[
+        bool, typer.Option("--json", help="Accepted for symmetry; the output is always JSON")
+    ] = False,
+) -> None:
+    """One frame's images with their sizes and keypoints, as JSON."""
+    cache = _keypoints_cache_path(reconstruction_id)
+    if not cache.exists():
+
+        async def fetch() -> Path:
+            async with authenticated_api_client() as api:
+                try:
+                    return await _ensure_cached_tar(api, reconstruction_id)
+                except ApiException as exception:
+                    _fail(exception)
+
+        _write_keypoints_cache(run(fetch()), cache)
+    typer.echo(dumps(_frame_detail(cache, index)))
 
 
 def _write_zip_from_tar(tar_path: Path, output_path: Path) -> int:
@@ -3070,6 +3473,7 @@ async def _import_spherical(
             capture = await submit_capture(api, name, tar_bytes, use_direct)
         except ApiException as exception:
             _fail(exception)
+    record_capture_source(capture.id, video_path)
     typer.echo(
         f"{'Stored' if use_direct else 'Uploaded'} spherical capture {capture.id} ({frame_count} frames)", err=True
     )
@@ -3157,6 +3561,7 @@ async def _reconstruct_spherical(
     async with authenticated_api_client() as api:
         try:
             capture = await submit_capture(api, name, tar_bytes, use_direct)
+            record_capture_source(capture.id, video_path)
             typer.echo(
                 f"{'Stored' if use_direct else 'Uploaded'} spherical capture {capture.id} ({frame_count} frames)",
                 err=True,
@@ -3229,6 +3634,31 @@ def _write_spherical_cache(flags: dict[str, bool]) -> None:
     temporary = SPHERICAL_FLAGS_CACHE.with_suffix(f".{uuid4().hex}.tmp")
     temporary.write_text(dumps(flags, indent=1, sort_keys=True))
     temporary.replace(SPHERICAL_FLAGS_CACHE)
+
+
+# The video each spherical capture was imported from, by capture id. A capture holds the frames but
+# not the camera's motion data, and an .insv's IMU is what gives its map a metric scale (imu-scale),
+# so the importer notes where the video lives. Local to this machine, like the caches beside it.
+CAPTURE_SOURCES = DATA_DIR / "capture_sources.json"
+
+
+def read_capture_sources() -> dict[str, str]:
+    try:
+        recorded: object = loads(CAPTURE_SOURCES.read_text())
+    except (FileNotFoundError, ValueError):
+        return {}
+    if not isinstance(recorded, dict):
+        return {}
+    return {str(k): v for k, v in cast("dict[object, object]", recorded).items() if isinstance(v, str)}
+
+
+def record_capture_source(capture_id: UUID, video: Path) -> None:
+    sources = read_capture_sources()
+    sources[str(capture_id)] = str(video.expanduser().resolve())
+    CAPTURE_SOURCES.parent.mkdir(parents=True, exist_ok=True)
+    temporary = CAPTURE_SOURCES.with_suffix(f".{uuid4().hex}.tmp")
+    temporary.write_text(dumps(sources, indent=1, sort_keys=True))
+    temporary.replace(CAPTURE_SOURCES)
 
 
 async def spherical_flags(sessions: list[CaptureSessionRead]) -> list[bool | None]:

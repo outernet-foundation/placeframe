@@ -17,7 +17,7 @@ const RIGHT_AXIS_MARGIN = 52;
 // Below this many images every point gets a dot; above it the line alone reads better.
 const DOT_ALL_MAX = 60;
 
-interface Series {
+export interface Series {
   label: string;
   colour: string;
   values: (number | null)[];
@@ -26,15 +26,21 @@ interface Series {
   axisTitle?: string;
 }
 
+export const CHART_BLUE = SERIES_BLUE;
+export const CHART_ORANGE = SERIES_ORANGE;
+
+export interface ChartSpec {
+  title: string;
+  series: Series[];
+}
+
 export function RunCharts({ images }: { images: LocalizationImage[] }) {
-  const [hover, setHover] = useState<number | null>(null);
-  const indices = images.map((img) => img.index);
 
   const ok = (img: LocalizationImage) => img.status === "ok" && img.position;
   const position = (axis: "x" | "y" | "z") => images.map((img) => (ok(img) ? img.position![axis] : null));
   const metres = (value: number) => `${value.toFixed(3)} m`;
 
-  const charts: { title: string; series: Series[] }[] = [
+  const charts: ChartSpec[] = [
     {
       title: "Inlier ratio and reprojection error",
       series: [
@@ -62,6 +68,19 @@ export function RunCharts({ images }: { images: LocalizationImage[] }) {
   ];
 
   return (
+    <SummaryCharts
+      charts={charts}
+      indices={images.map((img) => img.index)}
+      failed={images.map((img) => img.status !== "ok")}
+    />
+  );
+}
+
+// A row of charts over the same image numbers, sharing one hover index. `failed` marks the
+// images that break each line.
+export function SummaryCharts({ charts, indices, failed }: { charts: ChartSpec[]; indices: number[]; failed: boolean[] }) {
+  const [hover, setHover] = useState<number | null>(null);
+  return (
     <div className="run-charts">
       {charts.map((chart) => (
         <SeriesChart
@@ -69,7 +88,7 @@ export function RunCharts({ images }: { images: LocalizationImage[] }) {
           title={chart.title}
           series={chart.series}
           indices={indices}
-          failed={images.map((img) => img.status !== "ok")}
+          failed={failed}
           hover={hover}
           onHover={setHover}
         />

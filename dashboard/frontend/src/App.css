@@ -16,11 +16,6 @@
   margin: 0;
 }
 
-.tabs {
-  display: flex;
-  gap: 8px;
-}
-
 .panel {
   display: flex;
   flex-direction: column;
@@ -198,6 +193,17 @@
   border: 1px solid #262932;
   border-radius: 8px;
   background: #16181d;
+}
+
+/* Published: the capture is outlined, and its published map (inside, once expanded) is filled. */
+.node-capture.node-published {
+  border-color: #3fa564;
+}
+
+/* The row only, so the images and runs opened beneath it keep the normal surface. */
+.node-children .node-reconstruction.node-published > .node-row {
+  background: #1d4a2c;
+  border-radius: 6px;
 }
 
 .node-row {
@@ -417,28 +423,6 @@ button.pencil:hover {
   color: #e6e6e6;
 }
 
-/* Tab buttons read as navigation rather than actions: the active one is filled, the others are
-   quiet, so the header doesn't compete with the action buttons inside a panel. */
-.tab {
-  background: none;
-  border: 1px solid transparent;
-  color: #a8adb8;
-  padding: 4px 12px;
-  border-radius: 6px;
-  font-size: 13px;
-  cursor: pointer;
-}
-
-.tab:hover {
-  color: #fff;
-}
-
-.tab-active {
-  background: #262932;
-  border-color: #343845;
-  color: #fff;
-}
-
 /* Localization Details view: two image panes side by side plus a twelve-row candidate table,
    so far wider than a standard dialog.
 
@@ -619,6 +603,17 @@ button.pencil:hover {
   background: #2d3a4d;
 }
 
+/* The image picker in a reconstruction frame's Details: one button per view or camera. */
+.frame-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.frame-images button.tab-active {
+  background: #2d3a4d;
+  border-color: #4f8ef0;
+}
 
 /* Offline fusion player: the rendered frame beside its fusion state, scrubber below. */
 .fusion-overlay {

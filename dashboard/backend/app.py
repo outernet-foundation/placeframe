@@ -48,6 +48,8 @@ MAP_IMAGES_DIR = DATA_DIR / "map_images"
 VISUALIZATIONS_DIR = DATA_DIR / "visualizations"
 POSELESS_SETS_DIR = DATA_DIR / "poseless_sets"
 ALIGNMENTS_DIR = DATA_DIR / "alignments"
+# The video each spherical capture was imported from, as howard_test.record_capture_source writes it.
+CAPTURE_SOURCES = DATA_DIR / "capture_sources.json"
 POSELESS_SETS_INDEX = POSELESS_SETS_DIR / "index.json"
 POSELESS_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
 VIDEO_EXTENSIONS = {".mp4", ".mov", ".m4v", ".insv"}
@@ -63,10 +65,11 @@ _HOWARD_TEST_ENV = {k: v for k, v in os.environ.items() if k != "VIRTUAL_ENV"}
 RECONSTRUCT_POLL_TIMEOUT_S = 1800.0
 RECONSTRUCT_POLL_INTERVAL_S = 3.0
 
-JobKind = Literal["reconstruct", "visualize", "localize", "import", "icp", "merge", "fusion"]
-# Started from the align page, which the operator may close at once: the captures page lists these
-# and shows each as a row until the reconstruction it makes is in the tree.
-ALIGN_JOB_KINDS: frozenset[str] = frozenset({"icp", "merge"})
+JobKind = Literal["reconstruct", "visualize", "localize", "import", "icp", "merge", "imu_scale", "fusion"]
+# Jobs that make a reconstruction from other reconstructions: the captures page lists these and shows
+# each as a row until the reconstruction it makes is in the tree. The align page's (ICP matches and
+# merges) start in a tab the operator may close at once, so nothing else would show them.
+ALIGN_JOB_KINDS: frozenset[str] = frozenset({"icp", "merge", "imu_scale"})
 JobStatus = Literal["running", "succeeded", "failed"]
 
 
@@ -239,7 +242,17 @@ async def browse_directories(path: str | None = None, files: str | None = None) 
 
 @get("/api/captures")
 async def list_captures() -> list[dict[str, Any]]:
-    return await _run_howard_test_json_async("captures")
+    captures: list[dict[str, Any]] = await _run_howard_test_json_async("captures")
+    sources = await asyncio.to_thread(_read_capture_sources)
+    return [{**c, "source_video": sources.get(c["id"])} for c in captures]
+
+
+def _read_capture_sources() -> dict[str, str]:
+    try:
+        sources = json.loads(CAPTURE_SOURCES.read_text())
+    except (FileNotFoundError, ValueError):
+        return {}
+    return sources if isinstance(sources, dict) else {}
 
 
 # Whether a capture is spherical lives only in its manifest, which costs a fetch per capture — so
@@ -571,6 +584,77 @@ async def _run_icp_job(job: Job, args: list[str]) -> None:
     except Exception as exc:
         job.status = "failed"
         job.error = str(exc)
+
+
+@dataclass
+class ImuScaleRequest:
+    # Omitted, howard-test uses the .insv recorded when the capture was imported on this machine.
+    insv_path: str | None = None
+    window_s: float | None = None
+    # For the row the captures page shows while it runs: the copy lands under the map's capture.
+    capture_session_id: str | None = None
+
+
+# Fits the .insv's IMU to the map (howard-test imu-scale) and imports the map, scaled to metres and
+# levelled, as a new reconstruction under the same capture. Seconds of fitting, but the map's tar is
+# downloaded first if it is not cached, and the copy is a full upload, so it runs as a job.
+@post("/api/reconstructions/{reconstruction_id:str}/imu-scale")
+async def start_imu_scale(reconstruction_id: str, data: ImuScaleRequest) -> dict[str, Any]:
+    args = ["imu-scale", reconstruction_id]
+    if data.insv_path:
+        args += ["--insv", str(await asyncio.to_thread(_insv_path, data.insv_path))]
+    if data.window_s is not None:
+        args += ["--window-s", str(data.window_s)]
+    job = Job(
+        id=str(uuid.uuid4()),
+        kind="imu_scale",
+        label="Metric scale from IMU",
+        capture_session_id=data.capture_session_id,
+    )
+    JOBS[job.id] = job
+    _spawn(_run_imu_scale_job(job, args))
+    return {"job_id": job.id}
+
+
+def _insv_path(path_str: str) -> Path:
+    path = Path(path_str).expanduser()
+    if not path.is_file() or path.suffix.lower() != ".insv":
+        raise ValidationException(f"Not an .insv file: {path}")
+    return path
+
+
+async def _run_imu_scale_job(job: Job, args: list[str]) -> None:
+    def on_progress(progress: dict[str, Any]) -> None:
+        job.progress = progress
+
+    try:
+        created = await asyncio.to_thread(partial(_run_howard_test_json_streaming, *args, on_progress=on_progress))
+        job.result = created
+        job.reconstruction_id = created["id"]
+        job.notice = _imu_scale_notice(created["imu_scale"])
+        job.status = "succeeded"
+    except Exception as exc:
+        job.status = "failed"
+        job.error = str(exc)
+
+
+# The fit always returns a scale; whether to believe it is what the operator needs told. A free-fit
+# gravity far from 9.81 means the sync or the map is off, and a low drift p-value means the scale
+# changes along the walk, so one number does not describe the whole map.
+def _imu_scale_notice(report: dict[str, Any]) -> str:
+    text = (
+        f"Metric copy from IMU: {report['scale']:.4f} ± {report['scale_sigma']:.4f} m per map unit "
+        f"(path {report['path_length_m']:.1f} m)."
+    )
+    gravity = report["free_gravity_norm_mps2"]
+    if abs(gravity / 9.80665 - 1) > 0.05:
+        text += f" Caution: unconstrained gravity fits to {gravity:.2f} m/s², so the fit is suspect."
+    p_value = report.get("drift_p_value")
+    if isinstance(p_value, float) and p_value < 0.01:
+        windows = report["windows"]
+        low, high = min(w["scale"] for w in windows), max(w["scale"] for w in windows)
+        text += f" The scale drifts along the walk (p = {p_value:.3f}; windows {low:.3f}–{high:.3f})."
+    return text
 
 
 def _write_alignment(alignment_id: str, payload: dict[str, Any]) -> None:
@@ -1294,6 +1378,53 @@ async def get_points(reconstruction_id: str) -> Response[bytes]:
     return Response(content=data, media_type="application/octet-stream")
 
 
+@get("/api/reconstructions/{reconstruction_id:str}/frames")
+async def get_reconstruction_frames(reconstruction_id: str) -> dict[str, Any]:
+    # Each registered frame's pose, observations and thumbnail, in the row shape a localization
+    # run's images use. The first call reads the reconstruction and capture tars (seconds to a
+    # minute for a large spherical map); howard-test caches the listing, which this then serves.
+    cached = RECONSTRUCTIONS_DIR / f"{reconstruction_id}.frames.json"
+    if await asyncio.to_thread(cached.exists):
+        return json.loads(await asyncio.to_thread(cached.read_text))
+    return await _run_howard_test_json_async("reconstruction-frames", reconstruction_id)
+
+
+@get("/api/reconstructions/{reconstruction_id:str}/frames/{index:int}/detail")
+async def get_reconstruction_frame_detail(reconstruction_id: str, index: int) -> dict[str, Any]:
+    """One frame's images and keypoints, with the images already resolved to pixels.
+
+    Resolving them here rather than per image request means one `map-images` run for the whole
+    frame (a spherical frame is twelve views), so the dialog's image requests are just file reads.
+    """
+    detail: dict[str, Any] = await _run_howard_test_json_async(
+        "reconstruction-frame-detail", reconstruction_id, str(index)
+    )
+    images: list[dict[str, Any]] = detail.get("images", [])
+    cache_dir = MAP_IMAGES_DIR / reconstruction_id
+    missing = [image for image in images if not (cache_dir / _map_image_cache_name(image["name"])).exists()]
+    if missing:
+        # --size is the width COLMAP recorded, for the same reason as the localization pair images:
+        # the keypoints are in that frame, so a render at any other size would misplace them.
+        await _run_howard_test_json_async(
+            "map-images",
+            reconstruction_id,
+            str(cache_dir),
+            "--size",
+            str(missing[0]["width"]),
+            *(argument for image in missing for argument in ("--name", image["name"])),
+        )
+    return detail
+
+
+@get("/api/reconstructions/{reconstruction_id:str}/map-image")
+async def get_reconstruction_map_image(reconstruction_id: str, name: str) -> File:
+    # Served from the cache the frame detail request fills; `name` is a COLMAP image name.
+    cached = MAP_IMAGES_DIR / reconstruction_id / _map_image_cache_name(name)
+    if not await asyncio.to_thread(cached.exists):
+        raise NotFoundException(f"Image {name} has not been resolved; open the frame's details first")
+    return File(path=cached, media_type="image/jpeg", filename=cached.name)
+
+
 @get("/api/localizations/{run_id:str}")
 async def get_localization(run_id: str) -> dict[str, Any]:
     path = LOCALIZATIONS_DIR / run_id / "results.json"
@@ -1510,6 +1641,7 @@ app = Litestar(
         delete_reconstruction,
         cancel_reconstruction,
         start_icp_match,
+        start_imu_scale,
         list_align_jobs,
         dismiss_job,
         list_maps,
@@ -1539,6 +1671,9 @@ app = Litestar(
         get_job,
         get_png,
         get_points,
+        get_reconstruction_frames,
+        get_reconstruction_frame_detail,
+        get_reconstruction_map_image,
         get_localization,
         get_localization_progress,
         get_localization_detail,
