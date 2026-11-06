@@ -414,9 +414,14 @@ namespace Placeframe.Client
         {
             var metricsDialogOpen = new ObservableValue<bool>(false);
             var lockupHealth = new ObservableValue<FilterHealth>(FilterHealth.Snapshot());
+            var recordingLabel = new ObservableValue<string>(RecordingLabel());
             var lockupTick = Observable
                 .EveryUpdate(UnityFrameProvider.Update)
-                .Subscribe(_ => lockupHealth.value = FilterHealth.Snapshot());
+                .Subscribe(_ =>
+                {
+                    lockupHealth.value = FilterHealth.Snapshot();
+                    recordingLabel.value = RecordingLabel();
+                });
             IControl selectValidationTargetDialog = default;
 
             var control = Control("Validation UI", new()
@@ -443,6 +448,23 @@ namespace Placeframe.Client
                             sizeDelta = Props.Value(new Vector2(785, 170))
                         },
                         children = Props.List(
+                            LabeledButton(new LabeledButtonProps()
+                            {
+                                label = recordingLabel,
+                                labelStyle = new TextStyleProps()
+                                {
+                                    color = App.state.recording.ObservableSelect(x => x ? Color.red : Color.white)
+                                },
+                                onClick = () => App.state.recording.value = !App.state.recording.value,
+                                layout = new()
+                                {
+                                    sizeDelta = Props.Value(new Vector2(785, 75)),
+                                    pivot = Props.Value(new Vector2(0.5f, 0)),
+                                    anchorMin = Props.Value(new Vector2(0.5f, 1)),
+                                    anchorMax = Props.Value(new Vector2(0.5f, 1)),
+                                    anchoredPosition = Props.Value(new Vector2(0, 20))
+                                }
+                            }),
                             LabeledButton(new LabeledButtonProps()
                             {
                                 label = Props.Value("Metrics"),
@@ -519,6 +541,11 @@ namespace Placeframe.Client
             control.AddBinding(lockupTick);
             return control;
         }
+
+        private static string RecordingLabel() =>
+            LocalizationRecorder.Recording
+                ? $"Stop recording ({LocalizationRecorder.VideoFrameCount} frames, {LocalizationRecorder.StillCount} stills, {LocalizationRecorder.VpsAttemptCount} VPS)"
+                : "Record localization run";
 
         public struct SelectValidationTargetProps
         {

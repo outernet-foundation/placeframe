@@ -15,7 +15,7 @@ using TrackingState = UnityEngine.XR.ARSubsystems.TrackingState;
 
 namespace Placeframe.Core.ARFoundation
 {
-    public class CameraProvider : ICameraProvider
+    public class CameraProvider : ICameraProvider, ITrackingProvider
     {
         private class AnchorChain
         {
@@ -240,12 +240,15 @@ namespace Placeframe.Core.ARFoundation
             return new AnchorChain(_anchorManager, result.value);
         }
 
-        private async UniTask<CameraFrame?> CreateCameraFrame(AnchorChain chain, CancellationToken cancellationToken)
+        // downscale divides the image's width and height (1 = full resolution), cutting conversion and
+        // encoding work by its square.
+        private async UniTask<CameraFrame?> CreateCameraFrame(AnchorChain chain, CancellationToken cancellationToken, int downscale = 1)
         {
             XRCpuImage.AsyncConversion conversion;
             TextureFormat textureFormat;
             uint width;
             uint height;
+            long timestampNs;
 
             // Try to acquire the latest CPU image from ARFoundation
             if (!_cameraManager.TryAcquireLatestCpuImage(out var cpuImage))
@@ -254,14 +257,17 @@ namespace Placeframe.Core.ARFoundation
 
             try
             {
-                width = (uint)cpuImage.width;
-                height = (uint)cpuImage.height;
+                timestampNs = (long)Math.Round(cpuImage.timestamp * 1e9);
+                width = (uint)(cpuImage.width / downscale);
+                height = (uint)(cpuImage.height / downscale);
                 textureFormat = cpuImage.FormatSupported(TextureFormat.RGB24)
                     ? TextureFormat.RGB24
                     : TextureFormat.RGBA32;
 
                 // Start image conversion
-                conversion = cpuImage.ConvertAsync(new XRCpuImage.ConversionParams(cpuImage, textureFormat));
+                conversion = cpuImage.ConvertAsync(
+                    new XRCpuImage.ConversionParams(cpuImage, textureFormat) { outputDimensions = new Vector2Int((int)width, (int)height) }
+                );
             }
             finally
             {
@@ -296,8 +302,83 @@ namespace Placeframe.Core.ARFoundation
                 ImageBytes = bytes,
                 CameraTranslationUnityWorldFromCamera = cameraPosition,
                 CameraRotationUnityWorldFromCamera = cameraRotation,
+                TimestampNs = timestampNs,
             };
         }
+
+        public Observable<CameraFrame> EveryFrame(int maxConcurrentEncodes, int downscale) =>
+            Observable.Create<CameraFrame>(observer =>
+            {
+                var inFlight = 0;
+                var cancellation = new CancellationTokenSource();
+                Action<ARCameraFrameEventArgs> onFrame = _ =>
+                {
+                    if (inFlight >= maxConcurrentEncodes)
+                        return;
+
+                    inFlight++;
+                    // CreateCameraFrame acquires this frame's image before its first await, so the
+                    // image is the one that raised the event even though encoding finishes later.
+                    UniTask.Void(async () =>
+                    {
+                        try
+                        {
+                            var frame = await CreateCameraFrame(null, cancellation.Token, downscale);
+                            if (frame.HasValue && !cancellation.IsCancellationRequested)
+                                observer.OnNext(frame.Value);
+                        }
+                        catch (OperationCanceledException) { }
+                        catch (Exception exception)
+                        {
+                            observer.OnErrorResume(exception);
+                        }
+                        finally
+                        {
+                            inFlight--;
+                        }
+                    });
+                };
+                _cameraManager.frameReceived += onFrame;
+                return Disposable.Create(() =>
+                {
+                    _cameraManager.frameReceived -= onFrame;
+                    cancellation.Cancel();
+                });
+            });
+
+        public Observable<TrackingSample> TrackingSamples() =>
+            Observable.Create<TrackingSample>(observer =>
+            {
+                long latestTimestampNs = 0;
+                long emittedTimestampNs = 0;
+                Action<ARCameraFrameEventArgs> onFrame = args =>
+                {
+                    if (args.timestampNs.HasValue)
+                        latestTimestampNs = args.timestampNs.Value;
+                };
+                _cameraManager.frameReceived += onFrame;
+
+                // Read the camera after Update, once the pose driver has applied this frame's pose; one
+                // sample per camera frame, however many Unity frames pass between them.
+                var sampling = Observable
+                    .EveryUpdate(UnityFrameProvider.PostLateUpdate)
+                    .Where(_ => latestTimestampNs != emittedTimestampNs && Camera.main != null)
+                    .Subscribe(_ =>
+                    {
+                        emittedTimestampNs = latestTimestampNs;
+                        var camera = Camera.main.transform;
+                        observer.OnNext(new TrackingSample
+                        {
+                            TimestampNs = latestTimestampNs,
+                            CameraTranslationUnityWorldFromCamera = camera.position,
+                            CameraRotationUnityWorldFromCamera = camera.rotation,
+                            TrackingState = ARSession.state.ToString(),
+                            NotTrackingReason = ARSession.notTrackingReason.ToString(),
+                        });
+                    });
+
+                return Disposable.Combine(sampling, Disposable.Create(() => _cameraManager.frameReceived -= onFrame));
+            });
 
         private async UniTask<byte[]> EncodeToJpg(
             NativeArray<byte> bytes,

@@ -95,6 +95,9 @@ namespace Placeframe.Client
         public StateValue<bool> localizing { get; private set; }
         public StateValue<Guid> mapForLocalization { get; private set; }
 
+        // Recording a localization run (LocalizationRecorder) on the Validate tab.
+        public StateValue<bool> recording { get; private set; }
+
         protected override void PostInitializeInternal()
         {
             loggedIn.Derive(

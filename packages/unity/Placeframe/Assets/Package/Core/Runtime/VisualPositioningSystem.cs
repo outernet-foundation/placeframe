@@ -38,6 +38,18 @@ namespace Placeframe.Core
             };
     }
 
+    // One image sent to the server and what came of it, for a recording of the run (LocalizationRecorder).
+    public struct LocalizationAttempt
+    {
+        public CameraFrame Frame;
+        public long RequestUnixMs;
+        public long ResponseUnixMs;
+        // Null when the server returned nothing or the request failed (see Error).
+        public MapLocalization Result;
+        public StepResult? Step;
+        public string Error;
+    }
+
     public static class VisualPositioningSystem
     {
         private static Action<string> _logCallback;
@@ -79,6 +91,7 @@ namespace Placeframe.Core
         public static double4x4 UnityWorldToEcefTransform => _state.AlignmentCurrentInverse;
         public static event Action OnEcefToUnityWorldTransformUpdated;
         public static event Action OnMetricsReceived;
+        public static event Action<LocalizationAttempt> OnLocalizationAttempt;
         public static AlignmentUncertainty CurrentUncertainty => RelocalizationFilter.SummariseCovariance(_state.AlignmentCovariance);
 
         public static int ConsecutiveRejections => _state.ConsecutiveRejections;
@@ -287,17 +300,36 @@ namespace Placeframe.Core
 
             using var memoryStream = new MemoryStream(frame.ImageBytes);
 
-            // Localize
-            var localizationResults = await Api.LocalizeImageAsync(
-                _maps.ToList(),
-                cameraConfig,
-                AxisConvention.UNITY,
-                new FileParameter(memoryStream),
-                cancellationToken: cancellationToken
-            );
+            var attempt = new LocalizationAttempt { Frame = frame, RequestUnixMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() };
+            List<MapLocalization> localizationResults;
+            try
+            {
+                // Localize
+                localizationResults = await Api.LocalizeImageAsync(
+                    _maps.ToList(),
+                    cameraConfig,
+                    AxisConvention.UNITY,
+                    new FileParameter(memoryStream),
+                    cancellationToken: cancellationToken
+                );
+            }
+            catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
+            {
+                await UniTask.SwitchToMainThread();
+                attempt.ResponseUnixMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                attempt.Error = exception.Message;
+                OnLocalizationAttempt?.Invoke(attempt);
+                throw;
+            }
+            attempt.ResponseUnixMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
             if (localizationResults.Count == 0)
+            {
+                await UniTask.SwitchToMainThread();
+                attempt.Error = "No localization result";
+                OnLocalizationAttempt?.Invoke(attempt);
                 throw new InvalidOperationException("Localization failed");
+            }
 
             // TODO: Handle multiple results.
             var localizationResult = localizationResults.FirstOrDefault();
@@ -360,6 +392,10 @@ namespace Placeframe.Core
             );
 
             ApplyStepResult(result);
+
+            attempt.Result = localizationResult;
+            attempt.Step = result;
+            OnLocalizationAttempt?.Invoke(attempt);
 
             return Unit.Default;
         }

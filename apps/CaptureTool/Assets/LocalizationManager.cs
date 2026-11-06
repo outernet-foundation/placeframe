@@ -8,11 +8,16 @@ namespace Placeframe.Client
 {
     public static class LocalizationManager
     {
+        // A recording keeps every camera frame as video; this is how often it also keeps a full-resolution
+        // still for localizing offline. Four a second puts one within 125 ms of any simulated VPS request.
+        private const float RecordingStillIntervalSeconds = 0.25f;
+
         private static IDisposable _subscription;
         private static bool _intializing;
 
         public static void Initialize(ICameraProvider cameraProvider)
         {
+            LocalizationRecorder.Initialize(cameraProvider);
             VisualPositioningSystem.Initialize(
                 cameraProvider,
                 message => Log.Info(LogGroup.Localizer, message),
@@ -44,6 +49,28 @@ namespace Placeframe.Client
                             VisualPositioningSystem.StartLocalizing(1.0f);
                         }
                     }),
+                Observables.ObservableCombineValues(
+                    App.state.mode,
+                    App.state.recording,
+                    (mode, recording) => mode == AppMode.Validation && recording).Subscribe(recording =>
+                    {
+                        if (_intializing || recording == LocalizationRecorder.Recording)
+                            return;
+
+                        if (recording)
+                        {
+                            var map = App.state.mapForLocalization.value;
+                            var id = LocalizationRecorder.StartRecording(
+                                RecordingStillIntervalSeconds,
+                                map == Guid.Empty ? Array.Empty<Guid>() : new[] { map });
+                            Log.Info(LogGroup.Localizer, $"localization recording started id={id}");
+                        }
+                        else
+                        {
+                            var id = LocalizationRecorder.StopRecording();
+                            Log.Info(LogGroup.Localizer, $"localization recording stopped id={id} video={LocalizationRecorder.VideoFrameCount} stills={LocalizationRecorder.StillCount} tracking={LocalizationRecorder.TrackingSampleCount} vps={LocalizationRecorder.VpsAttemptCount}");
+                        }
+                    }),
                     App.state.mapForLocalization.ObservableWithPrevious().Subscribe((current, previous) =>
                     {
                         if (_intializing)
@@ -66,6 +93,9 @@ namespace Placeframe.Client
 
         public static void Shutdown()
         {
+            if (LocalizationRecorder.Recording)
+                LocalizationRecorder.StopRecording();
+
             _subscription?.Dispose();
             _subscription = null;
         }
