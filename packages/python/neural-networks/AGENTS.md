@@ -75,7 +75,7 @@ The `neural-networks-base` image (`workloads/neural-networks-base/Dockerfile`) i
 2. Installs the `dirtorch` and `neural-networks` source packages with `--no-deps --no-sources`.
 3. Runs `python -c "import neural_networks.preload"`. `preload.py` calls each loader once on CPU; the side effect is that `torch.hub` downloads the DIR checkpoint into `TORCH_HOME=/opt/torch_cache` and the layer commits the weights into the image. Lightglue/ALIKED weights are similarly resolved by the lightglue package's own hub-cache calls. No service ever imports `preload` at runtime; it exists solely to bake the weights into a build layer.
 
-`workloads/images.yml` defines `neural-networks-base-cuda` and `neural-networks-base-rocm` targets (no `cpu` target  -  cpu is for local type-checking, not for the deployable image set). The localizer and reconstructor Dockerfiles begin with `FROM neural-networks-base AS dev`; `workloads/images.yml` passes `neural-networks-base: "target:neural-networks-base-{cuda,rocm}"` as `additional_contexts` so the `FROM` resolves to the matching accelerator base.
+The bake targets derive from the Dockerfile tree: `neural-networks-base` declares `ARG TORCH_DEVICE`, so it fans into `neural-networks-base-cuda` and `neural-networks-base-rocm` build targets (no `cpu` target — cpu is for local type-checking, not for the deployable image set). The localizer and reconstructor Dockerfiles begin with `FROM neural-networks-base`; the fan propagates along that context edge, and each fanned build wires `neural-networks-base` as a `target:`-prefixed additional context pointing at the matching accelerator target.
 
 ### Per-service deptry wiring
 

@@ -155,7 +155,7 @@ The current `global.json` is a placeholder: zeroed weights/intercepts, `alpha = 
 
 ### Deployment
 
-`compose.cuda.yml` (mirrored by `compose.rocm.yml`):
+`stack/generated/compose/compose.cuda.yaml` (mirrored by `compose.rocm.yaml`):
 
 ```
 localizer-cuda:

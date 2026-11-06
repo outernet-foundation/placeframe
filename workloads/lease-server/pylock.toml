@@ -259,10 +259,10 @@ wheels = [{ url = "https://files.pythonhosted.org/packages/f2/24/8d99982f0aa9c1c
 
 [[packages]]
 name = "logger-conf"
-version = "0.3.0"
+version = "0.3.2.dev59"
 index = "https://pypi.org/simple"
-sdist = { url = "https://files.pythonhosted.org/packages/98/2f/247ee806496b948cc2c4da8f9408f8b11be25f7375d7931779ded1f583fd/logger_conf-0.3.0.tar.gz", upload-time = 2026-10-11T05:13:47Z, size = 37080, hashes = { sha256 = "8490625bdf47c8503b06400f467695fcdec226442aec0d206bd3c52b1fea7442" } }
-wheels = [{ url = "https://files.pythonhosted.org/packages/48/6d/b968bc7d51082f798bb912b360d82040bffbcd501ad55ab4e34d0efc1995/logger_conf-0.3.0-py3-none-any.whl", upload-time = 2026-10-11T05:13:46Z, size = 8453, hashes = { sha256 = "647565871334e32f3ce20ecd062e33b8f7a41aa8480151a03e49ff7a204f1ac3" } }]
+sdist = { url = "https://files.pythonhosted.org/packages/a7/ba/1e44a28cae2f420e5c9cb7b0126d18dd29c0b3759f464964b5dfaa22fedf/logger_conf-0.3.2.dev59.tar.gz", upload-time = 2026-10-19T22:16:47Z, size = 37192, hashes = { sha256 = "3152ee3a3612398d8ad6effcfcda78f6c1db7ef86ece762262fdb6a9fa3e1897" } }
+wheels = [{ url = "https://files.pythonhosted.org/packages/ed/ed/6534378dd79411d3a60648555f11df403292c848cd6fc609193f2e40bf6b/logger_conf-0.3.2.dev59-py3-none-any.whl", upload-time = 2026-10-19T22:16:46Z, size = 8523, hashes = { sha256 = "3fa1dfe7709bb2a83ab3949995dc1c2caaf61240a3c6ee683223ba95a44a94e1" } }]
 
 [[packages]]
 name = "markdown-it-py"

@@ -17,14 +17,14 @@ class ServerInfo(BaseModel):
 @get("")
 async def get_server_info() -> ServerInfo:
     settings = get_settings()
-    if settings.auth_mode == "disabled":
+    if settings.auth_issuer_url is None:
         return ServerInfo(auth_mode="disabled")
 
     return ServerInfo(
         auth_mode="keycloak",
         issuer_url=str(settings.auth_issuer_url),
-        auth_url=str(settings.auth_url),
-        token_url=str(settings.auth_token_url),
+        auth_url=str(settings.auth_authorization_endpoint),
+        token_url=str(settings.auth_token_endpoint),
         audience=settings.auth_audience,
     )
 

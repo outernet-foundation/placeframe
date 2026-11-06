@@ -1,0 +1,52 @@
+# Kubernetes twin of compose/keda-scaled-object.yaml. Renders the KEDA ScaledObject +
+# TriggerAuthentication ported from the infra Pulumi prior art: scale-to-zero on queued
+# reconstructions (postgres trigger, 300 s cooldown), maxReplicaCount baked as a literal —
+# per-cloud node caps stay in the ASG/MIG/CAS layer. No committed credentials: the
+# TriggerAuthentication wires the password through a secretTargetRef into the externally
+# managed placeframe-secrets Secret; host/port/dbname/user literals ride this state.
+# The operator itself is cluster tier — infra/Pulumi installs it, peer of the NVIDIA
+# device plugin; the artifact carries only these CRs.
+- uri: template://placeframe/keda-scaled-object-k8s
+  type: keda-scaled-object
+  description: KEDA scale-to-zero on queued reconstructions; password from placeframe-secrets.
+  state:
+    host: pf-postgres
+    port: "5432"
+    database: placeframe
+    username: placeframe_orchestration_user
+    passwordKey: DATABASE_ORCHESTRATION_USER_PASSWORD
+  manifests:
+    - apiVersion: keda.sh/v1alpha1
+      kind: ScaledObject
+      metadata:
+        name: "{{ .SourceWorkload }}"
+      spec:
+        scaleTargetRef:
+          name: "{{ .SourceWorkload }}"
+        minReplicaCount: 0
+        maxReplicaCount: 8
+        cooldownPeriod: 300
+        triggers:
+          - type: postgresql
+            metadata:
+              host: "{{ .State.host }}"
+              port: "{{ .State.port }}"
+              dbName: "{{ .State.database }}"
+              userName: "{{ .State.username }}"
+              sslmode: disable
+              # A manifest literal, not state: the query's single quotes survive the
+              # compile's yaml escaping, but a templated value renders after the dump
+              # where no escaping can apply.
+              query: "SELECT count(*) FROM reconstructions WHERE status = 'queued'"
+              targetQueryValue: "1"
+            authenticationRef:
+              name: "{{ .SourceWorkload }}-pg-trigger"
+    - apiVersion: keda.sh/v1alpha1
+      kind: TriggerAuthentication
+      metadata:
+        name: "{{ .SourceWorkload }}-pg-trigger"
+      spec:
+        secretTargetRef:
+          - parameter: password
+            name: placeframe-secrets
+            key: "{{ .State.passwordKey }}"

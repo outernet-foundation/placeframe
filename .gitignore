@@ -14,6 +14,7 @@
 .ruff_cache
 .vs
 .env
+boatyard.values.yaml
 .secrets
 stack/generated/k8s/manifests.local.yaml
 stack/score/.score-compose/
@@ -25,3 +26,4 @@ storage/
 artifacts/
 .claude/scheduled_tasks.lock
 bookmark.md
+.placeframe/

@@ -1,0 +1,66 @@
+# Kubernetes twin of compose/observability.yaml. Loki and grafana arrive as the
+# digest-pinned official Grafana charts declared under generate-score's charts:
+# section (rendered by helm template into this same manifests.yaml — their
+# Services land at the fixed DNS names loki:3100 and grafana:3000 the gateway
+# Caddyfile proxies). Alloy's chart has no OCI artifact, so it is the hand-written
+# twin: Deployment + Service + ConfigMap, the seaweedfs-k8s pattern. The
+# ConfigMap body sources the committed workloads/alloy/config.alloy through an
+# include marker — one file for both renderings (the compose rendering binds it
+# directly).
+- uri: template://placeframe/observability-k8s
+  type: observability
+  description: Loki/Grafana via official charts plus a hand-written alloy relay; outputs the fixed service URLs.
+  state:
+    alloyService: alloy
+  outputs:
+    loki_url: http://loki:3100
+    otlp_endpoint: http://{{ .State.alloyService }}:4317
+  manifests:
+    - apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: "{{ .State.alloyService }}-config"
+      data:
+        config.alloy:
+          include: workloads/alloy/config.alloy
+    - apiVersion: v1
+      kind: Service
+      metadata:
+        name: "{{ .State.alloyService }}"
+      spec:
+        selector:
+          app.kubernetes.io/instance: "{{ .State.alloyService }}"
+        ports:
+        - port: 4317
+          targetPort: 4317
+    - apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: "{{ .State.alloyService }}"
+      spec:
+        replicas: 1
+        selector:
+          matchLabels:
+            app.kubernetes.io/instance: "{{ .State.alloyService }}"
+        template:
+          metadata:
+            labels:
+              app.kubernetes.io/instance: "{{ .State.alloyService }}"
+          spec:
+            containers:
+            - name: alloy
+              image:
+                lock: ALLOY_IMAGE
+              args: ["run", "/etc/alloy/config.alloy"]
+              ports:
+              - containerPort: 4317
+              env:
+              - name: LOKI_WRITE_ENDPOINT
+                value: http://loki:3100/loki/api/v1/push
+              volumeMounts:
+              - name: config
+                mountPath: /etc/alloy
+            volumes:
+            - name: config
+              configMap:
+                name: "{{ .State.alloyService }}-config"

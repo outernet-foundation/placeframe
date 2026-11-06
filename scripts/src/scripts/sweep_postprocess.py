@@ -9,8 +9,9 @@ from uuid import UUID
 
 import numpy as np
 import typer
+import yaml
 from bashrun.bash import bash, bash_output
-from docker_devkit.modes import parse_env_file
+from pydantic import BaseModel, TypeAdapter
 
 from .displacement_check import (
     DEFAULT_SEQUENTIAL_WINDOW,
@@ -23,6 +24,14 @@ from .displacement_check import (
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
+
+
+class ImageLockEntry(BaseModel):
+    platforms: dict[str, str]
+
+
+_VALUES_DOCUMENT = TypeAdapter(dict[str, object])
+_IMAGE_LOCK = TypeAdapter(dict[str, ImageLockEntry])
 
 
 RESULT_FIELD_NAMES = [
@@ -208,12 +217,18 @@ def persist_mapping(classified: list[ClassifiedReconstruction], mapping_path: Pa
 
 
 def awscli_s3(arguments: str, volume_dir: Path) -> None:
-    env = parse_env_file(REPO_ROOT / ".env")
-    lock = parse_env_file(REPO_ROOT / "workloads" / "images.lock")
+    values = _VALUES_DOCUMENT.validate_python(
+        yaml.safe_load((REPO_ROOT / "boatyard.values.yaml").read_text(encoding="utf-8"))
+    )
+    lock_document = _VALUES_DOCUMENT.validate_python(
+        yaml.safe_load((REPO_ROOT / "boatyard.lock.yml").read_text(encoding="utf-8"))
+    )
+    images = _IMAGE_LOCK.validate_python(lock_document["images"])
+    initialize_s3_image = images["INITIALIZE_S3_IMAGE"].platforms["linux/amd64"]
     bash(
         "docker run --rm --network placeframe_default "
-        f"-e AWS_ACCESS_KEY_ID={env['S3_ACCESS_KEY']} -e AWS_SECRET_ACCESS_KEY={env['S3_SECRET_KEY']} "
-        f"-e AWS_DEFAULT_REGION=us-east-1 -v {volume_dir}:/work {lock['INITIALIZE_S3_IMAGE']} {arguments}"
+        f"-e AWS_ACCESS_KEY_ID={values['S3_ACCESS_KEY']} -e AWS_SECRET_ACCESS_KEY={values['S3_SECRET_KEY']} "
+        f"-e AWS_DEFAULT_REGION=us-east-1 -v {volume_dir}:/work {initialize_s3_image} {arguments}"
     )
 
 

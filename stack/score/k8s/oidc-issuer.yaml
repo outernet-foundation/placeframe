@@ -1,0 +1,77 @@
+# OIDC issuer provisioner (Kubernetes): local counterpart of compose/oidc-issuer.yaml.
+# The keycloak Deployment is the keycloak workload container rendered by score-k8s, and
+# the workload's own Service is `keycloak` — the single-sourced keycloak:8080 references
+# resolve natively, with no ExternalName alias. This provisioner carries the workload's
+# env surface (the lock-pinned image digest; credentials and hostname from the externally
+# managed placeframe-secrets Secret — score-k8s has no configMap equivalent, so non-secret
+# config rides the same Secret) plus the realm configurator Job: the configurator polls
+# readiness itself (backoff absorbs keycloak's boot), carrying the same Sync-hook shape
+# as the create/bucket Jobs (immutable spec.template under Argo).
+#
+# Keycloak state is ephemeral H2 — realm (re)configuration is idempotent and users are
+# dev-tier. certs_url references the Secret rather than emitting the keycloak literal
+# because the api treats issuer-unset with any auth endpoint set as a boot error —
+# anonymous mode must read an empty AUTH_JWKS_URL from the Secret.
+- uri: template://placeframe/oidc-issuer-k8s
+  type: oidc-issuer
+  description: Keycloak env surface with the realm converged by the admin-API configurator.
+  state:
+    instance: keycloak
+    realm: placeframe-dev
+  outputs:
+    admin_password: '{{ encodeSecretRef "placeframe-secrets" "KEYCLOAK_ADMIN_PASSWORD" }}'
+    hostname: '{{ encodeSecretRef "placeframe-secrets" "KEYCLOAK_HOSTNAME" }}'
+    certs_url: '{{ encodeSecretRef "placeframe-secrets" "AUTH_JWKS_URL" }}'
+    realm: "{{ .State.realm }}"
+  manifests:
+    - apiVersion: batch/v1
+      kind: Job
+      metadata:
+        name: "{{ .State.instance }}-realm"
+        annotations:
+          argocd.argoproj.io/hook: Sync
+          argocd.argoproj.io/hook-weight: "10"
+          argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+      spec:
+        backoffLimit: 30
+        template:
+          spec:
+            restartPolicy: OnFailure
+            containers:
+            - name: configurator
+              image: ghcr.io/outernet-foundation/placeframe/auth-initializer:{{ env "AUTH_INITIALIZER_SHA" }}
+              env:
+              - name: KEYCLOAK_URL
+                value: http://{{ .State.instance }}:8080
+              - name: KC_BOOTSTRAP_ADMIN_USERNAME
+                value: admin
+              - name: KC_BOOTSTRAP_ADMIN_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: placeframe-secrets
+                    key: KEYCLOAK_ADMIN_PASSWORD
+              - name: PUBLIC_URL
+                valueFrom:
+                  secretKeyRef:
+                    name: placeframe-secrets
+                    key: PUBLIC_URL
+              - name: KEYCLOAK_ACCESS_TOKEN_LIFESPAN
+                valueFrom:
+                  secretKeyRef:
+                    name: placeframe-secrets
+                    key: KEYCLOAK_ACCESS_TOKEN_LIFESPAN
+              - name: KEYCLOAK_SSO_SESSION_IDLE_TIMEOUT
+                valueFrom:
+                  secretKeyRef:
+                    name: placeframe-secrets
+                    key: KEYCLOAK_SSO_SESSION_IDLE_TIMEOUT
+              - name: KEYCLOAK_SSO_SESSION_MAX_LIFESPAN
+                valueFrom:
+                  secretKeyRef:
+                    name: placeframe-secrets
+                    key: KEYCLOAK_SSO_SESSION_MAX_LIFESPAN
+              - name: SEED_TEST_USERS
+                valueFrom:
+                  secretKeyRef:
+                    name: placeframe-secrets
+                    key: SEED_TEST_USERS
