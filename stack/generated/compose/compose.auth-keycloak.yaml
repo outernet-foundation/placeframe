@@ -1,0 +1,65 @@
+services:
+  auth-keycloak-keycloak:
+    depends_on:
+      auth-keycloak-wait-for-resources:
+        condition: service_completed_successfully
+        required: true
+    image: ghcr.io/outernet-foundation/mirror/quay.io/keycloak/keycloak:26.8.1@sha256:de6ed510b59cfcd25f129ba4118696fa10d4165eee921a8d846178b6d35d30f7
+    networks:
+      auth-keycloak-net:
+        aliases:
+        - keycloak
+    annotations:
+      compose.score.dev/workload-name: keycloak
+      outernet.internal/probe-adapter: bash-http
+    command:
+    - start-dev
+    - --health-enabled=true
+    environment:
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?err}
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_HOSTNAME: ${PUBLIC_URL:?err}/auth
+      KC_HOSTNAME_ADMIN: ${PUBLIC_URL:?err}/auth
+      KC_HOSTNAME_STRICT_HTTPS: 'true'
+      KC_PROXY_HEADERS: xforwarded
+    hostname: keycloak
+    healthcheck:
+      test:
+      - CMD
+      - bash
+      - -c
+      - 'exec 3<>/dev/tcp/127.0.0.1/9000 && printf ''GET /health/ready HTTP/1.0\r\nHost: localhost\r\n\r\n'' >&3 && read -r status <&3 && case $$status in *200*) exit 0;; *) exit 1;; esac'
+      timeout: 5s
+      interval: 5s
+      retries: 3
+      start_period: 5s
+  auth-keycloak-keycloak-configurator:
+    image: ghcr.io/outernet-foundation/placeframe/auth-initializer:tree-a94bc38594f7bb22243beeff26f25a37adf104eb
+    networks:
+      auth-keycloak-net:
+        aliases:
+        - keycloak-configurator
+    environment:
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?err}
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KEYCLOAK_ACCESS_TOKEN_LIFESPAN: ${KEYCLOAK_ACCESS_TOKEN_LIFESPAN:?err}
+      KEYCLOAK_SSO_SESSION_IDLE_TIMEOUT: ${KEYCLOAK_SSO_SESSION_IDLE_TIMEOUT:?err}
+      KEYCLOAK_SSO_SESSION_MAX_LIFESPAN: ${KEYCLOAK_SSO_SESSION_MAX_LIFESPAN:?err}
+      KEYCLOAK_URL: http://keycloak:8080
+      PUBLIC_URL: ${PUBLIC_URL:?err}
+      SEED_TEST_USERS: ${SEED_TEST_USERS:-}
+  auth-keycloak-wait-for-resources:
+    depends_on:
+      auth-keycloak-keycloak-configurator:
+        condition: service_started
+        required: true
+    image: ${AUTH_KEYCLOAK__LOCK__ALPINE_IMAGE:?err}
+    networks:
+      auth-keycloak-net:
+        aliases:
+        - wait-for-resources
+    command:
+    - echo
+networks:
+  auth-keycloak-net: {}
+name: placeframe
