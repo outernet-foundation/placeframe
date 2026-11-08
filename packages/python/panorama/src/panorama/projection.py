@@ -47,7 +47,9 @@ Layouts:
                apart in yaw and tilted alternately 10.8 degrees up and down (a
                hexring with a smaller tilt), and six steeper ones at 52.6
                degrees cover facades, canopy, sky and ground. No view points
-               straight up or down, so none is spent on the operator.
+               straight up or down, so none is spent on the operator. Views are
+               named n (near level), u (up) or d (down) and their yaw: n000,
+               d000, n060, u060, ...
 
 All views of a frame share one optical centre, so the rig that relates them is
 pure rotation: translations are exactly zero, not merely small.
@@ -128,14 +130,22 @@ HEXRING: tuple[View, ...] = tuple(
 DODECA_NEAR_TILT_DEG = 10.812316964000
 DODECA_FAR_TILT_DEG = 52.622631859000
 
+# Named for where each view looks, then its yaw: n near level, u steeply up, d steeply down.
 DODECAHEDRON: tuple[View, ...] = tuple(
     view
     for index, yaw in enumerate((0, 60, 120, 180, 240, 300))
     for view in (
         View(f"n{yaw:03d}", float(yaw), DODECA_NEAR_TILT_DEG if index % 2 == 0 else -DODECA_NEAR_TILT_DEG),
-        View(f"s{yaw:03d}", float(yaw), -DODECA_FAR_TILT_DEG if index % 2 == 0 else DODECA_FAR_TILT_DEG),
+        View(f"d{yaw:03d}", float(yaw), -DODECA_FAR_TILT_DEG)
+        if index % 2 == 0
+        else View(f"u{yaw:03d}", float(yaw), DODECA_FAR_TILT_DEG),
     )
 )
+
+# What the steep dodecahedron views were called before they were named for where they look (all
+# "s", for steep). A view's name is part of every image name a reconstruction records, so maps
+# built then still carry these; views_by_name resolves them.
+FORMER_VIEW_NAMES: dict[str, str] = {f"s{view.name[1:]}": view.name for view in DODECAHEDRON if view.name[0] in "ud"}
 
 LAYOUTS: dict[str, tuple[View, ...]] = {
     "tetrahedron": TETRAHEDRON,
@@ -150,6 +160,17 @@ def layout(name: str) -> tuple[View, ...]:
         return LAYOUTS[name]
     except KeyError:
         raise ValueError(f"unknown layout {name!r}; known layouts: {', '.join(sorted(LAYOUTS))}") from None
+
+
+def views_by_name(layout_name: str) -> dict[str, View]:
+    """A layout's views by name, for reading names back out of a reconstruction's images.
+
+    Includes the views' former names (FORMER_VIEW_NAMES), so a map built before a rename still
+    resolves to the same views.
+    """
+    views = {view.name: view for view in layout(layout_name)}
+    views.update({former: views[current] for former, current in FORMER_VIEW_NAMES.items() if current in views})
+    return views
 
 
 def focal_length(size: int, fov_deg: float, projection: Projection = "fisheye") -> float:

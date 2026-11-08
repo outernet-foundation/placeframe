@@ -31,6 +31,7 @@ from panorama.projection import LAYOUTS, ViewMap as ViewMapT, camera_params
 from panorama.projection import layout as panorama_layout
 from panorama.projection import render as panorama_render
 from panorama.projection import view_map as panorama_view_map
+from panorama.projection import views_by_name as panorama_views_by_name
 from panorama import insv
 from panorama.video import frames as video_frames
 from panorama.video import sample_frames
@@ -2520,7 +2521,9 @@ def _resolve_map_images(
     written: dict[str, str] = {}
     missing: list[str] = []
     view_maps: dict[str, ViewMapT] = {}
-    views = {view.name: view for view in panorama_layout(layout_name)}
+    # Former view names too, so a map built before the dodecahedron's steep views were renamed
+    # (camera0_s060 for what is now u060) still renders.
+    views = panorama_views_by_name(layout_name)
 
     with tarfile.open(capture_tar) as tar:
         members = {member.name for member in tar.getmembers() if member.isfile()}

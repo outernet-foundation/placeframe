@@ -209,6 +209,20 @@ def test_dodecahedron_faces_front_near_level_and_points_nowhere_straight_up() ->
     assert all(abs(view.pitch_deg) < 60 for view in projection.DODECAHEDRON)
 
 
+def test_dodecahedron_views_are_named_for_where_they_look() -> None:
+    for view in projection.DODECAHEDRON:
+        expected = "n" if abs(view.pitch_deg) < 20 else "u" if view.pitch_deg > 0 else "d"
+        assert view.name == f"{expected}{round(view.yaw_deg):03d}"
+
+
+def test_former_dodecahedron_view_names_resolve_to_the_same_views() -> None:
+    views = projection.views_by_name("dodecahedron")
+    assert views["s060"] is views["u060"]
+    assert views["s000"] is views["d000"]
+    assert len(projection.FORMER_VIEW_NAMES) == 6
+    assert set(projection.views_by_name("tetrahedron")) == {"A", "B", "C", "D"}
+
+
 @pytest.mark.parametrize(("fov_deg", "covered"), [(76.0, True), (72.0, False)])
 def test_dodecahedron_covers_the_sphere_from_75_degrees(fov_deg: float, covered: bool) -> None:
     """The worst direction is a dodecahedron vertex, 37.4 degrees from its three nearest axes."""
