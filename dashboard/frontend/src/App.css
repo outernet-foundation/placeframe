@@ -375,6 +375,57 @@ button.link:hover {
   margin: 4px 0 8px;
 }
 
+/* A reconstruction's frames, one at a time: the image and its facts above a slider. Reuses the
+   fusion player's facts list and controls. */
+.frame-scrubber {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 4px 0 8px;
+}
+
+.frame-scrubber-stage {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+/* The image takes all the width the facts leave it, capped in height so a tall frame still fits
+   the window. It shows the frame's preview (up to 1600 px wide); the thumbnail, set as its
+   background, fills the same box until the preview has loaded. */
+.frame-scrubber-image {
+  flex: 1 1 0;
+  min-width: 0;
+  height: auto;
+  max-height: min(60vh, 560px);
+  object-fit: contain;
+  object-position: left top;
+  background-size: contain;
+  background-position: left top;
+  background-repeat: no-repeat;
+}
+
+.frame-scrubber-missing {
+  border-radius: 4px;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8a909c;
+  font-size: 13px;
+}
+
+/* The facts sit against the right edge, as wide as their longest line. */
+.frame-scrubber .fusion-side {
+  flex: 0 0 auto;
+  margin-left: auto;
+  overflow: visible;
+}
+
+.frame-scrubber .fusion-controls {
+  align-items: center;
+}
+
 .menu {
   position: relative;
 }

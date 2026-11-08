@@ -1383,10 +1383,29 @@ async def get_reconstruction_frames(reconstruction_id: str) -> dict[str, Any]:
     # Each registered frame's pose, observations and thumbnail, in the row shape a localization
     # run's images use. The first call reads the reconstruction and capture tars (seconds to a
     # minute for a large spherical map); howard-test caches the listing, which this then serves.
+    # A listing cached before frame previews were written has no previews folder; howard-test
+    # rebuilds that one.
     cached = RECONSTRUCTIONS_DIR / f"{reconstruction_id}.frames.json"
-    if await asyncio.to_thread(cached.exists):
+    previews = _frame_previews_dir(reconstruction_id)
+    if await asyncio.to_thread(cached.exists) and await asyncio.to_thread(previews.is_dir):
         return json.loads(await asyncio.to_thread(cached.read_text))
     return await _run_howard_test_json_async("reconstruction-frames", reconstruction_id)
+
+
+def _frame_previews_dir(reconstruction_id: str) -> Path:
+    # Must match howard_test._frame_previews_dir: the frames listing writes the files this serves.
+    return RECONSTRUCTIONS_DIR / f"{reconstruction_id}.frames"
+
+
+@get("/api/reconstructions/{reconstruction_id:str}/frames/{index:int}/image")
+async def get_reconstruction_frame_image(reconstruction_id: str, index: int) -> File:
+    # The frame's preview, written when its frames listing was built; absent for a frame whose
+    # capture images aren't available (an imported reconstruction).
+    path = _frame_previews_dir(reconstruction_id) / f"{index}.jpg"
+    if not await asyncio.to_thread(path.is_file):
+        raise NotFoundException(f"Reconstruction {reconstruction_id} has no preview for frame {index}")
+    # A succeeded reconstruction never changes, so neither do its frames' previews.
+    return File(path=path, media_type="image/jpeg", headers={"Cache-Control": "max-age=86400, immutable"})
 
 
 @get("/api/reconstructions/{reconstruction_id:str}/frames/{index:int}/detail")
@@ -1672,6 +1691,7 @@ app = Litestar(
         get_png,
         get_points,
         get_reconstruction_frames,
+        get_reconstruction_frame_image,
         get_reconstruction_frame_detail,
         get_reconstruction_map_image,
         get_localization,

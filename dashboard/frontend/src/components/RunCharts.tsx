@@ -10,6 +10,8 @@ const SERIES_ORANGE = "#d95926";
 const GRID = "#262932";
 const AXIS_TEXT = "#8a909c";
 const SURFACE = "#14161a";
+// The selected slot's marker: the page's text colour, so it reads apart from the grey hover line.
+const SELECTED = "#e6e8ec";
 
 const HEIGHT = 190;
 const MARGIN = { top: 10, bottom: 26, left: 52, right: 16 };
@@ -77,8 +79,21 @@ export function RunCharts({ images }: { images: LocalizationImage[] }) {
 }
 
 // A row of charts over the same image numbers, sharing one hover index. `failed` marks the
-// images that break each line.
-export function SummaryCharts({ charts, indices, failed }: { charts: ChartSpec[]; indices: number[]; failed: boolean[] }) {
+// images that break each line. `selected` (a slot, like `hover`) is marked on every chart, and
+// `onSelect`, when given, makes a click on a chart select the slot under the pointer.
+export function SummaryCharts({
+  charts,
+  indices,
+  failed,
+  selected = null,
+  onSelect,
+}: {
+  charts: ChartSpec[];
+  indices: number[];
+  failed: boolean[];
+  selected?: number | null;
+  onSelect?: (slot: number) => void;
+}) {
   const [hover, setHover] = useState<number | null>(null);
   return (
     <div className="run-charts">
@@ -91,6 +106,8 @@ export function SummaryCharts({ charts, indices, failed }: { charts: ChartSpec[]
           failed={failed}
           hover={hover}
           onHover={setHover}
+          selected={selected}
+          onSelect={onSelect}
         />
       ))}
     </div>
@@ -104,6 +121,8 @@ function SeriesChart({
   failed,
   hover,
   onHover,
+  selected,
+  onSelect,
 }: {
   title: string;
   series: Series[];
@@ -111,6 +130,8 @@ function SeriesChart({
   failed: boolean[];
   hover: number | null;
   onHover: (slot: number | null) => void;
+  selected: number | null;
+  onSelect?: (slot: number) => void;
 }) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
@@ -139,14 +160,23 @@ function SeriesChart({
     right: axisScale(series.filter((s) => s.axis === "right"), top, bottom),
   };
 
-  function onMove(event: React.MouseEvent<SVGRectElement>) {
+  function slotUnder(event: React.MouseEvent<SVGRectElement>): number | null {
     const box = event.currentTarget.getBoundingClientRect();
     const x = event.clientX - box.left + left;
     let nearest = 0;
     for (let slot = 1; slot < indices.length; slot++) {
       if (Math.abs(xOf(indices[slot]) - x) < Math.abs(xOf(indices[nearest]) - x)) nearest = slot;
     }
-    onHover(indices.length ? nearest : null);
+    return indices.length ? nearest : null;
+  }
+
+  function onMove(event: React.MouseEvent<SVGRectElement>) {
+    onHover(slotUnder(event));
+  }
+
+  function onClick(event: React.MouseEvent<SVGRectElement>) {
+    const slot = slotUnder(event);
+    if (slot !== null) onSelect?.(slot);
   }
 
   const xTicks = niceTicks(xMin, xMax, Math.max(2, Math.floor((right - left) / 70))).filter(
@@ -241,6 +271,17 @@ function SeriesChart({
               );
             })}
 
+            {selected !== null && indices.length > 0 && (
+              <line
+                x1={xOf(indices[selected])}
+                x2={xOf(indices[selected])}
+                y1={top}
+                y2={bottom}
+                stroke={SELECTED}
+                strokeWidth={2}
+                pointerEvents="none"
+              />
+            )}
             {hover !== null && (
               <g pointerEvents="none">
                 <line x1={tooltipLeft} x2={tooltipLeft} y1={top} y2={bottom} stroke={AXIS_TEXT} strokeWidth={1} />
@@ -265,8 +306,10 @@ function SeriesChart({
               width={Math.max(0, right - left)}
               height={bottom - top}
               fill="transparent"
+              style={onSelect ? { cursor: "pointer" } : undefined}
               onMouseMove={onMove}
               onMouseLeave={() => onHover(null)}
+              onClick={onClick}
             />
           </svg>
         )}

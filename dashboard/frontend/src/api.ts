@@ -312,6 +312,11 @@ export function getReconstructionFrames(reconstructionId: string): Promise<Recon
   return request(`/api/reconstructions/${reconstructionId}/frames`);
 }
 
+// A frame's preview: the frame at up to 1600 px wide, for the frame scrubber.
+export function reconstructionFrameImageUrl(reconstructionId: string, index: number): string {
+  return `${API_BASE}/api/reconstructions/${reconstructionId}/frames/${index}/image`;
+}
+
 export function getLocalization(runId: string): Promise<LocalizationResult> {
   return request(`/api/localizations/${runId}`);
 }

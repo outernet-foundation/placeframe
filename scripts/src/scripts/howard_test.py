@@ -104,6 +104,9 @@ _SPHERE_MEMBER = re.compile(r"^rig0/camera0/\d+\.jpg$")
 
 LOCALIZATION_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
 LOCALIZATION_THUMBNAIL_SIZE = (200, 150)
+# A reconstruction frame's preview, the image the dashboard's frame scrubber shows at most of the
+# page's width: wide enough to stay sharp there, small enough to fetch while scrubbing.
+FRAME_PREVIEW_SIZE = (1600, 1200)
 
 # docker/api/src/routers/reconstructions.py's METADATA_MEMBER: the tar entry naming the
 # reconstruction (and so its id, which the API refuses to import twice).
@@ -2031,6 +2034,11 @@ def _cached_frames_path(reconstruction_id: UUID) -> Path:
     return RECONSTRUCTIONS_DIR / f"{reconstruction_id}.frames.json"
 
 
+def _frame_previews_dir(reconstruction_id: UUID) -> Path:
+    """Each frame's preview as `<index>.jpg`, written alongside the cached frames listing."""
+    return RECONSTRUCTIONS_DIR / f"{reconstruction_id}.frames"
+
+
 @dataclass
 class _SfmFrame:
     rig_id: str
@@ -2174,15 +2182,18 @@ def _frame_thumbnail_member(name: str, members: set[str]) -> str | None:
     return sphere if separator and sphere in members else None
 
 
-def _frame_thumbnail(tar: tarfile.TarFile, member: str) -> str | None:
+def _frame_thumbnail(tar: tarfile.TarFile, member: str, preview: Path) -> str | None:
+    """The frame's thumbnail as a data URI, writing its preview to `preview` from the same decode."""
     extracted = tar.extractfile(member)
     if extracted is None:
         return None
     with Image.open(BytesIO(extracted.read())) as opened:
         # draft() lets the JPEG decoder skip straight to a reduced scale, which is most of the
         # cost saved on a several-thousand-pixel equirect.
-        opened.draft("RGB", LOCALIZATION_THUMBNAIL_SIZE)
+        opened.draft("RGB", FRAME_PREVIEW_SIZE)
         image = opened.convert("RGB")
+    image.thumbnail(FRAME_PREVIEW_SIZE)
+    image.save(preview, format="JPEG", quality=85)
     image.thumbnail(LOCALIZATION_THUMBNAIL_SIZE)
     buffer = BytesIO()
     image.save(buffer, format="JPEG", quality=80)
@@ -2190,7 +2201,7 @@ def _frame_thumbnail(tar: tarfile.TarFile, member: str) -> str | None:
 
 
 def _reconstruction_frames(
-    reconstruction_id: UUID, reconstruction_tar: Path, capture_tar: Path | None
+    reconstruction_id: UUID, reconstruction_tar: Path, capture_tar: Path | None, previews: Path
 ) -> dict[str, Any]:
     with tarfile.open(reconstruction_tar) as tar:
         frames = _sfm_frames(tar)
@@ -2206,7 +2217,7 @@ def _reconstruction_frames(
                 member = _frame_thumbnail_member(frame.image_names[0], members)
                 if member is not None:
                     filenames[index] = member
-                    thumbnails[index] = _frame_thumbnail(tar, member)
+                    thumbnails[index] = _frame_thumbnail(tar, member, previews / f"{index}.jpg")
 
     entries: list[dict[str, Any]] = []
     for index, (frame, filename, thumbnail) in enumerate(zip(frames, filenames, thumbnails, strict=True)):
@@ -2226,7 +2237,7 @@ def _reconstruction_frames(
     return {"reconstruction_id": str(reconstruction_id), "frames": entries}
 
 
-async def _fetch_reconstruction_frames(reconstruction_id: UUID) -> dict[str, Any]:
+async def _fetch_reconstruction_frames(reconstruction_id: UUID, previews: Path) -> dict[str, Any]:
     async with authenticated_api_client() as api:
         try:
             reconstruction = await api.get_reconstruction(id=reconstruction_id)
@@ -2235,7 +2246,7 @@ async def _fetch_reconstruction_frames(reconstruction_id: UUID) -> dict[str, Any
             capture_tar = None if capture_id is None else await _ensure_cached_capture_tar(api, capture_id)
         except ApiException as exception:
             _fail(exception)
-    return await to_thread(_reconstruction_frames, reconstruction_id, reconstruction_tar, capture_tar)
+    return await to_thread(_reconstruction_frames, reconstruction_id, reconstruction_tar, capture_tar, previews)
 
 
 @app.command(name="reconstruction-frames")
@@ -2249,12 +2260,25 @@ def reconstruction_frames(
     """Each registered frame's pose, observations, reprojection error and thumbnail, as JSON.
 
     The same row shape as a localization run's images, so the dashboard shows both alike. Cached
-    next to the reconstruction tar: a reconstruction never changes once it has succeeded.
+    next to the reconstruction tar, with each frame's preview image (data/reconstructions/<id>.frames/):
+    a reconstruction never changes once it has succeeded. A listing cached before previews were
+    written is rebuilt, so every cached listing has them.
     """
     cached = _cached_frames_path(reconstruction_id)
-    if refresh or not cached.exists():
-        result = run(_fetch_reconstruction_frames(reconstruction_id))
-        RECONSTRUCTIONS_DIR.mkdir(parents=True, exist_ok=True)
+    previews = _frame_previews_dir(reconstruction_id)
+    if refresh or not cached.exists() or not previews.is_dir():
+        # Written to a scratch folder and moved into place once complete, so an interrupted run
+        # never leaves a previews folder that looks finished.
+        partial = previews.with_name(f"{previews.name}.partial")
+        rmtree(partial, ignore_errors=True)
+        partial.mkdir(parents=True)
+        try:
+            result = run(_fetch_reconstruction_frames(reconstruction_id, partial))
+        except BaseException:
+            rmtree(partial, ignore_errors=True)
+            raise
+        rmtree(previews, ignore_errors=True)
+        partial.rename(previews)
         cached.write_text(dumps(result))
     typer.echo(cached.read_text())
 
