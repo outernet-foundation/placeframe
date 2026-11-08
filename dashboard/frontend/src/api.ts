@@ -224,6 +224,11 @@ export function renameCapture(captureId: string, name: string): Promise<CaptureS
   return request(`/api/captures/${captureId}`, { method: "PATCH", body: JSON.stringify({ name }) });
 }
 
+// A name for the reconstruction, kept by the dashboard (the API can't change a reconstruction).
+export function renameReconstruction(reconstructionId: string, name: string): Promise<{ id: string; label: string }> {
+  return request(`/api/reconstructions/${reconstructionId}`, { method: "PATCH", body: JSON.stringify({ name }) });
+}
+
 // The capture's tar and row; `cascade` deletes its reconstructions first (each cascading as above).
 export function deleteCapture(captureId: string, cascade = false): Promise<void> {
   return deleteRequest(`/api/captures/${captureId}${cascade ? "?cascade=true" : ""}`);

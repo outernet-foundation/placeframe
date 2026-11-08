@@ -275,6 +275,24 @@
   flex-shrink: 0;
 }
 
+/* A reconstruction's name and its buttons share the first line, so the facts below run the full
+   width, under the buttons too. The buttons wrap onto more lines before the name is squeezed. */
+.node-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.node-head .node-title {
+  flex: 1 1 16em;
+  min-width: 0;
+  min-height: 30px;
+}
+
+.node-head .node-actions {
+  flex: 0 1 auto;
+}
+
 .node-children {
   margin: 0 12px 10px 22px;
   padding-left: 12px;

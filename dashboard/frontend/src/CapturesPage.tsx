@@ -13,6 +13,7 @@ import {
   listReconstructions,
   publishMap,
   renameCapture,
+  renameReconstruction,
   renamePoselessSet,
   unpublishMap,
   dismissJob,
@@ -143,12 +144,12 @@ function Toggle({ open, onClick }: { open: boolean; onClick: () => void }) {
   );
 }
 
-type Renaming = { kind: "capture" | "set"; id: string; value: string } | null;
+type Renaming = { kind: "capture" | "set" | "reconstruction"; id: string; value: string } | null;
 
 // Click-to-edit name, opened by the pencil: Enter or blur saves, Escape abandons. Module-level so
 // editing doesn't remount the input (and drop focus) on each keystroke.
 function NameField({ kind, id, name, renaming, setRenaming, commit }: {
-  kind: "capture" | "set";
+  kind: "capture" | "set" | "reconstruction";
   id: string;
   name: string;
   renaming: Renaming;
@@ -205,7 +206,8 @@ export function CapturesPage() {
   const [notices, setNotices] = useState<Notice[]>([]);
   const [expanded, setExpanded] = useState<Record<string, boolean>>(readExpanded);
   const [resultsOpen, setResultsOpen] = useState<Set<string>>(new Set());
-  // Inline rename, for a capture (the API's own name) or an unlinked image folder (local only).
+  // Inline rename, for a capture (the API's own name), or a reconstruction or an unlinked image
+  // folder (both kept by the dashboard).
   const [renaming, setRenaming] = useState<Renaming>(null);
   const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState<Set<SelectionKey>>(new Set());
@@ -444,7 +446,12 @@ export function CapturesPage() {
     setRenaming(null);
     if (!value.trim()) return;
     try {
-      await (kind === "capture" ? renameCapture(id, value.trim()) : renamePoselessSet(id, value.trim()));
+      const name = value.trim();
+      await (kind === "capture"
+        ? renameCapture(id, name)
+        : kind === "reconstruction"
+          ? renameReconstruction(id, name)
+          : renamePoselessSet(id, name));
       await refreshFast();
     } catch (err) {
       notify("error", errorText(err));
@@ -705,25 +712,88 @@ export function CapturesPage() {
           <Check selectionKey={`reconstruction:${r.id}`} />
           {childCount > 0 ? <Toggle open={open} onClick={() => setOpen(r.id, !open)} /> : <span className="toggle-spacer" />}
           <div className="node-main">
-            <div className="node-title">
-              <span className="node-name">{r.label ?? "Reconstruction"}</span>
-              {isViewerOnly(r) && (
-                <span className="badge" title="A transformed copy holding only the point cloud and camera poses; it cannot be published or localized against">
-                  viewer only
-                </span>
+            <div className="node-head">
+              <div className="node-title">
+                <NameField
+                  kind="reconstruction"
+                  id={r.id}
+                  name={r.label ?? "Reconstruction"}
+                  renaming={renaming}
+                  setRenaming={setRenaming}
+                  commit={() => void commitRename()}
+                />
+                {isViewerOnly(r) && (
+                  <span className="badge" title="A transformed copy holding only the point cloud and camera poses; it cannot be published or localized against">
+                    viewer only
+                  </span>
+                )}
+                {statusChip(r.status, { position: r.queue_position, depth: r.queue_depth })}
+                <span className="node-count">{formatDate(r.created_at)}</span>
+                {children.length > 0 && (
+                  <button className="link" onClick={() => setOpen(r.id, !open)}>
+                    {children.length} localization run{children.length === 1 ? "" : "s"}
+                  </button>
+                )}
+                {fusionChildren.length > 0 && (
+                  <button className="link" onClick={() => setOpen(r.id, !open)}>
+                    {fusionChildren.length} fusion run{fusionChildren.length === 1 ? "" : "s"}
+                  </button>
+                )}
+              </div>
+            <div className="node-actions">
+              {succeeded && !isViewerOnly(r) && (
+                <>
+                  <button
+                    disabled={publishing === r.id}
+                    title={
+                      r.localization_map_id
+                        ? "Withdraw from devices; this reconstruction and its stored map data are untouched"
+                        : "Make this map selectable on a device. Builds nothing — the artifacts a device localizes against already exist"
+                    }
+                    onClick={() => void togglePublished(r)}
+                  >
+                    {publishing === r.id ? "…" : r.localization_map_id ? "Unpublish" : "Publish"}
+                  </button>
+                  <button onClick={() => openViewer(r.id)}>Visualize</button>
+                  <button onClick={() => toggleResults(r.id)}>{showingFrames ? "Hide images" : "Images"}</button>
+                  <button onClick={() => setDialog({ kind: "localize", reconstruction: r, label: reconstructionLabel(r) })}>Localize…</button>
+                  <button
+                    title="Replay a recorded localization run's VPS and VIO/VPS fusion against this map, frame by frame"
+                    onClick={() => setDialog({ kind: "fusion", reconstruction: r, label: reconstructionLabel(r) })}
+                  >
+                    Offline fusion…
+                  </button>
+                  {captureOf(r)?.is_spherical && !isImuScaled(r) && (
+                    <button
+                      title="Scale this map to metres from the .insv's IMU, as a new reconstruction"
+                      onClick={() => setDialog({ kind: "imuScale", reconstruction: r })}
+                    >
+                      Scale from IMU…
+                    </button>
+                  )}
+                  <Menu
+                    label="Export"
+                    items={[
+                      { label: "Zip archive…", onSelect: () => setDialog({ kind: "export", exportKind: "zip", reconstruction: r }) },
+                      { label: "Poses (JSON)…", onSelect: () => setDialog({ kind: "export", exportKind: "poses", reconstruction: r }) },
+                    ]}
+                  />
+                </>
               )}
-              {statusChip(r.status, { position: r.queue_position, depth: r.queue_depth })}
-              <span className="node-count">{formatDate(r.created_at)}</span>
-              {children.length > 0 && (
-                <button className="link" onClick={() => setOpen(r.id, !open)}>
-                  {children.length} localization run{children.length === 1 ? "" : "s"}
-                </button>
+              {succeeded && isViewerOnly(r) && (
+                <>
+                  <button onClick={() => openViewer(r.id)}>Visualize</button>
+                  <Menu
+                    label="Export"
+                    items={[{ label: "Poses (JSON)…", onSelect: () => setDialog({ kind: "export", exportKind: "poses", reconstruction: r }) }]}
+                  />
+                </>
               )}
-              {fusionChildren.length > 0 && (
-                <button className="link" onClick={() => setOpen(r.id, !open)}>
-                  {fusionChildren.length} fusion run{fusionChildren.length === 1 ? "" : "s"}
-                </button>
+              {!TERMINAL_STATUSES.has(r.status) && (
+                <button onClick={() => setDialog({ kind: "cancelReconstruction", reconstruction: r })}>Cancel</button>
               )}
+              {DELETABLE_STATUSES.has(r.status) && <button onClick={() => setDialog({ kind: "deleteReconstruction", reconstruction: r })}>Delete</button>}
+            </div>
             </div>
             <div className="node-meta">
               {r.localization_map_id && (
@@ -741,60 +811,6 @@ export function CapturesPage() {
             </div>
             {!TERMINAL_STATUSES.has(r.status) && progressBar(r.progress_current, r.progress_total, "")}
             {r.error && <div className="node-error">{r.error}</div>}
-          </div>
-          <div className="node-actions">
-            {succeeded && !isViewerOnly(r) && (
-              <>
-                <button
-                  disabled={publishing === r.id}
-                  title={
-                    r.localization_map_id
-                      ? "Withdraw from devices; this reconstruction and its stored map data are untouched"
-                      : "Make this map selectable on a device. Builds nothing — the artifacts a device localizes against already exist"
-                  }
-                  onClick={() => void togglePublished(r)}
-                >
-                  {publishing === r.id ? "…" : r.localization_map_id ? "Unpublish" : "Publish"}
-                </button>
-                <button onClick={() => openViewer(r.id)}>Visualize</button>
-                <button onClick={() => toggleResults(r.id)}>{showingFrames ? "Hide images" : "Images"}</button>
-                <button onClick={() => setDialog({ kind: "localize", reconstruction: r, label: reconstructionLabel(r) })}>Localize…</button>
-                <button
-                  title="Replay a recorded localization run's VPS and VIO/VPS fusion against this map, frame by frame"
-                  onClick={() => setDialog({ kind: "fusion", reconstruction: r, label: reconstructionLabel(r) })}
-                >
-                  Offline fusion…
-                </button>
-                {captureOf(r)?.is_spherical && !isImuScaled(r) && (
-                  <button
-                    title="Scale this map to metres from the .insv's IMU, as a new reconstruction"
-                    onClick={() => setDialog({ kind: "imuScale", reconstruction: r })}
-                  >
-                    Scale from IMU…
-                  </button>
-                )}
-                <Menu
-                  label="Export"
-                  items={[
-                    { label: "Zip archive…", onSelect: () => setDialog({ kind: "export", exportKind: "zip", reconstruction: r }) },
-                    { label: "Poses (JSON)…", onSelect: () => setDialog({ kind: "export", exportKind: "poses", reconstruction: r }) },
-                  ]}
-                />
-              </>
-            )}
-            {succeeded && isViewerOnly(r) && (
-              <>
-                <button onClick={() => openViewer(r.id)}>Visualize</button>
-                <Menu
-                  label="Export"
-                  items={[{ label: "Poses (JSON)…", onSelect: () => setDialog({ kind: "export", exportKind: "poses", reconstruction: r }) }]}
-                />
-              </>
-            )}
-            {!TERMINAL_STATUSES.has(r.status) && (
-              <button onClick={() => setDialog({ kind: "cancelReconstruction", reconstruction: r })}>Cancel</button>
-            )}
-            {DELETABLE_STATUSES.has(r.status) && <button onClick={() => setDialog({ kind: "deleteReconstruction", reconstruction: r })}>Delete</button>}
           </div>
         </div>
         {showingFrames && succeeded && !isViewerOnly(r) && (

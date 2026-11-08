@@ -267,7 +267,48 @@ async def get_capture_info(capture_id: str) -> dict[str, Any]:
 # capture tar for those), so the dashboard can draw the tree at once and fill them in afterwards.
 @get("/api/reconstructions")
 async def list_reconstructions(stats: bool = True) -> list[dict[str, Any]]:
-    return await _run_howard_test_json_async("reconstructions", *([] if stats else ["--no-frame-stats"]))
+    rows: list[dict[str, Any]] = await _run_howard_test_json_async(
+        "reconstructions", *([] if stats else ["--no-frame-stats"])
+    )
+    names = await asyncio.to_thread(_load_reconstruction_names)
+    for row in rows:
+        if row["id"] in names:
+            row["label"] = names[row["id"]]
+    return rows
+
+
+# Names given to reconstructions in the dashboard, by reconstruction id. The API has no way to
+# change a reconstruction once made, so these live here and take the place of the label a copy
+# carries in its manifest. Local to this machine, like an image folder's name.
+RECONSTRUCTION_NAMES = DATA_DIR / "reconstruction_names.json"
+
+
+def _load_reconstruction_names() -> dict[str, str]:
+    try:
+        return json.loads(RECONSTRUCTION_NAMES.read_text())
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+
+
+def _save_reconstruction_name(reconstruction_id: str, name: str) -> None:
+    names = _load_reconstruction_names()
+    names[reconstruction_id] = name
+    RECONSTRUCTION_NAMES.parent.mkdir(parents=True, exist_ok=True)
+    RECONSTRUCTION_NAMES.write_text(json.dumps(names, indent=1))
+
+
+@dataclass
+class RenameReconstructionRequest:
+    name: str
+
+
+@patch("/api/reconstructions/{reconstruction_id:str}")
+async def rename_reconstruction(reconstruction_id: str, data: RenameReconstructionRequest) -> dict[str, str]:
+    name = data.name.strip()
+    if not name:
+        raise ValueError("A reconstruction's name can't be empty")
+    await asyncio.to_thread(_save_reconstruction_name, reconstruction_id, name)
+    return {"id": reconstruction_id, "label": name}
 
 
 # `cascade=true` also removes what would otherwise block or outlive the delete: the localization
@@ -1668,6 +1709,7 @@ app = Litestar(
         unpublish_map,
         delete_capture,
         rename_capture,
+        rename_reconstruction,
         import_reconstruction,
         import_path,
         import_estimate,
