@@ -7,7 +7,7 @@ requires-python = ">=3.13"
 dependencies = [
     "core",
     "common",
-    "panorama",
+    "panorama[imu]",
     "pillow>=12.0.0",
     "placeframe-lease-server-client",
     "httpx>=0.28.1",

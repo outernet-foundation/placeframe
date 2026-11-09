@@ -57,6 +57,7 @@ from pycolmap._core import apply_rig_config, geometric_verification  # noqa: PLC
 from pycolmap._core import incremental_mapping  # noqa: PLC2701 — no public API  # pyright: ignore[reportUnknownVariableType] — upstream stub uses unparameterized os.PathLike
 from scipy.spatial.transform import Rotation
 
+from .imu_scaling import scale_from_imu
 from .metrics_builder import MetricsBuilder
 from .options_builder import OptionsBuilder, PairVioEssentialMatrixOptions
 from .pairs import Pair, PairSource
@@ -302,6 +303,20 @@ def run_colmap_reconstruction(
     first_camera_position = -first_rig_from_world.rotation.matrix().T @ first_rig_from_world.translation
     translation_align = -rotation_align @ first_camera_position
     best_reconstruction.transform(Sim3d(concatenate([rotation_align, translation_align.reshape(3, 1)], axis=1)))
+
+    # Metres and true gravity from the capture's own IMU, where it carries one (an .insv import).
+    # About the origin, so the first registered frame stays there. Read back from the map rather
+    # than reusing `registered`, so the fit sees the poses as they now stand.
+    scale_from_imu(
+        best_reconstruction,
+        [
+            (rig_id, frame_id, rig_from_world)
+            for rig_id, frame_id, _, rig_from_world in _registered_frames(rigs, colmap_image_ids, best_reconstruction)
+        ],
+        images_path,
+        output_path,
+        metrics,
+    )
 
     # Rigid Umeyama best-fit of map centers to VIO position priors. Fit is not applied — the
     # residual is the prior-drift diagnostic surfaced for calibration-corpus filtering.
