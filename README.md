@@ -46,9 +46,9 @@ Inspired by (and heavily borrowing from) the extremely useful [Hierarchical-Loca
 
    | Variable | Value |
    |---|---|
-   | `public_url` / `PUBLIC_URL` | `https://<your-ngrok-domain>` — the URL Unity clients will hit |
-   | `NGROK_DOMAIN` | `<your-ngrok-domain>` (just the host portion, no scheme) |
-   | `NGROK_AUTHTOKEN` | The token from step 1 |
+   | `public_url` | `https://<your-ngrok-domain>` — the URL Unity clients will hit |
+   | `values.images.tunnel-ngrok.NGROK_DOMAIN` | `<your-ngrok-domain>` (just the host portion, no scheme) |
+   | `values.images.tunnel-ngrok.NGROK_AUTHTOKEN` | The token from step 1 |
    | `bundles` | Your assembly — e.g. `[core-cuda, auth-keycloak, tunnel-ngrok]` (the OIDC-with-relay shape; the sample documents the known-good sets) |
 
 ## Backend
@@ -69,7 +69,7 @@ uv run boatyard down
 
 While the server is running, you can visit `${PUBLIC_URL}` in a web browser to browse the OpenAPI schema and test requests.
 
-The backend provides a reference [Keycloak](https://www.keycloak.org/) implementation for authentication and authorization, so you will need to authorize yourself in order to test requests. The [realm configuration file](workloads/auth-initializer/realm-export/placeframe.json) defines the realm and its clients but no users — test users are seeded at boot only when `SEED_TEST_USERS` is set, so add `SEED_TEST_USERS: user:password` to `boatyard.values.yaml` (see `boatyard.values.yaml.sample`) and run `uv run boatyard up`; you can then log in with the username "user" and the password "password".
+The backend provides a reference [Keycloak](https://www.keycloak.org/) implementation for authentication and authorization, so you will need to authorize yourself in order to test requests. The [realm configuration file](workloads/auth-initializer/realm-export/placeframe.json) defines the realm and its clients but no users — test users are seeded at boot only when `SEED_TEST_USERS` is set, so add `SEED_TEST_USERS: user:password` under `values.images.auth-keycloak` in `boatyard.values.yaml` (see `boatyard.values.yaml.sample`) and run `uv run boatyard up`; you can then log in with the username "user" and the password "password".
 
 ## Capture Tool
 
