@@ -34,6 +34,13 @@ export interface Reconstruction {
   localization_map_id?: string | null; // set once published to devices; null means unpublished
   label?: string | null; // a transformed copy's label (what it was aligned to), shown instead of the bare id
   alignment?: Record<string, unknown> | null; // the Sim(3) and provenance recorded by transform-reconstruction
+  // The reconstructor's own IMU fit, on a capture that carries the IMU (an .insv import); null otherwise.
+  imu_scale?: {
+    applied: boolean;
+    rejected_because: string | null;
+    m_per_unit: number | null;
+    sigma_m_per_unit: number | null;
+  } | null;
 }
 
 /** Imported from a native .insv, so its maps follow the camera body and the IMU can scale them. An

@@ -763,7 +763,7 @@ export function CapturesPage() {
                   >
                     Offline fusion…
                   </button>
-                  {isFromInsv(captureOf(r)) && !isImuScaled(r) && (
+                  {isFromInsv(captureOf(r)) && !isImuScaled(r) && !r.imu_scale?.applied && (
                     <button
                       title="Scale this map to metres from the .insv's IMU, as a new reconstruction"
                       onClick={() => setDialog({ kind: "imuScale", reconstruction: r })}
@@ -800,6 +800,20 @@ export function CapturesPage() {
                 <>
                   <span className="badge" title="Published as a localization map; a device can select this one">
                     on device
+                  </span>{" "}
+                </>
+              )}
+              {r.imu_scale && (
+                <>
+                  <span
+                    className="badge"
+                    title={
+                      r.imu_scale.applied
+                        ? `Scaled to metres and levelled by the capture's IMU: ${r.imu_scale.m_per_unit?.toFixed(4)} ± ${r.imu_scale.sigma_m_per_unit?.toFixed(4)} m per SfM unit`
+                        : `The capture's IMU was not applied, because ${r.imu_scale.rejected_because ?? "the fit failed"}`
+                    }
+                  >
+                    {r.imu_scale.applied ? "metres (IMU)" : "IMU scale rejected"}
                   </span>{" "}
                 </>
               )}

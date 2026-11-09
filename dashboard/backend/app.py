@@ -679,22 +679,17 @@ async def _run_imu_scale_job(job: Job, args: list[str]) -> None:
         job.error = str(exc)
 
 
-# The fit always returns a scale; whether to believe it is what the operator needs told. A free-fit
-# gravity far from 9.81 means the sync or the map is off, and a low drift p-value means the scale
-# changes along the walk, so one number does not describe the whole map.
+# The fit always returns a scale; whether to believe it is what the operator needs told.
+# panorama.imu_scale.rejection judges it, the same checks the reconstructor applies before scaling a
+# map itself; the manual copy is still made, since looking at a doubtful one is how a fit is studied.
 def _imu_scale_notice(report: dict[str, Any]) -> str:
     text = (
         f"Metric copy from IMU: {report['scale']:.4f} ± {report['scale_sigma']:.4f} m per map unit "
         f"(path {report['path_length_m']:.1f} m)."
     )
-    gravity = report["free_gravity_norm_mps2"]
-    if abs(gravity / 9.80665 - 1) > 0.05:
-        text += f" Caution: unconstrained gravity fits to {gravity:.2f} m/s², so the fit is suspect."
-    p_value = report.get("drift_p_value")
-    if isinstance(p_value, float) and p_value < 0.01:
-        windows = report["windows"]
-        low, high = min(w["scale"] for w in windows), max(w["scale"] for w in windows)
-        text += f" The scale drifts along the walk (p = {p_value:.3f}; windows {low:.3f}–{high:.3f})."
+    reason = report.get("rejected_because")
+    if reason:
+        text += f" Caution: do not trust this scale, because {reason}."
     return text
 
 
