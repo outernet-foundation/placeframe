@@ -47,10 +47,17 @@ class ReconstructionMetrics(BaseModel):
     gravity_sample_count: Optional[StrictInt] = Field(default=None, description="Number of registered frames that contributed gravity samples to the map-frame alignment.")
     prior_drift_residual_rms_m: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="RMS residual in meters of a rigid Umeyama fit from map camera centers to VIO position priors; None for multi-camera captures, which run priors-off and carry no per-frame positions.")
     prior_drift_residual_max_m: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Maximum residual in meters of the same Umeyama fit; surfaces single-frame outliers the RMS smooths over.")
+    imu_scale_applied: Optional[StrictBool] = Field(default=None, description="True when the capture's own IMU (an Insta360 .insv import) scaled the map to metres and levelled it to true gravity; False when the fit ran but failed its checks, leaving the map in arbitrary units; None when the capture carries no IMU.")
+    imu_scale_rejected_because: Optional[StrictStr] = Field(default=None, description="Why the IMU fit was not applied (which check failed, or why it could not run); None when it was applied or never ran.")
+    imu_scale_m_per_unit: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Metres per map unit the IMU fit found for the map as SfM built it, applied or not.")
+    imu_scale_sigma_m_per_unit: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Standard error of imu_scale_m_per_unit from the least-squares fit.")
+    imu_sync_residual_deg: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Median angle between the gyro's turn and the map's turn over each keyframe interval after syncing; ~0.1 deg when the map follows the camera body.")
+    imu_free_gravity_mps2: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Gravity's magnitude when the IMU fit leaves it free, in m/s^2; near 9.81 when the sync and the map are sound.")
+    imu_scale_drift_p_value: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Chi-square p-value that one scale explains every 30 s window of the walk; small means the scale drifts along it. None with fewer than two windows.")
     phase_timings: Optional[List[PhaseTiming]] = Field(default=None, description="Per-phase wall-clock durations in execution order, captured at each set_phase boundary.")
     pipeline_version: Optional[StrictStr] = Field(default=None, description="RECONSTRUCTOR_SHA of the image that produced this reconstruction.")
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["reprojection_pixel_error_50th_percentile", "reprojection_pixel_error_90th_percentile", "track_length_50th_percentile", "all_verified_matches", "all_verified_match_rate", "all_verified_match_inliers_mean", "all_verified_match_inliers_median", "stereo_verified_matches", "stereo_verified_match_rate", "stereo_verified_match_inliers_mean", "stereo_verified_match_inliers_median", "map_image_count", "map_point_count", "map_avg_track_length", "map_viewpoint_diversity", "gravity_aligned_in_map_frame", "gravity_sample_count", "prior_drift_residual_rms_m", "prior_drift_residual_max_m", "phase_timings", "pipeline_version"]
+    __properties: ClassVar[List[str]] = ["reprojection_pixel_error_50th_percentile", "reprojection_pixel_error_90th_percentile", "track_length_50th_percentile", "all_verified_matches", "all_verified_match_rate", "all_verified_match_inliers_mean", "all_verified_match_inliers_median", "stereo_verified_matches", "stereo_verified_match_rate", "stereo_verified_match_inliers_mean", "stereo_verified_match_inliers_median", "map_image_count", "map_point_count", "map_avg_track_length", "map_viewpoint_diversity", "gravity_aligned_in_map_frame", "gravity_sample_count", "prior_drift_residual_rms_m", "prior_drift_residual_max_m", "imu_scale_applied", "imu_scale_rejected_because", "imu_scale_m_per_unit", "imu_scale_sigma_m_per_unit", "imu_sync_residual_deg", "imu_free_gravity_mps2", "imu_scale_drift_p_value", "phase_timings", "pipeline_version"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -200,6 +207,41 @@ class ReconstructionMetrics(BaseModel):
         if self.prior_drift_residual_max_m is None and "prior_drift_residual_max_m" in self.model_fields_set:
             _dict['prior_drift_residual_max_m'] = None
 
+        # set to None if imu_scale_applied (nullable) is None
+        # and model_fields_set contains the field
+        if self.imu_scale_applied is None and "imu_scale_applied" in self.model_fields_set:
+            _dict['imu_scale_applied'] = None
+
+        # set to None if imu_scale_rejected_because (nullable) is None
+        # and model_fields_set contains the field
+        if self.imu_scale_rejected_because is None and "imu_scale_rejected_because" in self.model_fields_set:
+            _dict['imu_scale_rejected_because'] = None
+
+        # set to None if imu_scale_m_per_unit (nullable) is None
+        # and model_fields_set contains the field
+        if self.imu_scale_m_per_unit is None and "imu_scale_m_per_unit" in self.model_fields_set:
+            _dict['imu_scale_m_per_unit'] = None
+
+        # set to None if imu_scale_sigma_m_per_unit (nullable) is None
+        # and model_fields_set contains the field
+        if self.imu_scale_sigma_m_per_unit is None and "imu_scale_sigma_m_per_unit" in self.model_fields_set:
+            _dict['imu_scale_sigma_m_per_unit'] = None
+
+        # set to None if imu_sync_residual_deg (nullable) is None
+        # and model_fields_set contains the field
+        if self.imu_sync_residual_deg is None and "imu_sync_residual_deg" in self.model_fields_set:
+            _dict['imu_sync_residual_deg'] = None
+
+        # set to None if imu_free_gravity_mps2 (nullable) is None
+        # and model_fields_set contains the field
+        if self.imu_free_gravity_mps2 is None and "imu_free_gravity_mps2" in self.model_fields_set:
+            _dict['imu_free_gravity_mps2'] = None
+
+        # set to None if imu_scale_drift_p_value (nullable) is None
+        # and model_fields_set contains the field
+        if self.imu_scale_drift_p_value is None and "imu_scale_drift_p_value" in self.model_fields_set:
+            _dict['imu_scale_drift_p_value'] = None
+
         # set to None if phase_timings (nullable) is None
         # and model_fields_set contains the field
         if self.phase_timings is None and "phase_timings" in self.model_fields_set:
@@ -241,6 +283,13 @@ class ReconstructionMetrics(BaseModel):
             "gravity_sample_count": obj.get("gravity_sample_count"),
             "prior_drift_residual_rms_m": obj.get("prior_drift_residual_rms_m"),
             "prior_drift_residual_max_m": obj.get("prior_drift_residual_max_m"),
+            "imu_scale_applied": obj.get("imu_scale_applied"),
+            "imu_scale_rejected_because": obj.get("imu_scale_rejected_because"),
+            "imu_scale_m_per_unit": obj.get("imu_scale_m_per_unit"),
+            "imu_scale_sigma_m_per_unit": obj.get("imu_scale_sigma_m_per_unit"),
+            "imu_sync_residual_deg": obj.get("imu_sync_residual_deg"),
+            "imu_free_gravity_mps2": obj.get("imu_free_gravity_mps2"),
+            "imu_scale_drift_p_value": obj.get("imu_scale_drift_p_value"),
             "phase_timings": [PhaseTiming.from_dict(_item) for _item in obj["phase_timings"]] if obj.get("phase_timings") is not None else None,
             "pipeline_version": obj.get("pipeline_version")
         })

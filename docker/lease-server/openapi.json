@@ -537,6 +537,46 @@
             "type": "number",
             "format": "double"
           },
+          "imu_scale_applied": {
+            "description": "True when the capture's own IMU (an Insta360 .insv import) scaled the map to metres and levelled it to true gravity; False when the fit ran but failed its checks, leaving the map in arbitrary units; None when the capture carries no IMU.",
+            "nullable": true,
+            "type": "boolean"
+          },
+          "imu_scale_rejected_because": {
+            "description": "Why the IMU fit was not applied (which check failed, or why it could not run); None when it was applied or never ran.",
+            "nullable": true,
+            "type": "string"
+          },
+          "imu_scale_m_per_unit": {
+            "description": "Metres per map unit the IMU fit found for the map as SfM built it, applied or not.",
+            "nullable": true,
+            "type": "number",
+            "format": "double"
+          },
+          "imu_scale_sigma_m_per_unit": {
+            "description": "Standard error of imu_scale_m_per_unit from the least-squares fit.",
+            "nullable": true,
+            "type": "number",
+            "format": "double"
+          },
+          "imu_sync_residual_deg": {
+            "description": "Median angle between the gyro's turn and the map's turn over each keyframe interval after syncing; ~0.1 deg when the map follows the camera body.",
+            "nullable": true,
+            "type": "number",
+            "format": "double"
+          },
+          "imu_free_gravity_mps2": {
+            "description": "Gravity's magnitude when the IMU fit leaves it free, in m/s^2; near 9.81 when the sync and the map are sound.",
+            "nullable": true,
+            "type": "number",
+            "format": "double"
+          },
+          "imu_scale_drift_p_value": {
+            "description": "Chi-square p-value that one scale explains every 30 s window of the walk; small means the scale drifts along it. None with fewer than two windows.",
+            "nullable": true,
+            "type": "number",
+            "format": "double"
+          },
           "phase_timings": {
             "description": "Per-phase wall-clock durations in execution order, captured at each set_phase boundary.",
             "nullable": true,

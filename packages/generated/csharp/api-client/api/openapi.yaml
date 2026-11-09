@@ -4360,7 +4360,7 @@ components:
     PhaseTiming:
       example:
         phase: phase
-        duration_seconds: 4.965218492984954
+        duration_seconds: 8.762042012749001
       properties:
         phase:
           description: "ReconstructionStatus value of the phase, e.g. 'extracting_features'."
@@ -4486,31 +4486,38 @@ components:
       type: object
     ReconstructionMetrics:
       example:
-        pipeline_version: pipeline_version
+        imu_scale_drift_p_value: 6.683562403749608
         phase_timings:
         - phase: phase
-          duration_seconds: 4.965218492984954
+          duration_seconds: 8.762042012749001
         - phase: phase
-          duration_seconds: 4.965218492984954
+          duration_seconds: 8.762042012749001
         all_verified_match_inliers_median: 7.061401241503109
         reprojection_pixel_error_50th_percentile: 0.8008281904610115
         stereo_verified_match_rate: 3.616076749251911
         all_verified_match_inliers_mean: 2.3021358869347655
         prior_drift_residual_rms_m: 7.457744773683766
+        imu_scale_applied: true
         gravity_sample_count: 6
+        imu_sync_residual_deg: 9.965781217890562
+        imu_scale_rejected_because: imu_scale_rejected_because
+        stereo_verified_match_inliers_median: 4.145608029883936
+        all_verified_matches: 5
+        imu_scale_sigma_m_per_unit: 5.025004791520295
+        imu_free_gravity_mps2: 9.369310271410669
+        map_viewpoint_diversity: 1.4894159098541704
+        pipeline_version: pipeline_version
         map_image_count: 7
         track_length_50th_percentile: 1.4658129805029452
         all_verified_match_rate: 5.637376656633329
-        stereo_verified_match_inliers_median: 4.145608029883936
         prior_drift_residual_max_m: 1.1730742509559433
-        all_verified_matches: 5
         reprojection_pixel_error_90th_percentile: 6.027456183070403
         stereo_verified_matches: 9
         map_point_count: 1
         gravity_aligned_in_map_frame: true
-        map_viewpoint_diversity: 1.4894159098541704
         stereo_verified_match_inliers_mean: 2.027123023002322
         map_avg_track_length: 1.0246457001441578
+        imu_scale_m_per_unit: 4.965218492984954
       properties:
         reprojection_pixel_error_50th_percentile:
           description: Median reprojection error in pixels across all valid 2D observations
@@ -4607,6 +4614,50 @@ components:
         prior_drift_residual_max_m:
           description: Maximum residual in meters of the same Umeyama fit; surfaces
             single-frame outliers the RMS smooths over.
+          format: double
+          nullable: true
+          type: number
+        imu_scale_applied:
+          description: "True when the capture's own IMU (an Insta360 .insv import)\
+            \ scaled the map to metres and levelled it to true gravity; False when\
+            \ the fit ran but failed its checks, leaving the map in arbitrary units;\
+            \ None when the capture carries no IMU."
+          nullable: true
+          type: boolean
+        imu_scale_rejected_because:
+          description: "Why the IMU fit was not applied (which check failed, or why\
+            \ it could not run); None when it was applied or never ran."
+          nullable: true
+          type: string
+        imu_scale_m_per_unit:
+          description: "Metres per map unit the IMU fit found for the map as SfM built\
+            \ it, applied or not."
+          format: double
+          nullable: true
+          type: number
+        imu_scale_sigma_m_per_unit:
+          description: Standard error of imu_scale_m_per_unit from the least-squares
+            fit.
+          format: double
+          nullable: true
+          type: number
+        imu_sync_residual_deg:
+          description: Median angle between the gyro's turn and the map's turn over
+            each keyframe interval after syncing; ~0.1 deg when the map follows the
+            camera body.
+          format: double
+          nullable: true
+          type: number
+        imu_free_gravity_mps2:
+          description: "Gravity's magnitude when the IMU fit leaves it free, in m/s^2;\
+            \ near 9.81 when the sync and the map are sound."
+          format: double
+          nullable: true
+          type: number
+        imu_scale_drift_p_value:
+          description: Chi-square p-value that one scale explains every 30 s window
+            of the walk; small means the scale drifts along it. None with fewer than
+            two windows.
           format: double
           nullable: true
           type: number

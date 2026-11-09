@@ -53,6 +53,13 @@ namespace PlaceframeApiClient.Model
         /// <param name="gravitySampleCount">Number of registered frames that contributed gravity samples to the map-frame alignment..</param>
         /// <param name="priorDriftResidualRmsM">RMS residual in meters of a rigid Umeyama fit from map camera centers to VIO position priors; None for multi-camera captures, which run priors-off and carry no per-frame positions..</param>
         /// <param name="priorDriftResidualMaxM">Maximum residual in meters of the same Umeyama fit; surfaces single-frame outliers the RMS smooths over..</param>
+        /// <param name="imuScaleApplied">True when the capture&#39;s own IMU (an Insta360 .insv import) scaled the map to metres and levelled it to true gravity; False when the fit ran but failed its checks, leaving the map in arbitrary units; None when the capture carries no IMU..</param>
+        /// <param name="imuScaleRejectedBecause">Why the IMU fit was not applied (which check failed, or why it could not run); None when it was applied or never ran..</param>
+        /// <param name="imuScaleMPerUnit">Metres per map unit the IMU fit found for the map as SfM built it, applied or not..</param>
+        /// <param name="imuScaleSigmaMPerUnit">Standard error of imu_scale_m_per_unit from the least-squares fit..</param>
+        /// <param name="imuSyncResidualDeg">Median angle between the gyro&#39;s turn and the map&#39;s turn over each keyframe interval after syncing; ~0.1 deg when the map follows the camera body..</param>
+        /// <param name="imuFreeGravityMps2">Gravity&#39;s magnitude when the IMU fit leaves it free, in m/s^2; near 9.81 when the sync and the map are sound..</param>
+        /// <param name="imuScaleDriftPValue">Chi-square p-value that one scale explains every 30 s window of the walk; small means the scale drifts along it. None with fewer than two windows..</param>
         /// <param name="phaseTimings">Per-phase wall-clock durations in execution order, captured at each set_phase boundary..</param>
         /// <param name="pipelineVersion">RECONSTRUCTOR_SHA of the image that produced this reconstruction..</param>
         public ReconstructionMetrics()
@@ -535,6 +542,181 @@ namespace PlaceframeApiClient.Model
             return _flagPriorDriftResidualMaxM;
         }
         /// <summary>
+        /// True when the capture&#39;s own IMU (an Insta360 .insv import) scaled the map to metres and levelled it to true gravity; False when the fit ran but failed its checks, leaving the map in arbitrary units; None when the capture carries no IMU.
+        /// </summary>
+        /// <value>True when the capture&#39;s own IMU (an Insta360 .insv import) scaled the map to metres and levelled it to true gravity; False when the fit ran but failed its checks, leaving the map in arbitrary units; None when the capture carries no IMU.</value>
+        [DataMember(Name = "imu_scale_applied", EmitDefaultValue = true)]
+        public bool? ImuScaleApplied
+        {
+            get{ return _ImuScaleApplied;}
+            set
+            {
+                _ImuScaleApplied = value;
+                _flagImuScaleApplied = true;
+            }
+        }
+        private bool? _ImuScaleApplied;
+        private bool _flagImuScaleApplied;
+
+        /// <summary>
+        /// Returns false as ImuScaleApplied should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeImuScaleApplied()
+        {
+            return _flagImuScaleApplied;
+        }
+        /// <summary>
+        /// Why the IMU fit was not applied (which check failed, or why it could not run); None when it was applied or never ran.
+        /// </summary>
+        /// <value>Why the IMU fit was not applied (which check failed, or why it could not run); None when it was applied or never ran.</value>
+        [DataMember(Name = "imu_scale_rejected_because", EmitDefaultValue = true)]
+        public string ImuScaleRejectedBecause
+        {
+            get{ return _ImuScaleRejectedBecause;}
+            set
+            {
+                _ImuScaleRejectedBecause = value;
+                _flagImuScaleRejectedBecause = true;
+            }
+        }
+        private string _ImuScaleRejectedBecause;
+        private bool _flagImuScaleRejectedBecause;
+
+        /// <summary>
+        /// Returns false as ImuScaleRejectedBecause should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeImuScaleRejectedBecause()
+        {
+            return _flagImuScaleRejectedBecause;
+        }
+        /// <summary>
+        /// Metres per map unit the IMU fit found for the map as SfM built it, applied or not.
+        /// </summary>
+        /// <value>Metres per map unit the IMU fit found for the map as SfM built it, applied or not.</value>
+        [DataMember(Name = "imu_scale_m_per_unit", EmitDefaultValue = true)]
+        public double? ImuScaleMPerUnit
+        {
+            get{ return _ImuScaleMPerUnit;}
+            set
+            {
+                _ImuScaleMPerUnit = value;
+                _flagImuScaleMPerUnit = true;
+            }
+        }
+        private double? _ImuScaleMPerUnit;
+        private bool _flagImuScaleMPerUnit;
+
+        /// <summary>
+        /// Returns false as ImuScaleMPerUnit should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeImuScaleMPerUnit()
+        {
+            return _flagImuScaleMPerUnit;
+        }
+        /// <summary>
+        /// Standard error of imu_scale_m_per_unit from the least-squares fit.
+        /// </summary>
+        /// <value>Standard error of imu_scale_m_per_unit from the least-squares fit.</value>
+        [DataMember(Name = "imu_scale_sigma_m_per_unit", EmitDefaultValue = true)]
+        public double? ImuScaleSigmaMPerUnit
+        {
+            get{ return _ImuScaleSigmaMPerUnit;}
+            set
+            {
+                _ImuScaleSigmaMPerUnit = value;
+                _flagImuScaleSigmaMPerUnit = true;
+            }
+        }
+        private double? _ImuScaleSigmaMPerUnit;
+        private bool _flagImuScaleSigmaMPerUnit;
+
+        /// <summary>
+        /// Returns false as ImuScaleSigmaMPerUnit should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeImuScaleSigmaMPerUnit()
+        {
+            return _flagImuScaleSigmaMPerUnit;
+        }
+        /// <summary>
+        /// Median angle between the gyro&#39;s turn and the map&#39;s turn over each keyframe interval after syncing; ~0.1 deg when the map follows the camera body.
+        /// </summary>
+        /// <value>Median angle between the gyro&#39;s turn and the map&#39;s turn over each keyframe interval after syncing; ~0.1 deg when the map follows the camera body.</value>
+        [DataMember(Name = "imu_sync_residual_deg", EmitDefaultValue = true)]
+        public double? ImuSyncResidualDeg
+        {
+            get{ return _ImuSyncResidualDeg;}
+            set
+            {
+                _ImuSyncResidualDeg = value;
+                _flagImuSyncResidualDeg = true;
+            }
+        }
+        private double? _ImuSyncResidualDeg;
+        private bool _flagImuSyncResidualDeg;
+
+        /// <summary>
+        /// Returns false as ImuSyncResidualDeg should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeImuSyncResidualDeg()
+        {
+            return _flagImuSyncResidualDeg;
+        }
+        /// <summary>
+        /// Gravity&#39;s magnitude when the IMU fit leaves it free, in m/s^2; near 9.81 when the sync and the map are sound.
+        /// </summary>
+        /// <value>Gravity&#39;s magnitude when the IMU fit leaves it free, in m/s^2; near 9.81 when the sync and the map are sound.</value>
+        [DataMember(Name = "imu_free_gravity_mps2", EmitDefaultValue = true)]
+        public double? ImuFreeGravityMps2
+        {
+            get{ return _ImuFreeGravityMps2;}
+            set
+            {
+                _ImuFreeGravityMps2 = value;
+                _flagImuFreeGravityMps2 = true;
+            }
+        }
+        private double? _ImuFreeGravityMps2;
+        private bool _flagImuFreeGravityMps2;
+
+        /// <summary>
+        /// Returns false as ImuFreeGravityMps2 should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeImuFreeGravityMps2()
+        {
+            return _flagImuFreeGravityMps2;
+        }
+        /// <summary>
+        /// Chi-square p-value that one scale explains every 30 s window of the walk; small means the scale drifts along it. None with fewer than two windows.
+        /// </summary>
+        /// <value>Chi-square p-value that one scale explains every 30 s window of the walk; small means the scale drifts along it. None with fewer than two windows.</value>
+        [DataMember(Name = "imu_scale_drift_p_value", EmitDefaultValue = true)]
+        public double? ImuScaleDriftPValue
+        {
+            get{ return _ImuScaleDriftPValue;}
+            set
+            {
+                _ImuScaleDriftPValue = value;
+                _flagImuScaleDriftPValue = true;
+            }
+        }
+        private double? _ImuScaleDriftPValue;
+        private bool _flagImuScaleDriftPValue;
+
+        /// <summary>
+        /// Returns false as ImuScaleDriftPValue should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeImuScaleDriftPValue()
+        {
+            return _flagImuScaleDriftPValue;
+        }
+        /// <summary>
         /// Per-phase wall-clock durations in execution order, captured at each set_phase boundary.
         /// </summary>
         /// <value>Per-phase wall-clock durations in execution order, captured at each set_phase boundary.</value>
@@ -611,6 +793,13 @@ namespace PlaceframeApiClient.Model
             sb.Append("  GravitySampleCount: ").Append(GravitySampleCount).Append("\n");
             sb.Append("  PriorDriftResidualRmsM: ").Append(PriorDriftResidualRmsM).Append("\n");
             sb.Append("  PriorDriftResidualMaxM: ").Append(PriorDriftResidualMaxM).Append("\n");
+            sb.Append("  ImuScaleApplied: ").Append(ImuScaleApplied).Append("\n");
+            sb.Append("  ImuScaleRejectedBecause: ").Append(ImuScaleRejectedBecause).Append("\n");
+            sb.Append("  ImuScaleMPerUnit: ").Append(ImuScaleMPerUnit).Append("\n");
+            sb.Append("  ImuScaleSigmaMPerUnit: ").Append(ImuScaleSigmaMPerUnit).Append("\n");
+            sb.Append("  ImuSyncResidualDeg: ").Append(ImuSyncResidualDeg).Append("\n");
+            sb.Append("  ImuFreeGravityMps2: ").Append(ImuFreeGravityMps2).Append("\n");
+            sb.Append("  ImuScaleDriftPValue: ").Append(ImuScaleDriftPValue).Append("\n");
             sb.Append("  PhaseTimings: ").Append(PhaseTimings).Append("\n");
             sb.Append("  PipelineVersion: ").Append(PipelineVersion).Append("\n");
             sb.Append("}\n");
