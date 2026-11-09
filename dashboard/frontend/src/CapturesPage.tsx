@@ -40,7 +40,7 @@ import { ReconstructionFrames } from "./components/ReconstructionFrames";
 import { RunResults } from "./components/RunResults";
 import { errorText, readStored, store, STORAGE_KEYS } from "./storage";
 import type { CaptureSession, FusionRunSummary, Job, JobProgress, LocalizationSummary, PoselessImageSet, Reconstruction } from "./types";
-import { TERMINAL_STATUSES, isImuScaled, isViewerOnly } from "./types";
+import { TERMINAL_STATUSES, isFromInsv, isImuScaled, isViewerOnly } from "./types";
 
 // One page, one tree: capture → its reconstructions (one per set of options) → each
 // reconstruction's localization runs. Captures and reconstructions come from the API; runs are the
@@ -763,7 +763,7 @@ export function CapturesPage() {
                   >
                     Offline fusion…
                   </button>
-                  {captureOf(r)?.is_spherical && !isImuScaled(r) && (
+                  {isFromInsv(captureOf(r)) && !isImuScaled(r) && (
                     <button
                       title="Scale this map to metres from the .insv's IMU, as a new reconstruction"
                       onClick={() => setDialog({ kind: "imuScale", reconstruction: r })}

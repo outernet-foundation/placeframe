@@ -636,10 +636,7 @@ export function ImuScaleDialog({ reconstruction, capture, onClose, onStarted }: 
         fileExtensions={[".insv"]}
       />
       <div style={{ ...HINT, marginTop: -8 }}>
-        {recorded
-          ? "Filled in from the capture's import on this machine."
-          : "This capture's source video was not recorded at import, so choose it."}{" "}
-        The gyro is synced to the map's rotations and the accelerometer fitted against the keyframes' motion, which
+        Filled in from the capture's import on this machine. The gyro is synced to the map's rotations and the accelerometer fitted against the keyframes' motion, which
         gives the scale. The map must come from the .insv itself: an Insta360 Studio export is stabilised and
         cannot be synced.
       </div>

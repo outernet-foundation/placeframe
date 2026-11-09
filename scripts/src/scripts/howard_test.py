@@ -1422,8 +1422,16 @@ async def _imu_scale(
             tar_path = await _ensure_cached_tar(api, reconstruction_id)
         except ApiException as exception:
             _fail(exception)
+    recorded = read_capture_sources().get(str(source.capture_session_id))
+    # An .insv passed for a capture imported from a Studio export would still sync against a
+    # stabilised map, and fail quietly: refuse it on the capture's recorded source, not just the file.
+    if recorded is not None and not insv.is_insv(Path(recorded)):
+        _fail_message(
+            f"Capture {source.capture_session_id} was imported from {Path(recorded).name}, not an .insv: its map's "
+            "rotations are stabilised and no IMU can be synced to them. Reconstruct the .insv itself, or transfer "
+            "the scale from a metric map of it."
+        )
     if video is None:
-        recorded = read_capture_sources().get(str(source.capture_session_id))
         if recorded is None:
             _fail_message(
                 f"No source video is recorded for capture {source.capture_session_id}: it was imported elsewhere or "

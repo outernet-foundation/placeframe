@@ -36,6 +36,13 @@ export interface Reconstruction {
   alignment?: Record<string, unknown> | null; // the Sim(3) and provenance recorded by transform-reconstruction
 }
 
+/** Imported from a native .insv, so its maps follow the camera body and the IMU can scale them. An
+ * Insta360 Studio export is stabilised and carries no IMU; neither does a capture whose source went
+ * unrecorded (every .insv import records its source). */
+export function isFromInsv(c: CaptureSession | null | undefined): boolean {
+  return c?.source_video?.toLowerCase().endsWith(".insv") === true;
+}
+
 /** A copy already scaled to metres by its .insv's IMU, which has nothing left to fit. */
 export function isImuScaled(r: Reconstruction): boolean {
   return r.alignment?.source === "imu_scale";
