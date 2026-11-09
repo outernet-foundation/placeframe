@@ -12,28 +12,38 @@ root `services:` vocabulary plus the `bundles:` selector in `boatyard.values.yam
 the artifacts at `up`/`down`, with boatyard emitting the edge (caddy) from the config's routes.
 
     stack/score/            authored
-      api.yaml              workload contracts (tier-neutral), ${SHA} placeholders for image tags,
-      lease-server.yaml     ${GPU_VARIANT} placeholders where a workload is accelerator-carrying
+      api.yaml              workload contracts (tier-neutral), image sources declared as
+      lease-server.yaml     outernet.internal annotations (dockerfile: or lock:); the image
+                            line itself is never authored — generate-score injects the
+                            composed reference before the score tools see the document
       keycloak.yaml         the tier-neutral OIDC provider — the container is keycloak on both
                             renderings, env fed by the oidc-issuer provisioner outputs
       reconstructor.yaml
-      localizer.yaml
+      localizer.yaml        accelerator-carrying workloads fan on TORCH_DEVICE; the variant
+                            fragment derives from the declared fan, never hand-spelled
       ngrok.yaml            compose-only relay workload — absent from the k8s workload list,
                             which is why it has no k8s provisioner twin
       compose/              provisioners for the compose rendering
       k8s/                  provisioners for the k8s rendering
       k8s/values/           helm values for the declared charts (k8s rendering only)
-    stack/secrets.yaml      tier-neutral secrets/env declaration (both renderings)
+    boatyard.yml            the declaration: services (authored options and the core variants
+                            group), base images, the k8s section
+    boatyard.k8s-pins.yml   deploy record written only by `boatyard bump` (the k8s artifact's
+                            image-tag pins); absent until the first certified bump
     stack/generated/        committed artifacts, never hand-edited
       compose/compose.{core-cuda,core-rocm}.yaml         core bundle per GPU variant
       compose/compose.auth-keycloak.yaml                  the OIDC provider bundle
       compose/compose.tunnel-ngrok.yaml                   the relay artifact
       k8s/manifests.yaml
-      secrets.txt           mint list generated from the secrets declaration
+      secrets.txt           mint list derived from the k8s rendering's consumed keys
 
-The assembly is declared in `boatyard.yml`'s root `services:` map: groups of
-mutually exclusive `options:` (`auth`/`keycloak`, `core`/`cuda`+`rocm`, `tunnel`/`ngrok`),
-group-level `routes:`/`ports:` that ride unconditionally, and per-option workloads/vars.
+The assembly is declared in `boatyard.yml`'s root `services:` map: each group authors its
+option set (`options:` — `auth`/`keycloak`, `tunnel`/`ngrok`) or spells its workloads at the
+group level (`workloads:` — `core`), where the option set derives from the single axis the
+group's image closure fans (the Dockerfiles fan on `TORCH_DEVICE` into the
+`core-cuda`/`core-rocm` options — the fan's one spelling is the built
+`NEURAL_NETWORKS_BASE` entry in `base_images`), plus group-level `routes:`/`ports:` that
+ride unconditionally.
 `bundles:` names options only, by qualified `group-option` spelling. Provisioner registration derives by resource-type closure
 over the rendering's workloads — no provisioner list is authored anywhere.
 Deployment-surface behavior — healthchecks, gpu plumbing, the relay restart, the
@@ -47,12 +57,19 @@ concept; the cluster edge is the Pulumi Ingress (infra repo), not a boatyard-emi
 ## Generate
 
 `uv run boatyard generate-score [--target compose|k8s] [--local]` writes the artifacts
-and deploys nothing. Image tags are disk-state tree tags — boatyard hashes the working
-tree over the `.dockerignore` allowlist (dirt is content), so the order is: commit the
-source change, regenerate, commit the artifacts as their own canonical `Run
-generate-score` commit. Generating mid-edit produces artifacts built against that edit,
-not the committed tree. Provisioner templates read the service SHAs through
-`{{ env "NAME" }}` — boatyard exports the sha/image values to the score tools.
+and deploys nothing. The compose artifacts carry `{ENTRY}__BOATYARD_TREE__*_SHA` slots —
+`up` resolves them to working-tree tree tags per run (boatyard hashes the tree over the
+`.dockerignore` allowlist; dirt is content, so the order is: commit the source change,
+regenerate, commit the artifacts as their own canonical `Run generate-score` commit —
+a regeneration run mid-edit produces artifacts naming that edit, not the committed
+tree). The committed k8s artifact instead bakes the pins recorded in
+`boatyard.k8s-pins.yml`, written only by `boatyard bump`: the bump refuses a dirty tree
+and certifies that CI built and shelved images at exactly HEAD (`REGISTRY` names the
+shelf) before pinning, then regenerates the k8s artifact itself — the k8s regeneration
+and its pins always land together. `--local` skips the pins (tree-computed shas, local
+storage class, gitignored `manifests.local.yaml`). Provisioner templates read the
+service SHAs through `{{ env "NAME" }}` — boatyard exports the sha/image values to the
+score tools.
 This checkout carries ignored dirt under the allowlist (`__pycache__`, `build/`,
 `egg-info/`, the vendored deep-image-retrieval `.venv`), and dirt hashes: a regeneration
 run from this tree mints tags only this machine can reproduce, and CI's
@@ -69,12 +86,12 @@ Staleness is gated in CI's build-docker getter, not preflight: its `generate-sco
 step fetches the exact pinned score tools itself, regenerates in the runner checkout, and
 fails on any git change under the config-derived outputs (the four compose artifacts,
 `k8s/manifests.yaml`, `secrets.txt`), printing the diff — uncommitted edits heal by
-regeneration, only committed state can drift. Every change inside a service's build
-context (a dependency-lock bump included) re-stales the committed output through the
-embedded `tree-<sha>` tags, so each source change carries its regeneration in the same
-PR. Regeneration is a deliberate manual step (the gate verifies, never writes the tree),
-deterministic across fresh runs (the tool state dirs are per-run temp; instance suffixes
-are name-derived hashes).
+regeneration, only committed state can drift. The compose artifacts no longer embed
+`tree-<sha>` tags (the slots resolve per run), so source changes inside a service's
+build context re-stale nothing on the compose side; the k8s artifact moves only through
+`boatyard bump`, which pins exactly the CI-built HEAD. Regeneration is a deliberate
+manual step (the gate verifies, never writes the tree), deterministic across fresh runs
+(the tool state dirs are per-run temp; instance suffixes are name-derived hashes).
 
 ## Deploy: Docker
 
@@ -94,16 +111,18 @@ instead, or point a `path_overrides:` entry at a sibling checkout's
 `stack/generated/compose/` output.
 
 The edge is emitted by boatyard from the config's routes — never authored here:
-`gateway: ${GATEWAY_PORT:?err}` publishes the edge's host port
-(`boatyard.values.yaml.sample` ships `GATEWAY_PORT: 8443`), the edge listens `:8443`
+`gateway: 8443` (an integer in `boatyard.yml`) publishes the edge's host port, the
+values file's typed `gateway:` override retargets it
+(`boatyard.values.yaml.sample` ships `gateway: 8443`), the edge listens `:8443`
 internally, and the route table
 (`/auth/*` strip-prefix to keycloak when it rides, `/grafana/*` and `/loki/*`
 unprotected, `/*` to the api) is consumer config, not workload surface — the edge does
 no token validation (the `protected` flag and its forward_auth emission are stripped;
 re-protection is a bundle-shipped oauth2-proxy sidecar treaty, tracked as commented-out
 route lines in `boatyard.yml`). Host
-ports beyond the door live in the config's `ports:` (api and lease-server debug ports,
-localhost-bound; the seaweedfs-admin console) — no workload publishes anything
+ports beyond the door live in the config's `ports:` as integer defaults (api and
+lease-server debug ports, localhost-bound; the seaweedfs-admin console) — no workload
+publishes anything
 (`outernet.internal/publish` is dead and its presence refuses at generation).
 
 ```bash
@@ -121,14 +140,15 @@ Raw `docker compose` (the pressure valve) anchors at the repo root
 first `-f` file's directory). This raw form has no edge — the edge exists only in
 boatyard's materialized assembly.
 
-The `tree-<sha>` image tags the generated compose references must exist before `up` — a
-regeneration can reference tags that have never been built or pushed, and the pull fails
-with `not found`. Build the missing services first (`uv run boatyard build --targets api`).
+The `tree-<sha>` image tags `up` resolves the compose slots into must exist before it
+runs — the working-tree shas can name tags that have never been built or pushed, and the
+pull fails with `not found`. Build the missing services first (`uv run boatyard build
+--targets api`).
 
 It reads `boatyard.values.yaml` the same way any assembly does (`KEYCLOAK_ADMIN_PASSWORD`
 consumed only by the keycloak artifact — keycloak and its configurator ride that option;
 the anonymous core never sees it). Reach the api through the edge at
-`http://localhost:${GATEWAY_PORT:-8443}/schema`.
+`http://localhost:8443/schema` (or the values file's `gateway:` override when set).
 
 ## Deploy: Kubernetes
 
@@ -206,13 +226,16 @@ proliferate.
   lists, compiled to score's YAML-in-a-string form in a per-run tempdir at generation —
   compiled output never goes back into a source. Single-key authoring markers ride in
   provisioner manifests and chart values alike: `include:`/`include-yaml: <repo-root-relative
-  path>` inserts a file's bytes verbatim / parsed structure, and `lock: NAME`/
-  `lock-image: NAME` substitutes a `boatyard.lock.yml` entry — the full digest reference for
-  provisioner `image:` fields, or the registry/repository/tag/digest fields chart values
+  path>` inserts a file's bytes verbatim / parsed structure; `dockerfile: <repo-root-relative
+  path>` composes the built-image reference (repository + directory stem + declared variant
+  + the sha env slot) for provisioner `image:` fields; `lock: NAME`/`lock-image: NAME`
+  substitutes a `boatyard.lock.yml` entry — the full digest reference for provisioner
+  `image:` fields, or the registry/repository/tag/digest fields chart values
   want (`digest_field: sha` for grafana's bare-hex spelling) — object-typed image
   values only. Charts whose values schema types image fields as strings (the
   keycloak-operator chart: `operator.image`, `operator.envs.*`) take `lock: NAME`
-  instead; the object form fails their values validation. The lock is the k8s
+  instead; the object form fails their values validation. `dockerfile:` is a
+  provisioner-manifest marker — chart values take `lock:`/`lock-image:` only. The lock is the k8s
   provisioners' single digest source: they have no runtime env-file, so no compose-style
   `${VAR}` slot is available there.
 - **K8s config content arrives by inclusion, never hand mirrors.** The alloy ConfigMap
@@ -222,11 +245,10 @@ proliferate.
   demands a structured `schema_config`, which is why the override rides `structuredConfig`
   rather than the `loki.config` string); grafana's datasources ride `include-yaml:`. One
   committed file feeds both renderings — no standing copy to keep in sync.
-- **The secrets declaration is the consumed-key contract.** `stack/secrets.yaml`
-  declares every `ALL_CAPS` key either rendering consumes; generate-score validates each
-  generated artifact's consumed keys (compose `${VAR}` slots; k8s `secretKeyRef`s into
-  `placeframe-secrets`) are a subset of it, and writes `stack/generated/secrets.txt` — the
-  mint list of Secret-resident keys — from the declaration alone.
+- **The mint list is derived, never authored.** generate-score walks the generated k8s
+  artifact's `secretKeyRef`s into `placeframe-secrets` and writes
+  `stack/generated/secrets.txt` — the exact key set that Secret must contain; a
+  compose-only rendering mints an empty list. No secrets vocabulary is declared anywhere.
 - **Compose artifacts are hermetic: zero host-filesystem references.** score-compose
   materializes workload `files:` as binds into its state dir; boatyard's post-pass
   rewrites every bind into a top-level `configs.content` entry with each `$` doubled (compose
@@ -284,9 +306,13 @@ proliferate.
   resource type — no provisioner list is authored, and an orphan file (a type nothing
   references) silently no-ships. The score tools themselves impose no naming requirements
   on these files.
-- **Workload files are not standalone-valid score documents** — `${API_SHA}`-style image
-  placeholders are expanded by `generate-score` from the working tree before the score
-  tools see them.
+- **Workload files never author an `image:` line.** Each container declares exactly one source
+  as a metadata annotation — `outernet.internal/dockerfile: <container>=<repo-root-relative
+  Dockerfile path>` for built images or `outernet.internal/lock: <container>=<base_images key>`
+  for pulled ones — and `generate-score` injects the composed reference (repository + stem +
+  derived variant + tag: the per-machine tree slot on compose, the pin or tree tag on k8s)
+  before the score tools see the document. The files are therefore not standalone-valid
+  score documents; `${API_SHA}`-style slots survive only as data uses (`SERVICE_VERSION`).
 - **Dev behavior toggles bake as literals; there is no dev overlay.** The api and
   lease-server `variables:` carry `RELOAD`/`DEBUG_API`/`DEBUG_WAIT_API` (and the
   lease-server's `DEBUG_LEASE_SERVER`/`DEBUG_WAIT_LEASE_SERVER` twins) at prod-safe
@@ -297,7 +323,7 @@ proliferate.
   in boatyard's `design/dev-overlay.md`.
 - **No `depends_on` across workloads**: score has no such concept. Provisioner services gate
   on each other's health; workloads gate on the auto-emitted `wait-for-resources` service,
-  whose alpine default image is redirected into the `{ENTRY}__LOCK__ALPINE_IMAGE`
+  whose alpine default image is redirected into the `{ENTRY}__BOATYARD_LOCK__ALPINE_IMAGE`
   slot by the barrier pass — filled from the lock's per-run env file at bring-up, so the
   artifact carries no unpinned image. The gate emits only where a provisioner carries services, so the
   ngrok artifact carries none.
@@ -339,8 +365,9 @@ proliferate.
   missing buckets).
 - **GPU plumbing is annotation-driven per variant.** A workload declares
   `metadata.annotations.outernet.internal/gpu: "true"` — the single declaration of
-  accelerator-carrying behavior. Everything else derives: `${GPU_VARIANT}` in the workload
-  image name (substituted per compose output and fixed to `cuda` for the k8s rendering),
+  accelerator-carrying behavior. Everything else derives: the variant fragment in the
+  injected image reference (the core group's variant options per compose output, fixed to
+  `cuda` for the k8s rendering),
   boatyard's built-in gpu device templates (registered per the rendering's variant:
   NVIDIA device reservations for cuda, `/dev/kfd` + `/dev/dri` with the render/video
   groups for rocm), and boatyard's built-in gpu-pod template on k8s. The k8s plumbing
