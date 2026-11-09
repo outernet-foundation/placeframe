@@ -1,4 +1,6 @@
-FROM neural-networks-base
+ARG NEURAL_NETWORKS_BASE
+
+FROM ${NEURAL_NETWORKS_BASE}
 
 # PyTorch's default caching allocator uses fixed-size segments, which fragment under
 # varying per-job allocation patterns and eventually OOM despite ample free memory.

@@ -39,7 +39,7 @@
             restartPolicy: OnFailure
             containers:
             - name: configurator
-              image: ghcr.io/outernet-foundation/placeframe/auth-initializer:{{ env "AUTH_INITIALIZER_SHA" }}
+              image: {dockerfile: workloads/auth-initializer/Dockerfile}
               env:
               - name: KEYCLOAK_URL
                 value: http://{{ .State.instance }}:8080

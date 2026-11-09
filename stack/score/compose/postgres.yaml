@@ -37,7 +37,7 @@
       driver: local
   services:
     "{{ .State.serviceName }}":
-      image: ghcr.io/outernet-foundation/placeframe/postgres:{{ env "POSTGRES_SHA" }}
+      image: {dockerfile: workloads/postgres/Dockerfile}
       entrypoint: /usr/local/bin/entrypoint-wrapper.sh
       environment:
         POSTGRES_USER: "${POSTGRES_ADMIN_USER:?err}"
@@ -68,7 +68,7 @@
         timeout: 2s
         retries: 30
     "{{ .State.serviceName }}-create":
-      image: ghcr.io/outernet-foundation/placeframe/database-manager:{{ env "DATABASE_MANAGER_SHA" }}
+      image: {dockerfile: workloads/database-manager/Dockerfile}
       depends_on:
         "{{ .State.serviceName }}":
           condition: service_healthy
@@ -83,7 +83,7 @@
         --auth-user-password ${DATABASE_AUTH_USER_PASSWORD:?err}
         --orchestration-user-password ${DATABASE_ORCHESTRATION_USER_PASSWORD:?err}
     "{{ .State.serviceName }}-migrate":
-      image: ghcr.io/outernet-foundation/placeframe/database-migrator:{{ env "DATABASE_MIGRATOR_SHA" }}
+      image: {dockerfile: workloads/database-migrator/Dockerfile}
       depends_on:
         "{{ .State.serviceName }}-create":
           condition: service_completed_successfully

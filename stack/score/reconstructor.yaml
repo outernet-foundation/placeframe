@@ -5,9 +5,9 @@ metadata:
     # The GPU marker the devkit's built-in gpu patch templates key on; accelerator
     # plumbing is generated, never hand-declared.
     outernet.internal/gpu: "true"
+    outernet.internal/dockerfile: reconstructor=workloads/reconstructor/Dockerfile
 containers:
   reconstructor:
-    image: ghcr.io/outernet-foundation/placeframe/reconstructor-${GPU_VARIANT}:${RECONSTRUCTOR_SHA}
     variables:
       LEASE_SERVER_URL: http://${resources.lease-server.hostname}:${resources.lease-server.port}
       S3_ENDPOINT_URL: ${resources.bucket.endpoint}

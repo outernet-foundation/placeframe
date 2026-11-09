@@ -30,7 +30,7 @@
     # metadata-only (ownership) layer. This sidecar reassigns the live volume at
     # runtime instead. Reuses the loki image (busybox chown) so no extra image is pinned.
     initialize-loki:
-      image: ${LOKI_IMAGE:?err}
+      image: {lock: LOKI_IMAGE}
       user: "0:0"
       restart: "no"
       volumes:
@@ -39,7 +39,7 @@
         target: /loki
       entrypoint: ["/bin/sh", "-c", "chown -R 10001:10001 /loki"]
     loki:
-      image: ${LOKI_IMAGE:?err}
+      image: {lock: LOKI_IMAGE}
       depends_on:
         initialize-s3:
           condition: service_completed_successfully
@@ -71,7 +71,7 @@
         S3_ACCESS_KEY: "${S3_ACCESS_KEY:?err}"
         S3_SECRET_KEY: "${S3_SECRET_KEY:?err}"
     alloy:
-      image: ${ALLOY_IMAGE:?err}
+      image: {lock: ALLOY_IMAGE}
       depends_on:
         loki:
           condition: service_healthy
@@ -85,7 +85,7 @@
         source: workloads/alloy/config.alloy
         target: /etc/alloy/config.alloy
     grafana:
-      image: ${GRAFANA_IMAGE:?err}
+      image: {lock: GRAFANA_IMAGE}
       depends_on:
         loki:
           condition: service_healthy

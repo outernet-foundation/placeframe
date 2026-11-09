@@ -50,7 +50,7 @@
           spec:
             containers:
             - name: seaweedfs
-              image: ghcr.io/outernet-foundation/placeframe/seaweedfs:{{ env "SEAWEEDFS_SHA" }}
+              image: {dockerfile: workloads/seaweedfs/Dockerfile}
               command: ["/usr/local/bin/entrypoint-wrapper.sh"]
               args: ["server", "-filer", "-s3", "-s3.port=8333", "-s3.config=/etc/seaweedfs/s3.json", "-s3.auditLogConfig=/etc/seaweedfs/fluent.json"]
               ports:
@@ -139,7 +139,7 @@
             restartPolicy: OnFailure
             containers:
             - name: bucket
-              image: ghcr.io/outernet-foundation/placeframe/s3-initializer:{{ env "S3_INITIALIZER_SHA" }}
+              image: {dockerfile: workloads/s3-initializer/Dockerfile}
               # All buckets, not just the resource's own. capturesBucket is the name the
               # api hardcodes (workloads/api/src/routers/capture_sessions.py) and the
               # reconstructor reads from, and lokiBucket is what the loki config

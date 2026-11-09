@@ -4,9 +4,9 @@ metadata:
   annotations:
     outernet.internal/gpu: "true"
     outernet.internal/probe-adapter: python-urllib
+    outernet.internal/dockerfile: localizer=workloads/localizer/Dockerfile
 containers:
   localizer:
-    image: ghcr.io/outernet-foundation/placeframe/localizer-${GPU_VARIANT}:${LOCALIZER_SHA}
     variables:
       S3_ENDPOINT_URL: ${resources.bucket.endpoint}
       S3_ACCESS_KEY: ${resources.bucket.access_key_id}

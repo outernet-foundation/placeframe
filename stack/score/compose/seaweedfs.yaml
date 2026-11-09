@@ -23,7 +23,7 @@
       driver: local
   services:
     seaweedfs:
-      image: ghcr.io/outernet-foundation/placeframe/seaweedfs:{{ env "SEAWEEDFS_SHA" }}
+      image: {dockerfile: workloads/seaweedfs/Dockerfile}
       entrypoint: /usr/local/bin/entrypoint-wrapper.sh
       command: >
         server -filer -s3 -s3.port=8333
@@ -51,7 +51,7 @@
     # weed's S3 audit log ships over the fluent protocol (no file/stdout mode), so this
     # relay receives on 24224 and echoes to its own stdout for alloy.
     seaweedfs-audit:
-      image: ${SEAWEEDFS_AUDIT_IMAGE:?err}
+      image: {lock: SEAWEEDFS_AUDIT_IMAGE}
       depends_on:
         seaweedfs:
           condition: service_healthy
@@ -59,7 +59,7 @@
     # `weed admin` derives its worker gRPC port as HTTP port + 10000, which overflows the
     # 16-bit port range at 59001 — pass an explicit -port.grpc.
     seaweedfs-admin:
-      image: ghcr.io/outernet-foundation/placeframe/seaweedfs:{{ env "SEAWEEDFS_SHA" }}
+      image: {dockerfile: workloads/seaweedfs/Dockerfile}
       entrypoint: /usr/local/bin/entrypoint-wrapper.sh
       depends_on:
         seaweedfs:
@@ -69,7 +69,7 @@
     # until the S3 endpoint accepts connections — safe on both cold and warm volumes.
     # Gated on seaweedfs health, which asserts S3 readiness.
     initialize-s3:
-      image: ghcr.io/outernet-foundation/placeframe/s3-initializer:{{ env "S3_INITIALIZER_SHA" }}
+      image: {dockerfile: workloads/s3-initializer/Dockerfile}
       depends_on:
         seaweedfs:
           condition: service_healthy
