@@ -74,6 +74,8 @@ from av.stream import Stream
 from av.video.stream import VideoStream
 from numpy.typing import NDArray  # noqa: TID251 — tracked in PLE-233
 
+from .motion import STANDARD_GRAVITY, Imu, Motion
+
 MAGIC = b"8db42d694ccc418790edff439fe026bf"
 FOOTER = 72
 METADATA_RECORD = 1
@@ -81,7 +83,6 @@ IMU_RECORD = 3
 FRAME_TIMES_RECORD = 4
 IMU_SAMPLE = np.dtype([("t_us", "<u8"), ("counts", "<u2", 6)])
 FRAME_TIME = np.dtype([("t_us", "<u8"), ("exposure_s", "<f8")])
-STANDARD_GRAVITY = 9.80665
 ACCEL_MPS2_PER_COUNT = 1e-3 * STANDARD_GRAVITY
 GYRO_RADPS_PER_COUNT = np.radians(1 / 16.4)
 # lens 0's OpenCV axes (x right, y down, z out of the lens) in terms of the IMU's: x = IMU z, ...
@@ -256,15 +257,6 @@ Floats = NDArray[np.float64]
 # --- motion --------------------------------------------------------------------------------------
 
 
-@dataclass(frozen=True)
-class Imu:
-    """The IMU's samples, on lens 0's OpenCV axes (the stitched sphere's camera frame)."""
-
-    t_s: Floats  # (n,) seconds, on the clock frame_times reads
-    accel: Floats  # (n, 3) specific force, m/s^2: a still, upright camera reads ~(0, -9.81, 0)
-    gyro: Floats  # (n, 3) angular velocity, rad/s
-
-
 def _record_array(path: Path, record: int, dtype: np.dtype[np.void]) -> NDArray[np.void]:
     data = trailer_records(path).get(record)
     if data is None:
@@ -290,6 +282,20 @@ def read_imu(path: Path) -> Imu:
 def read_frame_times(path: Path) -> Floats:
     """Each frame's timestamp in seconds, on the IMU's clock (entry i taken as frame i; see Motion)."""
     return _record_array(path, FRAME_TIMES_RECORD, FRAME_TIME)["t_us"].astype(np.float64) * 1e-6
+
+
+def read_motion(path: Path, timestamps_ms: dict[int, int]) -> Motion:
+    """The IMU and the IMU-clock times of the frames a capture keeps: `timestamps_ms` maps each kept
+    frame's index in the video to the timestamp its capture names it by."""
+    frame_times = read_frame_times(path)
+    indices = sorted(timestamps_ms)
+    if indices and indices[-1] >= len(frame_times):
+        raise ValueError(f"{path.name}: frame {indices[-1]} has no time in trailer record {FRAME_TIMES_RECORD}")
+    return Motion(
+        read_imu(path),
+        np.array([timestamps_ms[i] for i in indices], dtype=np.int64),
+        frame_times[indices],
+    )
 
 
 def _open(path: Path) -> tuple[InputContainer, list[VideoStream]]:

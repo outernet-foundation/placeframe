@@ -17,6 +17,9 @@ dependencies = [
 # PyAV for Insta360 .insv: its two lenses are two video tracks, and cv2 only
 # ever decodes the first.
 video = ["opencv-python>=4.10", "av>=14"]
+# The metric-scale fit (panorama.imu_scale) against a capture's motion. The reconstructor runs
+# it without the decoder; the decoder never needs it.
+imu = ["scipy>=1.14"]
 
 [build-system]
 requires = ["hatchling"]

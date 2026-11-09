@@ -1673,6 +1673,9 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
+imu = [
+    { name = "scipy" },
+]
 video = [
     { name = "av" },
     { name = "opencv-python" },
@@ -1683,8 +1686,9 @@ requires-dist = [
     { name = "av", marker = "extra == 'video'", specifier = ">=14" },
     { name = "numpy", specifier = ">=2.4.0" },
     { name = "opencv-python", marker = "extra == 'video'", specifier = ">=4.10" },
+    { name = "scipy", marker = "extra == 'imu'", specifier = ">=1.14" },
 ]
-provides-extras = ["video"]
+provides-extras = ["video", "imu"]
 
 [[package]]
 name = "pathspec"
@@ -1987,7 +1991,7 @@ dependencies = [
     { name = "cryptography" },
     { name = "httpx" },
     { name = "numpy" },
-    { name = "panorama" },
+    { name = "panorama", extra = ["imu"] },
     { name = "pillow" },
     { name = "placeframe-lease-server-client" },
     { name = "pycolmap" },
@@ -2022,7 +2026,7 @@ requires-dist = [
     { name = "cryptography", specifier = ">=46.0.3" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "numpy", specifier = ">=2.0" },
-    { name = "panorama", editable = "packages/python/panorama" },
+    { name = "panorama", extras = ["imu"], editable = "packages/python/panorama" },
     { name = "pillow", specifier = ">=12.0.0" },
     { name = "placeframe-lease-server-client", editable = "packages/generated/python/lease-server-client" },
     { name = "pycolmap", specifier = ">=4.0.4" },
@@ -2505,7 +2509,7 @@ dependencies = [
     { name = "httpx" },
     { name = "matplotlib" },
     { name = "numpy" },
-    { name = "panorama", extra = ["video"] },
+    { name = "panorama", extra = ["imu", "video"] },
     { name = "pillow" },
     { name = "placeframe-api-client" },
     { name = "pydantic" },
@@ -2524,7 +2528,7 @@ requires-dist = [
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "matplotlib", specifier = ">=3.9" },
     { name = "numpy", specifier = ">=2.1" },
-    { name = "panorama", extras = ["video"], editable = "packages/python/panorama" },
+    { name = "panorama", extras = ["video", "imu"], editable = "packages/python/panorama" },
     { name = "pillow", specifier = ">=11.0" },
     { name = "placeframe-api-client", editable = "packages/generated/python/api-client" },
     { name = "pydantic", specifier = ">=2" },

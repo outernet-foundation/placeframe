@@ -32,7 +32,8 @@ from panorama.projection import layout as panorama_layout
 from panorama.projection import render as panorama_render
 from panorama.projection import view_map as panorama_view_map
 from panorama.projection import views_by_name as panorama_views_by_name
-from panorama import insv
+from panorama import imu_scale, insv
+from panorama.motion import MOTION_MEMBER, Motion, motion_bytes
 from panorama.video import frames as video_frames
 from panorama.video import sample_frames
 from panorama.video import inspect as inspect_video
@@ -61,7 +62,7 @@ from placeframe_api_client import (
     ReconstructionStatus,
 )
 
-from . import icp_align, imu_scale, offline_fusion
+from . import icp_align, offline_fusion
 from .api_auth import authenticated_api_client
 
 app = typer.Typer(add_completion=False, no_args_is_help=True)
@@ -595,6 +596,7 @@ def build_spherical_capture_tar(
 
     buffer = BytesIO()
     timestamps: list[int] = []
+    timestamps_by_index: dict[int, int] = {}
     with tarfile.open(fileobj=buffer, mode="w") as tar:
 
         def add_bytes(name: str, data: bytes) -> None:
@@ -608,6 +610,7 @@ def build_spherical_capture_tar(
                 on_frame(len(timestamps), expected)
             timestamp_ms = round(index * 1000 / info.fps)
             timestamps.append(timestamp_ms)
+            timestamps_by_index[index] = timestamp_ms
             image = Image.fromarray(frame[:, :, ::-1])  # decoded BGR; PIL wants RGB
             if image.width != width:  # an .insv is already stitched at `width`
                 image = image.resize((width, height), Image.Resampling.LANCZOS)
@@ -625,6 +628,11 @@ def build_spherical_capture_tar(
             f"{timestamp},{index * POSELESS_STEP_M:.6f},0,0,0,0,0,1" for index, timestamp in enumerate(timestamps)
         ]
         add_bytes("rig0/frames.csv", ("\n".join(frame_lines) + "\n").encode())
+        # An .insv's own IMU and frame times, which the reconstructor fits the map's metric scale
+        # from (panorama.imu_scale). A Studio export carries neither, and its stabilised frames
+        # could not be synced to them anyway.
+        if insv.is_insv(video_path):
+            add_bytes(f"rig0/{MOTION_MEMBER}", motion_bytes(insv.read_motion(video_path, timestamps_by_index)))
         add_bytes("manifest.json", dumps(manifest).encode())
 
     summary = f"{len(timestamps)} frames at {width}x{height} (every {stride} of {info.frame_count}, {info.fps:g} fps)"
@@ -820,6 +828,18 @@ def _reconstruction_to_dict(reconstruction: ReconstructionReadWithQueue) -> dict
         # shows the label in place of the bare id so the copy and its source can be told apart.
         "label": reconstruction.manifest.get("label"),
         "alignment": reconstruction.manifest.get("alignment"),
+        # Set by the reconstructor on a capture that carries its IMU: whether the map came out in
+        # metres, and if not, why (docker/reconstructor's imu_scaling).
+        "imu_scale": (
+            {
+                "applied": metrics["imu_scale_applied"],
+                "rejected_because": metrics.get("imu_scale_rejected_because"),
+                "m_per_unit": metrics.get("imu_scale_m_per_unit"),
+                "sigma_m_per_unit": metrics.get("imu_scale_sigma_m_per_unit"),
+            }
+            if metrics.get("imu_scale_applied") is not None
+            else None
+        ),
         "cached_tar_path": str(tar_path) if tar_path.exists() else None,
         "cached_png_path": str(png_path) if png_path.exists() else None,
     }
@@ -1412,6 +1432,33 @@ def imu_scale_command(
     )
 
 
+FRAME_POSES_MEMBER = "sfm_model/frame_poses.npz"
+
+
+def _fit_imu_scale(tar_path: Path, video: Path, window_s: float) -> tuple[dict[str, Any], dict[str, Any]]:
+    """imu_scale's fit of a cached map against the .insv itself, for a capture imported before
+    captures carried their motion."""
+    with tarfile.open(tar_path) as tar:
+        member = tar.extractfile(FRAME_POSES_MEMBER)
+        if member is None:
+            raise ValueError(f"{tar_path.name} has no {FRAME_POSES_MEMBER}")
+        poses = np.load(BytesIO(member.read()))
+    frame_ids = poses["frame_ids"].astype(np.int64)
+    # a video import names each frame by its timestamp, round(index * 1000 / fps) ms
+    fps = inspect_video(video).fps
+    motion: Motion = insv.read_motion(
+        video, {round(int(frame_id) * fps / 1000): int(frame_id) for frame_id in frame_ids}
+    )
+    keys = imu_scale.keyframes(
+        motion,
+        frame_ids,
+        poses["positions"].astype(np.float64),
+        Rotation.from_quat(poses["orientations"].astype(np.float64)),
+    )
+    report, sim3 = imu_scale.fit(keys, motion.imu, window_s)
+    return {"video": str(video), **report, "rejected_because": imu_scale.rejection(report)}, sim3
+
+
 async def _imu_scale(
     reconstruction_id: UUID, video: Path | None, window_s: float
 ) -> tuple[ReconstructionReadWithQueue, dict[str, Any]]:
@@ -1447,7 +1494,7 @@ async def _imu_scale(
             "is stabilised, so its map's rotations no longer follow the camera"
         )
     emit_progress("fitting_imu")
-    report, sim3 = await to_thread(imu_scale.scale_reconstruction, tar_path, video, window_s)
+    report, sim3 = await to_thread(_fit_imu_scale, tar_path, video, window_s)
     transform: Sim3 = (
         float(sim3["scale"]),
         np.asarray(sim3["R"], dtype=np.float64),

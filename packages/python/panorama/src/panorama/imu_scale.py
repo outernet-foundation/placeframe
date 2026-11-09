@@ -19,33 +19,32 @@ initialisation of ORB-SLAM3 / VINS-Mono, run once over a finished map. Three ste
 3. Drift. The scale refitted per window of the walk (gravity and bias held at the global fit), with
    a chi-square test of whether one scale explains them all.
 
-Run by `howard-test imu-scale`, which imports the result as a metric copy of the reconstruction:
-the map scaled to metres and turned so gravity is +y (the reconstructor's down), about its origin.
-The IMU is taken to sit at the sphere's centre; the X4's is a few centimetres off, which only
-matters for fast rotation and is ignored.
+The result is a Sim(3) about the map's origin: the scale to metres and the turn that puts gravity
+on +y (the reconstructor's down). The reconstructor applies it to a map of a capture that carries
+its motion (panorama.motion) when the fit passes `rejection`'s checks; `howard-test imu-scale`
+applies it to an older map as a metric copy. The IMU is taken to sit at the sphere's centre; the
+X4's is a few centimetres off, which only matters for fast rotation and is ignored.
+
+Scipy is needed here, and only here: the package's `imu` extra.
 """
 
 from __future__ import annotations
 
-import io
-import tarfile
+import math
 from itertools import pairwise
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any
 
-import av
 import numpy as np
 from numpy.typing import NDArray  # noqa: TID251 — tracked in PLE-233
 from scipy.optimize import minimize
 from scipy.spatial.transform import Rotation
 from scipy.stats import chi2
 
-from panorama import insv
+from .motion import STANDARD_GRAVITY, Imu, Motion
 
 Floats = NDArray[np.float64]
-GRAVITY = insv.STANDARD_GRAVITY
-POSES_MEMBER = "sfm_model/frame_poses.npz"
+GRAVITY = STANDARD_GRAVITY
 DRIFT_WINDOW_S = 30.0  # long enough that each window's scale is a few percent
 OFFSET_SEARCH_S = 0.5  # record 4 has been seen ~0.2 s off the IMU; search well beyond that
 
@@ -60,23 +59,13 @@ class Keyframes:
     world_from_cam: Rotation  # (n,)
 
 
-def read_keyframes(tar_path: Path, video: Path) -> Keyframes:
-    with tarfile.open(tar_path) as tar:
-        member = tar.extractfile(POSES_MEMBER)
-        if member is None:
-            raise ValueError(f"{tar_path.name} has no {POSES_MEMBER}")
-        poses = np.load(io.BytesIO(member.read()))
-    with av.open(str(video)) as container:
-        fps = float(container.streams.video[0].average_rate or 30)
-    # a video import names each frame by its timestamp, round(index * 1000 / fps) ms
-    index = np.rint(poses["frame_ids"].astype(np.float64) * fps / 1000).astype(int)
-    frame_times = insv.read_frame_times(video)
-    order = np.argsort(index)
-    return Keyframes(
-        frame_times[index[order]],
-        poses["positions"].astype(np.float64)[order],
-        Rotation.from_quat(poses["orientations"].astype(np.float64)[order]),
-    )
+def keyframes(
+    motion: Motion, frame_ids_ms: NDArray[np.int64], positions: Floats, world_from_cam: Rotation
+) -> Keyframes:
+    """A map's registered frames, in capture order, timed on the IMU's clock: frame ids are the
+    frames.csv timestamps the capture names its frames by."""
+    order = np.argsort(frame_ids_ms)
+    return Keyframes(motion.frame_times(frame_ids_ms[order]), positions[order], world_from_cam[order])
 
 
 # --- gyro integration ----------------------------------------------------------------------------
@@ -97,7 +86,7 @@ def _quat_mul(a: Floats, b: Floats) -> Floats:
     )
 
 
-def integrate_gyro(imu: insv.Imu, bias: Floats) -> Rotation:
+def integrate_gyro(imu: Imu, bias: Floats) -> Rotation:
     """Orientation at every IMU sample relative to the first (start_from_body), by a parallel prefix
     product of the per-sample increments: log2(n) vectorised steps instead of an n-step loop."""
     dt = np.diff(imu.t_s, append=imu.t_s[-1])
@@ -111,7 +100,7 @@ def integrate_gyro(imu: insv.Imu, bias: Floats) -> Rotation:
     return Rotation.from_quat(q)
 
 
-def sample_at(imu: insv.Imu, t_s: Floats) -> NDArray[np.intp]:
+def sample_at(imu: Imu, t_s: Floats) -> NDArray[np.intp]:
     return np.clip(np.searchsorted(imu.t_s, t_s), 0, len(imu.t_s) - 1)
 
 
@@ -126,9 +115,7 @@ class Sync:
     residual_deg: Floats  # per keyframe interval
 
 
-def _sync_residuals(
-    keys: Keyframes, imu: insv.Imu, orientation: Rotation, offset: float, cam_from_imu: Rotation
-) -> Floats:
+def _sync_residuals(keys: Keyframes, imu: Imu, orientation: Rotation, offset: float, cam_from_imu: Rotation) -> Floats:
     k = sample_at(imu, keys.t_s + offset)
     gyro_turn = orientation[k[:-1]].inv() * orientation[k[1:]]
     map_turn = keys.world_from_cam[:-1].inv() * keys.world_from_cam[1:]
@@ -140,7 +127,7 @@ def _kabsch(source: Floats, target: Floats) -> Rotation:
     return rotation
 
 
-def fit_sync(keys: Keyframes, imu: insv.Imu) -> Sync:
+def fit_sync(keys: Keyframes, imu: Imu) -> Sync:
     map_turn = (keys.world_from_cam[:-1].inv() * keys.world_from_cam[1:]).as_rotvec()
     bias: Floats = np.zeros(3)
     orientation = integrate_gyro(imu, bias)
@@ -204,7 +191,7 @@ class Interval:
     d_beta_d_bias: Floats  # 3x3
 
 
-def preintegrate(keys: Keyframes, imu: insv.Imu, sync: Sync) -> list[Interval]:
+def preintegrate(keys: Keyframes, imu: Imu, sync: Sync) -> list[Interval]:
     orientation = integrate_gyro(imu, sync.gyro_bias)
     k = sample_at(imu, keys.t_s + sync.offset_s)
     intervals: list[Interval] = []
@@ -364,12 +351,8 @@ def window_scales(
     return out
 
 
-def scale_reconstruction(
-    tar_path: Path, video: Path, window_s: float = DRIFT_WINDOW_S
-) -> tuple[dict[str, Any], dict[str, Any]]:
-    """The report and the Sim(3) for a reconstruction of `video`, from its cached tar."""
-    keys = read_keyframes(tar_path, video)
-    imu = insv.read_imu(video)
+def fit(keys: Keyframes, imu: Imu, window_s: float = DRIFT_WINDOW_S) -> tuple[dict[str, Any], dict[str, Any]]:
+    """The fit's report and its Sim(3) (scale, R, translation: X' = scale * R @ X + translation)."""
     sync = fit_sync(keys, imu)
     world_from_body = keys.world_from_cam * sync.cam_from_imu
     intervals = preintegrate(keys, imu, sync)
@@ -391,7 +374,6 @@ def scale_reconstruction(
         "scale_sigma": fit.scale_sigma,
     }
     report = {
-        "video": str(video),
         "keyframes": len(keys.t_s),
         "span_s": float(keys.t_s[-1] - keys.t_s[0]),
         "sync": {
@@ -416,3 +398,38 @@ def scale_reconstruction(
         "drift_p_value": float(chi2.sf(chi_square, len(windows) - 1)) if len(windows) > 1 else float("nan"),
     }
     return report, sim3
+
+
+# --- 4. whether to believe it --------------------------------------------------------------------
+
+# Each check is one way a fit has been seen to go wrong. A map of a stabilised export syncs to ~9
+# degrees (a native .insv to ~0.1) and drags the free gravity far from 9.81 (49.7 on one); the
+# Fosun walk's windows disagreed far beyond their errors (p ~ 3e-10) and its scale came out 6.7%
+# short of a stereo map's. Thresholds sit well clear of every good native fit seen so far.
+MAX_SYNC_RESIDUAL_DEG = 0.5
+MAX_GRAVITY_ERROR = 0.03  # of 9.80665, for the free fit
+MAX_RELATIVE_SIGMA = 0.03
+MIN_DRIFT_P_VALUE = 0.01
+MIN_KEYFRAMES = 20
+
+
+def rejection(report: dict[str, Any]) -> str | None:
+    """Why the fit's scale should not be trusted, or None when every check passes."""
+    if report["keyframes"] < MIN_KEYFRAMES:
+        return f"only {report['keyframes']} keyframes (at least {MIN_KEYFRAMES} wanted)"
+    residual = report["sync"]["residual_deg_median"]
+    if residual > MAX_SYNC_RESIDUAL_DEG:
+        return (
+            f"the gyro syncs to the map's rotations only to {residual:.2f} deg (at most {MAX_SYNC_RESIDUAL_DEG} "
+            "wanted): the map does not follow the camera body, as with a stabilised export"
+        )
+    gravity = report["free_gravity_norm_mps2"]
+    if abs(gravity / GRAVITY - 1) > MAX_GRAVITY_ERROR:
+        return f"unconstrained gravity fits to {gravity:.2f} m/s^2, not ~{GRAVITY:.2f}"
+    scale, sigma = report["scale"], report["scale_sigma"]
+    if scale <= 0 or sigma / scale > MAX_RELATIVE_SIGMA:
+        return f"scale {scale:.4g} +- {sigma:.2g} is not determined to {100 * MAX_RELATIVE_SIGMA:.0f}%"
+    p_value = report["drift_p_value"]
+    if not math.isnan(p_value) and p_value < MIN_DRIFT_P_VALUE:  # one window: nothing to compare
+        return f"the scale drifts along the walk (p = {p_value:.2g} that one scale explains every window)"
+    return None

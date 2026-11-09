@@ -13,3 +13,9 @@ Spherical capture support, kept free of API and server dependencies:
   between the lenses from matches across the seam. `panorama.video` dispatches to
   it, so an `.insv` imports like any equirectangular mp4. Needs the `video` extra
   (PyAV decodes the second lens track, which OpenCV cannot).
+- `panorama.motion` — a spherical camera's IMU and per-frame times, as the
+  importer writes them into a capture (`<rig>/imu.npz`) for the reconstructor.
+  numpy only.
+- `panorama.imu_scale` — the map's metric scale and true gravity, fitted from
+  that motion against a finished reconstruction, and the checks that decide
+  whether to trust it. Needs the `imu` extra (scipy).
