@@ -266,6 +266,7 @@ spec:
       annotations:
         k8s.score.dev/workload-name: api
         outernet.internal/dev-toggles: RELOAD=true,DEBUG_API=true,DEBUG_WAIT_API=false
+        outernet.internal/dockerfile: api=workloads/api/Dockerfile
         outernet.internal/probe-adapter: python-urllib
       labels:
         app.kubernetes.io/instance: api-14c2529eb4
@@ -396,6 +397,7 @@ spec:
     metadata:
       annotations:
         k8s.score.dev/workload-name: keycloak
+        outernet.internal/lock: keycloak=KEYCLOAK_IMAGE
         outernet.internal/probe-adapter: bash-http
       labels:
         app.kubernetes.io/instance: keycloak-d63f4a0cda
@@ -461,6 +463,7 @@ spec:
       annotations:
         k8s.score.dev/workload-name: lease-server
         outernet.internal/dev-toggles: RELOAD=true,DEBUG_LEASE_SERVER=false,DEBUG_WAIT_LEASE_SERVER=false
+        outernet.internal/dockerfile: lease-server=workloads/lease-server/Dockerfile
         outernet.internal/probe-adapter: python-urllib
       labels:
         app.kubernetes.io/instance: lease-server-0907dc0fb6
@@ -527,6 +530,7 @@ spec:
     metadata:
       annotations:
         k8s.score.dev/workload-name: localizer
+        outernet.internal/dockerfile: localizer=workloads/localizer/Dockerfile
         outernet.internal/gpu: "true"
         outernet.internal/probe-adapter: python-urllib
       labels:
@@ -597,6 +601,7 @@ spec:
     metadata:
       annotations:
         k8s.score.dev/workload-name: reconstructor
+        outernet.internal/dockerfile: reconstructor=workloads/reconstructor/Dockerfile
         outernet.internal/gpu: "true"
       labels:
         app.kubernetes.io/instance: reconstructor-89aa1836e2

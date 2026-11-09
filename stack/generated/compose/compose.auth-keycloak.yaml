@@ -11,6 +11,7 @@ services:
         - keycloak
     annotations:
       compose.score.dev/workload-name: keycloak
+      outernet.internal/lock: keycloak=KEYCLOAK_IMAGE
       outernet.internal/probe-adapter: bash-http
     command:
     - start-dev
@@ -34,7 +35,7 @@ services:
       retries: 3
       start_period: 5s
   auth-keycloak-keycloak-configurator:
-    image: ghcr.io/outernet-foundation/placeframe/auth-initializer:tree-d810170aa2e1fb086115b07c653c44b6857f5c84
+    image: ghcr.io/outernet-foundation/placeframe/auth-initializer:${AUTH_KEYCLOAK__BOATYARD_TREE__AUTH_INITIALIZER_SHA}
     networks:
       auth-keycloak-net:
         aliases:
@@ -53,7 +54,7 @@ services:
       auth-keycloak-keycloak-configurator:
         condition: service_started
         required: true
-    image: ${AUTH_KEYCLOAK__LOCK__ALPINE_IMAGE:?err}
+    image: ${AUTH_KEYCLOAK__BOATYARD_LOCK__ALPINE_IMAGE:?err}
     networks:
       auth-keycloak-net:
         aliases:
