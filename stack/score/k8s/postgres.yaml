@@ -50,7 +50,7 @@
           spec:
             containers:
             - name: postgres-db
-              image: ghcr.io/outernet-foundation/placeframe/postgres:{{ env "POSTGRES_SHA" }}
+              image: {dockerfile: workloads/postgres/Dockerfile}
               command: ["/usr/local/bin/entrypoint-wrapper.sh"]
               ports:
               - containerPort: 5432
@@ -111,7 +111,7 @@
             restartPolicy: OnFailure
             containers:
             - name: create
-              image: ghcr.io/outernet-foundation/placeframe/database-manager:{{ env "DATABASE_MANAGER_SHA" }}
+              image: {dockerfile: workloads/database-manager/Dockerfile}
               command: ["uv","run","--no-sync","python","-m","src.main","--op","create","--name","{{ .State.dbName }}","--owner-password","$(DATABASE_OWNER_PASSWORD)","--api-user-password","$(DATABASE_API_USER_PASSWORD)","--auth-user-password","$(DATABASE_AUTH_USER_PASSWORD)","--orchestration-user-password","$(DATABASE_ORCHESTRATION_USER_PASSWORD)"]
               env:
               - name: POSTGRES_HOST
@@ -164,7 +164,7 @@
             restartPolicy: OnFailure
             containers:
             - name: migrate
-              image: ghcr.io/outernet-foundation/placeframe/database-migrator:{{ env "DATABASE_MIGRATOR_SHA" }}
+              image: {dockerfile: workloads/database-migrator/Dockerfile}
               env:
               - name: DB_HOST
                 value: "{{ .State.service }}"

@@ -4,7 +4,7 @@ services:
       core-rocm-wait-for-resources:
         condition: service_completed_successfully
         required: true
-    image: ghcr.io/outernet-foundation/placeframe/api:tree-7438e574ef45a7b78c5e95a11ee936915d378792
+    image: ghcr.io/outernet-foundation/placeframe/api:${CORE_ROCM__BOATYARD_TREE__API_SHA}
     networks:
       core-rocm-net:
         aliases:
@@ -12,6 +12,7 @@ services:
     annotations:
       compose.score.dev/workload-name: api
       outernet.internal/dev-toggles: RELOAD=true,DEBUG_API=true,DEBUG_WAIT_API=false
+      outernet.internal/dockerfile: api=workloads/api/Dockerfile
       outernet.internal/probe-adapter: python-urllib
     environment:
       AUTH_AUDIENCE: ${AUTH_AUDIENCE:-}
@@ -40,7 +41,7 @@ services:
       S3_ACCESS_KEY: ${S3_ACCESS_KEY:?err}
       S3_ENDPOINT_URL: http://seaweedfs:8333
       S3_SECRET_KEY: ${S3_SECRET_KEY:?err}
-      SERVICE_VERSION: tree-7438e574ef45a7b78c5e95a11ee936915d378792
+      SERVICE_VERSION: ${CORE_ROCM__BOATYARD_TREE__API_SHA}
     hostname: api
     healthcheck:
       test:
@@ -57,7 +58,7 @@ services:
       core-rocm-wait-for-resources:
         condition: service_completed_successfully
         required: true
-    image: ghcr.io/outernet-foundation/placeframe/lease-server:tree-9c35af0bdf144cf8a6644b37c73f6c4e6ae03478
+    image: ghcr.io/outernet-foundation/placeframe/lease-server:${CORE_ROCM__BOATYARD_TREE__LEASE_SERVER_SHA}
     networks:
       core-rocm-net:
         aliases:
@@ -65,6 +66,7 @@ services:
     annotations:
       compose.score.dev/workload-name: lease-server
       outernet.internal/dev-toggles: RELOAD=true,DEBUG_LEASE_SERVER=false,DEBUG_WAIT_LEASE_SERVER=false
+      outernet.internal/dockerfile: lease-server=workloads/lease-server/Dockerfile
       outernet.internal/probe-adapter: python-urllib
     environment:
       DATABASE_NAME: placeframe
@@ -76,7 +78,7 @@ services:
       OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4317
       POSTGRES_HOST: pf-postgres
       RELOAD: 'false'
-      SERVICE_VERSION: tree-9c35af0bdf144cf8a6644b37c73f6c4e6ae03478
+      SERVICE_VERSION: ${CORE_ROCM__BOATYARD_TREE__LEASE_SERVER_SHA}
     hostname: lease-server
     healthcheck:
       test:
@@ -93,13 +95,14 @@ services:
       core-rocm-wait-for-resources:
         condition: service_completed_successfully
         required: true
-    image: ghcr.io/outernet-foundation/placeframe/reconstructor-rocm:tree-2df865cbad9fb994de6785ec7fc1a6234a98d1b4
+    image: ghcr.io/outernet-foundation/placeframe/reconstructor-rocm:${CORE_ROCM__BOATYARD_TREE__RECONSTRUCTOR_SHA}
     networks:
       core-rocm-net:
         aliases:
         - reconstructor
     annotations:
       compose.score.dev/workload-name: reconstructor
+      outernet.internal/dockerfile: reconstructor=workloads/reconstructor/Dockerfile
       outernet.internal/gpu: 'true'
     devices:
     - source: /dev/kfd
@@ -115,7 +118,7 @@ services:
       S3_ACCESS_KEY: ${S3_ACCESS_KEY:?err}
       S3_ENDPOINT_URL: http://seaweedfs:8333
       S3_SECRET_KEY: ${S3_SECRET_KEY:?err}
-      SERVICE_VERSION: tree-2df865cbad9fb994de6785ec7fc1a6234a98d1b4
+      SERVICE_VERSION: ${CORE_ROCM__BOATYARD_TREE__RECONSTRUCTOR_SHA}
     group_add:
     - '44'
     - '110'
@@ -125,13 +128,14 @@ services:
       core-rocm-wait-for-resources:
         condition: service_completed_successfully
         required: true
-    image: ghcr.io/outernet-foundation/placeframe/localizer-rocm:tree-648d90289ba3d492ef30643119ffd058da647912
+    image: ghcr.io/outernet-foundation/placeframe/localizer-rocm:${CORE_ROCM__BOATYARD_TREE__LOCALIZER_SHA}
     networks:
       core-rocm-net:
         aliases:
         - localizer
     annotations:
       compose.score.dev/workload-name: localizer
+      outernet.internal/dockerfile: localizer=workloads/localizer/Dockerfile
       outernet.internal/gpu: 'true'
       outernet.internal/probe-adapter: python-urllib
     devices:
@@ -146,7 +150,7 @@ services:
       S3_ACCESS_KEY: ${S3_ACCESS_KEY:?err}
       S3_ENDPOINT_URL: http://seaweedfs:8333
       S3_SECRET_KEY: ${S3_SECRET_KEY:?err}
-      SERVICE_VERSION: tree-648d90289ba3d492ef30643119ffd058da647912
+      SERVICE_VERSION: ${CORE_ROCM__BOATYARD_TREE__LOCALIZER_SHA}
     group_add:
     - '44'
     - '110'
@@ -169,7 +173,7 @@ services:
     configs:
     - source: core-rocm-config.alloy
       target: /etc/alloy/config.alloy
-    image: ${CORE_ROCM__LOCK__ALLOY_IMAGE:?err}
+    image: ghcr.io/outernet-foundation/mirror/docker.io/grafana/alloy:v1.9.0@sha256:0eae1eb96d54e87cf17341be2b427f90a8ee8b0ffdec1f7b3e253a9dbc295060
     networks:
       core-rocm-net:
         aliases:
@@ -189,7 +193,7 @@ services:
     configs:
     - source: core-rocm-datasources.yaml
       target: /etc/grafana/provisioning/datasources/datasources.yaml
-    image: ${CORE_ROCM__LOCK__GRAFANA_IMAGE:?err}
+    image: ghcr.io/outernet-foundation/mirror/docker.io/grafana/grafana:11.6.0@sha256:b739cda4b61ba3b90707578b643a22cd851fecf4498e6c6ec2d8f9d622a5d0b2
     networks:
       core-rocm-net:
         aliases:
@@ -224,7 +228,7 @@ services:
     - type: volume
       source: loki-data
       target: /loki
-    image: ${CORE_ROCM__LOCK__LOKI_IMAGE:?err}
+    image: ghcr.io/outernet-foundation/mirror/docker.io/grafana/loki:3.5.0@sha256:2cbddd6e199a2ddeee13573d91f11e54d9c8fa432f44c578d3c55b9a93278c9f
     networks:
       core-rocm-net:
         aliases:
@@ -240,7 +244,7 @@ services:
       core-rocm-seaweedfs:
         condition: service_healthy
         required: false
-    image: ghcr.io/outernet-foundation/placeframe/s3-initializer:tree-98677df602f8190811e8d59c8a90a9a0a140fed4
+    image: ghcr.io/outernet-foundation/placeframe/s3-initializer:${CORE_ROCM__BOATYARD_TREE__S3_INITIALIZER_SHA}
     networks:
       core-rocm-net:
         aliases:
@@ -265,7 +269,7 @@ services:
     configs:
     - source: core-rocm-config.yaml
       target: /etc/loki/config.yaml
-    image: ${CORE_ROCM__LOCK__LOKI_IMAGE:?err}
+    image: ghcr.io/outernet-foundation/mirror/docker.io/grafana/loki:3.5.0@sha256:2cbddd6e199a2ddeee13573d91f11e54d9c8fa432f44c578d3c55b9a93278c9f
     networks:
       core-rocm-net:
         aliases:
@@ -293,7 +297,7 @@ services:
     - type: volume
       source: pf-postgres-data
       target: /var/lib/postgresql/data
-    image: ghcr.io/outernet-foundation/placeframe/postgres:tree-9417c43d620afaa5218aea984ba484b13de850aa
+    image: ghcr.io/outernet-foundation/placeframe/postgres:${CORE_ROCM__BOATYARD_TREE__POSTGRES_SHA}
     networks:
       core-rocm-net:
         aliases:
@@ -324,7 +328,7 @@ services:
       core-rocm-pf-postgres:
         condition: service_healthy
         required: false
-    image: ghcr.io/outernet-foundation/placeframe/database-manager:tree-53079917f120e8ec0bb5df2786783c6acddb7ba9
+    image: ghcr.io/outernet-foundation/placeframe/database-manager:${CORE_ROCM__BOATYARD_TREE__DATABASE_MANAGER_SHA}
     networks:
       core-rocm-net:
         aliases:
@@ -357,7 +361,7 @@ services:
       core-rocm-pf-postgres-create:
         condition: service_completed_successfully
         required: false
-    image: ghcr.io/outernet-foundation/placeframe/database-migrator:tree-7d2329fdb48cd175b6013971ef1dc1c75317cdb6
+    image: ghcr.io/outernet-foundation/placeframe/database-migrator:${CORE_ROCM__BOATYARD_TREE__DATABASE_MIGRATOR_SHA}
     networks:
       core-rocm-net:
         aliases:
@@ -375,7 +379,7 @@ services:
     - type: volume
       source: seaweedfs-data
       target: /data
-    image: ghcr.io/outernet-foundation/placeframe/seaweedfs:tree-8a7e0696911ecbe8e42685f3a024ab7c9c934e75
+    image: ghcr.io/outernet-foundation/placeframe/seaweedfs:${CORE_ROCM__BOATYARD_TREE__SEAWEEDFS_SHA}
     networks:
       core-rocm-net:
         aliases:
@@ -404,7 +408,7 @@ services:
       core-rocm-seaweedfs:
         condition: service_healthy
         required: false
-    image: ghcr.io/outernet-foundation/placeframe/seaweedfs:tree-8a7e0696911ecbe8e42685f3a024ab7c9c934e75
+    image: ghcr.io/outernet-foundation/placeframe/seaweedfs:${CORE_ROCM__BOATYARD_TREE__SEAWEEDFS_SHA}
     networks:
       core-rocm-net:
         aliases:
@@ -423,7 +427,7 @@ services:
       core-rocm-seaweedfs:
         condition: service_healthy
         required: false
-    image: ${CORE_ROCM__LOCK__SEAWEEDFS_AUDIT_IMAGE:?err}
+    image: ghcr.io/outernet-foundation/mirror/docker.io/fluent/fluent-bit:5.1.2@sha256:71cda445290efc2d45d565c12e0de4b15aa0182510276ad50c317aae1423d7ee
     networks:
       core-rocm-net:
         aliases:
@@ -474,7 +478,7 @@ services:
       core-rocm-seaweedfs-audit:
         condition: service_started
         required: true
-    image: ${CORE_ROCM__LOCK__ALPINE_IMAGE:?err}
+    image: ${CORE_ROCM__BOATYARD_LOCK__ALPINE_IMAGE:?err}
     networks:
       core-rocm-net:
         aliases:

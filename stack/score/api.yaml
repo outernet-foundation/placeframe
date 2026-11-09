@@ -4,11 +4,11 @@ metadata:
   annotations:
     outernet.internal/probe-adapter: python-urllib
     # Dev defaults for the generated dev overlay (up --dev turns the pairs into
-    # ${NAME:-default} env holes); the variables below bake prod-safe literals.
+    # NAME-colon-default env holes); the variables below bake prod-safe literals.
     outernet.internal/dev-toggles: RELOAD=true,DEBUG_API=true,DEBUG_WAIT_API=false
+    outernet.internal/dockerfile: api=workloads/api/Dockerfile
 containers:
   api:
-    image: ghcr.io/outernet-foundation/placeframe/api:${API_SHA}
     variables:
       PUBLIC_URL: ${resources.config.public_url}
       AUTH_ISSUER_URL: ${resources.config.auth_issuer_url}

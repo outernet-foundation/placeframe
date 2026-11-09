@@ -26,7 +26,7 @@
     realm: "{{ .State.realm }}"
   services:
     "{{ .State.configurator }}":
-      image: ghcr.io/outernet-foundation/placeframe/auth-initializer:{{ env "AUTH_INITIALIZER_SHA" }}
+      image: {dockerfile: workloads/auth-initializer/Dockerfile}
       environment:
         KEYCLOAK_URL: http://{{ .State.service }}:8080
         KC_BOOTSTRAP_ADMIN_USERNAME: admin
