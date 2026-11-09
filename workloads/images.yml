@@ -52,6 +52,15 @@ services:
         - "ghcr.io/outernet-foundation/placeframe/s3-initializer:latest"
         - "ghcr.io/outernet-foundation/placeframe/s3-initializer:${S3_INITIALIZER_SHA}"
 
+  nebius-gpu-autoscaler:
+    build:
+      context: .
+      dockerfile: workloads/nebius-gpu-autoscaler/Dockerfile
+      args: *base-args
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/nebius-gpu-autoscaler:latest"
+        - "ghcr.io/outernet-foundation/placeframe/nebius-gpu-autoscaler:${NEBIUS_GPU_AUTOSCALER_SHA}"
+
   create-database:
     build:
       context: .

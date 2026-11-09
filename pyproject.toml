@@ -12,6 +12,7 @@ dev = ["build-scripts", "scripts", "basedpyright>=1.39.10", "ruff>=0.14.11", "py
 members = [
     "workloads/database-manager",
     "workloads/s3-initializer",
+    "workloads/nebius-gpu-autoscaler",
     "workloads/api",
     "workloads/auth-initializer",
     "workloads/lease-server",
