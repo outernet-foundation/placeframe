@@ -364,8 +364,8 @@ spec:
                   key: S3_SECRET_KEY
                   name: placeframe-secrets
             - name: SERVICE_VERSION
-              value: tree-7438e574ef45a7b78c5e95a11ee936915d378792
-          image: ghcr.io/outernet-foundation/placeframe/api:tree-7438e574ef45a7b78c5e95a11ee936915d378792
+              value: tree-0000000000000000000000000000000000000000
+          image: ghcr.io/outernet-foundation/placeframe/api:tree-0000000000000000000000000000000000000000
           livenessProbe:
             httpGet:
               path: /health
@@ -497,8 +497,8 @@ spec:
             - name: RELOAD
               value: "false"
             - name: SERVICE_VERSION
-              value: tree-9c35af0bdf144cf8a6644b37c73f6c4e6ae03478
-          image: ghcr.io/outernet-foundation/placeframe/lease-server:tree-9c35af0bdf144cf8a6644b37c73f6c4e6ae03478
+              value: tree-0000000000000000000000000000000000000000
+          image: ghcr.io/outernet-foundation/placeframe/lease-server:tree-0000000000000000000000000000000000000000
           livenessProbe:
             httpGet:
               path: /health
@@ -562,8 +562,8 @@ spec:
                   key: S3_SECRET_KEY
                   name: placeframe-secrets
             - name: SERVICE_VERSION
-              value: tree-648d90289ba3d492ef30643119ffd058da647912
-          image: ghcr.io/outernet-foundation/placeframe/localizer-cuda:tree-648d90289ba3d492ef30643119ffd058da647912
+              value: tree-0000000000000000000000000000000000000000
+          image: ghcr.io/outernet-foundation/placeframe/localizer-cuda:tree-0000000000000000000000000000000000000000
           livenessProbe:
             httpGet:
               path: /version
@@ -636,8 +636,8 @@ spec:
                   key: S3_SECRET_KEY
                   name: placeframe-secrets
             - name: SERVICE_VERSION
-              value: tree-2df865cbad9fb994de6785ec7fc1a6234a98d1b4
-          image: ghcr.io/outernet-foundation/placeframe/reconstructor-cuda:tree-2df865cbad9fb994de6785ec7fc1a6234a98d1b4
+              value: tree-0000000000000000000000000000000000000000
+          image: ghcr.io/outernet-foundation/placeframe/reconstructor-cuda:tree-0000000000000000000000000000000000000000
           name: reconstructor
           resources:
             limits:
@@ -851,7 +851,7 @@ spec:
                 secretKeyRef:
                   key: SEED_TEST_USERS
                   name: placeframe-secrets
-          image: ghcr.io/outernet-foundation/placeframe/auth-initializer:tree-d810170aa2e1fb086115b07c653c44b6857f5c84
+          image: ghcr.io/outernet-foundation/placeframe/auth-initializer:tree-0000000000000000000000000000000000000000
           name: configurator
       restartPolicy: OnFailure
 ---
@@ -920,7 +920,7 @@ spec:
                 secretKeyRef:
                   key: DATABASE_ORCHESTRATION_USER_PASSWORD
                   name: placeframe-secrets
-          image: ghcr.io/outernet-foundation/placeframe/database-manager:tree-53079917f120e8ec0bb5df2786783c6acddb7ba9
+          image: ghcr.io/outernet-foundation/placeframe/database-manager:tree-0000000000000000000000000000000000000000
           name: create
       restartPolicy: OnFailure
 ---
@@ -955,7 +955,7 @@ spec:
               value: database
             - name: ALLOWED_HAZARDS
               value: HAS_UNTRACKABLE_DEPENDENCIES
-          image: ghcr.io/outernet-foundation/placeframe/database-migrator:tree-7d2329fdb48cd175b6013971ef1dc1c75317cdb6
+          image: ghcr.io/outernet-foundation/placeframe/database-migrator:tree-0000000000000000000000000000000000000000
           name: migrate
       restartPolicy: OnFailure
 ---
@@ -987,7 +987,7 @@ spec:
                   name: placeframe-secrets
             - name: S3_BUCKETS
               value: reconstructions captures loki
-          image: ghcr.io/outernet-foundation/placeframe/s3-initializer:tree-98677df602f8190811e8d59c8a90a9a0a140fed4
+          image: ghcr.io/outernet-foundation/placeframe/s3-initializer:tree-0000000000000000000000000000000000000000
           name: bucket
       restartPolicy: OnFailure
 ---
@@ -1334,7 +1334,7 @@ spec:
                 secretKeyRef:
                   key: POSTGRES_ADMIN_PASSWORD
                   name: placeframe-secrets
-          image: ghcr.io/outernet-foundation/placeframe/postgres:tree-9417c43d620afaa5218aea984ba484b13de850aa
+          image: ghcr.io/outernet-foundation/placeframe/postgres:tree-0000000000000000000000000000000000000000
           name: postgres-db
           ports:
             - containerPort: 5432
@@ -1398,7 +1398,7 @@ spec:
                 secretKeyRef:
                   key: S3_SECRET_KEY
                   name: placeframe-secrets
-          image: ghcr.io/outernet-foundation/placeframe/seaweedfs:tree-8a7e0696911ecbe8e42685f3a024ab7c9c934e75
+          image: ghcr.io/outernet-foundation/placeframe/seaweedfs:tree-0000000000000000000000000000000000000000
           name: seaweedfs
           ports:
             - containerPort: 8333
