@@ -9,10 +9,6 @@ images:
     index: ghcr.io/outernet-foundation/mirror/docker.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
     platforms:
       linux/amd64: ghcr.io/outernet-foundation/mirror/docker.io/library/alpine:3.20@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e
-  CADDY_IMAGE:
-    index: ghcr.io/outernet-foundation/mirror/docker.io/library/caddy:2.8.4-alpine@sha256:af32e97399febea808609119bb21544d0265c58a02836576e32a2d082c262c17
-    platforms:
-      linux/amd64: ghcr.io/outernet-foundation/mirror/docker.io/library/caddy:2.8.4-alpine@sha256:b95ed06fbc6d74d24a40902090c8cc6086ce7d08ba60a3a7e8e62bf164a9d7bb
   GOLANG_IMAGE:
     index: ghcr.io/outernet-foundation/mirror/docker.io/library/golang:1.22-alpine@sha256:1699c10032ca2582ec89a24a1312d986a3f094aed3d5c1147b19880afe40e052
     platforms:
