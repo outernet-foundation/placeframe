@@ -419,7 +419,7 @@ services:
       seaweedfs-audit:
         condition: service_started
         required: true
-    image: ${CORE_ROCM__BOATYARD_LOCK__ALPINE_IMAGE:?err}
+    image: ${BOATYARD_BARRIER_IMAGE:?err}
     command:
     - echo
 configs:

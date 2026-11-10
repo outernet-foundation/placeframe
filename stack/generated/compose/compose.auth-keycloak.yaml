@@ -47,7 +47,7 @@ services:
       keycloak-configurator:
         condition: service_started
         required: true
-    image: ${AUTH_KEYCLOAK__BOATYARD_LOCK__ALPINE_IMAGE:?err}
+    image: ${BOATYARD_BARRIER_IMAGE:?err}
     command:
     - echo
 name: placeframe
