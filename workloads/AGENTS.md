@@ -167,7 +167,7 @@ docker exec placeframe-pf-postgres-1 psql -U placeframe_owner -d placeframe -c "
 Loki holds logs from every service plus the phone-side capture-tool relay. Available `service_name` values:
 
 ```
-alloy api capture-tool edge grafana keycloak loki
+alloy api capture-tool edge grafana keycloak localizer loki
 ngrok postgres reconstructor-cuda seaweedfs seaweedfs-audit zed-capture
 ```
 
@@ -192,6 +192,7 @@ For repeated queries, use `uv run loki-query` (`scripts/AGENTS.md`) — it handl
 ### Where each service logs
 
 - **api** → Loki `service_name="api"`. Every HTTP request, including `/internal/leases/<id>/{progress,succeed,fail}` from the reconstructor.
+- **localizer** → Loki `service_name="localizer"` and `docker logs`. Pipeline events (model device, map downloads, per-batch matching, per-query timings/transform/metrics) and uvicorn request lines flow through `configure_logging("localizer", uvicorn_logger_handlers=True)` — the stderr output doubles as the docker-log view.
 - **reconstructor-cuda** → Loki `service_name="reconstructor-cuda"` and `docker logs`. Per-image progress, S3 put markers, lease lifecycle (`Acquired lease`, `Reconstruction succeeded`, `Reconstruction failed: …`). To observe end-to-end lease activity from the API side, query the **api** logs for `/internal/leases/` traffic — lease-request 404s mean "no work available", lease-progress 200s mean an active job is reporting in.
 - **capture-tool** (phone) → Loki `service_name="capture-tool"`, pushed directly from the Unity app via the gateway. The app lives in the [placeframe-capture-tool](https://github.com/outernet-foundation/placeframe-capture-tool) repo; relay details are documented there.
 - **zed-capture** (ZED box) → Loki `service_name="zed-capture"`, but **only while the phone is AOA-connected and logged in**. The box has no direct backend link: its logs are drained from box-side `aoa-loki` by the phone's `LogDrainController` and pushed verbatim to the backend Loki. An empty `{service_name="zed-capture"}` result usually means the phone isn't draining (no AOA link, not logged in, or nothing newer than the drain cursor) — not that the box logged nothing. The whole box side of this drain (AOA link, box-Loki, SSH access) is capture-repo territory — see placeframe-capture-tool's `workloads/zed-capture/AGENTS.md`.
