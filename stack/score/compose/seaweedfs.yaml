@@ -6,16 +6,16 @@
 # Declaring `type: s3` here overrides the built-in, because custom provisioners are
 # matched ahead of the defaults on a first-match policy.
 #
-# HERMETIC BY CONSTRUCTION: the credentials are literal ${VAR:?err} placeholders, matching
-# the S3_ACCESS_KEY / S3_SECRET_KEY consumption everywhere else, so nothing is resolved at
-# generation time and .env stays the single source of truth.
+# HERMETIC BY CONSTRUCTION: the credentials are literal ${VAR:-dev-default} placeholders,
+# matching the S3_ACCESS_KEY / S3_SECRET_KEY consumption everywhere else, so nothing is
+# resolved at generation time and .env stays the single source of truth for overrides.
 - uri: template://placeframe/seaweedfs
   type: s3
   description: Placeframe SeaweedFS at fixed names with the real buckets, credentials from .env.
   outputs:
     endpoint: http://seaweedfs:8333
-    access_key_id: ${S3_ACCESS_KEY:?err}
-    secret_key: ${S3_SECRET_KEY:?err}
+    access_key_id: ${S3_ACCESS_KEY:-admin}
+    secret_key: ${S3_SECRET_KEY:-password}
     bucket: reconstructions
     captures_bucket: captures
   volumes:
@@ -30,8 +30,8 @@
         -s3.config=/etc/seaweedfs/s3.json
         -s3.auditLogConfig=/etc/seaweedfs/fluent.json
       environment:
-        S3_ACCESS_KEY: "${S3_ACCESS_KEY:?err}"
-        S3_SECRET_KEY: "${S3_SECRET_KEY:?err}"
+        S3_ACCESS_KEY: "${S3_ACCESS_KEY:-admin}"
+        S3_SECRET_KEY: "${S3_SECRET_KEY:-password}"
       volumes:
       - type: volume
         source: seaweedfs-data
@@ -64,7 +64,7 @@
       depends_on:
         seaweedfs:
           condition: service_healthy
-      command: admin -ip=0.0.0.0 -port=59001 -port.grpc=59002 -master=seaweedfs:9333 -adminPassword="${S3_SECRET_KEY:?err}"
+      command: admin -ip=0.0.0.0 -port=59001 -port.grpc=59002 -master=seaweedfs:9333 -adminPassword="${S3_SECRET_KEY:-password}"
     # Converges the required buckets (verify if present, create if missing) and retries
     # until the S3 endpoint accepts connections — safe on both cold and warm volumes.
     # Gated on seaweedfs health, which asserts S3 readiness.
@@ -75,6 +75,6 @@
           condition: service_healthy
       environment:
         S3_ENDPOINT_URL: "http://seaweedfs:8333"
-        S3_ACCESS_KEY: "${S3_ACCESS_KEY:?err}"
-        S3_SECRET_KEY: "${S3_SECRET_KEY:?err}"
+        S3_ACCESS_KEY: "${S3_ACCESS_KEY:-admin}"
+        S3_SECRET_KEY: "${S3_SECRET_KEY:-password}"
         S3_BUCKETS: "captures reconstructions loki"
