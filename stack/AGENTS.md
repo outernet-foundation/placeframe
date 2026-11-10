@@ -326,9 +326,9 @@ proliferate.
   in boatyard's `design/dev-overlay.md`.
 - **No `depends_on` across workloads**: score has no such concept. Provisioner services gate
   on each other's health; workloads gate on the auto-emitted `wait-for-resources` service,
-  whose alpine default image is redirected into the `{ENTRY}__BOATYARD_LOCK__ALPINE_IMAGE`
-  slot by the barrier pass — filled from the lock's per-run env file at bring-up, so the
-  artifact carries no unpinned image. The gate emits only where a provisioner carries services, so the
+  whose alpine default image is redirected into the global `BOATYARD_BARRIER_IMAGE` slot by
+  the barrier pass — filled from boatyard's own pin at bring-up, so the artifact carries no
+  unpinned image and no lock entry. The gate emits only where a provisioner carries services, so the
   ngrok artifact carries none.
 - **The relay is a compose-only workload** (`ngrok.yaml`, absent from the k8s workload
   list). Score workload specs cannot carry runtime `${VAR}`
