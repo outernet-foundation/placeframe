@@ -46,9 +46,10 @@ Inspired by (and heavily borrowing from) the extremely useful [Hierarchical-Loca
 
    | Variable | Value |
    |---|---|
-   | `public_url` | `https://<your-ngrok-domain>` — the URL Unity clients will hit |
-   | `values.images.tunnel-ngrok.NGROK_DOMAIN` | `<your-ngrok-domain>` (just the host portion, no scheme) |
-   | `values.images.tunnel-ngrok.NGROK_AUTHTOKEN` | The token from step 1 |
+   | `public_host` | `<your-ngrok-domain>` — the host Unity clients will hit |
+   | `public_scheme` | `https` (the ngrok shape) |
+   | `values.NGROK_DOMAIN` | `<your-ngrok-domain>` (just the host portion, no scheme) |
+   | `values.NGROK_AUTHTOKEN` | The token from step 1 |
    | `bundles` | Your assembly — e.g. `[core-cuda, auth-keycloak, tunnel-ngrok]` (the OIDC-with-relay shape; the sample documents the known-good sets) |
 
 ## Backend

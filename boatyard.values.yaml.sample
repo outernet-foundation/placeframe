@@ -1,10 +1,12 @@
 # Machine values — copy to boatyard.values.yaml (gitignored) and fill in.
 # The ambient shell fills nothing; this file is the only machine-values source.
 
-# The canonical public URL (scheme required). Drives the edge's forwarded
-# headers under an auth selection and mints the PUBLIC_URL slot the workloads
-# consume (values may reference it as ${PUBLIC_URL}).
-public_url: https://<your-ngrok-domain>
+# The public face: the host the world dials (the ngrok domain here) plus its
+# scheme. The four keys mint the PUBLIC_* slots the workloads and values
+# reference (${PUBLIC_URL} is the composed scheme://host[:port] URL;
+# ${EDGE_BASE_URL} the container-side gateway address).
+public_host: <your-ngrok-domain>
+public_scheme: https
 
 # Assembly selection: bundles: names options by qualified group-option spelling
 # — the accelerator (core-cuda or core-rocm), the auth edge (auth-keycloak;
@@ -14,22 +16,15 @@ public_url: https://<your-ngrok-domain>
 # LAN/air-gap). AMD hosts: swap core-cuda for core-rocm.
 bundles: [core-cuda]
 
-# The front door's published port, overriding the config's gateway default (8443);
-# this value governs prod.
-gateway: 8443
+# The gateway's published host port, overriding the config's gateway_port
+# default (8443); this value governs prod.
+gateway_port: 8443
 
 # Machine values: one flat ALL_CAPS list under values; a key no assembly
-# surface consumes refuses. Set all four AUTH_* endpoints for OIDC; drop them
-# (or leave empty) for anonymous.
+# surface consumes refuses. Postgres/S3 dev defaults ride inside the bundles as
+# :- fallbacks — set them only to override. Set all four AUTH_* endpoints for
+# OIDC; drop them (or leave empty) for anonymous.
 values:
-  POSTGRES_ADMIN_USER: postgres
-  POSTGRES_ADMIN_PASSWORD: password
-  DATABASE_OWNER_PASSWORD: password
-  DATABASE_API_USER_PASSWORD: password
-  DATABASE_AUTH_USER_PASSWORD: password
-  DATABASE_ORCHESTRATION_USER_PASSWORD: password
-  S3_ACCESS_KEY: admin
-  S3_SECRET_KEY: password
   DEPLOYMENT_ENVIRONMENT: development
   AUTH_ISSUER_URL: ${PUBLIC_URL}/auth/realms/placeframe-dev
   AUTH_JWKS_URL: ${EDGE_BASE_URL}/auth/realms/placeframe-dev/protocol/openid-connect/certs

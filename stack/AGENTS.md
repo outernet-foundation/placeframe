@@ -9,7 +9,8 @@ the core bundle split per GPU variant, the keycloak bundle, the relay) and
 the full stack — the hand compose files are deleted; `stack/score/` holds the authored
 sources, `stack/generated/` the committed artifacts, and the repo's `boatyard.yml`
 root `services:` vocabulary plus the `bundles:` selector in `boatyard.values.yaml` assemble
-the artifacts at `up`/`down`, with boatyard emitting the edge (caddy) from the config's routes.
+the artifacts at `up`/`down`, with boatyard emitting the gateway (caddy) from the routes
+the workload annotations declare.
 
     stack/score/            authored
       api.yaml              workload contracts (tier-neutral), image sources declared as
@@ -42,8 +43,9 @@ option set (`options:` — `auth`/`keycloak`, `tunnel`/`ngrok`) or spells its wo
 group level (`workloads:` — `core`), where the option set derives from the single axis the
 group's image closure fans (the Dockerfiles fan on `TORCH_DEVICE` into the
 `core-cuda`/`core-rocm` options — the fan's one spelling is the built
-`NEURAL_NETWORKS_BASE` entry in `base_images`), plus group-level `routes:`/`ports:` that
-ride unconditionally.
+`NEURAL_NETWORKS_BASE` entry in `base_images`), plus group-level `ports:` that ride
+unconditionally (routes live in the workloads' `outernet.internal/route` annotations and
+are adopted into the bundle records at lock and resolve).
 `bundles:` names options only, by qualified `group-option` spelling. Provisioner registration derives by resource-type closure
 over the rendering's workloads — no provisioner list is authored anywhere.
 Deployment-surface behavior — healthchecks, gpu plumbing, the relay restart, the
@@ -101,29 +103,30 @@ map of `boatyard.yml`, selected through the `bundles:` list in `boatyard.values.
 `core-rocm` — the host picks its variant; both GPU workloads reserve devices, so a
 GPU-less host cannot run the core), the auth edge (`auth-keycloak`; omitting it
 is the anonymous edge), and at most the relay (`tunnel-ngrok`). Unknown names refuse loudly
-listing the vocabulary; `uv run boatyard down` materializes a name-only root and hands off
-`down --remove-orphans`, so teardown covers prior bring-ups under any selection without
-resolving a single include. There is no `up --dev`: the dev toggles (RELOAD, DEBUG_*) bake as prod-safe literals
+listing the vocabulary; `uv run boatyard down` derives every candidate project name from
+the config's full entry set plus the bare project name and removes the shared network
+last, so teardown covers prior bring-ups under any selection. There is no `up --dev`: the dev toggles (RELOAD, DEBUG_*) bake as prod-safe literals
 in the artifacts, and the `outernet.internal/dev-toggles` annotations ride inert — the
 dev overlay is unbuilt, trigger-gated design in boatyard's `design/dev-overlay.md`.
-External consumers (Make-it-Sing) assemble by `include:`-ing the published OCI bundles
-instead, or point a `path_overrides:` entry at a sibling checkout's
+External consumers (Make-it-Sing) declare the published OCI bundles as `ref: oci://`
+entries instead, or point a `path_overrides:` entry at a sibling checkout's
 `stack/generated/compose/` output.
 
-The edge is emitted by boatyard from the config's routes — never authored here:
-`gateway: 8443` (an integer in `boatyard.yml`) publishes the edge's host port, the
-values file's typed `gateway:` override retargets it
-(`boatyard.values.yaml.sample` ships `gateway: 8443`), the edge listens `:8443`
-internally, and the route table
-(`/auth/*` strip-prefix to keycloak when it rides, `/grafana/*` and `/loki/*`
-unprotected, `/*` to the api) is consumer config, not workload surface — the edge does
-no token validation (the `protected` flag and its forward_auth emission are stripped;
-re-protection is a bundle-shipped oauth2-proxy sidecar treaty, tracked as commented-out
-route lines in `boatyard.yml`). Host
+The gateway is emitted by boatyard from the routes the workload annotations declare —
+never authored in `boatyard.yml`: `gateway_port: 8443` (an integer in `boatyard.yml`)
+publishes the gateway's host port, the values file's typed `gateway_port:` override
+retargets it (`boatyard.values.yaml.sample` ships `gateway_port: 8443`), the gateway
+listens `:8443` internally, and the route table (`/auth/*` strip-prefix to keycloak via
+the keycloak workload's route annotation, `/grafana/*` and `/loki/*` unprotected plus
+`/*` to the api via the api workload's route annotation) is authored workload surface
+adopted into the bundle records — the gateway does no token validation (the `protected`
+flag and its forward_auth emission are stripped; re-protection is a bundle-shipped
+oauth2-proxy sidecar treaty, tracked as a comment beside the api's route annotation).
+Host
 ports beyond the door live in the config's `ports:` as integer defaults (api and
-lease-server debug ports, localhost-bound; the seaweedfs-admin console) — no workload
-publishes anything
-(`outernet.internal/publish` is dead and its presence refuses at generation).
+lease-server debug ports, localhost-bound; the seaweedfs-admin console) — consumer-side
+publishes of services the bundles carry. The `outernet.internal/publish` annotation is
+live grammar (consumed by lbe-toolkit's livekit tier); no workload here carries one.
 
 ```bash
 docker compose --project-directory . \
@@ -148,7 +151,7 @@ pull fails with `not found`. Build the missing services first (`uv run boatyard 
 It reads `boatyard.values.yaml` the same way any assembly does (`KEYCLOAK_ADMIN_PASSWORD`
 consumed only by the keycloak artifact — keycloak and its configurator ride that option;
 the anonymous core never sees it). Reach the api through the edge at
-`http://localhost:8443/schema` (or the values file's `gateway:` override when set).
+`http://localhost:8443/schema` (or the values file's `gateway_port:` override when set).
 
 ## Deploy: Kubernetes
 
@@ -194,7 +197,7 @@ One authored source, two renderings — the deliberate differences, so nobody "f
   built workloads declare `outernet.internal/probe-adapter` and boatyard's built-in
   template converts their httpGet probes into compose healthchecks.
 - Host publishes ride the root config's `ports:` (api and lease-server localhost-bound
-  debug ports, the seaweedfs-admin console) and the `gateway:` key's door publish —
+  debug ports, the seaweedfs-admin console) and the `gateway_port:` key's door publish —
   all compose-only, all consumer config; the k8s edge is the Pulumi-owned Ingress
   (`PUBLIC_URL` host, cert-manager issuer — per-site and Secret-resident, un-committable
   in a deterministic artifact).
@@ -269,9 +272,9 @@ proliferate.
   `seaweedfs-audit`, `pf-postgres`, `keycloak` are addressed by baked-in references (loki's
   config, the entrypoint wrapper's rendered audit sink, the edge's auth routes and the
   configurator's `KEYCLOAK_URL`); renaming one breaks the stack at runtime, not at
-  generation. The compose services ride namespaced (`{entry}-keycloak`) but each carries
-  its bare name as an alias on the bundle network, so the same bare spelling resolves on
-  both tiers — the compose alias and the k8s Service. **Bucket names are load-bearing contract names
+  generation. The compose services ride bare (`keycloak`) and the consumer's assembly
+  attaches each to the shared network under an entry-prefixed alias, so the same bare
+  spelling resolves on both tiers — the compose service name and the k8s Service. **Bucket names are load-bearing contract names
   the same way**: `captures`, `reconstructions`, `loki`, unprefixed in both tiers. The s3
   provisioners create exactly that set (initializer `S3_BUCKETS`) and expose
   `bucket`/`captures_bucket` as resource outputs the api consumes; loki's committed config
@@ -339,8 +342,9 @@ proliferate.
   by boatyard's built-in restart template, the value validated against the compose
   restart-policy enum at generation) sets `restart: on-failure` — the
   relay is a long-lived agent whose control endpoint flaps. No compose profile exists
-  anywhere in the four artifacts; the relay forwards to the edge by its reserved service
-  name (`http://edge:8443`), so an assembly without it simply has no public edge.
+  anywhere in the four artifacts; the relay forwards to the gateway by its reserved
+  service name (`http://boatyard-gateway:8443`), so an assembly without it simply has
+  no public edge.
 - **Third-party k8s stamp-outs are charts where an OCI chart exists** — loki and grafana
   render from tag-form upstream-native OCI refs declared in `boatyard.yml`'s root
   `k8s.charts` map (`oci://host/path:tag`), resolved to digests through the `{NAME}_CHART`
@@ -407,8 +411,8 @@ proliferate.
   service-port URLs, and the KEDA CRs — and that no KEDA operator documents ride the
   artifact. The compose bundle split has its twin in
   `scripts/tests/test_score_compose_generation.py`, asserting the committed artifacts:
-  four outputs, zero profiles, zero binds, zero published ports, the `{entry}-`
-  namespaced services with bare aliases, the tier-neutral keycloak shapes (lock-pinned
+  four outputs, zero profiles, zero binds, zero published ports, the bare service
+  names with no networks, the tier-neutral keycloak shapes (lock-pinned
   image, poll-gated configurator), and the relay restart/passthrough mechanics.
   Freshness itself is gated by `boatyard generate-score --check` in CI, so the tests
   assert structure against what is committed.
