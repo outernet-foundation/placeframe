@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -15,15 +17,18 @@ using Serilog.Events;
 namespace Outernet.Logging
 {
     // In-memory Loki sink. Emit serializes the event to a JSON line and
-    // appends to the queue tail, except when the new event's fingerprint
-    // (level, template, exception type, stack-trace head) matches the tail —
-    // then the tail entry is collapsed in place with repeated/firstAt/lastAt
-    // fields, so duplicate spam (e.g. a 60 Hz exception loop) caps at one
-    // entry per run. The drainer takes a bounded head slice (MaxBatchEvents
-    // / MaxBatchBytes), POSTs to Loki, dequeues on success. Pre-Enable
-    // events accumulate for first-drain flush. Per-attempt HTTP timeout.
-    // 429 honors Retry-After; other faults use exponential backoff. Drain
-    // failures route through SelfLog to avoid recursive re-enqueue.
+    // appends to the queue tail, keyed by fingerprint (level, template,
+    // exception type, stack-trace head) — when an incoming event's
+    // fingerprint matches any entry still in the queue, that entry is
+    // collapsed in place with repeated/firstAt/lastAt fields, so duplicate
+    // spam (e.g. a per-tick failure loop) ships as one entry with a count
+    // no matter what else interleaves between occurrences. The drainer
+    // takes a bounded head slice (MaxBatchEvents / MaxBatchBytes), gzips
+    // it, and POSTs to Loki with Content-Encoding: gzip; entries dequeue
+    // only on success. Pre-Enable events accumulate for first-drain flush.
+    // Per-attempt HTTP timeout. 429 honors Retry-After; other faults use
+    // exponential backoff. Drain failures route through SelfLog to avoid
+    // recursive re-enqueue.
     //
     // Bespoke rather than the upstream Serilog.Sinks.Grafana.Loki NuGet for
     // three reasons: events emitted before Enable queue rather than drop, so
@@ -50,13 +55,17 @@ namespace Outernet.Logging
         private static readonly TimeSpan MaxBackoff = TimeSpan.FromSeconds(60);
         private static readonly TimeSpan PerAttemptTimeout = TimeSpan.FromSeconds(15);
 
-        // Sized to stay well under Loki's default per-tenant 6 MB ingestion burst.
+        // Sized to stay well under Loki's default per-tenant 6 MB ingestion
+        // burst. The byte cap bounds the uncompressed slice; gzip typically
+        // shrinks it ~10x on the wire, keeping pushes small enough that a
+        // slow uplink finishes them well inside PerAttemptTimeout.
         private const int MaxBatchEvents = 500;
-        private const int MaxBatchBytes = 512 * 1024;
+        private const int MaxBatchBytes = 128 * 1024;
 
         private readonly Dictionary<string, string> _labels;
         private readonly object _queueLock = new();
         private readonly LinkedList<PendingEntry> _pending = new();
+        private readonly Dictionary<string, LinkedListNode<PendingEntry>> _pendingByFingerprint = new();
         private volatile bool _disposed;
 
         private HttpClient _httpClient;
@@ -100,23 +109,24 @@ namespace Outernet.Logging
 
                 lock (_queueLock)
                 {
-                    var tail = _pending.Last?.Value;
-                    if (tail != null && tail.Fingerprint == fingerprint)
+                    if (_pendingByFingerprint.TryGetValue(fingerprint, out var node))
                     {
+                        var tail = node.Value;
                         tail.RepeatCount += 1;
                         tail.LastTs = ts;
                         tail.Line = SerializeLine(logEvent, tail.RepeatCount, tail.FirstTs, tail.LastTs);
                     }
                     else
                     {
-                        _pending.AddLast(new PendingEntry
+                        var entry = new PendingEntry
                         {
                             FirstTs = ts,
                             LastTs = ts,
                             Fingerprint = fingerprint,
                             RepeatCount = 1,
                             Line = SerializeLine(logEvent, 1, ts, ts),
-                        });
+                        };
+                        _pendingByFingerprint[fingerprint] = _pending.AddLast(entry);
                     }
                 }
             }
@@ -220,12 +230,10 @@ namespace Outernet.Logging
                     using var timeout = new CancellationTokenSource(PerAttemptTimeout);
 
                     using var request = new HttpRequestMessage(HttpMethod.Post, _pushUrl);
-                    request.Content = new StringContent(
+                    request.Content = CompressContent(
                         JsonConvert.SerializeObject(
                             new { streams = new[] { new { stream = _labels, values = batch.Select(entry => new[] { entry.LastTs, entry.Line }) } } }
-                        ),
-                        Encoding.UTF8,
-                        "application/json"
+                        )
                     );
 
                     using var response = await _httpClient.SendAsync(request, timeout.Token);
@@ -242,7 +250,10 @@ namespace Outernet.Logging
                     lock (_queueLock)
                     {
                         for (int index = 0; index < batch.Length; index++)
+                        {
+                            _pendingByFingerprint.Remove(batch[index].Fingerprint);
                             _pending.RemoveFirst();
+                        }
                     }
                     schedule.OnSuccess();
                 }
@@ -281,9 +292,26 @@ namespace Outernet.Logging
             return false;
         }
 
-        // Caller holds _queueLock. Always returns at least one entry so a
-        // single oversized event can't wedge the drain.
-        private PendingEntry[] TakeHeadSlice()
+    private static ByteArrayContent CompressContent(string json)
+    {
+        byte[] jsonBytes = Encoding.UTF8.GetBytes(json);
+        byte[] compressedBytes;
+        using (var outputStream = new MemoryStream())
+        {
+            using (var gzipStream = new GZipStream(outputStream, CompressionLevel.Fastest))
+                gzipStream.Write(jsonBytes, 0, jsonBytes.Length);
+            compressedBytes = outputStream.ToArray();
+        }
+
+        var content = new ByteArrayContent(compressedBytes);
+        content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+        content.Headers.ContentEncoding.Add("gzip");
+        return content;
+    }
+
+    // Caller holds _queueLock. Always returns at least one entry so a
+    // single oversized event can't wedge the drain.
+    private PendingEntry[] TakeHeadSlice()
         {
             var slice = new List<PendingEntry>(Math.Min(_pending.Count, MaxBatchEvents));
             var totalBytes = 0;
