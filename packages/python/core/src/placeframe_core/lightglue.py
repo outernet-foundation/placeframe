@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from typing import NewType
 
@@ -9,6 +10,8 @@ from torch import Tensor, from_numpy, inference_mode, tensor  # type: ignore
 from torch.nn.utils.rnn import pad_sequence
 
 from .numpy_ops import compress, nonzero
+
+logger = logging.getLogger(__name__)
 
 NumMatches = NewType("NumMatches", int)
 
@@ -57,7 +60,7 @@ def lightglue_match_tensors(
     num_batches = (len(pairs) + batch_size - 1) // batch_size
     match_indices: MatchIndices = {}
     for batch_start in range(0, len(pairs), batch_size):
-        print(f"Matching features: batch {batch_start // batch_size + 1} of {num_batches}")
+        logger.info("Matching features: batch %d of %d", batch_start // batch_size + 1, num_batches)
         batch_pairs = pairs[batch_start : batch_start + batch_size]
 
         with inference_mode():

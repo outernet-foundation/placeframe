@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from concurrent.futures import ThreadPoolExecutor
 from os import environ
 from pathlib import Path
@@ -34,7 +35,9 @@ from .map import Map, load_map
 from .schemas import LoadState, Localization
 from .settings import get_settings
 
-configure_logging("localizer")
+configure_logging("localizer", uvicorn_logger_handlers=True)
+
+logger = logging.getLogger(__name__)
 
 RECONSTRUCTIONS_DIR = Path("/tmp/reconstructions")
 CALIBRATION_GLOBAL_PATH = Path("/etc/placeframe/calibration/global.json")
@@ -63,7 +66,7 @@ if not environ.get("CODEGEN"):
     load_models()
     pipeline_version = environ["LOCALIZER_SHA"]
     calibration = load_global_calibration(CALIBRATION_GLOBAL_PATH, pipeline_version)
-    print(f"Loaded global calibration (pipeline_version={pipeline_version[:12]}…)")
+    logger.info("Loaded global calibration (pipeline_version=%s…)", pipeline_version[:12])
 
 
 class LocalizationRequest(MultipartRequestModel):
