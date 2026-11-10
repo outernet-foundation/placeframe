@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import logging
 import math
-import sys
 from pathlib import Path
 
 from numpy import diag, dtype, float64, interp, log1p, ndarray
 from pydantic import BaseModel
+
+logger = logging.getLogger(__name__)
 
 
 SCHEMA_VERSION = 3
@@ -122,13 +124,12 @@ def load_global_calibration(path: Path, expected_pipeline_version: str) -> Calib
         )
 
     if calibration.pipeline_version == PLACEHOLDER_PIPELINE_VERSION:
-        print(
-            f"WARNING: loading placeholder calibration from {path}. "
-            f"Pipeline-version check bypassed (expected {expected_pipeline_version}). "
-            "Tight/loose confidence gates are no-ops; outputs are not trustworthy. "
+        logger.warning(
+            "loading placeholder calibration from %s. Pipeline-version check bypassed (expected %s). "
+            "Confidence values and gate thresholds come from hand-tuned weights, not a fit corpus. "
             "Refit via scripts/fit_calibration.py before relying on calibrated confidences.",
-            file=sys.stderr,
-            flush=True,
+            path,
+            expected_pipeline_version,
         )
         return calibration
 

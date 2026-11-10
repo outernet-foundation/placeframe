@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Mapping, NewType, cast
@@ -16,6 +17,8 @@ from pycolmap import Reconstruction
 from pycolmap._core import ImageMap, Point3DMap
 
 from placeframe_core.model_wrappers import RetrievalDim
+
+logger = logging.getLogger(__name__)
 
 NumImages = NewType("NumImages", int)
 
@@ -63,7 +66,7 @@ def load_map(
 
             local_path = reconstructions_dir / str(id) / key[len(str(id)) :].lstrip("/")
             local_path.parent.mkdir(parents=True, exist_ok=True)
-            print(f"Downloading s3://{reconstruction_bucket}/{key} to {local_path}")
+            logger.info("Downloading s3://%s/%s to %s", reconstruction_bucket, key, local_path)
             s3_client.download_file(reconstruction_bucket, key, str(local_path))
 
     reconstruction_path = reconstructions_dir / str(id)

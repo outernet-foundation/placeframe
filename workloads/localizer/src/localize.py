@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from os import environ
 from time import perf_counter
@@ -34,6 +35,8 @@ from .torch_ops import from_numpy, to
 
 DEVICE = "cuda" if cuda.is_available() else "cpu"
 
+logger = logging.getLogger(__name__)
+
 
 # Seeded each call so localization_evaluations cache rows keyed on pipeline_version are
 # reproducible — fit_calibration treats (reconstruction_id, frame_timestamp, retrieval_top_k,
@@ -60,7 +63,7 @@ def load_models():
 
     from neural_networks.models import load_aliked, load_DIR, load_lightglue
 
-    print(f"Using device: {DEVICE}")
+    logger.info("Using device: %s", DEVICE)
 
     global global_descriptor_extractor, local_feature_extractor, local_feature_matcher
     global_descriptor_extractor = make_global_descriptor_extractor(load_DIR(DEVICE))
@@ -230,9 +233,9 @@ def localize_image_against_reconstruction(
         )
 
     timings["total"] = perf_counter() - t0
-    print("localize timings(ms): " + " ".join(f"{k}={v * 1000:.0f}" for k, v in timings.items()))
+    logger.info("localize timings(ms): %s", " ".join(f"{k}={v * 1000:.0f}" for k, v in timings.items()))
 
     # Success
-    print(transform.model_dump_json(indent=2))
-    print(metrics.model_dump_json(indent=2))
+    logger.info("localization transform: %s", transform.model_dump_json(indent=2))
+    logger.info("localization metrics: %s", metrics.model_dump_json(indent=2))
     return transform, metrics
