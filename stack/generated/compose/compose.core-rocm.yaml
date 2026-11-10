@@ -1,19 +1,16 @@
 services:
-  core-rocm-api:
+  api:
     depends_on:
-      core-rocm-wait-for-resources:
+      wait-for-resources:
         condition: service_completed_successfully
         required: true
     image: ghcr.io/outernet-foundation/placeframe/api:${CORE_ROCM__BOATYARD_TREE__API_SHA}
-    networks:
-      core-rocm-net:
-        aliases:
-        - api
     annotations:
       compose.score.dev/workload-name: api
       outernet.internal/dev-toggles: RELOAD=true,DEBUG_API=true,DEBUG_WAIT_API=false
       outernet.internal/dockerfile: api=workloads/api/Dockerfile
       outernet.internal/probe-adapter: python-urllib
+      outernet.internal/route: /grafana/*=grafana:3000,/loki/*=loki:3100,/*=api:8000
     environment:
       AUTH_AUDIENCE: ${AUTH_AUDIENCE:-}
       AUTH_AUTHORIZATION_ENDPOINT: ${AUTH_AUTHORIZATION_ENDPOINT:-}
@@ -22,12 +19,12 @@ services:
       AUTH_TOKEN_ENDPOINT: ${AUTH_TOKEN_ENDPOINT:-}
       CAPTURES_BUCKET: captures
       DATABASE_API_USER: placeframe_api_user
-      DATABASE_API_USER_PASSWORD: ${DATABASE_API_USER_PASSWORD:?err}
+      DATABASE_API_USER_PASSWORD: ${DATABASE_API_USER_PASSWORD:-password}
       DATABASE_AUTH_USER: placeframe_auth_user
-      DATABASE_AUTH_USER_PASSWORD: ${DATABASE_AUTH_USER_PASSWORD:?err}
+      DATABASE_AUTH_USER_PASSWORD: ${DATABASE_AUTH_USER_PASSWORD:-password}
       DATABASE_NAME: placeframe
       DATABASE_ORCHESTRATION_USER: placeframe_orchestration_user
-      DATABASE_ORCHESTRATION_USER_PASSWORD: ${DATABASE_ORCHESTRATION_USER_PASSWORD:?err}
+      DATABASE_ORCHESTRATION_USER_PASSWORD: ${DATABASE_ORCHESTRATION_USER_PASSWORD:-password}
       DEBUG_API: 'false'
       DEBUG_WAIT_API: 'false'
       DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-development}
@@ -38,9 +35,9 @@ services:
       PUBLIC_URL: ${PUBLIC_URL:?err}
       RECONSTRUCTIONS_BUCKET: reconstructions
       RELOAD: 'false'
-      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?err}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-admin}
       S3_ENDPOINT_URL: http://seaweedfs:8333
-      S3_SECRET_KEY: ${S3_SECRET_KEY:?err}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-password}
       SERVICE_VERSION: ${CORE_ROCM__BOATYARD_TREE__API_SHA}
     hostname: api
     healthcheck:
@@ -53,16 +50,12 @@ services:
       interval: 5s
       retries: 3
       start_period: 5s
-  core-rocm-lease-server:
+  lease-server:
     depends_on:
-      core-rocm-wait-for-resources:
+      wait-for-resources:
         condition: service_completed_successfully
         required: true
     image: ghcr.io/outernet-foundation/placeframe/lease-server:${CORE_ROCM__BOATYARD_TREE__LEASE_SERVER_SHA}
-    networks:
-      core-rocm-net:
-        aliases:
-        - lease-server
     annotations:
       compose.score.dev/workload-name: lease-server
       outernet.internal/dev-toggles: RELOAD=true,DEBUG_LEASE_SERVER=false,DEBUG_WAIT_LEASE_SERVER=false
@@ -71,7 +64,7 @@ services:
     environment:
       DATABASE_NAME: placeframe
       DATABASE_ORCHESTRATION_USER: placeframe_orchestration_user
-      DATABASE_ORCHESTRATION_USER_PASSWORD: ${DATABASE_ORCHESTRATION_USER_PASSWORD:?err}
+      DATABASE_ORCHESTRATION_USER_PASSWORD: ${DATABASE_ORCHESTRATION_USER_PASSWORD:-password}
       DEBUG_LEASE_SERVER: 'false'
       DEBUG_WAIT_LEASE_SERVER: 'false'
       DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-development}
@@ -90,16 +83,12 @@ services:
       interval: 5s
       retries: 3
       start_period: 5s
-  core-rocm-reconstructor:
+  reconstructor:
     depends_on:
-      core-rocm-wait-for-resources:
+      wait-for-resources:
         condition: service_completed_successfully
         required: true
     image: ghcr.io/outernet-foundation/placeframe/reconstructor-rocm:${CORE_ROCM__BOATYARD_TREE__RECONSTRUCTOR_SHA}
-    networks:
-      core-rocm-net:
-        aliases:
-        - reconstructor
     annotations:
       compose.score.dev/workload-name: reconstructor
       outernet.internal/dockerfile: reconstructor=workloads/reconstructor/Dockerfile
@@ -115,24 +104,20 @@ services:
       LEASE_SERVER_URL: http://lease-server:8000
       OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4317
       RECONSTRUCTIONS_BUCKET: reconstructions
-      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?err}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-admin}
       S3_ENDPOINT_URL: http://seaweedfs:8333
-      S3_SECRET_KEY: ${S3_SECRET_KEY:?err}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-password}
       SERVICE_VERSION: ${CORE_ROCM__BOATYARD_TREE__RECONSTRUCTOR_SHA}
     group_add:
     - '44'
     - '110'
     hostname: reconstructor
-  core-rocm-localizer:
+  localizer:
     depends_on:
-      core-rocm-wait-for-resources:
+      wait-for-resources:
         condition: service_completed_successfully
         required: true
     image: ghcr.io/outernet-foundation/placeframe/localizer-rocm:${CORE_ROCM__BOATYARD_TREE__LOCALIZER_SHA}
-    networks:
-      core-rocm-net:
-        aliases:
-        - localizer
     annotations:
       compose.score.dev/workload-name: localizer
       outernet.internal/dockerfile: localizer=workloads/localizer/Dockerfile
@@ -147,9 +132,9 @@ services:
       DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-development}
       OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4317
       RECONSTRUCTIONS_BUCKET: reconstructions
-      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?err}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-admin}
       S3_ENDPOINT_URL: http://seaweedfs:8333
-      S3_SECRET_KEY: ${S3_SECRET_KEY:?err}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-password}
       SERVICE_VERSION: ${CORE_ROCM__BOATYARD_TREE__LOCALIZER_SHA}
     group_add:
     - '44'
@@ -165,19 +150,15 @@ services:
       interval: 5s
       retries: 3
       start_period: 5s
-  core-rocm-alloy:
+  alloy:
     depends_on:
-      core-rocm-loki:
+      loki:
         condition: service_healthy
         required: false
     configs:
-    - source: core-rocm-config.alloy
+    - source: config.alloy
       target: /etc/alloy/config.alloy
     image: ghcr.io/outernet-foundation/mirror/docker.io/grafana/alloy:v1.9.0@sha256:0eae1eb96d54e87cf17341be2b427f90a8ee8b0ffdec1f7b3e253a9dbc295060
-    networks:
-      core-rocm-net:
-        aliases:
-        - alloy
     command:
     - run
     - /etc/alloy/config.alloy
@@ -185,19 +166,15 @@ services:
       LOKI_WRITE_ENDPOINT: http://loki:3100/loki/api/v1/push
     expose:
     - '4317'
-  core-rocm-grafana:
+  grafana:
     depends_on:
-      core-rocm-loki:
+      loki:
         condition: service_healthy
         required: false
     configs:
-    - source: core-rocm-datasources.yaml
+    - source: datasources.yaml
       target: /etc/grafana/provisioning/datasources/datasources.yaml
     image: ghcr.io/outernet-foundation/mirror/docker.io/grafana/grafana:11.6.0@sha256:b739cda4b61ba3b90707578b643a22cd851fecf4498e6c6ec2d8f9d622a5d0b2
-    networks:
-      core-rocm-net:
-        aliases:
-        - grafana
     environment:
       GF_AUTH_ANONYMOUS_ENABLED: 'true'
       GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
@@ -223,63 +200,51 @@ services:
       interval: 5s
       retries: 20
       start_period: 10s
-  core-rocm-initialize-loki:
+  initialize-loki:
     volumes:
     - type: volume
       source: loki-data
       target: /loki
     image: ghcr.io/outernet-foundation/mirror/docker.io/grafana/loki:3.5.0@sha256:2cbddd6e199a2ddeee13573d91f11e54d9c8fa432f44c578d3c55b9a93278c9f
-    networks:
-      core-rocm-net:
-        aliases:
-        - initialize-loki
     entrypoint:
     - /bin/sh
     - -c
     - chown -R 10001:10001 /loki
     restart: 'no'
     user: 0:0
-  core-rocm-initialize-s3:
+  initialize-s3:
     depends_on:
-      core-rocm-seaweedfs:
+      seaweedfs:
         condition: service_healthy
         required: false
     image: ghcr.io/outernet-foundation/placeframe/s3-initializer:${CORE_ROCM__BOATYARD_TREE__S3_INITIALIZER_SHA}
-    networks:
-      core-rocm-net:
-        aliases:
-        - initialize-s3
     environment:
-      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?err}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-admin}
       S3_BUCKETS: captures reconstructions loki
       S3_ENDPOINT_URL: http://seaweedfs:8333
-      S3_SECRET_KEY: ${S3_SECRET_KEY:?err}
-  core-rocm-loki:
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-password}
+  loki:
     volumes:
     - type: volume
       source: loki-data
       target: /loki
     depends_on:
-      core-rocm-initialize-loki:
+      initialize-loki:
         condition: service_completed_successfully
         required: false
-      core-rocm-initialize-s3:
+      initialize-s3:
         condition: service_completed_successfully
         required: false
     configs:
-    - source: core-rocm-config.yaml
+    - source: config.yaml
       target: /etc/loki/config.yaml
     image: ghcr.io/outernet-foundation/mirror/docker.io/grafana/loki:3.5.0@sha256:2cbddd6e199a2ddeee13573d91f11e54d9c8fa432f44c578d3c55b9a93278c9f
-    networks:
-      core-rocm-net:
-        aliases:
-        - loki
     command:
     - -config.file=/etc/loki/config.yaml
     - -config.expand-env=true
     environment:
-      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?err}
-      S3_SECRET_KEY: ${S3_SECRET_KEY:?err}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-admin}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-password}
     healthcheck:
       test:
       - CMD
@@ -292,21 +257,17 @@ services:
       interval: 5s
       retries: 20
       start_period: 10s
-  core-rocm-pf-postgres:
+  pf-postgres:
     volumes:
     - type: volume
       source: pf-postgres-data
       target: /var/lib/postgresql/data
     image: ghcr.io/outernet-foundation/placeframe/postgres:${CORE_ROCM__BOATYARD_TREE__POSTGRES_SHA}
-    networks:
-      core-rocm-net:
-        aliases:
-        - pf-postgres
     entrypoint:
     - /usr/local/bin/entrypoint-wrapper.sh
     environment:
-      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:?err}
-      POSTGRES_USER: ${POSTGRES_ADMIN_USER:?err}
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:-password}
+      POSTGRES_USER: ${POSTGRES_ADMIN_USER:-postgres}
     healthcheck:
       test:
       - CMD
@@ -317,22 +278,18 @@ services:
       - -p
       - '5432'
       - -U
-      - ${POSTGRES_ADMIN_USER:?err}
+      - ${POSTGRES_ADMIN_USER:-postgres}
       - -d
       - postgres
       timeout: 2s
       interval: 2s
       retries: 30
-  core-rocm-pf-postgres-create:
+  pf-postgres-create:
     depends_on:
-      core-rocm-pf-postgres:
+      pf-postgres:
         condition: service_healthy
         required: false
     image: ghcr.io/outernet-foundation/placeframe/database-manager:${CORE_ROCM__BOATYARD_TREE__DATABASE_MANAGER_SHA}
-    networks:
-      core-rocm-net:
-        aliases:
-        - pf-postgres-create
     entrypoint:
     - uv
     - run
@@ -345,45 +302,37 @@ services:
     - --name
     - placeframe
     - --owner-password
-    - ${DATABASE_OWNER_PASSWORD:?err}
+    - ${DATABASE_OWNER_PASSWORD:-password}
     - --api-user-password
-    - ${DATABASE_API_USER_PASSWORD:?err}
+    - ${DATABASE_API_USER_PASSWORD:-password}
     - --auth-user-password
-    - ${DATABASE_AUTH_USER_PASSWORD:?err}
+    - ${DATABASE_AUTH_USER_PASSWORD:-password}
     - --orchestration-user-password
-    - ${DATABASE_ORCHESTRATION_USER_PASSWORD:?err}
+    - ${DATABASE_ORCHESTRATION_USER_PASSWORD:-password}
     environment:
-      POSTGRES_ADMIN_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:?err}
-      POSTGRES_ADMIN_USER: ${POSTGRES_ADMIN_USER:?err}
+      POSTGRES_ADMIN_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:-password}
+      POSTGRES_ADMIN_USER: ${POSTGRES_ADMIN_USER:-postgres}
       POSTGRES_HOST: pf-postgres
-  core-rocm-pf-postgres-migrate:
+  pf-postgres-migrate:
     depends_on:
-      core-rocm-pf-postgres-create:
+      pf-postgres-create:
         condition: service_completed_successfully
         required: false
     image: ghcr.io/outernet-foundation/placeframe/database-migrator:${CORE_ROCM__BOATYARD_TREE__DATABASE_MIGRATOR_SHA}
-    networks:
-      core-rocm-net:
-        aliases:
-        - pf-postgres-migrate
     environment:
       ALLOWED_HAZARDS: HAS_UNTRACKABLE_DEPENDENCIES
       DATABASE_SCHEMA_DIR: database
       DB_HOST: pf-postgres
       DB_NAME: placeframe
-      DB_PASSWORD: ${DATABASE_OWNER_PASSWORD:?err}
+      DB_PASSWORD: ${DATABASE_OWNER_PASSWORD:-password}
       DB_PORT: '5432'
       DB_USER: placeframe_owner
-  core-rocm-seaweedfs:
+  seaweedfs:
     volumes:
     - type: volume
       source: seaweedfs-data
       target: /data
     image: ghcr.io/outernet-foundation/placeframe/seaweedfs:${CORE_ROCM__BOATYARD_TREE__SEAWEEDFS_SHA}
-    networks:
-      core-rocm-net:
-        aliases:
-        - seaweedfs
     command:
     - server
     - -filer
@@ -394,8 +343,8 @@ services:
     entrypoint:
     - /usr/local/bin/entrypoint-wrapper.sh
     environment:
-      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?err}
-      S3_SECRET_KEY: ${S3_SECRET_KEY:?err}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-admin}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-password}
     healthcheck:
       test:
       - CMD-SHELL
@@ -403,35 +352,27 @@ services:
       interval: 1s
       retries: 60
       start_period: 1m30s
-  core-rocm-seaweedfs-admin:
+  seaweedfs-admin:
     depends_on:
-      core-rocm-seaweedfs:
+      seaweedfs:
         condition: service_healthy
         required: false
     image: ghcr.io/outernet-foundation/placeframe/seaweedfs:${CORE_ROCM__BOATYARD_TREE__SEAWEEDFS_SHA}
-    networks:
-      core-rocm-net:
-        aliases:
-        - seaweedfs-admin
     command:
     - admin
     - -ip=0.0.0.0
     - -port=59001
     - -port.grpc=59002
     - -master=seaweedfs:9333
-    - -adminPassword=${S3_SECRET_KEY:?err}
+    - -adminPassword=${S3_SECRET_KEY:-password}
     entrypoint:
     - /usr/local/bin/entrypoint-wrapper.sh
-  core-rocm-seaweedfs-audit:
+  seaweedfs-audit:
     depends_on:
-      core-rocm-seaweedfs:
+      seaweedfs:
         condition: service_healthy
         required: false
     image: ghcr.io/outernet-foundation/mirror/docker.io/fluent/fluent-bit:5.1.2@sha256:71cda445290efc2d45d565c12e0de4b15aa0182510276ad50c317aae1423d7ee
-    networks:
-      core-rocm-net:
-        aliases:
-        - seaweedfs-audit
     command:
     - -i
     - forward
@@ -443,50 +384,46 @@ services:
     - stdout
     - -m
     - '*'
-  core-rocm-wait-for-resources:
+  wait-for-resources:
     depends_on:
-      core-rocm-alloy:
+      alloy:
         condition: service_started
         required: true
-      core-rocm-grafana:
+      grafana:
         condition: service_healthy
         required: true
-      core-rocm-initialize-loki:
+      initialize-loki:
         condition: service_started
         required: true
-      core-rocm-initialize-s3:
+      initialize-s3:
         condition: service_started
         required: true
-      core-rocm-loki:
+      loki:
         condition: service_healthy
         required: true
-      core-rocm-pf-postgres:
+      pf-postgres:
         condition: service_healthy
         required: true
-      core-rocm-pf-postgres-create:
+      pf-postgres-create:
         condition: service_started
         required: true
-      core-rocm-pf-postgres-migrate:
+      pf-postgres-migrate:
         condition: service_started
         required: true
-      core-rocm-seaweedfs:
+      seaweedfs:
         condition: service_healthy
         required: true
-      core-rocm-seaweedfs-admin:
+      seaweedfs-admin:
         condition: service_started
         required: true
-      core-rocm-seaweedfs-audit:
+      seaweedfs-audit:
         condition: service_started
         required: true
     image: ${CORE_ROCM__BOATYARD_LOCK__ALPINE_IMAGE:?err}
-    networks:
-      core-rocm-net:
-        aliases:
-        - wait-for-resources
     command:
     - echo
 configs:
-  core-rocm-config.alloy:
+  config.alloy:
     content: |
       // OTLP/gRPC receiver → attributes processor (label-cardinality policy) → Loki
       // exporter → loki.write. Producers ship OTel log records with full SemConv
@@ -531,7 +468,7 @@ configs:
           url = sys.env("LOKI_WRITE_ENDPOINT")
         }
       }
-  core-rocm-datasources.yaml:
+  datasources.yaml:
     content: |
       apiVersion: 1
       datasources:
@@ -540,7 +477,7 @@ configs:
           access: proxy
           url: http://loki:3100
           isDefault: true
-  core-rocm-config.yaml:
+  config.yaml:
     content: |
       auth_enabled: false
       server:
@@ -590,8 +527,6 @@ configs:
         # Defaults are 168h and 1h respectively; 720h on both leaves plenty of margin.
         reject_old_samples: true
         reject_old_samples_max_age: 720h
-networks:
-  core-rocm-net: {}
 name: placeframe
 volumes:
   loki-data:

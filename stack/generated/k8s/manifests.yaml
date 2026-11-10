@@ -268,6 +268,7 @@ spec:
         outernet.internal/dev-toggles: RELOAD=true,DEBUG_API=true,DEBUG_WAIT_API=false
         outernet.internal/dockerfile: api=workloads/api/Dockerfile
         outernet.internal/probe-adapter: python-urllib
+        outernet.internal/route: /grafana/*=grafana:3000,/loki/*=loki:3100,/*=api:8000
       labels:
         app.kubernetes.io/instance: api-14c2529eb4
         app.kubernetes.io/managed-by: score-k8s
@@ -399,6 +400,7 @@ spec:
         k8s.score.dev/workload-name: keycloak
         outernet.internal/lock: keycloak=KEYCLOAK_IMAGE
         outernet.internal/probe-adapter: bash-http
+        outernet.internal/route: /auth/*=keycloak:8080,strip
       labels:
         app.kubernetes.io/instance: keycloak-d63f4a0cda
         app.kubernetes.io/managed-by: score-k8s
