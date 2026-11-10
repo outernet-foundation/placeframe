@@ -6,6 +6,7 @@ platforms:
   - linux/amd64
 
 base_images:
+  ALPINE_IMAGE: "docker.io/library/alpine:3.20"
   UV_BASE_IMAGE: "ghcr.io/astral-sh/uv:0.12.15-python3.13-trixie-slim"
   GOLANG_IMAGE: "docker.io/library/golang:1.22-alpine"
   LOKI_IMAGE: "docker.io/grafana/loki:3.5.0"
