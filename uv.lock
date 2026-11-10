@@ -140,8 +140,8 @@ wheels = [
 
 [[package]]
 name = "boatyard"
-version = "0.7.1"
-source = { registry = "https://pypi.org/simple" }
+version = "0.8.0"
+source = { directory = "../boatyard" }
 dependencies = [
     { name = "bashrun" },
     { name = "build-artifact-registry" },
@@ -150,9 +150,24 @@ dependencies = [
     { name = "pyyaml" },
     { name = "typer" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/2c/90/1a3fd8aa2893311f23d3c1a4dcaf8a152c896433d167cf29ef0c06e59f1a/boatyard-0.7.1.tar.gz", hash = "sha256:e36dd593139816e2cdc2c2c9443fb856cad4ad3ec1d3e1e0d303027e44b6f910", size = 195310, upload-time = "2026-11-09T19:30:18.985Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/ce/d3/f4735af75a8b9436658d4c9d9c1c1c009f370bac8bd483bd2fcdce5c1e69/boatyard-0.7.1-py3-none-any.whl", hash = "sha256:dd5010c7f3fd124f7fb8ccd02a8e02ae53f435ec265e029c8eeb0ad7c350bc08", size = 73306, upload-time = "2026-11-09T19:30:17.478Z" },
+
+[package.metadata]
+requires-dist = [
+    { name = "bashrun", specifier = ">=0.1.0" },
+    { name = "build-artifact-registry", specifier = ">=0.2.2" },
+    { name = "packaging", specifier = ">=24.1" },
+    { name = "pydantic", specifier = ">=2.11.7" },
+    { name = "pyyaml", specifier = ">=6.0" },
+    { name = "typer", specifier = ">=0.17.4" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "basedpyright", specifier = ">=1.39.10" },
+    { name = "pytest", specifier = ">=8.0.0" },
+    { name = "python-devkit", specifier = ">=0.3.0.dev0" },
+    { name = "ruff", specifier = ">=0.14.11" },
+    { name = "types-pyyaml", specifier = ">=6.0.12.20260906" },
 ]
 
 [[package]]
@@ -2948,7 +2963,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "bashrun", specifier = ">=0.8.2.dev91" },
-    { name = "boatyard", specifier = ">=0.7.1" },
+    { name = "boatyard", directory = "../boatyard" },
     { name = "datamodel-code-generator", specifier = ">=0.33.0" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "numpy", specifier = ">=2.1" },

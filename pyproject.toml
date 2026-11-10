@@ -58,6 +58,7 @@ sync-args = ["--all-packages", "--extra", "cpu"]
 deptry-exclude = ["packages/generated/*", "packages/python/neural-networks/third-party/*"]
 
 [tool.uv.sources]
+boatyard = { path = "../boatyard" }
 placeframe-common = { workspace = true }
 placeframe-core = { workspace = true }
 neural-networks = { workspace = true }
