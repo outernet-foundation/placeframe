@@ -4,8 +4,9 @@
 # single generated role.
 #
 # HERMETIC BY CONSTRUCTION: this provisioner resolves no secret at generation time. Every
-# credential is emitted as a literal ${VAR:?err} string, and docker compose resolves it from
-# --env-file at run time. That
+# credential is emitted as a literal ${VAR:-dev-default} string, and docker compose resolves
+# it from --env-file at run time (the dev defaults ride for local stacks; a consumer
+# overrides them from boatyard.values.yaml). That
 # is what lets the generated compose.yaml be committed and consumed unchanged. ${...}
 # carries no meaning to Go's template engine, so it passes through the provisioner and
 # into the output verbatim.
@@ -25,13 +26,13 @@
     port: 5432
     name: "{{ .State.dbName }}"
     owner_username: "{{ .State.dbName }}_owner"
-    owner_password: ${DATABASE_OWNER_PASSWORD:?err}
+    owner_password: ${DATABASE_OWNER_PASSWORD:-password}
     api_username: "{{ .State.dbName }}_api_user"
-    api_password: ${DATABASE_API_USER_PASSWORD:?err}
+    api_password: ${DATABASE_API_USER_PASSWORD:-password}
     auth_username: "{{ .State.dbName }}_auth_user"
-    auth_password: ${DATABASE_AUTH_USER_PASSWORD:?err}
+    auth_password: ${DATABASE_AUTH_USER_PASSWORD:-password}
     orchestration_username: "{{ .State.dbName }}_orchestration_user"
-    orchestration_password: ${DATABASE_ORCHESTRATION_USER_PASSWORD:?err}
+    orchestration_password: ${DATABASE_ORCHESTRATION_USER_PASSWORD:-password}
   volumes:
     pf-postgres-data:
       driver: local
@@ -40,8 +41,8 @@
       image: {dockerfile: workloads/postgres/Dockerfile}
       entrypoint: /usr/local/bin/entrypoint-wrapper.sh
       environment:
-        POSTGRES_USER: "${POSTGRES_ADMIN_USER:?err}"
-        POSTGRES_PASSWORD: "${POSTGRES_ADMIN_PASSWORD:?err}"
+        POSTGRES_USER: "${POSTGRES_ADMIN_USER:-postgres}"
+        POSTGRES_PASSWORD: "${POSTGRES_ADMIN_PASSWORD:-password}"
       volumes:
       - type: volume
         source: pf-postgres-data
@@ -60,7 +61,7 @@
             "-p",
             "5432",
             "-U",
-            "${POSTGRES_ADMIN_USER:?err}",
+            "${POSTGRES_ADMIN_USER:-postgres}",
             "-d",
             "postgres",
           ]
@@ -74,14 +75,14 @@
           condition: service_healthy
       environment:
         POSTGRES_HOST: "{{ .State.serviceName }}"
-        POSTGRES_ADMIN_USER: "${POSTGRES_ADMIN_USER:?err}"
-        POSTGRES_ADMIN_PASSWORD: "${POSTGRES_ADMIN_PASSWORD:?err}"
+        POSTGRES_ADMIN_USER: "${POSTGRES_ADMIN_USER:-postgres}"
+        POSTGRES_ADMIN_PASSWORD: "${POSTGRES_ADMIN_PASSWORD:-password}"
       entrypoint: >-
         uv run --no-sync python -m src.main --op create --name {{ .State.dbName }}
-        --owner-password ${DATABASE_OWNER_PASSWORD:?err}
-        --api-user-password ${DATABASE_API_USER_PASSWORD:?err}
-        --auth-user-password ${DATABASE_AUTH_USER_PASSWORD:?err}
-        --orchestration-user-password ${DATABASE_ORCHESTRATION_USER_PASSWORD:?err}
+        --owner-password ${DATABASE_OWNER_PASSWORD:-password}
+        --api-user-password ${DATABASE_API_USER_PASSWORD:-password}
+        --auth-user-password ${DATABASE_AUTH_USER_PASSWORD:-password}
+        --orchestration-user-password ${DATABASE_ORCHESTRATION_USER_PASSWORD:-password}
     "{{ .State.serviceName }}-migrate":
       image: {dockerfile: workloads/database-migrator/Dockerfile}
       depends_on:
@@ -92,6 +93,6 @@
         DB_PORT: "5432"
         DB_NAME: "{{ .State.dbName }}"
         DB_USER: "{{ .State.dbName }}_owner"
-        DB_PASSWORD: "${DATABASE_OWNER_PASSWORD:?err}"
+        DB_PASSWORD: "${DATABASE_OWNER_PASSWORD:-password}"
         DATABASE_SCHEMA_DIR: database
         ALLOWED_HAZARDS: HAS_UNTRACKABLE_DEPENDENCIES

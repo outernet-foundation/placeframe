@@ -10,12 +10,13 @@ containers:
     # resource refs inside command args, and score-compose $$-escapes ${...} in
     # them to a docker-compose literal — so the shell expands the domain inside
     # the container from NGROK_DOMAIN below, while the authtoken is read from
-    # the environment natively by ngrok itself. The forward target is the edge —
-    # the emitted front door's reserved service name, listening :8443 internally.
+    # the environment natively by ngrok itself. The forward target is the
+    # gateway — the emitted front door's reserved service name, listening :8443
+    # internally.
     command:
       - /bin/sh
       - -c
-      - exec ngrok http --domain=${NGROK_DOMAIN:-} --upstream-protocol=http1 --log=stdout http://edge:8443
+      - exec ngrok http --domain=${NGROK_DOMAIN:-} --upstream-protocol=http1 --log=stdout http://boatyard-gateway:8443
     variables:
       NGROK_AUTHTOKEN: ${resources.config.ngrok_authtoken}
       NGROK_DOMAIN: ${resources.config.ngrok_domain}
