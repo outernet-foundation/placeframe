@@ -30,17 +30,13 @@ images:
     platforms:
       linux/amd64: ghcr.io/outernet-foundation/mirror/docker.io/grafana/loki:3.5.0@sha256:2cbddd6e199a2ddeee13573d91f11e54d9c8fa432f44c578d3c55b9a93278c9f
   NGROK_IMAGE:
-    index: ghcr.io/outernet-foundation/mirror/docker.io/ngrok/ngrok:alpine@sha256:a51a7637a70be573615b01852af0419c4ab9dc857601b3d61ea2a082be3ec0d3
+    index: ghcr.io/outernet-foundation/mirror/docker.io/ngrok/ngrok:3.39.13-alpine@sha256:a51a7637a70be573615b01852af0419c4ab9dc857601b3d61ea2a082be3ec0d3
     platforms:
-      linux/amd64: ghcr.io/outernet-foundation/mirror/docker.io/ngrok/ngrok:alpine@sha256:39f8d33ccff87bb160b05412cf68b0ca77b13f92797625d5f11a77c0d88254f4
+      linux/amd64: ghcr.io/outernet-foundation/mirror/docker.io/ngrok/ngrok:3.39.13-alpine@sha256:39f8d33ccff87bb160b05412cf68b0ca77b13f92797625d5f11a77c0d88254f4
   POSTGIS_IMAGE:
     index: ghcr.io/outernet-foundation/mirror/docker.io/postgis/postgis:16-3.4-alpine@sha256:681931a625df344215e9b8998bf34daf146b6a395ceacee4439eb9c85869239f
     platforms:
       linux/amd64: ghcr.io/outernet-foundation/mirror/docker.io/postgis/postgis:16-3.4-alpine@sha256:681931a625df344215e9b8998bf34daf146b6a395ceacee4439eb9c85869239f
-  POSTGRES_BOOKWORM_IMAGE:
-    index: ghcr.io/outernet-foundation/mirror/docker.io/library/postgres:16-bookworm@sha256:5264710be20f409750ac6dc4e5706dcef929c87e241605463f0f9aefa932a8d9
-    platforms:
-      linux/amd64: ghcr.io/outernet-foundation/mirror/docker.io/library/postgres:16-bookworm@sha256:5983db9a9c6ad225a48a46cfe2e03e6680b1826662befd0465eb05b34cb1c64e
   SEAWEEDFS_AUDIT_IMAGE:
     index: ghcr.io/outernet-foundation/mirror/docker.io/fluent/fluent-bit:5.1.2@sha256:d792375ca8e53be72fc25716c28f291f32c6fc6f4f31d12d0d14bc78cefe9226
     platforms:
