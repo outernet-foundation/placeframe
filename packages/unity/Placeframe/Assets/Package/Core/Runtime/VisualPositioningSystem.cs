@@ -56,6 +56,8 @@ namespace Placeframe.Core
 
         private static float _lastAcceptedTime = -1f;
 
+        private static Guid? _alignmentSeedMapId;
+
         // Diagnostic bypass switches surfaced as toggles in the metrics dialog. Flipped at
         // runtime to A/B individual pipeline stages against the same camera feed without a
         // rebuild. Neither gates the early-out behavior of StartLocalizing — both only affect
@@ -251,6 +253,13 @@ namespace Placeframe.Core
 
             LastReceivedMetrics = localizationResult.Metrics;
             OnMetricsReceived?.Invoke();
+
+            if (!_state.HasAcceptedMeasurement && _alignmentSeedMapId != localizationResult.Id)
+            {
+                ApplyStepResult(RelocalizationFilter.Reset(_state, RelocalizationFilter.AnchorPrior(localizationResult)));
+                _alignmentSeedMapId = localizationResult.Id;
+                LogDebug($"step=alignment.seed mapId={localizationResult.Id}");
+            }
 
             var priorTranslation = _state.AlignmentMean.Position();
             var options = new ApplyMeasurementOptions { BypassInnovationGate = BypassInnovationGate, BypassKalman = BypassKalman };

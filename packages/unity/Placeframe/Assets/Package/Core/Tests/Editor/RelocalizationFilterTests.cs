@@ -391,6 +391,62 @@ namespace Placeframe.Core.Tests
                 Assert.That(result.NewState.AlignmentCovariance[i, i], Is.EqualTo(bootstrap[i, i]).Within(1e-9));
         }
 
+        [Test]
+        public void AnchorPrior_IdentityAnchor_YieldsIdentity()
+        {
+            var localization = MakeMapLocalization(tightConfidence: 0.99, looseConfidence: 0.99);
+
+            var prior = RelocalizationFilter.AnchorPrior(localization);
+
+            AssertNearIdentity(prior);
+        }
+
+        [Test]
+        public void AnchorPrior_IsInverseOfBasisChangedAnchor()
+        {
+            var anchorQuaternion = math.normalizesafe(new quaternion(0.319f, -0.269f, 0.754f, 0.507f));
+            var anchorTranslation = new Float3(1334728.0f, -4650720.0f, 4141754.0f);
+            var anchorRotation = new Float4(anchorQuaternion.value.x, anchorQuaternion.value.y, anchorQuaternion.value.z, anchorQuaternion.value.w);
+            var localization = MakeMapLocalization(0.99, 0.99, mapTransform: new Transform(anchorTranslation, anchorRotation));
+
+            var prior = RelocalizationFilter.AnchorPrior(localization);
+            var (translationEcefFromMap, rotationEcefFromMap) = LocationUtilities.ChangeBasisUnityFromEcef(
+                anchorTranslation.ToDouble3(),
+                anchorRotation.ToMathematicsQuaternion().ToDouble3x3()
+            );
+            var anchorUnityBasis = Double4x4.FromTranslationRotation(translationEcefFromMap, rotationEcefFromMap);
+
+            // Composition must land on identity to float-input precision: ECEF-magnitude entries
+            // carry ~0.5 m ulps, so sub-meter-tight assertions are meaningless at this scale.
+            var composition = math.mul(anchorUnityBasis, prior);
+            var (translation, rotation, _) = Double4x4.Decompose(composition);
+            Assert.That(math.length(translation), Is.LessThan(5.0));
+            Assert.That(math.abs(math.dot(math.normalizesafe(rotation).value, quaternion.identity.value) - 1.0), Is.LessThan(1e-3));
+        }
+
+        [Test]
+        public void ApplyMeasurement_GeoreferencedMap_RejectsFromBootstrapAndAcceptsFromAnchorPrior()
+        {
+            // A map anchored at a real ECEF position: the true ECEF-to-Unity alignment carries an
+            // Earth-scale translation that an identity bootstrap with 100 m sigma must reject.
+            var cameraFromMap = new Transform(translation: new Float3(3, 0, 2), rotation: new Float4(0, 0, 0, 1));
+            var mapTransform = new Transform(
+                translation: new Float3(1334728.0f, -4650720.0f, 4141754.0f),
+                rotation: new Float4(0, 0, 0, 1)
+            );
+            var localization = MakeMapLocalization(0.99, 0.99, cameraFromMap: cameraFromMap, mapTransform: mapTransform);
+            var frame = new CameraFrame { CameraTranslationUnityWorldFromCamera = float3.zero, CameraRotationUnityWorldFromCamera = quaternion.identity };
+
+            var bootstrapped = RelocalizationFilter.ApplyMeasurement(RelocalizationFilter.InitialState(), localization, frame);
+            Assert.That(bootstrapped.Rejection, Is.EqualTo(MeasurementRejection.InnovationGate));
+
+            var seeded = RelocalizationFilter.Reset(RelocalizationFilter.InitialState(), RelocalizationFilter.AnchorPrior(localization)).NewState;
+            var accepted = RelocalizationFilter.ApplyMeasurement(seeded, localization, frame);
+            Assert.That(accepted.Rejection, Is.EqualTo(MeasurementRejection.None));
+            Assert.That(accepted.Snapped, Is.True);
+            Assert.That(accepted.NewState.HasAcceptedMeasurement, Is.True);
+        }
+
         private static LocalizationMetrics BuildMetrics()
         {
             var identityCov = new List<List<double>>();
@@ -419,6 +475,16 @@ namespace Placeframe.Core.Tests
 
         private static MapLocalization MakeMapLocalization(double tightConfidence, double looseConfidence)
         {
+            return MakeMapLocalization(tightConfidence, looseConfidence, cameraFromMap: null, mapTransform: null);
+        }
+
+        private static MapLocalization MakeMapLocalization(
+            double tightConfidence,
+            double looseConfidence,
+            Transform cameraFromMap = null,
+            Transform mapTransform = null
+        )
+        {
             var identityCov = new List<List<double>>();
             for (int r = 0; r < 6; r++)
             {
@@ -442,7 +508,12 @@ namespace Placeframe.Core.Tests
                 pipelineVersion: "test"
             );
             var identityTransform = new Transform(translation: new Float3(0, 0, 0), rotation: new Float4(0, 0, 0, 1));
-            return new MapLocalization(id: System.Guid.NewGuid(), cameraFromMapTransform: identityTransform, mapTransform: identityTransform, metrics: metrics);
+            return new MapLocalization(
+                id: System.Guid.NewGuid(),
+                cameraFromMapTransform: cameraFromMap ?? identityTransform,
+                mapTransform: mapTransform ?? identityTransform,
+                metrics: metrics
+            );
         }
 
         private static void AssertNearIdentity(double4x4 m)
