@@ -146,35 +146,14 @@ wheels = [
 [[package]]
 name = "boatyard"
 version = "0.8.0"
-source = { directory = "../boatyard" }
+source = { git = "https://github.com/outernet-foundation/boatyard.git?rev=ec88448397f6f5f264f8050fb2c109e4a129d2f0#ec88448397f6f5f264f8050fb2c109e4a129d2f0" }
 dependencies = [
     { name = "bashrun" },
     { name = "build-artifact-registry" },
     { name = "packaging" },
     { name = "pydantic" },
     { name = "pyyaml" },
-    { name = "rich" },
     { name = "typer" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "bashrun", directory = "../bashrun" },
-    { name = "build-artifact-registry", specifier = ">=0.2.2" },
-    { name = "packaging", specifier = ">=24.1" },
-    { name = "pydantic", specifier = ">=2.11.7" },
-    { name = "pyyaml", specifier = ">=6.0" },
-    { name = "rich", specifier = ">=13" },
-    { name = "typer", specifier = ">=0.17.4" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "basedpyright", specifier = ">=1.39.10" },
-    { name = "pytest", specifier = ">=8.0.0" },
-    { name = "python-devkit", specifier = ">=0.3.0.dev0" },
-    { name = "ruff", specifier = ">=0.14.11" },
-    { name = "types-pyyaml", specifier = ">=6.0.12.20260906" },
 ]
 
 [[package]]
@@ -2970,7 +2949,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "bashrun", directory = "../bashrun" },
-    { name = "boatyard", directory = "../boatyard" },
+    { name = "boatyard", git = "https://github.com/outernet-foundation/boatyard.git?rev=ec88448397f6f5f264f8050fb2c109e4a129d2f0" },
     { name = "datamodel-code-generator", specifier = ">=0.33.0" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "numpy", specifier = ">=2.1" },
