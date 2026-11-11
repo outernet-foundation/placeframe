@@ -125,8 +125,9 @@ oauth2-proxy sidecar treaty, tracked as a comment beside the api's route annotat
 Host
 ports beyond the door live in the config's `ports:` as integer defaults (api and
 lease-server debug ports, localhost-bound; the seaweedfs-admin console) — consumer-side
-publishes of services the bundles carry. The `outernet.internal/publish` annotation is
-live grammar (consumed by lbe-toolkit's livekit tier); no workload here carries one.
+published ports of services the bundles carry. The `outernet.internal/publish-port`
+annotation is live grammar (consumed by lbe-toolkit's livekit tier); no workload here
+carries one.
 
 ```bash
 docker compose --project-directory . \
