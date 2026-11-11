@@ -42,6 +42,7 @@ The host Unity project's `Assets/Packages/` (NuGet-extracted via NuGetForUnity) 
         v
     [per-frame] Localize:
         Api.LocalizeImageAsync(maps, cameraConfig, AxisConvention.UNITY, FileParameter(image))
+            -> (first response per map, pre-accept) seed filter prior from MapTransform anchor
             -> RelocalizationFilter.ApplyMeasurement
                 -> OnMetricsReceived event
                 -> snap or slew -> OnEcefToUnityWorldTransformUpdated event
@@ -54,7 +55,7 @@ Public API surface:
 - **Events**: `OnEcefToUnityWorldTransformUpdated` (fired whenever the visible transform changes -- snap or slew tick), `OnMetricsReceived` (per-localization metrics).
 - **Coord conversion**: `EcefToUnityWorld(double3, quaternion) -> (Vector3, Quaternion)`, `UnityWorldToEcef(Vector3, Quaternion) -> (double3, quaternion)`.
 - **Diagnostic bypass switches**: `BypassInnovationGate` and `BypassKalman` are `public static bool` flags surfaced as toggles in the metrics dialog. Setting `BypassInnovationGate=true` skips the chi-squared outlier reject; `BypassKalman=true` snaps the posterior to each accepted measurement instead of merging it with the prior. Used to A/B individual pipeline stages against the same camera feed without a rebuild.
-- **Manual reset**: `SetEcefToUnityTransform(double4x4)` calls `RelocalizationFilter.Reset` -- wipes filter history, re-bootstraps the covariance.
+- **Manual reset**: `SetEcefToUnityTransform(double4x4)` calls `RelocalizationFilter.Reset` -- wipes filter history, re-bootstraps the covariance. The automatic anchor seeding in `Localize` uses the same reset path.
 - **Reconstruction download**: `GetReconstructionPoints(Guid)`, `GetReconstructionFramePoses(Guid)` -- used by editor tooling.
 - **Map visualization**: `SetMapVisualizationsVisible(bool)`, `LocalizationMapVisualizerManager.AddMap/RemoveMap` -- spawn ParticleSystem-based point-cloud renderers from the downloaded reconstruction points.
 
@@ -81,12 +82,13 @@ The auth package compiles against UniTask and a `Newtonsoft.Json` assembly; `pac
 
 The Bayesian update for each measurement (`ApplyMeasurement`):
 
-1. Compute `measurementMean` from the localizer response. `CameraFromMapTransform`, `MapTransform`, and the VIO `CameraFromUnityWorld` compose to the raw 6 DOF `R_unityFromEcef`. The translation is anchored on the camera: `tMeas = t_unityWorldCamera - R_unityFromEcef * t_ecefFromCamera`, so the camera's reported Unity-world position determines the alignment translation regardless of how the rotation noise lever-arms around the map origin. The ECEF-to-Unity basis change (`diag(1, -1, 1)`) is applied inline.
-2. Inflate the predicted covariance by a base diagonal (`1e-6` rad squared on rotation, `1e-4` m squared per tick on translation) plus VIO drift proportional to translated distance (0.01 sigma per meter of motion, squared, applied uniformly to all six tangent dimensions). Rotation-only motion contributes no extra noise -- a known simplification.
-3. Innovation: `residual = Se3.Log(currentMean^-1 * measurementMean)`, Mahalanobis squared `= residual . (Sigma_pred + Sigma_meas)^-1 . residual`.
-4. Gate at chi-squared 99% with 6 DOF = 16.81 (`Chi2_99_6dof`). Reject and log if exceeded.
-5. Kalman update in se(3) tangent: `K = Sigma_pred (Sigma_pred + Sigma_meas)^-1`, `mu_new = mu * Se3.Exp(K residual)`, `Sigma_new = (I - K) Sigma_pred`.
-6. Snap-or-slew decision: first accept always snaps (the bootstrap covariance is intentionally large). Subsequent updates: snap if the Mahalanobis-squared shift from current mean to new mean exceeds 36 (about 6 sigma); else start a 0.5s smoothstep slew.
+1. Compute `measurementMean` from the localizer response. `CameraFromMapTransform`, `MapTransform`, and the VIO `CameraFromUnityWorld` compose to the raw 6 DOF `R_unityFromEcef`. The translation is anchored on the camera: `tMeas = t_unityWorldCamera - R_unityFromEcef * t_ecefFromCamera`, so the camera's reported Unity-world position determines the alignment translation regardless of how the rotation noise lever-arms around the map origin. The ECEF-to-Unity basis change is applied inline.
+2. Before the first accepted measurement, the facade seeds the filter prior from the response's `MapTransform` (`RelocalizationFilter.AnchorPrior` = the inverse of the map's registered ECEF pose, basis-changed; `VisualPositioningSystem.Localize` resets the state with it once per map id). A map anchored anywhere on real Earth has an Earth-scale true alignment translation, which the identity bootstrap (100 m sigma) can never gate in; the anchor prior lands within map-extent of the measurement. Maps registered at the ECEF origin seed identity, preserving the unseeded behavior.
+3. Inflate the predicted covariance by a base diagonal (`1e-6` rad squared on rotation, `1e-4` m squared per tick on translation) plus VIO drift proportional to translated distance (0.01 sigma per meter of motion, squared, applied uniformly to all six tangent dimensions). Rotation-only motion contributes no extra noise -- a known simplification.
+4. Innovation: `residual = Se3.Log(currentMean^-1 * measurementMean)`, Mahalanobis squared `= residual . (Sigma_pred + Sigma_meas)^-1 . residual`.
+5. Gate at chi-squared 99% with 6 DOF = 16.81 (`Chi2_99_6dof`). Reject and log if exceeded.
+6. Kalman update in se(3) tangent: `K = Sigma_pred (Sigma_pred + Sigma_meas)^-1`, `mu_new = mu * Se3.Exp(K residual)`, `Sigma_new = (I - K) Sigma_pred`.
+7. Snap-or-slew decision: first accept always snaps (the bootstrap covariance is intentionally large). Subsequent updates: snap if the Mahalanobis-squared shift from current mean to new mean exceeds 36 (about 6 sigma); else start a 0.5s smoothstep slew.
 
 `TickSlew` runs every Unity frame via the `EveryUpdate` subscription installed in `Initialize`, advancing `SlewProgress` and recomputing `AlignmentCurrent` via `Double4x4.Interpolate` (decompose, slerp rotation, lerp translation/scale, recompose -- component-wise lerping a 4x4 destroys orthonormality). The `TransformChanged` flag drives `OnEcefToUnityWorldTransformUpdated`.
 
@@ -94,7 +96,7 @@ The Bayesian update for each measurement (`ApplyMeasurement`):
 
 ### ECEF to Unity coordinate transform
 
-The basis change is encoded in `LocationUtilities` (`Assets/Package/Core/Runtime/MathUtil.cs:81`): ECEF and OpenCV share a Y-down convention; Unity is Y-up. The change of basis is a similarity transform with `diag(1, -1, 1)` applied as `R_unity = B R_ecef B^T`. The filter's alignment matrix is stored in Unity basis, so consumers calling `EcefToUnityWorld` get a single basis change inside `LocationUtilities.UnityFromEcef` before multiplying by the alignment.
+The basis change is encoded in `LocationUtilities` (`Assets/Package/Core/Runtime/MathUtil.cs:81`): ECEF is Z-up right-handed, Unity is Y-up left-handed. The change of basis is the Y/Z axis swap applied as `R_unity = B R_ecef B^T`. The filter's alignment matrix is stored in Unity basis, so consumers calling `EcefToUnityWorld` get a single basis change inside `LocationUtilities.UnityFromEcef` before multiplying by the alignment.
 
 `GeoPose` (`Assets/Package/Core/Runtime/GeoPose.cs`) is the consumer-facing MonoBehaviour with `[ExecuteInEditMode]`. It holds `ecefPosition` and `ecefRotation` as serialized fields, subscribes to `OnEcefToUnityWorldTransformUpdated` in `OnEnable`, and reapplies its world transform whenever the filter publishes. In edit mode `Awake` round-trips the current Unity transform to ECEF so authors can place objects normally in the scene view; `LateUpdate` re-derives ECEF if the transform was edited via the inspector. Commit `2a32024b` renamed it from `Anchor` and dropped a per-frame `Slerp` that duplicated the filter's own slew.
 
