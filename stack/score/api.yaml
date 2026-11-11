@@ -2,14 +2,11 @@ apiVersion: score.dev/v1b1
 metadata:
   name: api
   annotations:
-    outernet.internal/probe-adapter: python-urllib
+    boatyard/probe-adapter: python-urllib
     # The routes the consumer's gateway mounts, in order; grafana and loki ride
     # unprotected until the auth bundle ships its oauth2-proxy validator sidecar.
-    outernet.internal/route: /grafana/*=grafana:3000,/loki/*=loki:3100,/*=api:8000
-    # Dev defaults for the generated dev overlay (up --dev turns the pairs into
-    # NAME-colon-default env holes); the variables below bake prod-safe literals.
-    outernet.internal/dev-toggles: RELOAD=true,DEBUG_API=true,DEBUG_WAIT_API=false
-    outernet.internal/dockerfile: api=workloads/api/Dockerfile
+    boatyard/route: /grafana/*=grafana:3000,/loki/*=loki:3100,/*=api:8000
+    boatyard/dockerfile: api=workloads/api/Dockerfile
 containers:
   api:
     variables:

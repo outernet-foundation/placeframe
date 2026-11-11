@@ -2,15 +2,15 @@ apiVersion: score.dev/v1b1
 metadata:
   name: keycloak
   annotations:
-    outernet.internal/probe-adapter: bash-http
+    boatyard/probe-adapter: bash-http
     # The route the consumer's gateway mounts (strip: the edge strips /auth
     # before proxying — keycloak serves at root; the /auth path in KC_HOSTNAME
     # is advertise-only).
-    outernet.internal/route: /auth/*=keycloak:8080,strip
+    boatyard/route: /auth/*=keycloak:8080,strip
     # The lock source resolves at generation and the digest lands inline in both
     # renderings (a runtime ${KEYCLOAK_IMAGE:?err} slot would demand the producer's
     # lock entry from every consumer of the published bundle).
-    outernet.internal/lock: keycloak=KEYCLOAK_IMAGE
+    boatyard/lock: keycloak=KEYCLOAK_IMAGE
 containers:
   keycloak:
     # Tier-neutral by construction: the container is keycloak on both renderings, and

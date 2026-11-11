@@ -2,9 +2,9 @@ apiVersion: score.dev/v1b1
 metadata:
   name: localizer
   annotations:
-    outernet.internal/gpu: "true"
-    outernet.internal/probe-adapter: python-urllib
-    outernet.internal/dockerfile: localizer=workloads/localizer/Dockerfile
+    boatyard/gpu: "true"
+    boatyard/probe-adapter: python-urllib
+    boatyard/dockerfile: localizer=workloads/localizer/Dockerfile
 containers:
   localizer:
     variables:
