@@ -51,12 +51,14 @@ namespace Placeframe.Core
 
         private static FilterState _state = RelocalizationFilter.InitialState();
 
+        private static double4x4 _anchorEcefFromMap = double4x4.identity;
+        private static double4x4 _anchorMapFromEcef = double4x4.identity;
+        private static Guid? _anchorMapId;
+
         private const int LockupRejectionThreshold = 5;
         private const float LockupSecondsThreshold = 5f;
 
         private static float _lastAcceptedTime = -1f;
-
-        private static Guid? _alignmentSeedMapId;
 
         // Diagnostic bypass switches surfaced as toggles in the metrics dialog. Flipped at
         // runtime to A/B individual pipeline stages against the same camera feed without a
@@ -72,8 +74,8 @@ namespace Placeframe.Core
         public static bool Localizing => _localizationSubscription != null;
         public static int LocalizationMapCount => _maps.Count;
         public static IEnumerable<Guid> LocalizationMaps => _maps;
-        public static double4x4 EcefToUnityWorldTransform => _state.AlignmentCurrent;
-        public static double4x4 UnityWorldToEcefTransform => _state.AlignmentCurrentInverse;
+        public static double4x4 EcefToUnityWorldTransform => math.mul(_state.AlignmentCurrent, _anchorMapFromEcef);
+        public static double4x4 UnityWorldToEcefTransform => math.mul(_anchorEcefFromMap, _state.AlignmentCurrentInverse);
         public static event Action OnEcefToUnityWorldTransformUpdated;
         public static event Action OnMetricsReceived;
         public static AlignmentUncertainty CurrentUncertainty => RelocalizationFilter.SummariseCovariance(_state.AlignmentCovariance);
@@ -254,11 +256,13 @@ namespace Placeframe.Core
             LastReceivedMetrics = localizationResult.Metrics;
             OnMetricsReceived?.Invoke();
 
-            if (!_state.HasAcceptedMeasurement && _alignmentSeedMapId != localizationResult.Id)
+            if (_anchorMapId != localizationResult.Id)
             {
-                ApplyStepResult(RelocalizationFilter.Reset(_state, RelocalizationFilter.AnchorPrior(localizationResult)));
-                _alignmentSeedMapId = localizationResult.Id;
-                LogDebug($"step=alignment.seed mapId={localizationResult.Id}");
+                _anchorEcefFromMap = RelocalizationFilter.MapTransformUnityBasis(localizationResult);
+                _anchorMapFromEcef = math.inverse(_anchorEcefFromMap);
+                _anchorMapId = localizationResult.Id;
+                LogDebug($"step=alignment.anchor mapId={localizationResult.Id}");
+                OnEcefToUnityWorldTransformUpdated?.Invoke();
             }
 
             var priorTranslation = _state.AlignmentMean.Position();
@@ -332,7 +336,7 @@ namespace Placeframe.Core
 
         public static void SetEcefToUnityTransform(double4x4 ecefToUnityTransform)
         {
-            ApplyStepResult(RelocalizationFilter.Reset(_state, ecefToUnityTransform));
+            ApplyStepResult(RelocalizationFilter.Reset(_state, math.mul(ecefToUnityTransform, _anchorEcefFromMap)));
         }
 
         public static UniTask<List<LocalizationMapRead>> GetLocalizationMaps(
