@@ -75,7 +75,7 @@ namespace Placeframe.Core
     {
         private static readonly double3x3 basisUnity = double3x3.identity;
         private static readonly double3x3 basisOpenCV = new double3x3(1f, 0f, 0f, 0f, -1f, 0f, 0f, 0f, 1f);
-        private static readonly double3x3 basisEcef = new double3x3(1f, 0f, 0f, 0f, -1f, 0f, 0f, 0f, 1f);
+        private static readonly double3x3 basisEcef = new double3x3(1f, 0f, 0f, 0f, 0f, 1f, 0f, 1f, 0f);
 
         private static readonly double3x3 basisChangeUnityFromOpenCV = math.mul(math.transpose(basisUnity), basisOpenCV);
         private static readonly double3x3 basisChangeOpenCVFromUnity = math.transpose(basisChangeUnityFromOpenCV);
