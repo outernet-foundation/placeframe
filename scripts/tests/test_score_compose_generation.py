@@ -64,7 +64,7 @@ def test_the_api_carries_soft_auth_slots_prod_safe_toggles_and_its_route_annotat
     api = _artifact("core-cuda")["services"]["api"]
     assert api["environment"]["AUTH_JWKS_URL"] == "${AUTH_JWKS_URL:-}"
     assert api["environment"]["DEBUG_API"] == "false"
-    assert api["annotations"]["outernet.internal/route"] == "/grafana/*=grafana:3000,/loki/*=loki:3100,/*=api:8000"
+    assert api["annotations"]["boatyard/route"] == "/grafana/*=grafana:3000,/loki/*=loki:3100,/*=api:8000"
 
 
 def test_the_keycloak_bundle_pins_its_image_adopts_its_route_and_gates_boot() -> None:
@@ -73,7 +73,7 @@ def test_the_keycloak_bundle_pins_its_image_adopts_its_route_and_gates_boot() ->
 
     keycloak = bundle["keycloak"]
     assert keycloak["image"] == _platform_manifest("KEYCLOAK_IMAGE")
-    assert keycloak["annotations"]["outernet.internal/route"] == "/auth/*=keycloak:8080,strip"
+    assert keycloak["annotations"]["boatyard/route"] == "/auth/*=keycloak:8080,strip"
     assert keycloak["environment"]["KC_HOSTNAME"] == "${PUBLIC_URL:?err}/auth"
     assert "${KEYCLOAK_ADMIN_PASSWORD:?err}" in list(keycloak["environment"].values())
     assert keycloak["healthcheck"]["test"][:3] == ["CMD", "bash", "-c"]

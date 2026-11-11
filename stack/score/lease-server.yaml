@@ -2,11 +2,8 @@ apiVersion: score.dev/v1b1
 metadata:
   name: lease-server
   annotations:
-    outernet.internal/probe-adapter: python-urllib
-    # Dev defaults for the generated dev overlay (up --dev turns the pairs into
-    # NAME-colon-default env holes); the variables below bake prod-safe literals.
-    outernet.internal/dev-toggles: RELOAD=true,DEBUG_LEASE_SERVER=false,DEBUG_WAIT_LEASE_SERVER=false
-    outernet.internal/dockerfile: lease-server=workloads/lease-server/Dockerfile
+    boatyard/probe-adapter: python-urllib
+    boatyard/dockerfile: lease-server=workloads/lease-server/Dockerfile
 containers:
   lease-server:
     variables:
