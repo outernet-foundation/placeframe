@@ -2,9 +2,9 @@ services:
   ngrok:
     image: ghcr.io/outernet-foundation/mirror/docker.io/ngrok/ngrok:alpine@sha256:39f8d33ccff87bb160b05412cf68b0ca77b13f92797625d5f11a77c0d88254f4
     annotations:
+      boatyard/lock: ngrok=NGROK_IMAGE
+      boatyard/restart: on-failure
       compose.score.dev/workload-name: ngrok
-      outernet.internal/lock: ngrok=NGROK_IMAGE
-      outernet.internal/restart: on-failure
     entrypoint:
     - /bin/sh
     - -c

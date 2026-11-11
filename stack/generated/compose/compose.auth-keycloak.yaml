@@ -6,10 +6,10 @@ services:
         required: true
     image: ghcr.io/outernet-foundation/mirror/quay.io/keycloak/keycloak:26.8.1@sha256:de6ed510b59cfcd25f129ba4118696fa10d4165eee921a8d846178b6d35d30f7
     annotations:
+      boatyard/lock: keycloak=KEYCLOAK_IMAGE
+      boatyard/probe-adapter: bash-http
+      boatyard/route: /auth/*=keycloak:8080,strip
       compose.score.dev/workload-name: keycloak
-      outernet.internal/lock: keycloak=KEYCLOAK_IMAGE
-      outernet.internal/probe-adapter: bash-http
-      outernet.internal/route: /auth/*=keycloak:8080,strip
     command:
     - start-dev
     - --health-enabled=true
