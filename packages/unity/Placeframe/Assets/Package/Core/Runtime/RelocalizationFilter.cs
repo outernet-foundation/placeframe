@@ -108,6 +108,20 @@ namespace Placeframe.Core
                 MostRecentMetrics = null,
             };
 
+        // Cold-start prior for a georeferenced map: the alignment implied by "camera at the map
+        // origin, VIO at identity", i.e. the inverse of the map's registered ECEF pose. The true
+        // ECEF-to-Unity alignment for a map anchored anywhere on Earth carries an Earth-scale
+        // translation, so an identity bootstrap with 100 m sigma can never gate it in; seeding from
+        // the anchor puts the prior within map-extent of the measurement. Maps registered at the
+        // ECEF origin degenerate to identity, preserving the pre-seeding behavior exactly.
+        public static double4x4 AnchorPrior(MapLocalization localizationResult)
+        {
+            var translationEcefFromMap = localizationResult.MapTransform.Translation.ToDouble3();
+            var rotationEcefFromMap = localizationResult.MapTransform.Rotation.ToMathematicsQuaternion().ToDouble3x3();
+            (translationEcefFromMap, rotationEcefFromMap) = LocationUtilities.ChangeBasisUnityFromEcef(translationEcefFromMap, rotationEcefFromMap);
+            return math.inverse(Double4x4.FromTranslationRotation(translationEcefFromMap, rotationEcefFromMap));
+        }
+
         public static StepResult ApplyMeasurement(
             FilterState state,
             MapLocalization localizationResult,
