@@ -146,7 +146,7 @@ wheels = [
 [[package]]
 name = "boatyard"
 version = "0.8.0"
-source = { git = "https://github.com/outernet-foundation/boatyard.git?rev=ec88448397f6f5f264f8050fb2c109e4a129d2f0#ec88448397f6f5f264f8050fb2c109e4a129d2f0" }
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "bashrun" },
     { name = "build-artifact-registry" },
@@ -154,6 +154,10 @@ dependencies = [
     { name = "pydantic" },
     { name = "pyyaml" },
     { name = "typer" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/75/17/51b278e34a5da31a091642646e9addeca87a3389a42730f7b84554384f63/boatyard-0.8.0.tar.gz", hash = "sha256:34b9d43afc450f32f72465e00c1ba980e63c9674af7b6aa0da18af64c8e6e5f1", size = 171917, upload-time = "2026-11-12T21:07:14.637Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/04/e1/4298f5cefa62abdfb82f0a051a6009ac20d45abee1c3b56daa942caa8386/boatyard-0.8.0-py3-none-any.whl", hash = "sha256:2276a6da2be728a7f3c6d9a77c38e27790b8fea8d915b2480a6d1cc06b7602a2", size = 77368, upload-time = "2026-11-12T21:07:13.421Z" },
 ]
 
 [[package]]
@@ -2949,7 +2953,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "bashrun", directory = "../bashrun" },
-    { name = "boatyard", git = "https://github.com/outernet-foundation/boatyard.git?rev=ec88448397f6f5f264f8050fb2c109e4a129d2f0" },
+    { name = "boatyard", specifier = ">=0.8" },
     { name = "datamodel-code-generator", specifier = ">=0.33.0" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "numpy", specifier = ">=2.1" },

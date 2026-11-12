@@ -59,7 +59,6 @@ deptry-exclude = ["packages/generated/*", "packages/python/neural-networks/third
 
 [tool.uv.sources]
 bashrun = { path = "../bashrun" }
-boatyard = { git = "https://github.com/outernet-foundation/boatyard.git", rev = "ec88448397f6f5f264f8050fb2c109e4a129d2f0" }
 placeframe-common = { workspace = true }
 placeframe-core = { workspace = true }
 neural-networks = { workspace = true }
