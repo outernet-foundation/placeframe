@@ -143,7 +143,8 @@ namespace Placeframe.Core
                     $"LocalizationMap got map data mapId={mapID} reconstructionId={mapData.ReconstructionId}"
                 );
 
-                var local = VisualPositioningSystem.EcefToUnityWorld(
+                var geoPose = GetComponent<GeoPose>();
+                geoPose.SetEcefTransform(
                     new double3(mapData.PositionX, mapData.PositionY, mapData.PositionZ),
                     new quaternion(
                         (float)mapData.RotationX,
@@ -152,9 +153,6 @@ namespace Placeframe.Core
                         (float)mapData.RotationW
                     )
                 );
-
-                transform.position = local.position;
-                transform.rotation = local.rotation;
 
                 VisualPositioningSystem.LogDebug(
                     $"LocalizationMap fetching points mapId={mapID} reconstructionId={mapData.ReconstructionId}"
