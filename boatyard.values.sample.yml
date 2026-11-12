@@ -1,0 +1,29 @@
+# Copy to boatyard.values.yaml (gitignored) and fill the <> placeholders.
+# boatyard 0.8 grammar: the top-level keys below plus one flat ALL_CAPS
+# values: list. A values key no selected bundle consumes is refused, so drop a
+# bundle's block when you drop the bundle. Postgres/DATABASE dev defaults ride
+# inside the bundles (set them only to override); S3_ACCESS_KEY/S3_SECRET_KEY are
+# required. AMD hosts swap core-cuda for core-rocm.
+public_host: <your-ngrok-domain>
+public_scheme: https
+bundles: [core-cuda, tunnel-ngrok]
+
+values:
+  DEPLOYMENT_ENVIRONMENT: development
+  S3_ACCESS_KEY: admin
+  S3_SECRET_KEY: password
+  NGROK_DOMAIN: <your-ngrok-domain>
+  NGROK_AUTHTOKEN: <your-ngrok-authtoken>
+  # OIDC edge — uncomment with auth-keycloak in bundles. The four KEYCLOAK_*
+  # slots are required (no defaults); AUTH_* carry the ${PUBLIC_URL}/${EDGE_BASE_URL}
+  # refs boatyard mints from public_host/public_scheme; SEED_TEST_USERS is optional.
+  # AUTH_ISSUER_URL: ${PUBLIC_URL}/auth/realms/placeframe-dev
+  # AUTH_JWKS_URL: ${EDGE_BASE_URL}/auth/realms/placeframe-dev/protocol/openid-connect/certs
+  # AUTH_AUTHORIZATION_ENDPOINT: ${PUBLIC_URL}/auth/realms/placeframe-dev/protocol/openid-connect/auth
+  # AUTH_TOKEN_ENDPOINT: ${PUBLIC_URL}/auth/realms/placeframe-dev/protocol/openid-connect/token
+  # AUTH_AUDIENCE: placeframe-api
+  # KEYCLOAK_ADMIN_PASSWORD: <your-keycloak-admin-password>
+  # KEYCLOAK_ACCESS_TOKEN_LIFESPAN: 3600
+  # KEYCLOAK_SSO_SESSION_IDLE_TIMEOUT: 2592000
+  # KEYCLOAK_SSO_SESSION_MAX_LIFESPAN: 2592000
+  # SEED_TEST_USERS: user:password
