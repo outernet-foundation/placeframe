@@ -314,38 +314,74 @@ namespace Placeframe.Core.Tests
         [Test]
         public void ComputeAlignmentFromResult_CameraAnchored_PlacesCameraExactlyAtVioPosition()
         {
-            // Camera sits 10m east of the Unity world origin; ECEF map origin lands 5m north of the
-            // camera (via cameraFromMap with translation [0, 0, 5] in OpenCV-y-down, which the
-            // basis change to Unity flips). The published alignment must satisfy
-            // unityCamera == AlignmentMean * ecefCamera, regardless of the rotation noise.
+            // Camera sits 10m east of the Unity world origin; the map origin lands 5m from the
+            // camera (cameraFromMap translation [0, 0, 5], identity rotation). The map-frame
+            // alignment must satisfy unityCamera == AlignmentMap * mapCamera regardless of
+            // rotation noise, where mapCamera = inverse(cameraFromMap) * origin.
             var frame = new CameraFrame
             {
                 CameraTranslationUnityWorldFromCamera = new float3(10f, 0f, 0f),
                 CameraRotationUnityWorldFromCamera = quaternion.identity,
             };
             var cameraFromMap = new Transform(translation: new Float3(0, 0, 5), rotation: new Float4(0, 0, 0, 1));
-            var mapTransform = new Transform(translation: new Float3(100, 200, 300), rotation: new Float4(0, 0, 0, 1));
             var localization = new MapLocalization(
                 id: System.Guid.NewGuid(),
                 cameraFromMapTransform: cameraFromMap,
-                mapTransform: mapTransform,
+                mapTransform: new Transform(translation: new Float3(0, 0, 0), rotation: new Float4(0, 0, 0, 1)),
                 metrics: BuildMetrics()
             );
 
             var measurement = RelocalizationFilter.ComputeAlignmentFromResult(localization, frame);
-            var alignment = Double4x4.FromTranslationRotation(measurement.Translation, measurement.RotationUnityFromEcef);
+            var alignment = Double4x4.FromTranslationRotation(measurement.Translation, measurement.RotationUnityFromMap);
 
-            // Reconstruct the camera's ECEF position from the same inputs the measurement used:
-            // map_to_camera = inverse(cameraFromMap), camera_in_ecef = mapTransform * map_to_camera.
             var translationMapFromCamera = new double3(0, 0, -5);
-            // mapTransform is ECEF-from-map in Y-down; reproduce the Unity-basis ECEF camera location.
-            var (translationEcefFromMap, _) = LocationUtilities.ChangeBasisUnityFromEcef(new double3(100, 200, 300), double3x3.identity);
-            var translationEcefFromCamera = translationMapFromCamera + translationEcefFromMap;
-
-            var transformedCamera = math.transform(alignment, translationEcefFromCamera);
+            var transformedCamera = math.transform(alignment, translationMapFromCamera);
             Assert.That(transformedCamera.x, Is.EqualTo(10.0).Within(1e-6));
             Assert.That(transformedCamera.y, Is.EqualTo(0.0).Within(1e-6));
             Assert.That(transformedCamera.z, Is.EqualTo(0.0).Within(1e-6));
+        }
+
+        [Test]
+        public void ComputeAlignmentFromResult_IsIndependentOfMapAnchor()
+        {
+            // The measurement lives in the map frame: two wildly different ECEF anchors for the
+            // same cameraFromMap and VIO pose must produce identical measurements. This is the
+            // invariant that makes the innovation gate well-conditioned for georeferenced maps.
+            var frame = new CameraFrame
+            {
+                CameraTranslationUnityWorldFromCamera = new float3(10f, 0f, 0f),
+                CameraRotationUnityWorldFromCamera = quaternion.identity,
+            };
+            var cameraFromMap = new Transform(translation: new Float3(3, 0, 2), rotation: new Float4(0, 0, 0, 1));
+            var atOrigin = new MapLocalization(
+                id: System.Guid.NewGuid(),
+                cameraFromMapTransform: cameraFromMap,
+                mapTransform: new Transform(translation: new Float3(0, 0, 0), rotation: new Float4(0, 0, 0, 1)),
+                metrics: BuildMetrics()
+            );
+            var earthAnchored = new MapLocalization(
+                id: System.Guid.NewGuid(),
+                cameraFromMapTransform: cameraFromMap,
+                mapTransform: new Transform(
+                    translation: new Float3(1334728.0f, -4650720.0f, 4141754.0f),
+                    rotation: new Float4(0.319f, -0.269f, 0.754f, 0.507f)
+                ),
+                metrics: BuildMetrics()
+            );
+
+            var atOriginMeasurement = RelocalizationFilter.ComputeAlignmentFromResult(atOrigin, frame);
+            var earthAnchoredMeasurement = RelocalizationFilter.ComputeAlignmentFromResult(earthAnchored, frame);
+
+            Assert.That(atOriginMeasurement.Translation.x, Is.EqualTo(earthAnchoredMeasurement.Translation.x).Within(1e-6));
+            Assert.That(atOriginMeasurement.Translation.y, Is.EqualTo(earthAnchoredMeasurement.Translation.y).Within(1e-6));
+            Assert.That(atOriginMeasurement.Translation.z, Is.EqualTo(earthAnchoredMeasurement.Translation.z).Within(1e-6));
+            for (int c = 0; c < 3; c++)
+            for (int r = 0; r < 3; r++)
+                Assert.That(
+                    atOriginMeasurement.RotationUnityFromMap[c][r],
+                    Is.EqualTo(earthAnchoredMeasurement.RotationUnityFromMap[c][r]).Within(1e-6),
+                    $"rotation[{c}][{r}]"
+                );
         }
 
         [Test]
@@ -391,6 +427,50 @@ namespace Placeframe.Core.Tests
                 Assert.That(result.NewState.AlignmentCovariance[i, i], Is.EqualTo(bootstrap[i, i]).Within(1e-9));
         }
 
+        [Test]
+        public void MapTransformUnityBasis_AppliesUnityBasisChange()
+        {
+            var localization = MakeMapLocalization(
+                0.99,
+                0.99,
+                mapTransform: new Transform(translation: new Float3(1, 2, 3), rotation: new Float4(0, 0, 0, 1))
+            );
+
+            var anchor = RelocalizationFilter.MapTransformUnityBasis(localization);
+
+            var (expectedTranslation, expectedRotation) = LocationUtilities.ChangeBasisUnityFromEcef(new double3(1, 2, 3), double3x3.identity);
+            Assert.That(anchor.c3.x, Is.EqualTo(expectedTranslation.x).Within(1e-9));
+            Assert.That(anchor.c3.y, Is.EqualTo(expectedTranslation.y).Within(1e-9));
+            Assert.That(anchor.c3.z, Is.EqualTo(expectedTranslation.z).Within(1e-9));
+            var expected = Double4x4.FromTranslationRotation(expectedTranslation, expectedRotation);
+            for (int c = 0; c < 3; c++)
+            for (int r = 0; r < 3; r++)
+                Assert.That(anchor[c][r], Is.EqualTo(expected[c][r]).Within(1e-9), $"rotation[{c}][{r}]");
+        }
+
+        [Test]
+        public void ApplyMeasurement_GeoreferencedMap_AcceptsFromBootstrap()
+        {
+            // A map anchored at a real ECEF position: the measurement is map-frame and meters-scale,
+            // so the identity bootstrap with 100 m sigma gates it in. The earlier ECEF-frame
+            // formulation rejected these forever — the Earth-radius lever arm coupled any rotation
+            // difference into a multi-hundred-km translation residual.
+            var cameraFromMap = new Transform(translation: new Float3(3, 0, 2), rotation: new Float4(0, 0, 0, 1));
+            var mapTransform = new Transform(
+                translation: new Float3(1334728.0f, -4650720.0f, 4141754.0f),
+                rotation: new Float4(0, 0, 0, 1)
+            );
+            var localization = MakeMapLocalization(0.99, 0.99, cameraFromMap: cameraFromMap, mapTransform: mapTransform);
+            var frame = new CameraFrame { CameraTranslationUnityWorldFromCamera = float3.zero, CameraRotationUnityWorldFromCamera = quaternion.identity };
+
+            var result = RelocalizationFilter.ApplyMeasurement(RelocalizationFilter.InitialState(), localization, frame);
+
+            Assert.That(result.Rejection, Is.EqualTo(MeasurementRejection.None));
+            Assert.That(result.Snapped, Is.True);
+            Assert.That(result.NewState.HasAcceptedMeasurement, Is.True);
+            Assert.That(math.length(result.Measurement.Translation), Is.LessThan(10.0));
+        }
+
         private static LocalizationMetrics BuildMetrics()
         {
             var identityCov = new List<List<double>>();
@@ -419,6 +499,16 @@ namespace Placeframe.Core.Tests
 
         private static MapLocalization MakeMapLocalization(double tightConfidence, double looseConfidence)
         {
+            return MakeMapLocalization(tightConfidence, looseConfidence, cameraFromMap: null, mapTransform: null);
+        }
+
+        private static MapLocalization MakeMapLocalization(
+            double tightConfidence,
+            double looseConfidence,
+            Transform cameraFromMap = null,
+            Transform mapTransform = null
+        )
+        {
             var identityCov = new List<List<double>>();
             for (int r = 0; r < 6; r++)
             {
@@ -442,7 +532,12 @@ namespace Placeframe.Core.Tests
                 pipelineVersion: "test"
             );
             var identityTransform = new Transform(translation: new Float3(0, 0, 0), rotation: new Float4(0, 0, 0, 1));
-            return new MapLocalization(id: System.Guid.NewGuid(), cameraFromMapTransform: identityTransform, mapTransform: identityTransform, metrics: metrics);
+            return new MapLocalization(
+                id: System.Guid.NewGuid(),
+                cameraFromMapTransform: cameraFromMap ?? identityTransform,
+                mapTransform: mapTransform ?? identityTransform,
+                metrics: metrics
+            );
         }
 
         private static void AssertNearIdentity(double4x4 m)

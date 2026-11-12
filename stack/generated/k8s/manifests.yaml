@@ -264,10 +264,10 @@ spec:
   template:
     metadata:
       annotations:
+        boatyard/dockerfile: api=workloads/api/Dockerfile
+        boatyard/probe-adapter: python-urllib
+        boatyard/route: /grafana/*=grafana:3000,/loki/*=loki:3100,/*=api:8000
         k8s.score.dev/workload-name: api
-        outernet.internal/dev-toggles: RELOAD=true,DEBUG_API=true,DEBUG_WAIT_API=false
-        outernet.internal/dockerfile: api=workloads/api/Dockerfile
-        outernet.internal/probe-adapter: python-urllib
       labels:
         app.kubernetes.io/instance: api-14c2529eb4
         app.kubernetes.io/managed-by: score-k8s
@@ -396,9 +396,10 @@ spec:
   template:
     metadata:
       annotations:
+        boatyard/lock: keycloak=KEYCLOAK_IMAGE
+        boatyard/probe-adapter: bash-http
+        boatyard/route: /auth/*=keycloak:8080,strip
         k8s.score.dev/workload-name: keycloak
-        outernet.internal/lock: keycloak=KEYCLOAK_IMAGE
-        outernet.internal/probe-adapter: bash-http
       labels:
         app.kubernetes.io/instance: keycloak-d63f4a0cda
         app.kubernetes.io/managed-by: score-k8s
@@ -461,10 +462,9 @@ spec:
   template:
     metadata:
       annotations:
+        boatyard/dockerfile: lease-server=workloads/lease-server/Dockerfile
+        boatyard/probe-adapter: python-urllib
         k8s.score.dev/workload-name: lease-server
-        outernet.internal/dev-toggles: RELOAD=true,DEBUG_LEASE_SERVER=false,DEBUG_WAIT_LEASE_SERVER=false
-        outernet.internal/dockerfile: lease-server=workloads/lease-server/Dockerfile
-        outernet.internal/probe-adapter: python-urllib
       labels:
         app.kubernetes.io/instance: lease-server-0907dc0fb6
         app.kubernetes.io/managed-by: score-k8s
@@ -529,10 +529,10 @@ spec:
   template:
     metadata:
       annotations:
+        boatyard/dockerfile: localizer=workloads/localizer/Dockerfile
+        boatyard/gpu: "true"
+        boatyard/probe-adapter: python-urllib
         k8s.score.dev/workload-name: localizer
-        outernet.internal/dockerfile: localizer=workloads/localizer/Dockerfile
-        outernet.internal/gpu: "true"
-        outernet.internal/probe-adapter: python-urllib
       labels:
         app.kubernetes.io/instance: localizer-c47a44cdc7
         app.kubernetes.io/managed-by: score-k8s
@@ -600,9 +600,9 @@ spec:
   template:
     metadata:
       annotations:
+        boatyard/dockerfile: reconstructor=workloads/reconstructor/Dockerfile
+        boatyard/gpu: "true"
         k8s.score.dev/workload-name: reconstructor
-        outernet.internal/dockerfile: reconstructor=workloads/reconstructor/Dockerfile
-        outernet.internal/gpu: "true"
       labels:
         app.kubernetes.io/instance: reconstructor-89aa1836e2
         app.kubernetes.io/managed-by: score-k8s

@@ -1,18 +1,15 @@
 services:
-  auth-keycloak-keycloak:
+  keycloak:
     depends_on:
-      auth-keycloak-wait-for-resources:
+      wait-for-resources:
         condition: service_completed_successfully
         required: true
     image: ghcr.io/outernet-foundation/mirror/quay.io/keycloak/keycloak:26.8.1@sha256:de6ed510b59cfcd25f129ba4118696fa10d4165eee921a8d846178b6d35d30f7
-    networks:
-      auth-keycloak-net:
-        aliases:
-        - keycloak
     annotations:
+      boatyard/lock: keycloak=KEYCLOAK_IMAGE
+      boatyard/probe-adapter: bash-http
+      boatyard/route: /auth/*=keycloak:8080,strip
       compose.score.dev/workload-name: keycloak
-      outernet.internal/lock: keycloak=KEYCLOAK_IMAGE
-      outernet.internal/probe-adapter: bash-http
     command:
     - start-dev
     - --health-enabled=true
@@ -34,12 +31,8 @@ services:
       interval: 5s
       retries: 3
       start_period: 5s
-  auth-keycloak-keycloak-configurator:
+  keycloak-configurator:
     image: ghcr.io/outernet-foundation/placeframe/auth-initializer:${AUTH_KEYCLOAK__BOATYARD_TREE__AUTH_INITIALIZER_SHA}
-    networks:
-      auth-keycloak-net:
-        aliases:
-        - keycloak-configurator
     environment:
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?err}
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
@@ -49,18 +42,12 @@ services:
       KEYCLOAK_URL: http://keycloak:8080
       PUBLIC_URL: ${PUBLIC_URL:?err}
       SEED_TEST_USERS: ${SEED_TEST_USERS:-}
-  auth-keycloak-wait-for-resources:
+  wait-for-resources:
     depends_on:
-      auth-keycloak-keycloak-configurator:
+      keycloak-configurator:
         condition: service_started
         required: true
-    image: ${AUTH_KEYCLOAK__BOATYARD_LOCK__ALPINE_IMAGE:?err}
-    networks:
-      auth-keycloak-net:
-        aliases:
-        - wait-for-resources
+    image: ${BOATYARD_BARRIER_IMAGE:?err}
     command:
     - echo
-networks:
-  auth-keycloak-net: {}
 name: placeframe

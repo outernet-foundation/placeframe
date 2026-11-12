@@ -2,10 +2,10 @@ apiVersion: score.dev/v1b1
 metadata:
   name: reconstructor
   annotations:
-    # The GPU marker the devkit's built-in gpu patch templates key on; accelerator
+    # The GPU marker boatyard's built-in gpu patch templates key on; accelerator
     # plumbing is generated, never hand-declared.
-    outernet.internal/gpu: "true"
-    outernet.internal/dockerfile: reconstructor=workloads/reconstructor/Dockerfile
+    boatyard/gpu: "true"
+    boatyard/dockerfile: reconstructor=workloads/reconstructor/Dockerfile
 containers:
   reconstructor:
     variables:

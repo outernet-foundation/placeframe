@@ -39,7 +39,7 @@ namespace Placeframe.Core
 
     public struct Measurement
     {
-        public double3x3 RotationUnityFromEcef;
+        public double3x3 RotationUnityFromMap;
         public double3 Translation;
         public double TiltRadians;
     }
@@ -108,6 +108,20 @@ namespace Placeframe.Core
                 MostRecentMetrics = null,
             };
 
+        // The filter state is the map-local alignment (Unity from map), never the ECEF alignment:
+        // for a map anchored anywhere on real Earth the ECEF alignment's translation is
+        // Earth-scale and coupled to its rotation at arcsecond precision (any heading error
+        // displaces it by ~110 km per degree), so no prior can make the innovation gate
+        // well-conditioned against it. The map-local alignment is meters-scale for every
+        // anchor; the anchor is composed into the published ECEF transform by the facade.
+        public static double4x4 MapTransformUnityBasis(MapLocalization localizationResult)
+        {
+            var translationEcefFromMap = localizationResult.MapTransform.Translation.ToDouble3();
+            var rotationEcefFromMap = localizationResult.MapTransform.Rotation.ToMathematicsQuaternion().ToDouble3x3();
+            (translationEcefFromMap, rotationEcefFromMap) = LocationUtilities.ChangeBasisUnityFromEcef(translationEcefFromMap, rotationEcefFromMap);
+            return Double4x4.FromTranslationRotation(translationEcefFromMap, rotationEcefFromMap);
+        }
+
         public static StepResult ApplyMeasurement(
             FilterState state,
             MapLocalization localizationResult,
@@ -117,7 +131,7 @@ namespace Placeframe.Core
         {
             var metrics = localizationResult.Metrics;
             var measurement = ComputeAlignmentFromResult(localizationResult, frame);
-            var measurementMean = Double4x4.FromTranslationRotation(measurement.Translation, measurement.RotationUnityFromEcef);
+            var measurementMean = Double4x4.FromTranslationRotation(measurement.Translation, measurement.RotationUnityFromMap);
             var sigmaMeas = BuildCovarianceMatrix(metrics.MeasurementCovariance);
             var currentVioPosition = (double3)(float3)frame.CameraTranslationUnityWorldFromCamera;
             var sigmaPredicted = state.AlignmentCovariance + ProcessNoise(currentVioPosition, state.LastAcceptedVioPosition);
@@ -301,50 +315,37 @@ namespace Placeframe.Core
             var translationCameraFromMap = localizationResult.CameraFromMapTransform.Translation.ToDouble3();
             var rotationCameraFromMap = localizationResult.CameraFromMapTransform.Rotation.ToMathematicsQuaternion().ToDouble3x3();
 
-            // Get the transform from the map to the ECEF reference frame (the map's ECEF pose)
-            var translationEcefFromMap = localizationResult.MapTransform.Translation.ToDouble3();
-            var rotationEcefFromMap = localizationResult.MapTransform.Rotation.ToMathematicsQuaternion().ToDouble3x3();
-
-            // Change the basis of the map's pose to Unity's conventions
-            (translationEcefFromMap, rotationEcefFromMap) = LocationUtilities.ChangeBasisUnityFromEcef(translationEcefFromMap, rotationEcefFromMap);
-
             // Get the transform from the camera to Unity world (the camera's pose in the Unity world)
             var translationUnityWorldFromCamera = (double3)(float3)frame.CameraTranslationUnityWorldFromCamera;
             var rotationUnityWorldFromCamera = ((quaternion)frame.CameraRotationUnityWorldFromCamera).ToDouble3x3();
 
-            // Camera position in ECEF (Unity basis), via the map.
             var rotationMapFromCamera = math.transpose(rotationCameraFromMap);
             var translationMapFromCamera = math.mul(-rotationMapFromCamera, translationCameraFromMap);
-            var translationEcefFromCamera = math.mul(rotationEcefFromMap, translationMapFromCamera) + translationEcefFromMap;
 
-            // Composed rotation Unity ← ECEF. MapTransform carries R_ecefFromMap, so composition
-            // into R_unityFromEcef needs R_mapFromEcef = transpose(R_ecefFromMap).
             var rotationUnityFromMap = math.mul(rotationUnityWorldFromCamera, rotationCameraFromMap);
-            var rotationUnityFromEcef = math.mul(rotationUnityFromMap, math.transpose(rotationEcefFromMap));
 
-            // Translation is anchored on the camera, not composed from the map origin. The published
+            // Translation is anchored on the camera, not composed from the map origin: the published
             // alignment places the camera at its VIO-reported Unity-world position regardless of rotation
             // noise, so rotation error cannot lever-arm the rendered camera away from its true position.
-            //
-            // The earlier formulation composed the map translation directly, which pivoted the alignment
-            // around the ECEF origin: any rotation noise produced a position offset scaling linearly with
-            // |t_ecefFromCamera|, so a 0.5-degree rotation error displaced the rendered camera by ~50cm at
-            // 50m from the origin. Anchoring on the camera makes the camera position correct by construction
-            // at the moment of measurement and lets the Kalman update propagate rotation refinements through
-            // the camera anchor instead of the ECEF origin.
-            //
-            // A 4-DOF parameterization (yaw plus translation) was tried as an alternative and reverted in
-            // favor of keeping the full SO(3) alignment state with camera anchoring.
-            var translationMeas = translationUnityWorldFromCamera - math.mul(rotationUnityFromEcef, translationEcefFromCamera);
+            // In the map frame the lever arm is |t_mapFromCamera| — meters — so heading uncertainty
+            // cannot couple into the translation at all. The earlier ECEF-frame formulation multiplied
+            // an Earth-radius vector by the composed rotation, so any rotation difference between prior
+            // and measurement (the user's heading is unknowable a priori) displaced the measurement by
+            // ~110 km per degree and the gate could never accept; that failure mode is structural to
+            // estimating the ECEF alignment directly and is why the state lives in the map frame.
+            var translationMeas = translationUnityWorldFromCamera - math.mul(rotationUnityFromMap, translationMapFromCamera);
 
-            // Angle between the rotated +Y axis and world +Y. Diagnostic summary of how much
-            // pitch+roll the rotation carries away from a gravity-aligned alignment.
+            // Tilt of the published ECEF alignment (Unity-from-ECEF rotation), kept as a diagnostic of
+            // how far the anchor registration sits from gravity-aligned. The map-frame measurement
+            // rotation is relative to the map axes, which carry no gravity meaning.
+            var rotationEcefFromMap = MapTransformUnityBasis(localizationResult).RotationMatrix();
+            var rotationUnityFromEcef = math.mul(rotationUnityFromMap, math.transpose(rotationEcefFromMap));
             var rotatedUp = math.mul(rotationUnityFromEcef, new double3(0, 1, 0));
             var tiltRadians = math.acos(math.clamp(rotatedUp.y, -1.0, 1.0));
 
             return new Measurement
             {
-                RotationUnityFromEcef = rotationUnityFromEcef,
+                RotationUnityFromMap = rotationUnityFromMap,
                 Translation = translationMeas,
                 TiltRadians = tiltRadians,
             };

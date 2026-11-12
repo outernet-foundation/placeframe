@@ -1,12 +1,13 @@
-requires: ">=0.7.1"
+requires: ">=0.8"
 repository: ghcr.io/outernet-foundation/placeframe
 project_name: placeframe
-gateway: 8443
+gateway_port: 8443
 platforms:
   - linux/amd64
 
 base_images:
-  UV_BASE_IMAGE: "ghcr.io/astral-sh/uv:0.12.15-python3.13-trixie-slim"
+  ALPINE_IMAGE: "docker.io/library/alpine:3.20"
+  UV_BASE_IMAGE: "ghcr.io/astral-sh/uv:{uv}-python3.13-trixie-slim"
   GOLANG_IMAGE: "docker.io/library/golang:1.22-alpine"
   LOKI_IMAGE: "docker.io/grafana/loki:3.5.0"
   ALLOY_IMAGE: "docker.io/grafana/alloy:v1.9.0"
@@ -14,10 +15,9 @@ base_images:
   POSTGIS_IMAGE: "docker.io/postgis/postgis:16-3.4-alpine"
   SEAWEEDFS_IMAGE: "docker.io/chrislusf/seaweedfs:4.47"
   KEYCLOAK_IMAGE: "quay.io/keycloak/keycloak:26.8.1"
-  NGROK_IMAGE: "docker.io/ngrok/ngrok:alpine"
+  NGROK_IMAGE: "docker.io/ngrok/ngrok:3.39.13-alpine"
   SEAWEEDFS_AUDIT_IMAGE: "docker.io/fluent/fluent-bit:5.1.2"
   INITIALIZE_S3_IMAGE: "docker.io/amazon/aws-cli:2.36.9"
-  POSTGRES_BOOKWORM_IMAGE: "docker.io/library/postgres:16-bookworm"
   NEURAL_NETWORKS_BASE:
     dockerfile: workloads/neural-networks-base/Dockerfile
     axis:
@@ -29,24 +29,12 @@ services:
       keycloak:
         workloads:
           - keycloak.yaml
-        routes:
-          - path: /auth/*
-            upstream: keycloak:8080
-            strip_prefix: true
   core:
     workloads:
       - api.yaml
       - lease-server.yaml
       - reconstructor.yaml
       - localizer.yaml
-    routes:
-      - {path: /grafana/*, upstream: grafana:3000}
-        # protected: true — re-add once the auth bundle ships its oauth2-proxy validator
-        # sidecar and the door's forward_auth treaty targets it; until then grafana
-        # rides the door unprotected.
-      - {path: /loki/*, upstream: loki:3100}
-        # protected: true — same treaty; until then loki accepts unauthenticated pushes.
-      - {path: /*, upstream: api:8000}
     ports:
       - {service: api, host_ip: 127.0.0.1, published: 5679, target: 5678}
       - {service: lease-server, host_ip: 127.0.0.1, published: 5683, target: 5678}

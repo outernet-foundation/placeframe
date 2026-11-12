@@ -49,7 +49,10 @@ namespace Placeframe.Core
 
         private void Awake()
         {
-            if (!Application.isPlaying && _positionInitialized)
+            if (Application.isPlaying)
+                return;
+
+            if (_positionInitialized)
                 return;
 
             var ecef = VisualPositioningSystem.UnityWorldToEcef(transform.position, transform.rotation);
@@ -75,6 +78,9 @@ namespace Placeframe.Core
 
         private void LateUpdate()
         {
+            if (Application.isPlaying)
+                return;
+
             if (transform.position != _lastKnownPosition || transform.rotation != _lastKnownRotation)
             {
                 var ecef = VisualPositioningSystem.UnityWorldToEcef(transform.position, transform.rotation);

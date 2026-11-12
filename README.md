@@ -42,13 +42,14 @@ Inspired by (and heavily borrowing from) the extremely useful [Hierarchical-Loca
 
 1. **Sign up** at [ngrok.com](https://ngrok.com) and grab your authtoken from the dashboard.
 2. **Reserve a domain** (ngrok's free tier gives one static subdomain on `*.ngrok-free.app`; paid tiers can use a custom domain).
-3. **Copy `boatyard.values.yaml.sample` to `boatyard.values.yaml`** (gitignored) and fill in:
+3. **Copy `boatyard.values.sample.yml` to `boatyard.values.yaml`** (gitignored) and fill in:
 
    | Variable | Value |
    |---|---|
-   | `public_url` | `https://<your-ngrok-domain>` — the URL Unity clients will hit |
-   | `values.images.tunnel-ngrok.NGROK_DOMAIN` | `<your-ngrok-domain>` (just the host portion, no scheme) |
-   | `values.images.tunnel-ngrok.NGROK_AUTHTOKEN` | The token from step 1 |
+   | `public_host` | `<your-ngrok-domain>` — the host Unity clients will hit |
+   | `public_scheme` | `https` (the ngrok shape) |
+   | `values.NGROK_DOMAIN` | `<your-ngrok-domain>` (just the host portion, no scheme) |
+   | `values.NGROK_AUTHTOKEN` | The token from step 1 |
    | `bundles` | Your assembly — e.g. `[core-cuda, auth-keycloak, tunnel-ngrok]` (the OIDC-with-relay shape; the sample documents the known-good sets) |
 
 ## Backend
@@ -69,7 +70,7 @@ uv run boatyard down
 
 While the server is running, you can visit `${PUBLIC_URL}` in a web browser to browse the OpenAPI schema and test requests.
 
-The backend provides a reference [Keycloak](https://www.keycloak.org/) implementation for authentication and authorization, so you will need to authorize yourself in order to test requests. The [realm configuration file](workloads/auth-initializer/realm-export/placeframe.json) defines the realm and its clients but no users — test users are seeded at boot only when `SEED_TEST_USERS` is set, so add `SEED_TEST_USERS: user:password` under `values.images.auth-keycloak` in `boatyard.values.yaml` (see `boatyard.values.yaml.sample`) and run `uv run boatyard up`; you can then log in with the username "user" and the password "password".
+The backend provides a reference [Keycloak](https://www.keycloak.org/) implementation for authentication and authorization, so you will need to authorize yourself in order to test requests. The [realm configuration file](workloads/auth-initializer/realm-export/placeframe.json) defines the realm and its clients but no users — test users are seeded at boot only when `SEED_TEST_USERS` is set, so add `SEED_TEST_USERS: user:password` under `values:` in `boatyard.values.yaml` with `auth-keycloak` in `bundles:` (see `boatyard.values.sample.yml`) and run `uv run boatyard up`; you can then log in with the username "user" and the password "password".
 
 ## Capture Tool
 

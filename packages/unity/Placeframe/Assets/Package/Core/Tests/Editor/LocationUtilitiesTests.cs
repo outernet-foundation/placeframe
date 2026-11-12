@@ -66,16 +66,16 @@ namespace Placeframe.Core.Tests
         }
 
         [Test]
-        public void ChangeBasisUnityFromEcef_FlipsYSign()
+        public void ChangeBasisUnityFromEcef_SwapsYAndZ()
         {
-            // basisEcef = diag(1,-1,1), basisUnity = identity, so the change-of-basis flips Y.
+            // basisEcef swaps Y and Z (ECEF is Z-up, Unity is Y-up), basisUnity is identity.
             var translation = new double3(1, 2, 3);
 
             var (result, _) = LocationUtilities.ChangeBasisUnityFromEcef(translation, double3x3.identity);
 
             Assert.That(result.x, Is.EqualTo(1.0).Within(1e-12));
-            Assert.That(result.y, Is.EqualTo(-2.0).Within(1e-12));
-            Assert.That(result.z, Is.EqualTo(3.0).Within(1e-12));
+            Assert.That(result.y, Is.EqualTo(3.0).Within(1e-12));
+            Assert.That(result.z, Is.EqualTo(2.0).Within(1e-12));
         }
     }
 }
