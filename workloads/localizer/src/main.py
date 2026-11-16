@@ -87,6 +87,8 @@ async def localize_image(
         raise
 
     # Import here to avoid importing torch during codegen
+    from torch import cuda
+
     from .localize import LocalizationError, localize_image_against_reconstruction
 
     image = await data.image.read()
@@ -94,26 +96,29 @@ async def localize_image(
     localizations: list[Localization] = []
     errors: list[str] = []
 
-    for id in data.reconstruction_ids:
-        if id not in _maps:
-            _maps[id] = load_map(id, s3_client, settings.reconstructions_bucket, RECONSTRUCTIONS_DIR, data.metrics[id])
+    try:
+        for id in data.reconstruction_ids:
+            if id not in _maps:
+                _maps[id] = load_map(id, s3_client, settings.reconstructions_bucket, RECONSTRUCTIONS_DIR, data.metrics[id])
 
-        try:
-            assert calibration is not None  # CODEGEN-guarded; runtime always has it
-            result = localize_image_against_reconstruction(
-                _maps[id],
-                data.camera_config,
-                data.axis_convention,
-                image,
-                data.retrieval_top_k,
-                data.ransac_threshold,
-                pipeline_version,
-                calibration,
-            )
+            try:
+                assert calibration is not None  # CODEGEN-guarded; runtime always has it
+                result = localize_image_against_reconstruction(
+                    _maps[id],
+                    data.camera_config,
+                    data.axis_convention,
+                    image,
+                    data.retrieval_top_k,
+                    data.ransac_threshold,
+                    pipeline_version,
+                    calibration,
+                )
 
-            localizations.append(Localization(id=id, transform=result[0], metrics=result[1]))
-        except LocalizationError as e:
-            errors.append(f"Reconstruction {id}: {str(e)}")
+                localizations.append(Localization(id=id, transform=result[0], metrics=result[1]))
+            except LocalizationError as e:
+                errors.append(f"Reconstruction {id}: {str(e)}")
+    finally:
+        cuda.empty_cache()
 
     if not localizations:
         raise HTTPException(status_code=HTTP_422_UNPROCESSABLE_ENTITY, detail="; ".join(errors))
