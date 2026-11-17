@@ -89,12 +89,13 @@ class ReconstructionPublisher:
             return
         self._progress_current = current
         self._progress_attempt = attempt
-        print(f"[{self._status.value}] {current}/{self._progress_total}")
         now = perf_counter()
-        # Throttle API flushes to ~2 Hz; the per-tick stdout above is unthrottled.
-        if now - self._last_emit >= 0.5:
+        # Flush to the API and print at ~2 Hz, and at the last tick. Printing every tick wrote ~209,000 lines for
+        # one 7,242-image build (170,000 from geometry verification).
+        if now - self._last_emit >= 0.5 or current == self._progress_total:
             self._flush()
             self._last_emit = now
+            print(f"[{self._status.value}] {current}/{self._progress_total}")
 
     def _flush(self) -> None:
         if self._status is None:
