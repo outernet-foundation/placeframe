@@ -145,19 +145,24 @@ split-annotation amendment (the first pass made `managed` a gpu-annotation
 value and widened the gpu template guards; the redo leaves the templates
 byte-identical to the released line). boatyard branch `gpu-managed`
 (World A: off the released line, `boatyard/*` namespace kept), commits
-`26e2f2b` (the phase's code, one commit: the managed-annotation
-selective start, the pinned-compose test-binary cache — preflight was
-re-downloading ~32MB per run — and the operator-directed compose_command
-dissolution, quoting moved to `temp.py` as `quote_command_token`),
-`1532552` + `3b39e18` (AGENTS.md prose: the managed annotation treaty,
-then the module-map update), unpushed. Facts the later phases rely on: the gateway
+`26e2f2b` + `1435813` (the phase's code, two commits: the managed-annotation
+selective start with the pinned-compose test-binary cache and the
+compose_command dissolution; then bundle records — managed services and
+declared ports — carried on the assembly plan, quoting in `temp.py` as
+`quote_command_token`, `UpContext` collapsed away, the plan carrying the
+config), `1532552` + `3b39e18` + `90e8a4f` (AGENTS.md prose), unpushed.
+Facts the later phases rely on: the gateway
 project stays one-shot `up -d` (no annotation can appear in a document
 boatyard itself renders, so the two-step applies to bundles only); docker
 compose v5's `start` honors `depends_on` health/completion conditions and
 starts only the listed services' dependency closures (verified empirically
 — the `wait-for-resources` gating survives selective-start, and a `start`
 naming the non-managed services leaves the `managed` containers
-created-stopped).
+created-stopped); `up` parses no bundle text — every record (services,
+routes, ports, container names, managed services, declared ports) rides the
+plan, extracted at relock for remote bundles and at resolve for local and
+override bundles (placeframe's GPU workloads are local: the annotation
+flows at resolve, no relock).
 
 Produced at `/workspace/boatyard/` (the bind mount, not a fresh clone).
 No push or publish — placeframe consumes the changes via a path reference
@@ -167,22 +172,26 @@ is the namespace fork (World A vs B above); the operator names it.
 - `src/boatyard/verbs/up.py` (`_orchestrate_up`): after materializing the
   compose file, run `docker compose up -d --no-start` (creates all
   containers stopped, env slots resolved), then `docker compose start` for
-  every service except those carrying `boatyard/managed: "true"` — found
-  by reading each bundle document's service annotations. Any service can
-  carry it, gpu or not. GPU containers exist, stopped, from boot. This is
-  `up` logic, not a patch template.
-- `src/boatyard/lock.py`: `_stanza_annotations` renamed to
-  `stanza_annotations` (made public) — the one annotation reader `up`'s
-  filter goes through.
+  every bundle-recorded service except the managed ones. Any service can
+  be managed, gpu or not. GPU containers exist, stopped, from boot. This
+  is `up` logic, not a patch template.
+- `src/boatyard/lock.py` + `src/boatyard/resolve.py`: the bundle-record
+  extraction (`extract_bundle_records`) collects `managed_services` and
+  `declared_ports` in the same walk as services/routes/ports — baked into
+  `boatyard.lock.yml` at relock for remote bundles, extracted from the
+  rendered bundle text at resolve for local and override bundles, adopted
+  onto `BundleProject` either way (fields defaulted, so pre-annotation
+  locks parse unchanged).
 - The gpu patch templates (`gpu-cuda.tpl`, `gpu-rocm.tpl`, `gpu-pod.tpl`)
   are untouched — they keep keying on `"true"`.
-- Tests in boatyard's suite: `up`'s selective-start skips
-  `boatyard/managed` services and starts the rest; gpu annotation values
-  do not gate the start step (the decoupling regression guard).
+- Tests in boatyard's suite: `up`'s selective-start skips the
+  lock-recorded managed services and starts the rest; gpu annotation
+  values in bundle text do not gate the start step (the decoupling
+  regression guard).
 - `AGENTS.md` (boatyard): the substrate-annotation bullet names the gpu
   annotation (`"true"`, substrate only, the patch templates its reader)
-  and the separate managed annotation (lifecycle, `up`'s start step its
-  reader). Prose commit.
+  and the separate managed annotation (lifecycle, recorded in the bundle
+  records). Prose commits.
 
 Verification: boatyard's own lint/type/test battery + preflight. The change
 is not consumable from placeframe until phase 5 switches the dependency to
