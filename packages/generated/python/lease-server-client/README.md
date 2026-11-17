@@ -94,6 +94,7 @@ Class | Method | HTTP request | Description
 ## Documentation For Models
 
  - [FailLeaseRequest](docs/FailLeaseRequest.md)
+ - [Lease](docs/Lease.md)
  - [LeaseResponse](docs/LeaseResponse.md)
  - [PhaseTiming](docs/PhaseTiming.md)
  - [ProgressUpdate](docs/ProgressUpdate.md)

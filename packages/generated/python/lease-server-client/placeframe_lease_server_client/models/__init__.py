@@ -14,6 +14,7 @@
 
 # import models into model package
 from placeframe_lease_server_client.models.fail_lease_request import FailLeaseRequest
+from placeframe_lease_server_client.models.lease import Lease
 from placeframe_lease_server_client.models.lease_response import LeaseResponse
 from placeframe_lease_server_client.models.phase_timing import PhaseTiming
 from placeframe_lease_server_client.models.progress_update import ProgressUpdate

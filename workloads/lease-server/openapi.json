@@ -358,7 +358,7 @@
         ],
         "title": "FailLeaseRequest"
       },
-      "LeaseResponse": {
+      "Lease": {
         "properties": {
           "reconstruction_id": {
             "type": "string",
@@ -378,6 +378,17 @@
           "options",
           "reconstruction_id"
         ],
+        "title": "Lease"
+      },
+      "LeaseResponse": {
+        "properties": {
+          "lease": {
+            "nullable": true,
+            "$ref": "#/components/schemas/Lease"
+          }
+        },
+        "type": "object",
+        "required": [],
         "title": "LeaseResponse"
       },
       "PhaseTiming": {
