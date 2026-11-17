@@ -144,13 +144,13 @@ Complete, 2026-11-17 — re-executed the same day on the ADR's
 split-annotation amendment (the first pass made `managed` a gpu-annotation
 value and widened the gpu template guards; the redo leaves the templates
 byte-identical to the released line). boatyard branch `gpu-managed`
-(World A: off the released line, `boatyard/*` namespace kept), commits
-`26e2f2b` + `1435813` (the phase's code, two commits: the managed-annotation
-selective start with the pinned-compose test-binary cache and the
-compose_command dissolution; then bundle records — managed services and
-declared ports — carried on the assembly plan, quoting in `temp.py` as
-`quote_command_token`, `UpContext` collapsed away, the plan carrying the
-config), `1532552` + `3b39e18` + `90e8a4f` (AGENTS.md prose), unpushed.
+(World A: off the released line, `boatyard/*` namespace kept): one code
+commit `84c824f` (the managed-annotation selective start, the
+pinned-compose test-binary cache, the compose_command dissolution with
+quoting in `temp.py` as `quote_command_token`, and bundle records —
+managed services and declared ports — carried on the assembly plan, the
+plan carrying the config), then AGENTS.md prose commits, tip `9b76488`,
+unpushed.
 Facts the later phases rely on: the gateway
 project stays one-shot `up -d` (no annotation can appear in a document
 boatyard itself renders, so the two-step applies to bundles only); docker
