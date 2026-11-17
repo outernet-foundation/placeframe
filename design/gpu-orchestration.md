@@ -46,7 +46,7 @@ that opens by reading this doc must check this section first.
 5. **Execution session(s).** One phase per session, per the plan's execution
    protocol. Phase 1 (boatyard) complete, 2026-11-17: branch `gpu-managed`
    off the released line (World A — the `boatyard/*` namespace kept), local
-   at `fe2b4c6`, unpushed (the sandbox token cannot push; the operator
+   at `eabcbc1`, unpushed (the sandbox token cannot push; the operator
    pushes). Re-executed the same day on Q3's split-annotation amendment —
    the first pass made `managed` a gpu-annotation value and widened the
    template guards; the redo leaves the templates byte-identical to the
