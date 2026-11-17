@@ -14,7 +14,7 @@ workloads/reconstructor/
 |-- entrypoint.sh          uv run reconstructor (debugpy when DEBUG=true)
 |-- pyproject.toml         core, common, placeframe-lease-server-client, pycolmap, scipy
 |-- src/reconstructor/
-|   |-- main.py            worker_loop -- lease poll + dispatch + succeed/fail
+|   |-- main.py            _run_worker (client + SIGTERM setup), worker_loop (lease poll + dispatch)
 |   |-- run_reconstruction.py   model load + pipeline orchestrator
 |   |-- colmap.py          COLMAP DB build, two-view verification, incremental SfM,
 |   |                      pose-prior write (single-camera only), gravity-aligned Sim3d,
@@ -34,16 +34,16 @@ workloads/reconstructor/
 
 ### Lease loop
 
-`main.worker_loop` (`src/reconstructor/main.py:30`) is a single coroutine that opens one `placeframe_lease_server_client.ApiClient` against `settings.lease_server_url` (no auth token — the lease server is an internal service reachable only inside the stack network) and then loops:
+`main._run_worker` (`src/reconstructor/main.py:39`) opens one `placeframe_lease_server_client.ApiClient` against `settings.lease_server_url` (no auth token — the lease server is an internal service reachable only inside the stack network), builds a `WorkerState` to hold the in-flight lease id and eviction task, registers the SIGTERM handler, and then `await`s `worker_loop(api, loop, state)` (`src/reconstructor/main.py:58`), which loops:
 
-- `await api.request_lease()`. An `ApiException` with status 404 (no queued jobs) -> sleep 5 s and re-poll. Any other `ApiException` -> log the error, sleep 5 s, re-poll. There is no exponential backoff.
+- `await api.request_lease()`. A null `lease` field (no queued jobs) -> sleep 5 s and re-poll. A transport `ApiException` -> log the error, sleep 5 s, re-poll. There is no exponential backoff.
 - Hand the granted lease to `_run_and_report`, which validates `lease.options` into a `placeframe_core.ReconstructionOptions`, builds a `ReconstructionPublisher` over an `AsyncProgressFlusher`, and dispatches `run_reconstruction(reconstruction_id, capture_id, options, publisher, metrics_builder)` onto `loop.run_in_executor(None, ...)`. The pipeline is fully sync; the default executor (a `ThreadPoolExecutor`) runs it on a worker thread while the event loop stays live to service progress writes.
-- On success: `await api.succeed_lease(reconstruction_id, metrics)`. On any pipeline-or-succeed exception: `await api.fail_lease(reconstruction_id, FailLeaseRequest(error=str(e), metrics=partial_metrics))`, where `partial_metrics` is whatever the `MetricsBuilder` accumulated before the failure.
+- On success: `await api.succeed_lease(reconstruction_id, metrics)`. When SfM produces no model (`run_reconstruction` returns `None`): `await api.fail_lease(reconstruction_id, FailLeaseRequest(error="No model was created", metrics=partial_metrics))`. On any other pipeline-or-succeed exception: `await api.fail_lease(reconstruction_id, FailLeaseRequest(error=str(e), metrics=partial_metrics))`. `partial_metrics` is whatever the `MetricsBuilder` accumulated before the failure.
 - `CancelledError` exits the loop cleanly. Any other exception logs and sleeps 5 s before re-looping.
 
 Concurrency: the worker holds at most one in-flight job. Horizontal scale is N replicas; `request_lease` uses `SELECT ... FOR UPDATE SKIP LOCKED` on the lease-server side so replicas can poll the queue safely. The DB-side `LEASE_TIMEOUT = 30 minutes` (`workloads/lease-server/src/routers/leases.py:21`) is the only ceiling on a job; the worker enforces no wall-clock limit of its own.
 
-SIGTERM (a spot-eviction notice) is handled via `loop.add_signal_handler(SIGTERM, ...)` — not a raw `signal` handler, because the response is an async call. `worker_loop` tracks the in-flight `reconstruction_id`; on SIGTERM the worker requeues that lease (`api.requeue_lease`, flipping it back to `QUEUED`) and then `os._exit(0)`s immediately, abandoning the still-running executor thread. It does **not** wait for the pipeline to finish or call `fail_lease`. A SIGTERM while idle just exits.
+SIGTERM (a spot-eviction notice) is handled via `loop.add_signal_handler(SIGTERM, _on_sigterm, api, state, loop)` (`src/reconstructor/main.py:53`) — not a raw `signal` handler, because the response is an async call. `worker_loop` records the in-flight `reconstruction_id` on `WorkerState.active_lease_id` each iteration; on SIGTERM `_on_sigterm` schedules `_requeue_and_exit`, which requeues that lease (`api.requeue_lease`, flipping it back to `QUEUED`) and then `os._exit(0)`s immediately, abandoning the still-running executor thread. It does **not** wait for the pipeline to finish or call `fail_lease`. A SIGTERM while idle just exits.
 
 ### Pipeline phases
 
