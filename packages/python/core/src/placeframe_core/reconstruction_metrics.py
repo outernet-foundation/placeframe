@@ -11,6 +11,7 @@ class PhaseTiming(BaseModel):
 
 
 class ReconstructionMetrics(BaseModel):
+    successful: bool = Field(default=False, description="True if the reconstruction produced a model, false otherwise.")
     reprojection_pixel_error_50th_percentile: Optional[float] = Field(
         default=None,
         description="Median reprojection error in pixels across all valid 2D observations in registered images.",
