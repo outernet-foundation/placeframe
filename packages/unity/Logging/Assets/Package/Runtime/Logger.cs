@@ -27,7 +27,7 @@ namespace Outernet.Logging
             benignErrorSubstrings = suppressErrors != null ? new List<string>(suppressErrors) : Array.Empty<string>();
             _deviceName = SystemInfo.deviceName;
 
-            _lokiSink = new LokiSink(labels);
+            _lokiSink = new LokiSink(labels, ReportSinkFault);
 
             logger = new LoggerConfiguration()
                 .MinimumLevel.Verbose()
@@ -44,8 +44,7 @@ namespace Outernet.Logging
                 {
                     // Guard against the SelfLog → defaultUnityLogHandler → Application.logMessageReceived
                     // → UnityLogMessageReceived → Serilog → LokiSink.Emit feedback loop. Without this,
-                    // a sustained sink fault (LokiSink emits via SelfLog on every drain failure) keeps
-                    // re-queuing its own error message and the queue grows unboundedly.
+                    // a sustained Emit failure (serialization bug) keeps re-firing its own message.
                     emittingToUnity = true;
                     try
                     {
@@ -98,6 +97,13 @@ namespace Outernet.Logging
             _lokiSink = null;
             subscriptions.Dispose();
             logger.Dispose();
+        }
+
+        // SinkFaultReporter target for LokiSink drain faults. Ungated by
+        // Log<TLogGroup> level/group gates — sink health must always be visible.
+        internal static void ReportSinkFault(LogLevel level, Exception exception, string messageTemplate, params object[] propertyValues)
+        {
+            Serilog(level, default, exception, messageTemplate, propertyValues);
         }
 
         public static void Serilog(LogLevel level, TLogGroup group, Exception exception, string messageTemplate, params object[] propertyValues)

@@ -27,8 +27,20 @@ namespace Outernet.Logging
     // it, and POSTs to Loki with Content-Encoding: gzip; entries dequeue
     // only on success. Pre-Enable events accumulate for first-drain flush.
     // Per-attempt HTTP timeout. 429 honors Retry-After; other faults use
-    // exponential backoff. Drain failures route through SelfLog to avoid
-    // recursive re-enqueue.
+    // exponential backoff.
+    //
+    // Drain faults report through the injected SinkFaultReporter at a level
+    // that tracks cause: transport faults and 429 are Info per occurrence,
+    // one Warn once failures run SustainedFailureThreshold consecutive,
+    // one Info on recovery after a sustained run; 5xx and other non-success
+    // responses are Error (our service broken or our request malformed);
+    // unexpected exceptions are Error. The reporter routes into the Serilog
+    // pipeline, so fault records queue and ship once the drain recovers —
+    // fingerprint dedup bounds that self-referential queue growth to one
+    // entry. Emit failures stay on SelfLog: reporting them through the
+    // pipeline recurses (Emit → report → Emit), and they are serialization
+    // bugs, which the SelfLog → console LogType.Error wiring reports at
+    // the right level.
     //
     // Bespoke rather than the upstream Serilog.Sinks.Grafana.Loki NuGet for
     // three reasons: events emitted before Enable queue rather than drop, so
@@ -46,6 +58,8 @@ namespace Outernet.Logging
     // everything else, then stackTrace and exception last. Pure UX — these are
     // the visible columns of a Grafana log row. Fatal maps to "critical"
     // because Grafana has no native "fatal" level.
+    internal delegate void SinkFaultReporter(LogLevel level, Exception exception, string messageTemplate, params object[] propertyValues);
+
     internal sealed class LokiSink : ILogEventSink, IDisposable
     {
         private static readonly long UnixEpochTicks = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).Ticks;
@@ -61,19 +75,24 @@ namespace Outernet.Logging
         // slow uplink finishes them well inside PerAttemptTimeout.
         private const int MaxBatchEvents = 500;
         private const int MaxBatchBytes = 128 * 1024;
+        private const int SustainedFailureThreshold = 4;
 
         private readonly Dictionary<string, string> _labels;
+        private readonly SinkFaultReporter _reportFault;
         private readonly object _queueLock = new();
         private readonly LinkedList<PendingEntry> _pending = new();
         private readonly Dictionary<string, LinkedListNode<PendingEntry>> _pendingByFingerprint = new();
+        private int _consecutiveFailures;
+        private bool _sustainedReported;
         private volatile bool _disposed;
 
         private HttpClient _httpClient;
         private string _pushUrl;
 
-        public LokiSink(IEnumerable<(string key, string value)> labels)
+        public LokiSink(IEnumerable<(string key, string value)> labels, SinkFaultReporter reportFault)
         {
             _labels = labels.ToDictionary(label => label.key, label => label.value);
+            _reportFault = reportFault;
         }
 
         public void Dispose()
@@ -239,11 +258,21 @@ namespace Outernet.Logging
                     using var response = await _httpClient.SendAsync(request, timeout.Token);
                     if (!response.IsSuccessStatusCode)
                     {
-                        Serilog.Debugging.SelfLog.WriteLine($"LokiSink POST returned {(int)response.StatusCode} {response.ReasonPhrase}");
-                        if (response.StatusCode == HttpStatusCode.TooManyRequests && TryGetRetryAfter(response.Headers.RetryAfter, out var retryAfter))
-                            schedule.OnRetryAfter(retryAfter);
+                        var statusCode = (int)response.StatusCode;
+                        var reasonPhrase = response.ReasonPhrase;
+                        if (response.StatusCode == HttpStatusCode.TooManyRequests)
+                        {
+                            ReportExogenousFault(null, "Loki push rejected with {StatusCode} {ReasonPhrase}", statusCode, reasonPhrase);
+                            if (TryGetRetryAfter(response.Headers.RetryAfter, out var retryAfter))
+                                schedule.OnRetryAfter(retryAfter);
+                            else
+                                schedule.OnFailure();
+                        }
                         else
+                        {
+                            _reportFault(LogLevel.Error, null, "Loki push rejected with {StatusCode} {ReasonPhrase}", statusCode, reasonPhrase);
                             schedule.OnFailure();
+                        }
                         continue;
                     }
 
@@ -256,6 +285,10 @@ namespace Outernet.Logging
                         }
                     }
                     schedule.OnSuccess();
+                    if (_sustainedReported)
+                        _reportFault(LogLevel.Info, null, "Loki push recovered after {FailureCount} consecutive failures", _consecutiveFailures);
+                    _consecutiveFailures = 0;
+                    _sustainedReported = false;
                 }
                 catch (Exception exception)
                 {
@@ -264,10 +297,29 @@ namespace Outernet.Logging
                     // not an iteration fault — exit silently.
                     if (_disposed)
                         break;
-                    Serilog.Debugging.SelfLog.WriteLine($"LokiSink iteration faulted: {exception}");
+                    if (IsTransportFault(exception))
+                        ReportExogenousFault(exception, "Loki push failed");
+                    else
+                        _reportFault(LogLevel.Error, exception, "LokiSink drain loop faulted");
                     schedule.OnFailure();
                 }
             }
+        }
+
+        private void ReportExogenousFault(Exception exception, string messageTemplate, params object[] propertyValues)
+        {
+            _consecutiveFailures += 1;
+            if (_consecutiveFailures == SustainedFailureThreshold)
+                _reportFault(LogLevel.Warn, exception, "Loki push fault sustained: {FailureCount} consecutive failures", _consecutiveFailures);
+            else
+                _reportFault(LogLevel.Info, exception, messageTemplate, propertyValues);
+        }
+
+        private static bool IsTransportFault(Exception exception)
+        {
+            return exception is HttpRequestException
+                || exception is WebException
+                || exception is OperationCanceledException;
         }
 
         private static bool TryGetRetryAfter(RetryConditionHeaderValue header, out TimeSpan delay)
