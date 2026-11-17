@@ -9,7 +9,7 @@ from faiss import (  # type: ignore
     write_ProductQuantizer,  # type: ignore
     write_VectorTransform,  # type: ignore
 )
-from numpy import ascontiguousarray, float32, uint8
+from numpy import ascontiguousarray, float16, float32, uint8
 from numpy.linalg import norm
 from numpy.typing import NDArray  # noqa: TID251 — tracked in PLE-233
 
@@ -36,13 +36,14 @@ def train_pq_quantizer(
 
 
 def encode_descriptors(
-    opq_matrix: OPQMatrix, product_quantizer: ProductQuantizer, image_descriptors: dict[str, NDArray[float32]]
+    opq_matrix: OPQMatrix, product_quantizer: ProductQuantizer, image_descriptors: dict[str, NDArray[float16]]
 ):
     images_codes: dict[str, NDArray[uint8]] = {}
     for i, name in enumerate(image_descriptors.keys()):
         print(f"Encoding image {i + 1} of {len(image_descriptors)}")
         descriptors_contiguous = ascontiguousarray(image_descriptors[name])
-        descriptors_rotated = cast(NDArray[float32], opq_matrix.apply(descriptors_contiguous))  # type: ignore
+        # Descriptors are kept in half precision; FAISS takes float32, converted one image at a time.
+        descriptors_rotated = cast(NDArray[float32], opq_matrix.apply(descriptors_contiguous.astype(float32)))  # type: ignore
         codes = cast(NDArray[uint8], product_quantizer.compute_codes(descriptors_rotated))  # type: ignore
         images_codes[name] = codes
 

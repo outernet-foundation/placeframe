@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable
+from collections import UserDict
+from collections.abc import Callable, Mapping, MutableMapping
 from typing import NewType
 
 from lightglue import LightGlue  # type: ignore
-from numpy import bool_, dtype, float32, intp, ndarray
+from numpy import bool_, dtype, float16, float32, intp, ndarray
 from torch import Tensor, from_numpy, inference_mode, tensor  # type: ignore
 from torch.nn.utils.rnn import pad_sequence
 
@@ -22,11 +23,14 @@ MatchIndices = dict[
 
 # Per-image-name dicts for the matcher's two distinct positional arguments. Branded at the dict
 # level so pyright catches positional swaps at the call site — passing Keypoints where Descriptors
-# is expected (or vice versa) is a type error, even though both wrap dict[str, Tensor] at runtime.
-Keypoints = NewType("Keypoints", dict[str, Tensor])
-Descriptors = NewType("Descriptors", dict[str, Tensor])
+# is expected (or vice versa) is a type error, even though both wrap MutableMapping[str, Tensor] at runtime.
+# Mappings, not dicts: lightglue_match passes caches that move each image to the device when a batch needs it.
+Keypoints = NewType("Keypoints", MutableMapping[str, Tensor])
+Descriptors = NewType("Descriptors", MutableMapping[str, Tensor])
 KeypointsArrays = NewType("KeypointsArrays", dict[str, ndarray[tuple[int, int], dtype[float32]]])
-DescriptorsArrays = NewType("DescriptorsArrays", dict[str, ndarray[tuple[int, int], dtype[float32]]])
+# Local descriptors are kept in half precision: matching is insensitive to it, and it halves the reconstructor's
+# largest memory use. LightGlue receives them as float32 on the device.
+DescriptorsArrays = NewType("DescriptorsArrays", dict[str, ndarray[tuple[int, int], dtype[float16]]])
 
 
 def lightglue_match(
@@ -39,8 +43,10 @@ def lightglue_match(
     device: str,
     on_progress: Callable[[int], None] | None = None,
 ) -> MatchIndices:
-    keypoints_tensors = Keypoints({name: from_numpy(kp).to(device) for name, kp in keypoints.items()})
-    descriptors_tensors = Descriptors({name: from_numpy(desc).to(device) for name, desc in descriptors.items()})
+    # Images move to the device when a batch needs them (the most recent few hundred are kept), not all at once:
+    # a 9,000-image map's descriptors alone are 6-12 GB.
+    keypoints_tensors = Keypoints(_OnDevice(keypoints, device))
+    descriptors_tensors = Descriptors(_OnDevice(descriptors, device))
 
     return lightglue_match_tensors(
         lightglue, pairs, keypoints_tensors, descriptors_tensors, sizes, batch_size, device, on_progress
@@ -91,3 +97,19 @@ def lightglue_match_tensors(
             on_progress(batch_start + len(batch_pairs))
 
     return match_indices
+
+
+# Arrays by image name, moved to the device (as float32) on first use; the oldest are dropped beyond `keep`.
+class _OnDevice(UserDict[str, Tensor]):
+    def __init__(
+        self, arrays: Mapping[str, ndarray[tuple[int, int], dtype[float16 | float32]]], device: str, keep: int = 512
+    ) -> None:
+        super().__init__()
+        self._arrays, self._device, self._keep = arrays, device, keep
+
+    def __missing__(self, name: str) -> Tensor:
+        if len(self) >= self._keep:
+            del self[next(iter(self))]  # insertion order: the oldest
+        value = from_numpy(self._arrays[name]).to(self._device).float()
+        self[name] = value
+        return value
