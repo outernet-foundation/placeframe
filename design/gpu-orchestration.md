@@ -38,23 +38,25 @@ that opens by reading this doc must check this section first.
    during execution: the pre-amendment Q3 (`boatyard/gpu: "true"` →
    `managed` as an annotation *value*) would have required boatyard's gpu
    device-reservation templates to recognize `managed`/`always` as
-   GPU-carrying. Q3's post-execution amendment dissolved that dependency —
+   GPU-carrying.    Q3's post-execution amendment dissolved that dependency —
    the templates are untouched and selective-start keys on a separate
-   `boatyard/managed` annotation.
+   `boatyard/autostart` annotation.
 4. **Plan session (complete, 2026-11-16).** The plan lives in
    [gpu-orchestration-plan.md](gpu-orchestration-plan.md).
-5. **Execution session(s).** One phase per session, per the plan's execution
-   protocol. Phase 1 (boatyard) complete, 2026-11-17: branch `gpu-managed`
-   off the released line (World A — the `boatyard/*` namespace kept), local
-   at `eabcbc1`, unpushed (the sandbox token cannot push; the operator
-   pushes). Re-executed the same day on Q3's split-annotation amendment —
-   the first pass made `managed` a gpu-annotation value and widened the
-   template guards; the redo leaves the templates byte-identical to the
-   released line and keys selective-start on a separate `boatyard/managed`
-   annotation. A pinned-compose-binary cache also landed on that branch —
-   boatyard's preflight was re-downloading the ~32MB binary every run.
-   Next: phase 2 (mode switcher workload), which runs against released
-   boatyard per the plan.
+ 5. **Execution session(s).** One phase per session, per the plan's execution
+    protocol. Phase 1 (boatyard) complete, 2026-11-17: branch `gpu-managed`
+    off the released line (World A — the `boatyard/*` namespace kept), local
+    at `4618681`, unpushed (the sandbox token cannot push; the operator
+    pushes). Re-executed the same day on Q3's split-annotation amendment —
+    the first pass made `managed` a gpu-annotation value and widened the
+    template guards; the redo leaves the templates byte-identical to the
+    released line and keys selective-start on a separate annotation,
+    renamed once to the behavior-named `boatyard/autostart: "false"`
+    ("managed" named a motivation boatyard cannot see). A
+    pinned-compose-binary cache also landed on that branch —
+    boatyard's preflight was re-downloading the ~32MB binary every run.
+    Next: phase 2 (mode switcher workload), which runs against released
+    boatyard per the plan.
 6. **Promotion.** Fold hardened truth into co-located `AGENTS.md` files per
    `design/AGENTS.md` promotion conventions; this note stops being
    load-bearing.
@@ -324,34 +326,40 @@ GPU before the mode switcher stops one.
 mode switcher that reconciles on boot.**
 
 Start policy is its own annotation, separate from the gpu annotation: a
-workload carrying `boatyard/managed: "true"` is excluded from boatyard
-`up`'s start step — created stopped, left for an external orchestrator (the
-mode switcher) to enable. The gpu annotation keeps its released semantics
+workload carrying `boatyard/autostart: "false"` is excluded from boatyard
+`up`'s start step — created stopped, left for whatever enables it (the
+mode switcher; boatyard neither knows nor cares). The gpu annotation keeps
+its released semantics
 untouched: substrate only, `"true"`, the patch templates its one reader.
 The boatyard change is **`up` logic**, not a compose patch template:
 `boatyard up` runs `docker compose up -d --no-start` (creates ALL
 containers stopped, env slots resolved), then `docker compose start` for
-every service except those carrying the managed annotation — any service,
-gpu or not. GPU containers exist, stopped, from boot. The mode switcher
+every service except the held ones — any service, gpu or not. GPU
+containers exist, stopped, from boot. The mode switcher
 starts/stops **existing** containers — enable/disable, no creation logic, no
 compose-file mounting, no config hardcoding. The k8s rendering is unchanged
 — selective-start is a compose-only `up` behavior. The escape hatch is
 removing the annotation (absence = today's auto-start behavior). Both
-existing GPU workloads add the managed annotation (plan phase 5).
+existing GPU workloads set `boatyard/autostart: "false"` (plan phase 5).
 
 **Amendment (post-execution): the first execution encoded this wrong.** It
 made `managed` a *value* of `boatyard/gpu` — alongside an invented `always`
 — and widened the gpu patch templates to recognize both as GPU-carrying.
-That conflated two orthogonal concerns: `managed` answers "who owns this
-container's start/stop?", a lifecycle question that could apply to any
-container, not just gpu ones, while `boatyard/gpu` exists to answer "does
+That conflated two orthogonal concerns: whether the container starts at
+`up` is a lifecycle question that could apply to any container, not just
+gpu ones, while `boatyard/gpu` exists to answer "does
 this workload need GPU reservations?". The value-encoding made the
 lifecycle concern inexpressible for non-gpu services and required a real
 template change (widening the `"true"` guard, a behavioral change for any
 consumer already using those strings). The split annotation needs no
 template change at all, makes absence the escape hatch, and was
 re-executed on the boatyard branch before anything downstream consumed it
-(see the plan's phase 1).
+(see the plan's phase 1). A follow-up rename settled the split
+annotation's name: `boatyard/autostart: "false"`, not `boatyard/managed:
+"true"` — "managed" named the consumer's motivation (an external
+orchestrator owns the start/stop), an implementation detail boatyard can
+neither see nor enforce, while the annotation's whole contract with
+boatyard is the one bit of whether the container starts at `up`.
 
 This replaces an earlier profiles-based approach that was revised after Q12
 exposed a cascade: profile-gated services aren't created at `up`, so the
