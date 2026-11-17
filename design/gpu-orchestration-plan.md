@@ -1,13 +1,13 @@
 ---
-updated: 2026-11-16
+updated: 2026-11-17
 ---
 
 # GPU orchestration — execution plan
 
 Execution plan for [gpu-orchestration.md](gpu-orchestration.md) (the ADR; all
 decisions of record live there). The ADR describes the what and why; this doc
-sequences the how. Mechanism references below are grounded at branch `dev`,
-`3bf498b7` and will drift.
+sequences the how. Mechanism references below are grounded at branch
+`gpu-orchestration`, `47b6cfaa` and will drift.
 
 ## Execution protocol
 
@@ -131,6 +131,18 @@ subset it delivers.
 ## Phases
 
 ### 1. boatyard: `managed` value + selective-start (external)
+
+Complete, 2026-11-17 — boatyard branch `gpu-managed` (World A: off the
+released line, `boatyard/gpu` kept), commits `95d3368` (a pinned-compose
+test-binary cache — preflight was re-downloading ~32MB per run), `e748d3a`
+(the phase's code), `6f1d56f` (AGENTS.md prose), unpushed. Facts the later
+phases rely on: the gateway project stays one-shot `up -d` (no annotation can
+appear in a document boatyard itself renders, so the two-step applies to
+bundles only); docker compose v5's `start` honors `depends_on`
+health/completion conditions and starts only the listed services' dependency
+closures (verified empirically — the `wait-for-resources` gating survives
+selective-start, and a `start` naming the non-managed services leaves the
+`managed` containers created-stopped).
 
 Produced at `/workspace/boatyard/` (the bind mount, not a fresh clone).
 No push or publish — placeframe consumes the changes via a path reference

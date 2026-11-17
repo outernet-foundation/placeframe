@@ -1,5 +1,5 @@
 ---
-updated: 2026-11-16
+updated: 2026-11-17
 ---
 
 # GPU orchestration — mode switcher and localization router
@@ -39,10 +39,16 @@ that opens by reading this doc must check this section first.
    gpu device-reservation template to recognize `managed`/`always` as
    GPU-carrying (currently documented in `stack/AGENTS.md` as keying on
    `"true"`); unverifiable from this repo.
-4. **Plan session.** Write the execution plan
-   (`gpu-orchestration-plan.md`).
-5. **Execution session(s).** One phase per session, per the plan's execution
-   protocol.
+4. **Plan session (complete, 2026-11-16).** The plan lives in
+   [gpu-orchestration-plan.md](gpu-orchestration-plan.md).
+5. **Execution session(s).** One phase per session, per the plan's
+   execution protocol. Phase 1 (boatyard) complete, 2026-11-17: branch
+   `gpu-managed` off the released line (World A — the `boatyard/gpu`
+   namespace kept), local at `6f1d56f`, unpushed (the sandbox token cannot
+   push; the operator pushes). A pinned-compose-binary cache also landed on
+   that branch — boatyard's preflight was re-downloading the ~32MB binary
+   every run. Next: phase 2 (mode switcher workload), which runs against
+   released boatyard per the plan.
 6. **Promotion.** Fold hardened truth into co-located `AGENTS.md` files per
    `design/AGENTS.md` promotion conventions; this note stops being
    load-bearing.
