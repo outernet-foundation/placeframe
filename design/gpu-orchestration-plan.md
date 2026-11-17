@@ -145,11 +145,11 @@ split-annotation amendment (the first pass made `managed` a gpu-annotation
 value and widened the gpu template guards; the redo leaves the templates
 byte-identical to the released line). boatyard branch `gpu-managed`
 (World A: off the released line, `boatyard/*` namespace kept): one code
-commit `84c824f` (the managed-annotation selective start, the
+commit `835913b` (the managed-annotation selective start, the
 pinned-compose test-binary cache, the compose_command dissolution with
 quoting in `temp.py` as `quote_command_token`, and bundle records —
 managed services and declared ports — carried on the assembly plan, the
-plan carrying the config), then AGENTS.md prose commits, tip `9b76488`,
+plan carrying the config), then one AGENTS.md prose commit, tip `fe2b4c6`,
 unpushed.
 Facts the later phases rely on: the gateway
 project stays one-shot `up -d` (no annotation can appear in a document
