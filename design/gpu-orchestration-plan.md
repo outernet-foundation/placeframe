@@ -32,12 +32,16 @@ end.
 
 ## External dependency and a fork the ADR left closed
 
-The ADR's Q3 commits to `boatyard/gpu: "true"` → `managed` and to boatyard
-`up` gaining selective-start (`docker compose up -d --no-start` then
-`docker compose start` for non-`managed` services only). The ADR's
-code-verification note flagged the template-value change as "unverifiable
-from this repo"; verification against the tree at `3bf498b7` finds a fork
-the ADR did not anticipate:
+The ADR's Q3 (as amended) commits to a separate managed annotation —
+`boatyard/managed: "true"` marks a service created-stopped at `up`, left
+for an external orchestrator to enable — and to boatyard `up` gaining
+selective-start (`docker compose up -d --no-start` then `docker compose
+start` for un-annotated services only). The gpu annotation and its patch
+templates are untouched: they keep keying on `"true"` exactly as released.
+The ADR's code-verification note had flagged the pre-amendment design's
+template-value change as "unverifiable from this repo"; the amendment
+dissolves that dependency — there is no template change to verify. What
+remains is a namespace fork the amendment does not touch:
 
 - **Released boatyard 0.8.0** (installed in placeframe's venv,
   `scripts/pyproject.toml` pins `boatyard>=0.8`) keys the gpu templates on
@@ -55,33 +59,35 @@ the ADR did not anticipate:
 
 placeframe consumes boatyard via a **path reference** on the local
 `/workspace/boatyard/` checkout for this initiative — no boatyard publish
-or push is required to validate the changes. The `managed` value change +
+or push is required to validate the changes. The managed annotation +
 selective-start land on whichever branch the local checkout carries, and
 the placeframe-side delta differs by world:
 
-- **World A — backport on the `boatyard/gpu` namespace.** The
-  `managed`/`always` recognition and selective-start land on a branch off
-  the released line (which keeps `boatyard/gpu`). placeframe's annotations
-  stay `boatyard/gpu`; only the value changes `"true"` → `managed`. No
+- **World A — backport on the `boatyard/*` namespace.** The managed
+  annotation and selective-start land on a branch off the released line
+  (which keeps `boatyard/*`). placeframe's gpu annotations stay untouched;
+  the two GPU workloads each add `boatyard/managed: "true"`. No
   annotation-namespace migration.
-- **World B — ride the `refactor-even-more` branch.** The `managed` change
-  lands on trunk, which carries the `outernet.internal/*` rename.
-  placeframe migrates every `boatyard/*` annotation in its score files
+- **World B — ride the `refactor-even-more` branch.** The change lands on
+  trunk, which carries the `outernet.internal/*` rename. placeframe
+  migrates every `boatyard/*` annotation in its score files
   (`boatyard/gpu`, `boatyard/probe-adapter`, `boatyard/dockerfile`,
-  `boatyard/route`) to the `outernet.internal/*` spelling — the gpu
-  annotation is one of several, not a one-off.
+  `boatyard/route`) to the `outernet.internal/*` spelling — and the new
+  annotation lands as `outernet.internal/managed`, one of several, not a
+  one-off.
 
 Which world runs is the operator's call (which branch the local boatyard
 checkout points at). Phase 1 below produces the boatyard change on that
 checkout; phase 5 switches placeframe's `scripts/pyproject.toml` from the
-`>=0.8` PyPI pin to a path reference on the local checkout and flips the
-annotation value. Phases 2-4 do not depend on phase 1 and can develop and
-land against the released boatyard — the annotation stays `"true"` and both
-GPU containers auto-start, with the mode switcher reconciling the
-dual-start (the ADR's Q3 option (b), rejected as the end state but
-acceptable as an intermediate, since the mode switcher's boot
-reconciliation is strictly better than today's silent OOM). Phase 5 is what
-activates selective-start and closes the boot-race gap.
+`>=0.8` PyPI pin to a path reference on the local checkout and adds the
+managed annotation to the two GPU workloads. Phases 2-4 do not depend on
+phase 1 and can develop and land against the released boatyard — no
+managed annotation is authored yet and both GPU containers auto-start,
+with the mode switcher reconciling the dual-start (the ADR's Q3 option
+(b), rejected as the end state but acceptable as an intermediate, since
+the mode switcher's boot reconciliation is strictly better than today's
+silent OOM). Phase 5 is what activates selective-start and closes the
+boot-race gap.
 
 ## End state
 
@@ -101,13 +107,13 @@ subset it delivers.
   outputs-only: `address: http://localizer:8000`, `managed: "false"` — no
   service emitted, no stub, no extra hop.
 - `boatyard up` creates all containers stopped (`docker compose up -d
-  --no-start`), starts non-GPU services + the mode switcher, and the mode
-  switcher starts the default-mode GPU container. No dual-start race. Raw
-  `docker compose up` starts both GPU containers — documented caveat, use
-  `boatyard up`.
+  --no-start`), starts the unmanaged services (everything but the two
+  managed GPU workloads), and the mode switcher starts the default-mode
+  GPU container. No dual-start race. Raw `docker compose up` starts both
+  GPU containers — documented caveat, use `boatyard up`.
 - placeframe consumes boatyard via a path reference on the local checkout
-  (reverts to a version pin when boatyard publishes the `managed` +
-  selective-start changes).
+  (reverts to a version pin when boatyard publishes the managed annotation
+  + selective-start changes).
 - The API consumes `${resources.localizer-router.address}` and
   `${resources.localizer-router.managed}`. When `managed: true`, it queries
   `<address>/localizer-address` at request time and forwards to the
@@ -119,9 +125,11 @@ subset it delivers.
   `<backendUrl>/gpu-mode/mode`.
 - `uv run gpu-mode {localization|reconstruction}` POSTs the mode switcher
   via the public `/gpu-mode/mode` path.
-- The `boatyard/gpu` (or `outernet.internal/gpu`, per world) annotation
-  value is `managed` on both GPU workloads; `always` is the escape hatch
-  (today's behavior, kept, used by nothing).
+- The gpu annotation stays `"true"` on both GPU workloads (substrate only,
+  the patch templates unchanged); a separate `boatyard/managed: "true"`
+  (or `outernet.internal/managed`, per world) on both excludes them from
+  `up`'s start step. Escape hatch: remove the annotation (absence = today's
+  auto-start behavior).
 - Localizer, reconstructor, lease-server: zero code changes.
 - `scripts/tests/test_score_compose_generation.py`: `CORE_SERVICES` gains
   `mode-switcher`; the bind assertion permits exactly `/var/run/docker.sock`
@@ -130,50 +138,54 @@ subset it delivers.
 
 ## Phases
 
-### 1. boatyard: `managed` value + selective-start (external)
+### 1. boatyard: managed annotation + selective-start (external)
 
-Complete, 2026-11-17 — boatyard branch `gpu-managed` (World A: off the
-released line, `boatyard/gpu` kept), commits `95d3368` (a pinned-compose
-test-binary cache — preflight was re-downloading ~32MB per run), `e748d3a`
-(the phase's code), `6f1d56f` (AGENTS.md prose), unpushed. Facts the later
-phases rely on: the gateway project stays one-shot `up -d` (no annotation can
-appear in a document boatyard itself renders, so the two-step applies to
-bundles only); docker compose v5's `start` honors `depends_on`
-health/completion conditions and starts only the listed services' dependency
-closures (verified empirically — the `wait-for-resources` gating survives
-selective-start, and a `start` naming the non-managed services leaves the
-`managed` containers created-stopped).
+Complete, 2026-11-17 — re-executed the same day on the ADR's
+split-annotation amendment (the first pass made `managed` a gpu-annotation
+value and widened the gpu template guards; the redo leaves the templates
+byte-identical to the released line). boatyard branch `gpu-managed`
+(World A: off the released line, `boatyard/*` namespace kept), commits
+`95d3368` (a pinned-compose test-binary cache — preflight was
+re-downloading ~32MB per run), `65b028d` (the phase's code), `03e5db4`
+(AGENTS.md prose), unpushed. Facts the later phases rely on: the gateway
+project stays one-shot `up -d` (no annotation can appear in a document
+boatyard itself renders, so the two-step applies to bundles only); docker
+compose v5's `start` honors `depends_on` health/completion conditions and
+starts only the listed services' dependency closures (verified empirically
+— the `wait-for-resources` gating survives selective-start, and a `start`
+naming the non-managed services leaves the `managed` containers
+created-stopped).
 
 Produced at `/workspace/boatyard/` (the bind mount, not a fresh clone).
 No push or publish — placeframe consumes the changes via a path reference
 on the local checkout (landed in phase 5). The branch the change lands on
 is the namespace fork (World A vs B above); the operator names it.
 
-- `src/boatyard/score_patch_templates/gpu-cuda.tpl:10`,
-  `gpu-rocm.tpl:8`, `gpu-pod.tpl:19`: change the `eq ... "true"` guard to
-  recognize `"managed"` and `"always"` as GPU-carrying alongside `"true"`
-  (`"true"` retained for back-compat with any consumer not yet migrated).
-  The annotation key the guard digs is whichever namespace the target
-  branch carries (`boatyard/gpu` on the released line, `outernet.internal/gpu`
-  on trunk).
-- `src/boatyard/verbs/up.py` (`_orchestrate_up` at `:141`): after
-  materializing the compose file, run `docker compose up -d --no-start`
-  (creates all containers stopped, env slots resolved), then
-  `docker compose start` for non-`managed` services only — found by
-  filtering the compose file's services against the gpu annotation value
-  `managed`. GPU containers exist, stopped, from boot. This is `up` logic,
-  not a patch template.
-- Tests in boatyard's suite: the gpu templates match `managed`/`always`/
-  `"true"`; `up`'s selective-start skips `managed` services and starts the
-  rest.
-- `AGENTS.md` (boatyard): the gpu-annotation constraint moves from
-  `"true"` to `managed`/`always` semantics. Prose commit.
+- `src/boatyard/verbs/up.py` (`_orchestrate_up`): after materializing the
+  compose file, run `docker compose up -d --no-start` (creates all
+  containers stopped, env slots resolved), then `docker compose start` for
+  every service except those carrying `boatyard/managed: "true"` — found
+  by reading each bundle document's service annotations. Any service can
+  carry it, gpu or not. GPU containers exist, stopped, from boot. This is
+  `up` logic, not a patch template.
+- `src/boatyard/lock.py`: `_stanza_annotations` renamed to
+  `stanza_annotations` (made public) — the one annotation reader `up`'s
+  filter goes through.
+- The gpu patch templates (`gpu-cuda.tpl`, `gpu-rocm.tpl`, `gpu-pod.tpl`)
+  are untouched — they keep keying on `"true"`.
+- Tests in boatyard's suite: `up`'s selective-start skips
+  `boatyard/managed` services and starts the rest; gpu annotation values
+  do not gate the start step (the decoupling regression guard).
+- `AGENTS.md` (boatyard): the substrate-annotation bullet names the gpu
+  annotation (`"true"`, substrate only, the patch templates its reader)
+  and the separate managed annotation (lifecycle, `up`'s start step its
+  reader). Prose commit.
 
-Verification: boatyard's own lint/type/test battery. The change is not
-consumable from placeframe until phase 5 switches the dependency to a path
-reference on this checkout.
+Verification: boatyard's own lint/type/test battery + preflight. The change
+is not consumable from placeframe until phase 5 switches the dependency to
+a path reference on this checkout.
 
-Commit: code commit(s) + prose commit (AGENTS.md). No push — the changes
+Commit: code commit + prose commit (AGENTS.md). No push — the changes
 live in the local checkout that phase 5's path reference points at.
 
 ### 2. Mode switcher workload
@@ -323,7 +335,7 @@ gpu-mode --help` + unit test of the POST against a stubbed endpoint.
 
 Commit: code commits, then canonical `Run generate-clients`.
 
-### 5. Path-pin boatyard + annotation flip + selective-start activation
+### 5. Path-pin boatyard + managed annotation + selective-start activation
 
 Depends on phase 1's changes being in the local `/workspace/boatyard/`
 checkout. This is the phase that activates selective-start and closes the
@@ -334,21 +346,23 @@ mode switcher reconciles (Q3 option (b), the intermediate).
   pin (`boatyard>=0.8`) to a path reference on the local checkout carrying
   phase 1's changes. `uv sync --all-packages` (regenerates the workspace
   `uv.lock` against the local boatyard). This is the bridge that makes
-  phase 1's template + `up` logic changes consumable from placeframe
+  phase 1's annotation + `up` logic changes consumable from placeframe
   without a boatyard publish. The path reference reverts to a version pin
-  when boatyard publishes the `managed` + selective-start changes.
-- `stack/score/localizer.yaml:5` — `boatyard/gpu: "true"` → `managed`
-  (World A). World B: the annotation key migrates to
-  `outernet.internal/gpu` AND the value becomes `managed`, along with every
-  other `boatyard/*` annotation in the score files (`boatyard/probe-adapter`,
-  `boatyard/dockerfile`, `boatyard/route`) — the trunk rename is
-  whole-namespace, not gpu-only.
-- `stack/score/reconstructor.yaml:7` — same change. The comment at `:5-6`
-  ("the GPU marker boatyard's built-in gpu patch templates key on") updates
-  to name `managed`/`always` semantics (spec-first: the doc leads, the code
-  follows).
+  when boatyard publishes the managed annotation + selective-start
+  changes.
+- `stack/score/localizer.yaml:5` — add `boatyard/managed: "true"` beside
+  the existing gpu annotation (World A; the gpu annotation itself is
+  untouched). World B: the whole namespace migrates to
+  `outernet.internal/*` — every `boatyard/*` annotation in the score files
+  (`boatyard/gpu`, `boatyard/probe-adapter`, `boatyard/dockerfile`,
+  `boatyard/route`) gets the new spelling, and the new annotation lands as
+  `outernet.internal/managed: "true"`.
+- `stack/score/reconstructor.yaml:7` — same change. The gpu comment at
+  `:5-6` ("the GPU marker boatyard's built-in gpu patch templates key on")
+  stays accurate (the templates still key on `"true"`); the new annotation
+  line carries its own comment naming the created-stopped semantics.
 - Regen: `uv run generate-score` (now runs against the path-pinned boatyard
-  with `managed` recognition + selective-start). Canonical
+  with the managed annotation + selective-start). Canonical
   `Run generate-score`.
 
 Verification: battery + preflight. Manual (the mandatory end-to-end for
@@ -365,8 +379,10 @@ Commit: code commit (path-pin + annotations), then canonical
 ### 6. Promotion and closeout
 
 - Fold hardened truth into co-located docs:
-  - `stack/AGENTS.md` — the gpu-annotation constraint (`managed`/`always`
-    semantics); the `localizer-router` resource type; the mode switcher as
+  - `stack/AGENTS.md` — the gpu-annotation constraint (`"true"` substrate
+    semantics, templates its reader) and the separate `boatyard/managed`
+    lifecycle annotation (created-stopped at `up`); the
+    `localizer-router` resource type; the mode switcher as
     a compose-only provisioner-emitted service (joining ngrok as the second
     compose-only workload); the selective-start `up` behavior; the scoped
     bind exception to the hermetic-artifacts constraint; the raw-`docker
