@@ -112,8 +112,9 @@ subset it delivers.
   GPU container. No dual-start race. Raw `docker compose up` starts both
   GPU containers — documented caveat, use `boatyard up`.
 - placeframe consumes boatyard via a path reference on the local checkout
-  (reverts to a version pin when boatyard publishes the autostart
-  annotation + selective-start changes).
+  (reverts to a `>=0.9` version pin when boatyard publishes the autostart
+  annotation + selective-start changes — the 0.9 floor is the capability
+  declaration).
 - The API consumes `${resources.localizer-router.address}` and
   `${resources.localizer-router.managed}`. When `managed: true`, it queries
   `<address>/localizer-address` at request time and forwards to the
@@ -149,11 +150,12 @@ consumer's motivation — an external orchestrator — which boatyard can
 neither see nor enforce; the annotation's whole contract is whether the
 container starts at `up`). boatyard branch `gpu-managed`
 (World A: off the released line, `boatyard/*` namespace kept): one code
-commit `efb2777` (the autostart-annotation selective start, the
+commit `06882a7` (the autostart-annotation selective start, the
 pinned-compose test-binary cache, the compose_command dissolution with
 quoting in `temp.py` as `quote_command_token`, and bundle records —
 held services and declared ports — carried on the assembly plan, the
-plan carrying the config), then one AGENTS.md prose commit, tip `4618681`,
+plan carrying the config; version 0.9.0 — the lock format grew, so
+consumers relock once), then one AGENTS.md prose commit, tip `17d038c`,
 unpushed.
 Facts the later phases rely on: the gateway
 project stays one-shot `up -d` (no annotation can appear in a document
@@ -364,9 +366,9 @@ mode switcher reconciles (Q3 option (b), the intermediate).
   phase 1's changes. `uv sync --all-packages` (regenerates the workspace
   `uv.lock` against the local boatyard). This is the bridge that makes
   phase 1's annotation + `up` logic changes consumable from placeframe
-  without a boatyard publish. The path reference reverts to a version pin
-  when boatyard publishes the autostart annotation + selective-start
-  changes.
+  without a boatyard publish. The path reference reverts to a `>=0.9`
+  version pin when boatyard publishes the autostart annotation +
+  selective-start changes.
 - `stack/score/localizer.yaml:5` — add `boatyard/autostart: "false"` beside
   the existing gpu annotation (World A; the gpu annotation itself is
   untouched). World B: the whole namespace migrates to
