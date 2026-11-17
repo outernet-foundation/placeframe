@@ -147,7 +147,10 @@ byte-identical to the released line). boatyard branch `gpu-managed`
 (World A: off the released line, `boatyard/*` namespace kept), commits
 `95d3368` (a pinned-compose test-binary cache — preflight was
 re-downloading ~32MB per run), `65b028d` (the phase's code), `03e5db4`
-(AGENTS.md prose), unpushed. Facts the later phases rely on: the gateway
+(AGENTS.md prose), plus the operator-directed `b057eb1` +
+`69b09e6` (compose_command dissolved into local verb spellings — the
+quoting treaty moved to `temp.py` as `quote_command_token`; the module
+map follows), unpushed. Facts the later phases rely on: the gateway
 project stays one-shot `up -d` (no annotation can appear in a document
 boatyard itself renders, so the two-step applies to bundles only); docker
 compose v5's `start` honors `depends_on` health/completion conditions and
