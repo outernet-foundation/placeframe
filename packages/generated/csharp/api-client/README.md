@@ -98,21 +98,17 @@ namespace Example
             HttpClient httpClient = new HttpClient();
             HttpClientHandler httpClientHandler = new HttpClientHandler();
             var apiInstance = new DefaultApi(httpClient, config, httpClientHandler);
-            var deviceType = (DeviceType) "ARFoundation";  // DeviceType | 
-            var data = new System.IO.MemoryStream(System.IO.File.ReadAllBytes("/path/to/file.txt"));  // FileParameter | 
-            var name = "name_example";  // string | 
-            var id = "id_example";  // Guid? |  (optional) 
-            var recordedAt = DateTime.Parse("2013-10-20T19:20:30+01:00");  // DateTime? | datetime with the constraint that the value must have timezone info (optional) 
+            var id = "id_example";  // Guid | 
 
             try
             {
-                // CreateCaptureSession
-                CaptureSessionRead result = apiInstance.CreateCaptureSession(deviceType, data, name, id, recordedAt);
+                // CancelReconstruction
+                ReconstructionReadWithQueue result = apiInstance.CancelReconstruction(id);
                 Debug.WriteLine(result);
             }
             catch (ApiException e)
             {
-                Debug.Print("Exception when calling DefaultApi.CreateCaptureSession: " + e.Message );
+                Debug.Print("Exception when calling DefaultApi.CancelReconstruction: " + e.Message );
                 Debug.Print("Status Code: "+ e.ErrorCode);
                 Debug.Print(e.StackTrace);
             }
@@ -129,6 +125,7 @@ All URIs are relative to *http://localhost:8000*
 
 Class | Method | HTTP request | Description
 ------------ | ------------- | ------------- | -------------
+*DefaultApi* | [**CancelReconstruction**](docs/DefaultApi.md#cancelreconstruction) | **PUT** /reconstructions/{id}/cancel | CancelReconstruction
 *DefaultApi* | [**CreateCaptureSession**](docs/DefaultApi.md#createcapturesession) | **POST** /capture_sessions | CreateCaptureSession
 *DefaultApi* | [**CreateCaptureSessions**](docs/DefaultApi.md#createcapturesessions) | **POST** /capture_sessions/bulk | CreateCaptureSessions
 *DefaultApi* | [**CreateGraph**](docs/DefaultApi.md#creategraph) | **POST** /graph | CreateGraph
