@@ -67,19 +67,15 @@ configuration = placeframe_api_client.Configuration(
 async with placeframe_api_client.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = placeframe_api_client.DefaultApi(api_client)
-    device_type = placeframe_api_client.DeviceType() # DeviceType | 
-    data = None # bytes | 
-    name = 'name_example' # str | 
-    id = UUID('38400000-8cf0-11bd-b23e-10b96e4ef00d') # UUID |  (optional)
-    recorded_at = '2013-10-20T19:20:30+01:00' # datetime | datetime with the constraint that the value must have timezone info (optional)
+    id = UUID('38400000-8cf0-11bd-b23e-10b96e4ef00d') # UUID | 
 
     try:
-        # CreateCaptureSession
-        api_response = await api_instance.create_capture_session(device_type, data, name, id=id, recorded_at=recorded_at)
-        print("The response of DefaultApi->create_capture_session:\n")
+        # CancelReconstruction
+        api_response = await api_instance.cancel_reconstruction(id)
+        print("The response of DefaultApi->cancel_reconstruction:\n")
         pprint(api_response)
     except ApiException as e:
-        print("Exception when calling DefaultApi->create_capture_session: %s\n" % e)
+        print("Exception when calling DefaultApi->cancel_reconstruction: %s\n" % e)
 
 ```
 
@@ -89,6 +85,7 @@ All URIs are relative to *http://localhost:8000*
 
 Class | Method | HTTP request | Description
 ------------ | ------------- | ------------- | -------------
+*DefaultApi* | [**cancel_reconstruction**](docs/DefaultApi.md#cancel_reconstruction) | **PUT** /reconstructions/{id}/cancel | CancelReconstruction
 *DefaultApi* | [**create_capture_session**](docs/DefaultApi.md#create_capture_session) | **POST** /capture_sessions | CreateCaptureSession
 *DefaultApi* | [**create_capture_sessions**](docs/DefaultApi.md#create_capture_sessions) | **POST** /capture_sessions/bulk | CreateCaptureSessions
 *DefaultApi* | [**create_graph**](docs/DefaultApi.md#create_graph) | **POST** /graph | CreateGraph
