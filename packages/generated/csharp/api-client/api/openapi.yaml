@@ -3963,6 +3963,7 @@ components:
           bundle_adjustment_global_frames_ratio: 7.386281948385884
           two_view_min_num_inliers: 3
           sequential_window_m: 5.962133916683182
+          cross_rig_pair_distance_m: 5.025004791520295
         create:
           capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
           id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
@@ -4137,6 +4138,7 @@ components:
         bundle_adjustment_global_frames_ratio: 7.386281948385884
         two_view_min_num_inliers: 3
         sequential_window_m: 5.962133916683182
+        cross_rig_pair_distance_m: 5.025004791520295
       properties:
         deterministic_seed:
           description: PRNG seed and single-threaded gate for reproducible reconstructions;
@@ -4264,6 +4266,19 @@ components:
             type: integer
           nullable: true
           type: array
+        cross_rig_pair_distance_m:
+          default: 0.0
+          description: "Pair frames of *different* rigs whose position priors put\
+            \ them within this many metres, in addition to the sequential and retrieval\
+            \ sources. 0 disables it. Only meaningful when the rigs' priors are already\
+            \ in one frame -- separate captures arrive in unrelated frames, so this\
+            \ does nothing until something has placed them relative to each other.\
+            \ It exists because retrieval is the only source that crosses rigs, and\
+            \ it is chosen by descriptor similarity: two captures that genuinely overlap\
+            \ can still lose to hundreds of higher-scoring within-capture neighbours\
+            \ and never be paired. Proximity is a signal retrieval does not have."
+          format: double
+          type: number
       title: ReconstructionOptions
       type: object
     ReconstructionReadWithQueue:
