@@ -18,6 +18,8 @@ containers:
       DEPLOYMENT_ENVIRONMENT: ${resources.config.deployment_environment}
       SERVICE_VERSION: ${RECONSTRUCTOR_SHA}
       OTEL_EXPORTER_OTLP_ENDPOINT: ${resources.observability.otlp_endpoint}
+      # Empty defers to the automatic rule in reconstructor/batching.py.
+      LIGHTGLUE_BATCH_SIZE: ${resources.config.lightglue_batch_size}
 resources:
   lease-server:
     type: service-port

@@ -38,6 +38,7 @@ from placeframe_lease_server_client import ReconstructionStatus
 from pycolmap._core import set_random_seed  # noqa: PLC2701 — no public API
 from torch import Tensor, cuda, from_numpy, inference_mode  # type: ignore
 
+from .batching import LIGHTGLUE_BATCH_SIZE_ENV, lightglue_batch_size
 from .colmap import COLMAP_DB_FILE, run_colmap_reconstruction
 from .keyframes import select_keyframes_by_distance
 from .metrics_builder import MetricsBuilder
@@ -55,7 +56,6 @@ CAPTURE_SESSION_DIRECTORY = WORK_DIR / "capture_session"
 COMPRESSION_OPQ_NUMBER_OF_SUBVECTORS = 16
 COMPRESSION_OPQ_NUMBER_OF_BITS_PER_SUBVECTOR = 8
 COMPRESSION_OPQ_NUMBER_OF_TRAINING_ITERATIONS = 20
-LIGHTGLUE_BATCH_SIZE = 16
 
 global_descriptor_extractor: Callable[[Tensor], TT[RetrievalDim]]
 local_feature_extractor: Callable[[Tensor], LocalFeatureOutput]
@@ -197,6 +197,7 @@ def run_reconstruction(
         options.sequential_window_m(),
         options.retrieval_neighbors(),
         options.retrieval_min_score(),
+        options.cross_rig_pair_distance_m(),
     )
     file_name, file_bytes = write_pairs(pairs, WORK_DIR)
     _put_artifact(s3_client, settings.reconstructions_bucket, reconstruction_id, file_name, file_bytes)
@@ -234,14 +235,20 @@ def run_reconstruction(
 
     image_name_pairs: list[tuple[str, str]] = [(pair.image_a, pair.image_b) for pair in pairs]
 
-    # Match features
+    # Match features. Pairs per pass follow the keypoint cap (see batching.py): peak memory is
+    # batch x cap^2, so a higher cap matches fewer pairs at once instead of asking for more memory.
+    batch_size = lightglue_batch_size(options.max_keypoints_per_image(), environ.get(LIGHTGLUE_BATCH_SIZE_ENV))
+    print(
+        f"Matching {len(pairs)} pairs, {batch_size} per LightGlue pass "
+        f"(up to {options.max_keypoints_per_image()} keypoints per image)"
+    )
     publisher.set_phase(ReconstructionStatus.MATCHING_FEATURES, total=len(pairs))
     match_indices = local_feature_matcher(
         image_name_pairs,
         keypoints,
         descriptors,
         sizes,
-        LIGHTGLUE_BATCH_SIZE,
+        batch_size,
         publisher.on_progress,
     )
     if cuda.is_available():
