@@ -184,13 +184,19 @@ async def get_capture_sessions_expanded(session: AsyncSession) -> CaptureSession
     captures = list((await session.execute(select(CaptureSession))).scalars().all())
     capture_ids = [c.id for c in captures]
 
+    # Newest first, per capture. A client that reads one reconstruction out of this list -- the
+    # capture tool picks the one whose localization map it will localize against -- otherwise reads
+    # whichever row Postgres happened to return, which can differ between two calls with no change
+    # to the data.
     reconstruction_rows: list[tuple[Reconstruction, int | None, int | None]] = []
     if capture_ids:
         reconstruction_rows = [
             (row[0], row[1], row[2])
             for row in (
                 await session.execute(
-                    select_reconstructions_with_queue().where(Reconstruction.capture_session_id.in_(capture_ids))
+                    select_reconstructions_with_queue()
+                    .where(Reconstruction.capture_session_id.in_(capture_ids))
+                    .order_by(Reconstruction.created_at.desc())
                 )
             ).all()
         ]
@@ -252,6 +258,20 @@ async def delete_capture_session(session: AsyncSession, id: UUID) -> None:
 
     if not row:
         raise NotFoundException(f"Capture session with id {id} not found")
+
+    # Reconstructions reference this row with ON DELETE RESTRICT. Rejecting that case up front
+    # keeps the tar deletion below from running for a delete the database would then refuse — the
+    # tar is not transactional and would be gone while the capture row stayed.
+    result = await session.execute(select(Reconstruction.id).where(Reconstruction.capture_session_id == id).limit(1))
+    if result.scalar_one_or_none() is not None:
+        raise HTTPException(
+            status_code=HTTP_409_CONFLICT,
+            detail=f"Capture session {id} still has reconstructions; delete those first",
+        )
+
+    # The tar goes before the row, as in delete_reconstruction: the row id is the only handle on
+    # the object, so a failure here leaves a recoverable state rather than an unreachable tar.
+    get_storage().delete_prefix(settings.captures_bucket, f"{id}.tar")
 
     await session.delete(row)
 
