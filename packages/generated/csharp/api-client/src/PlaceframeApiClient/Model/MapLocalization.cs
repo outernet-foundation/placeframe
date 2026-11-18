@@ -43,6 +43,7 @@ namespace PlaceframeApiClient.Model
         /// <param name="cameraFromMapTransform">cameraFromMapTransform (required).</param>
         /// <param name="mapTransform">mapTransform (required).</param>
         /// <param name="metrics">metrics (required).</param>
+        /// <param name="detail">detail.</param>
         public MapLocalization(Guid id, Transform cameraFromMapTransform, Transform mapTransform, LocalizationMetrics metrics)
         {
             this.Id = id;
@@ -163,6 +164,30 @@ namespace PlaceframeApiClient.Model
             return _flagMetrics;
         }
         /// <summary>
+        /// Gets or Sets Detail
+        /// </summary>
+        [DataMember(Name = "detail", EmitDefaultValue = false)]
+        public LocalizationDetail Detail
+        {
+            get{ return _Detail;}
+            set
+            {
+                _Detail = value;
+                _flagDetail = true;
+            }
+        }
+        private LocalizationDetail _Detail;
+        private bool _flagDetail;
+
+        /// <summary>
+        /// Returns false as Detail should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeDetail()
+        {
+            return _flagDetail;
+        }
+        /// <summary>
         /// Returns the string presentation of the object
         /// </summary>
         /// <returns>String presentation of the object</returns>
@@ -174,6 +199,7 @@ namespace PlaceframeApiClient.Model
             sb.Append("  CameraFromMapTransform: ").Append(CameraFromMapTransform).Append("\n");
             sb.Append("  MapTransform: ").Append(MapTransform).Append("\n");
             sb.Append("  Metrics: ").Append(Metrics).Append("\n");
+            sb.Append("  Detail: ").Append(Detail).Append("\n");
             sb.Append("}\n");
             return sb.ToString();
         }

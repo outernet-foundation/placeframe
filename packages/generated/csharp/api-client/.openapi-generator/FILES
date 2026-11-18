@@ -37,6 +37,7 @@ src/PlaceframeApiClient/Model/ExpandedCaptureSession.cs
 src/PlaceframeApiClient/Model/ExpandedReconstruction.cs
 src/PlaceframeApiClient/Model/Float3.cs
 src/PlaceframeApiClient/Model/Float4.cs
+src/PlaceframeApiClient/Model/GateDetail.cs
 src/PlaceframeApiClient/Model/GetCaptureSessions400Response.cs
 src/PlaceframeApiClient/Model/GetCaptureSessions400ResponseExtra.cs
 src/PlaceframeApiClient/Model/GroupBatchCreate.cs
@@ -48,6 +49,7 @@ src/PlaceframeApiClient/Model/LayerBatchUpdate.cs
 src/PlaceframeApiClient/Model/LayerCreate.cs
 src/PlaceframeApiClient/Model/LayerRead.cs
 src/PlaceframeApiClient/Model/LinkType.cs
+src/PlaceframeApiClient/Model/LocalizationDetail.cs
 src/PlaceframeApiClient/Model/LocalizationEvaluationCreate.cs
 src/PlaceframeApiClient/Model/LocalizationEvaluationRead.cs
 src/PlaceframeApiClient/Model/LocalizationMapBatchUpdate.cs
@@ -60,6 +62,7 @@ src/PlaceframeApiClient/Model/NodeBatchCreate.cs
 src/PlaceframeApiClient/Model/NodeBatchUpdate.cs
 src/PlaceframeApiClient/Model/NodeCreate.cs
 src/PlaceframeApiClient/Model/NodeRead.cs
+src/PlaceframeApiClient/Model/PairDetail.cs
 src/PlaceframeApiClient/Model/PhaseTiming.cs
 src/PlaceframeApiClient/Model/PinholeCameraConfig.cs
 src/PlaceframeApiClient/Model/ReconstructionCreate.cs

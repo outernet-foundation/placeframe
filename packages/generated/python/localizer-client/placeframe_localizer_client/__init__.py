@@ -31,10 +31,13 @@ __all__ = [
     "AxisConvention",
     "Float3",
     "Float4",
+    "GateDetail",
     "Localization",
+    "LocalizationDetail",
     "LocalizationMetrics",
     "LocalizeImage400Response",
     "LocalizeImage400ResponseExtra",
+    "PairDetail",
     "PhaseTiming",
     "PinholeCameraConfig",
     "ReconstructionMetrics",
@@ -59,10 +62,13 @@ from placeframe_localizer_client.exceptions import ApiException as ApiException
 from placeframe_localizer_client.models.axis_convention import AxisConvention as AxisConvention
 from placeframe_localizer_client.models.float3 import Float3 as Float3
 from placeframe_localizer_client.models.float4 import Float4 as Float4
+from placeframe_localizer_client.models.gate_detail import GateDetail as GateDetail
 from placeframe_localizer_client.models.localization import Localization as Localization
+from placeframe_localizer_client.models.localization_detail import LocalizationDetail as LocalizationDetail
 from placeframe_localizer_client.models.localization_metrics import LocalizationMetrics as LocalizationMetrics
 from placeframe_localizer_client.models.localize_image400_response import LocalizeImage400Response as LocalizeImage400Response
 from placeframe_localizer_client.models.localize_image400_response_extra import LocalizeImage400ResponseExtra as LocalizeImage400ResponseExtra
+from placeframe_localizer_client.models.pair_detail import PairDetail as PairDetail
 from placeframe_localizer_client.models.phase_timing import PhaseTiming as PhaseTiming
 from placeframe_localizer_client.models.pinhole_camera_config import PinholeCameraConfig as PinholeCameraConfig
 from placeframe_localizer_client.models.reconstruction_metrics import ReconstructionMetrics as ReconstructionMetrics

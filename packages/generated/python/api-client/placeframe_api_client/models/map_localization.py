@@ -18,8 +18,9 @@ import re  # noqa: F401
 import json
 
 from pydantic import BaseModel, ConfigDict
-from typing import Any, ClassVar, Dict, List
+from typing import Any, ClassVar, Dict, List, Optional
 from uuid import UUID
+from placeframe_api_client.models.localization_detail import LocalizationDetail
 from placeframe_api_client.models.localization_metrics import LocalizationMetrics
 from placeframe_api_client.models.transform import Transform
 from typing import Optional, Set
@@ -34,8 +35,9 @@ class MapLocalization(BaseModel):
     camera_from_map_transform: Transform
     map_transform: Transform
     metrics: LocalizationMetrics
+    detail: Optional[LocalizationDetail] = None
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["id", "camera_from_map_transform", "map_transform", "metrics"]
+    __properties: ClassVar[List[str]] = ["id", "camera_from_map_transform", "map_transform", "metrics", "detail"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -87,6 +89,9 @@ class MapLocalization(BaseModel):
         # override the default output from pydantic by calling `to_dict()` of metrics
         if self.metrics:
             _dict['metrics'] = self.metrics.to_dict()
+        # override the default output from pydantic by calling `to_dict()` of detail
+        if self.detail:
+            _dict['detail'] = self.detail.to_dict()
         # puts key-value pairs in additional_properties in the top level
         if self.additional_properties is not None:
             for _key, _value in self.additional_properties.items():
@@ -107,7 +112,8 @@ class MapLocalization(BaseModel):
             "id": obj.get("id"),
             "camera_from_map_transform": Transform.from_dict(obj["camera_from_map_transform"]) if obj.get("camera_from_map_transform") is not None else None,
             "map_transform": Transform.from_dict(obj["map_transform"]) if obj.get("map_transform") is not None else None,
-            "metrics": LocalizationMetrics.from_dict(obj["metrics"]) if obj.get("metrics") is not None else None
+            "metrics": LocalizationMetrics.from_dict(obj["metrics"]) if obj.get("metrics") is not None else None,
+            "detail": LocalizationDetail.from_dict(obj["detail"]) if obj.get("detail") is not None else None
         })
         # store additional fields in additional_properties
         for _key in obj.keys():

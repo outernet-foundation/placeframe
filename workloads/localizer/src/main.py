@@ -32,7 +32,7 @@ from pydantic import BeforeValidator, Json
 
 from placeframe_core.calibration import CalibrationArtifact
 from .map import Map, load_map
-from .schemas import LoadState, Localization
+from .schemas import LoadState, Localization, LocalizationFailure
 from .settings import get_settings
 
 configure_logging("localizer", uvicorn_logger_handlers=True)
@@ -76,6 +76,10 @@ class LocalizationRequest(MultipartRequestModel):
     axis_convention: AxisConvention
     retrieval_top_k: int | None = None
     ransac_threshold: float | None = None
+    use_chunking: bool = True
+    # Opt-in: the per-match arrays are far larger than the pose they explain, so only a caller
+    # that is going to show them to someone should ask for them.
+    detail: bool = False
     image: UploadFile
 
 
@@ -87,36 +91,63 @@ async def localize_image(
         raise
 
     # Import here to avoid importing torch during codegen
+    from torch import cuda  # type: ignore
+
     from .localize import LocalizationError, localize_image_against_reconstruction
 
     image = await data.image.read()
 
     localizations: list[Localization] = []
-    errors: list[str] = []
+    failures: list[LocalizationFailure] = []
 
-    for id in data.reconstruction_ids:
-        if id not in _maps:
-            _maps[id] = load_map(id, s3_client, settings.reconstructions_bucket, RECONSTRUCTIONS_DIR, data.metrics[id])
+    try:
+        for id in data.reconstruction_ids:
+            if id not in _maps:
+                _maps[id] = load_map(
+                    id, s3_client, settings.reconstructions_bucket, RECONSTRUCTIONS_DIR, data.metrics[id]
+                )
 
-        try:
-            assert calibration is not None  # CODEGEN-guarded; runtime always has it
-            result = localize_image_against_reconstruction(
-                _maps[id],
-                data.camera_config,
-                data.axis_convention,
-                image,
-                data.retrieval_top_k,
-                data.ransac_threshold,
-                pipeline_version,
-                calibration,
-            )
+            try:
+                assert calibration is not None  # CODEGEN-guarded; runtime always has it
+                result = localize_image_against_reconstruction(
+                    _maps[id],
+                    data.camera_config,
+                    data.axis_convention,
+                    image,
+                    data.retrieval_top_k,
+                    data.ransac_threshold,
+                    pipeline_version,
+                    calibration,
+                    data.use_chunking,
+                    data.detail,
+                )
 
-            localizations.append(Localization(id=id, transform=result[0], metrics=result[1]))
-        except LocalizationError as e:
-            errors.append(f"Reconstruction {id}: {str(e)}")
+                transform, metrics, detail = result
+                if detail is not None:
+                    detail.reconstruction_id = str(id)
+                localizations.append(Localization(id=id, transform=transform, metrics=metrics, detail=detail))
+            except LocalizationError as e:
+                if e.detail is not None:
+                    e.detail.reconstruction_id = str(id)
+                failures.append(LocalizationFailure(id=id, error=str(e), detail=e.detail))
+    finally:
+        # PyTorch's caching allocator never hands a freed block back to the driver, so without
+        # this the process keeps its high-water mark for as long as it lives -- several GiB of a
+        # shared GPU, held while idle, which is enough to make a reconstruction on the same card
+        # fail to allocate. Released per request rather than per query image: the caller already
+        # has its answer, and what is reclaimed is the matching workspace, not the models.
+        if cuda.is_available():
+            cuda.empty_cache()
 
     if not localizations:
-        raise HTTPException(status_code=HTTP_422_UNPROCESSABLE_ENTITY, detail="; ".join(errors))
+        # `extra` carries the structured per-reconstruction failures (including their diagnostic
+        # detail) alongside the human-readable summary, so the caller can surface a reason rather
+        # than a bare 422.
+        raise HTTPException(
+            status_code=HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="; ".join(f"Reconstruction {failure.id}: {failure.error}" for failure in failures),
+            extra=[failure.model_dump(mode="json") for failure in failures],
+        )
 
     return localizations
 
