@@ -57,7 +57,7 @@ namespace PlaceframeApiClient.Model
         /// <param name="errTM">errTM.</param>
         /// <param name="pnpCovariance">pnpCovariance.</param>
         /// <param name="se3Residual">se3Residual.</param>
-        public LocalizationEvaluationCreate(Guid reconstructionId, double ransacThreshold, int frameTimestamp, double inlierCoverage, double queryImageDiagonalPx, double reprojErrorMedian, double inlierRatio, int retrievalTopK, int numInliers, int numMatches, int numCorrespondences, bool succeeded, string pipelineVersion)
+        public LocalizationEvaluationCreate(Guid reconstructionId, double ransacThreshold, long frameTimestamp, double inlierCoverage, double queryImageDiagonalPx, double reprojErrorMedian, double inlierRatio, int retrievalTopK, int numInliers, int numMatches, int numCorrespondences, bool succeeded, string pipelineVersion)
         {
             this.ReconstructionId = reconstructionId;
             this.RansacThreshold = ransacThreshold;
@@ -131,7 +131,7 @@ namespace PlaceframeApiClient.Model
         /// Gets or Sets FrameTimestamp
         /// </summary>
         [DataMember(Name = "frame_timestamp", IsRequired = true, EmitDefaultValue = true)]
-        public int FrameTimestamp
+        public long FrameTimestamp
         {
             get{ return _FrameTimestamp;}
             set
@@ -140,7 +140,7 @@ namespace PlaceframeApiClient.Model
                 _flagFrameTimestamp = true;
             }
         }
-        private int _FrameTimestamp;
+        private long _FrameTimestamp;
         private bool _flagFrameTimestamp;
 
         /// <summary>

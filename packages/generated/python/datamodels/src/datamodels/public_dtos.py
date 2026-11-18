@@ -90,7 +90,7 @@ class LocalizationEvaluationCreate(BaseModel):
     reconstruction_id: UUID = Field(..., title="Reconstruction Id")
     id: UUID | None = Field(default=None, title="Id")
     ransac_threshold: float = Field(..., title="Ransac Threshold")
-    frame_timestamp: int = Field(..., title="Frame Timestamp")
+    frame_timestamp: int = Field(..., json_schema_extra={"format": "int64"}, title="Frame Timestamp")
     inlier_coverage: float = Field(..., title="Inlier Coverage")
     query_image_diagonal_px: float = Field(..., title="Query Image Diagonal Px")
     reproj_error_median: float = Field(..., title="Reproj Error Median")
@@ -111,7 +111,7 @@ class LocalizationEvaluationBatchCreate(BaseModel):
     reconstruction_id: UUID = Field(..., title="Reconstruction Id")
     id: UUID = Field(..., title="Id")
     ransac_threshold: float = Field(..., title="Ransac Threshold")
-    frame_timestamp: int = Field(..., title="Frame Timestamp")
+    frame_timestamp: int = Field(..., json_schema_extra={"format": "int64"}, title="Frame Timestamp")
     inlier_coverage: float = Field(..., title="Inlier Coverage")
     query_image_diagonal_px: float = Field(..., title="Query Image Diagonal Px")
     reproj_error_median: float = Field(..., title="Reproj Error Median")
@@ -131,7 +131,7 @@ class LocalizationEvaluationBatchCreate(BaseModel):
 class LocalizationEvaluationUpdate(BaseModel):
     reconstruction_id: UUID | None = Field(default=None, title="Reconstruction Id")
     ransac_threshold: float | None = Field(default=None, title="Ransac Threshold")
-    frame_timestamp: int | None = Field(default=None, title="Frame Timestamp")
+    frame_timestamp: int | None = Field(default=None, json_schema_extra={"format": "int64"}, title="Frame Timestamp")
     inlier_coverage: float | None = Field(default=None, title="Inlier Coverage")
     query_image_diagonal_px: float | None = Field(default=None, title="Query Image Diagonal Px")
     reproj_error_median: float | None = Field(default=None, title="Reproj Error Median")
@@ -152,7 +152,7 @@ class LocalizationEvaluationBatchUpdate(BaseModel):
     reconstruction_id: UUID | None = Field(default=None, title="Reconstruction Id")
     id: UUID = Field(..., title="Id")
     ransac_threshold: float | None = Field(default=None, title="Ransac Threshold")
-    frame_timestamp: int | None = Field(default=None, title="Frame Timestamp")
+    frame_timestamp: int | None = Field(default=None, json_schema_extra={"format": "int64"}, title="Frame Timestamp")
     inlier_coverage: float | None = Field(default=None, title="Inlier Coverage")
     query_image_diagonal_px: float | None = Field(default=None, title="Query Image Diagonal Px")
     reproj_error_median: float | None = Field(default=None, title="Reproj Error Median")
@@ -173,7 +173,7 @@ class LocalizationEvaluationRead(BaseModel):
     reconstruction_id: UUID = Field(..., title="Reconstruction Id")
     id: UUID = Field(..., title="Id")
     ransac_threshold: float = Field(..., title="Ransac Threshold")
-    frame_timestamp: int = Field(..., title="Frame Timestamp")
+    frame_timestamp: int = Field(..., json_schema_extra={"format": "int64"}, title="Frame Timestamp")
     updated_at: AwareDatetime = Field(..., title="Updated At")
     inlier_coverage: float = Field(..., title="Inlier Coverage")
     created_at: AwareDatetime = Field(..., title="Created At")
@@ -202,7 +202,7 @@ class LocalizationMapCreate(BaseModel):
     rotation_x: float = Field(..., title="Rotation X")
     rotation_z: float = Field(..., title="Rotation Z")
     rotation_w: float = Field(..., title="Rotation W")
-    color: int = Field(..., title="Color")
+    color: int = Field(..., json_schema_extra={"format": "int64"}, title="Color")
     active: bool | None = Field(default=None, title="Active")
     lighting: int | None = Field(default=None, title="Lighting")
     name: str | None = Field(default=None, title="Name")
@@ -218,7 +218,7 @@ class LocalizationMapBatchCreate(BaseModel):
     rotation_x: float = Field(..., title="Rotation X")
     rotation_z: float = Field(..., title="Rotation Z")
     rotation_w: float = Field(..., title="Rotation W")
-    color: int = Field(..., title="Color")
+    color: int = Field(..., json_schema_extra={"format": "int64"}, title="Color")
     active: bool | None = Field(default=None, title="Active")
     lighting: int | None = Field(default=None, title="Lighting")
     name: str | None = Field(default=None, title="Name")
@@ -233,7 +233,7 @@ class LocalizationMapUpdate(BaseModel):
     rotation_x: float | None = Field(default=None, title="Rotation X")
     rotation_z: float | None = Field(default=None, title="Rotation Z")
     rotation_w: float | None = Field(default=None, title="Rotation W")
-    color: int | None = Field(default=None, title="Color")
+    color: int | None = Field(default=None, json_schema_extra={"format": "int64"}, title="Color")
     active: bool | None = Field(default=None, title="Active")
     lighting: int | None = Field(default=None, title="Lighting")
     name: str | None = Field(default=None, title="Name")
@@ -249,7 +249,7 @@ class LocalizationMapBatchUpdate(BaseModel):
     rotation_x: float | None = Field(default=None, title="Rotation X")
     rotation_z: float | None = Field(default=None, title="Rotation Z")
     rotation_w: float | None = Field(default=None, title="Rotation W")
-    color: int | None = Field(default=None, title="Color")
+    color: int | None = Field(default=None, json_schema_extra={"format": "int64"}, title="Color")
     active: bool | None = Field(default=None, title="Active")
     lighting: int | None = Field(default=None, title="Lighting")
     name: str | None = Field(default=None, title="Name")
@@ -266,7 +266,7 @@ class LocalizationMapRead(BaseModel):
     updated_at: AwareDatetime = Field(..., title="Updated At")
     rotation_z: float = Field(..., title="Rotation Z")
     rotation_w: float = Field(..., title="Rotation W")
-    color: int = Field(..., title="Color")
+    color: int = Field(..., json_schema_extra={"format": "int64"}, title="Color")
     created_at: AwareDatetime = Field(..., title="Created At")
     active: bool = Field(..., title="Active")
     lighting: int | None = Field(default=None, title="Lighting")
@@ -421,7 +421,7 @@ class TenantRead(BaseModel):
 class CaptureSessionCreate(BaseModel):
     id: UUID | None = Field(default=None, title="Id")
     recorded_at: AwareDatetime | None = Field(default=None, title="Recorded At")
-    size_bytes: int | None = Field(default=None, title="Size Bytes")
+    size_bytes: int | None = Field(default=None, json_schema_extra={"format": "int64"}, title="Size Bytes")
     device_type: DeviceType
     name: str = Field(..., title="Name")
 
@@ -429,14 +429,14 @@ class CaptureSessionCreate(BaseModel):
 class CaptureSessionBatchCreate(BaseModel):
     id: UUID = Field(..., title="Id")
     recorded_at: AwareDatetime | None = Field(default=None, title="Recorded At")
-    size_bytes: int | None = Field(default=None, title="Size Bytes")
+    size_bytes: int | None = Field(default=None, json_schema_extra={"format": "int64"}, title="Size Bytes")
     device_type: DeviceType
     name: str = Field(..., title="Name")
 
 
 class CaptureSessionUpdate(BaseModel):
     recorded_at: AwareDatetime | None = Field(default=None, title="Recorded At")
-    size_bytes: int | None = Field(default=None, title="Size Bytes")
+    size_bytes: int | None = Field(default=None, json_schema_extra={"format": "int64"}, title="Size Bytes")
     device_type: DeviceType | None = None
     name: str | None = Field(default=None, title="Name")
 
@@ -444,7 +444,7 @@ class CaptureSessionUpdate(BaseModel):
 class CaptureSessionBatchUpdate(BaseModel):
     id: UUID = Field(..., title="Id")
     recorded_at: AwareDatetime | None = Field(default=None, title="Recorded At")
-    size_bytes: int | None = Field(default=None, title="Size Bytes")
+    size_bytes: int | None = Field(default=None, json_schema_extra={"format": "int64"}, title="Size Bytes")
     device_type: DeviceType | None = None
     name: str | None = Field(default=None, title="Name")
 
@@ -454,7 +454,7 @@ class CaptureSessionRead(BaseModel):
     created_at: AwareDatetime = Field(..., title="Created At")
     updated_at: AwareDatetime = Field(..., title="Updated At")
     recorded_at: AwareDatetime = Field(..., title="Recorded At")
-    size_bytes: int = Field(..., title="Size Bytes")
+    size_bytes: int = Field(..., json_schema_extra={"format": "int64"}, title="Size Bytes")
     device_type: DeviceType
     name: str = Field(..., title="Name")
 

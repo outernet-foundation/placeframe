@@ -1852,6 +1852,7 @@ components:
           title: Recorded At
           type: string
         size_bytes:
+          format: int64
           nullable: true
           title: Size Bytes
           type: integer
@@ -1886,6 +1887,7 @@ components:
           title: Recorded At
           type: string
         size_bytes:
+          format: int64
           nullable: true
           title: Size Bytes
           type: integer
@@ -2033,6 +2035,7 @@ components:
           title: Created At
           type: string
         size_bytes:
+          format: int64
           title: Size Bytes
           type: integer
         device_type:
@@ -2065,6 +2068,7 @@ components:
           title: Recorded At
           type: string
         size_bytes:
+          format: int64
           nullable: true
           title: Size Bytes
           type: integer
@@ -2698,6 +2702,7 @@ components:
           title: Ransac Threshold
           type: number
         frame_timestamp:
+          format: int64
           title: Frame Timestamp
           type: integer
         inlier_coverage:
@@ -2810,6 +2815,7 @@ components:
           title: Ransac Threshold
           type: number
         frame_timestamp:
+          format: int64
           title: Frame Timestamp
           type: integer
         updated_at:
@@ -2958,6 +2964,7 @@ components:
           title: Rotation W
           type: number
         color:
+          format: int64
           nullable: true
           title: Color
           type: integer
@@ -3031,6 +3038,7 @@ components:
           title: Rotation W
           type: number
         color:
+          format: int64
           title: Color
           type: integer
         active:
@@ -3118,6 +3126,7 @@ components:
           title: Rotation W
           type: number
         color:
+          format: int64
           title: Color
           type: integer
         created_at:
@@ -3209,6 +3218,7 @@ components:
           title: Rotation W
           type: number
         color:
+          format: int64
           nullable: true
           title: Color
           type: integer

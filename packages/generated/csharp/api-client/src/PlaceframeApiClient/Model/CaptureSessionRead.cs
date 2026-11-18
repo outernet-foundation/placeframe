@@ -72,7 +72,7 @@ namespace PlaceframeApiClient.Model
         /// <param name="sizeBytes">sizeBytes (required).</param>
         /// <param name="deviceType">deviceType (required).</param>
         /// <param name="name">name (required).</param>
-        public CaptureSessionRead(Guid id, DateTime createdAt, DateTime updatedAt, DateTime recordedAt, int sizeBytes, DeviceType deviceType, string name)
+        public CaptureSessionRead(Guid id, DateTime createdAt, DateTime updatedAt, DateTime recordedAt, long sizeBytes, DeviceType deviceType, string name)
         {
             this.Id = id;
             this.CreatedAt = createdAt;
@@ -191,7 +191,7 @@ namespace PlaceframeApiClient.Model
         /// Gets or Sets SizeBytes
         /// </summary>
         [DataMember(Name = "size_bytes", IsRequired = true, EmitDefaultValue = true)]
-        public int SizeBytes
+        public long SizeBytes
         {
             get{ return _SizeBytes;}
             set
@@ -200,7 +200,7 @@ namespace PlaceframeApiClient.Model
                 _flagSizeBytes = true;
             }
         }
-        private int _SizeBytes;
+        private long _SizeBytes;
         private bool _flagSizeBytes;
 
         /// <summary>
