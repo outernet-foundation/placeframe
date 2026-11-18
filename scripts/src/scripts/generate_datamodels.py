@@ -2,6 +2,7 @@ import json
 import sys
 from ast import ClassDef, parse, unparse
 from enum import Enum
+from functools import partial
 from importlib.util import module_from_spec, spec_from_file_location
 from os import environ
 from pathlib import Path
@@ -79,7 +80,12 @@ def _generate_datamodels_for_schema(database_schema: str, models_path: Path, eng
         for column in columns:
             column_type = column.type.python_type
 
-            field = _int64_field if isinstance(column.type, BigInteger) else Field
+            # Mark bigint columns as int64 (using x-format so datamodel-codegen doesn't drop it)
+            make_field = (
+                partial(Field, json_schema_extra={"x-format": "int64"})
+                if isinstance(column.type, BigInteger)
+                else Field
+            )
 
             # Ensure that raw Enums (str) do not appear (should be post-processed into strict Enums)
             if isinstance(column.type, SAEnum) and not issubclass(column_type, Enum):
@@ -92,9 +98,9 @@ def _generate_datamodels_for_schema(database_schema: str, models_path: Path, eng
                 continue
 
             if getattr(column, "nullable", True):
-                read_fields[column.name] = (column_type | None, field(None))
+                read_fields[column.name] = (column_type | None, make_field(None))
             else:
-                read_fields[column.name] = (column_type, field(...))
+                read_fields[column.name] = (column_type, make_field(...))
 
             # Skip read-only fields in create/update/batch update DTOs
             #
@@ -117,25 +123,25 @@ def _generate_datamodels_for_schema(database_schema: str, models_path: Path, eng
                 continue
 
             if column.name in primary_keys:
-                batch_update_fields[column.name] = (column_type, field(...))
+                batch_update_fields[column.name] = (column_type, make_field(...))
             else:
-                update_fields[column.name] = (column_type | None, field(None))
-                batch_update_fields[column.name] = (column_type | None, field(None))
+                update_fields[column.name] = (column_type | None, make_field(None))
+                batch_update_fields[column.name] = (column_type | None, make_field(None))
 
             if (
                 getattr(column, "nullable", True)
                 or getattr(column, "default", None) is not None
                 or getattr(column, "server_default", None) is not None
             ):
-                create_fields[column.name] = (column_type | None, field(None))
+                create_fields[column.name] = (column_type | None, make_field(None))
                 # For BatchCreate, 'id' must be required, even if the DB has a default generator.
                 if column.name == "id":
-                    batch_create_fields[column.name] = (column_type, field(...))
+                    batch_create_fields[column.name] = (column_type, make_field(...))
                 else:
-                    batch_create_fields[column.name] = (column_type | None, field(None))
+                    batch_create_fields[column.name] = (column_type | None, make_field(None))
             else:
-                create_fields[column.name] = (column_type, field(...))
-                batch_create_fields[column.name] = (column_type, field(...))
+                create_fields[column.name] = (column_type, make_field(...))
+                batch_create_fields[column.name] = (column_type, make_field(...))
 
         for schema_name, fields in [
             (f"{table_name}Create", create_fields),
@@ -169,6 +175,7 @@ def _generate_datamodels_for_schema(database_schema: str, models_path: Path, eng
 
         print(f"Generating DTO classes for schema: {database_schema}")
 
+        # Strip the x- back to plain format on the DTO fields, which types generated clients 64-bit
         bash(
             f"uv run --no_workspace "
             f"datamodel-codegen "
@@ -248,14 +255,6 @@ def _generate_datamodels_for_schema(database_schema: str, models_path: Path, eng
         # Format generated DTO models
         bash(f"uv run ruff check --fix --select I,F401 {generated_dto_models_path}")
         bash(f"uv run ruff format {generated_dto_models_path}")
-
-
-# JSON Schema `integer` carries no width, so a client generator falls back to 32 bits (C# `int`)
-# and fails to parse any bigint past 2^31, such as a capture over 2 GB. The `x-` prefix survives
-# datamodel-codegen, which drops a plain `format`; --field-extra-keys-without-x-prefix strips it
-# back to `format` on the generated DTO field, which Litestar then emits into the OpenAPI spec.
-def _int64_field(default: Any) -> Any:
-    return Field(default, json_schema_extra={"x-format": "int64"})
 
 
 def main():
