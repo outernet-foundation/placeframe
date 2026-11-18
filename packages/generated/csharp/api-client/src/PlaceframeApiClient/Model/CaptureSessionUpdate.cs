@@ -97,7 +97,7 @@ namespace PlaceframeApiClient.Model
         /// Gets or Sets SizeBytes
         /// </summary>
         [DataMember(Name = "size_bytes", EmitDefaultValue = true)]
-        public int? SizeBytes
+        public long? SizeBytes
         {
             get{ return _SizeBytes;}
             set
@@ -106,7 +106,7 @@ namespace PlaceframeApiClient.Model
                 _flagSizeBytes = true;
             }
         }
-        private int? _SizeBytes;
+        private long? _SizeBytes;
         private bool _flagSizeBytes;
 
         /// <summary>

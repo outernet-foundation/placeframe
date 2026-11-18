@@ -2,6 +2,7 @@ import json
 import sys
 from ast import ClassDef, parse, unparse
 from enum import Enum
+from functools import partial
 from importlib.util import module_from_spec, spec_from_file_location
 from os import environ
 from pathlib import Path
@@ -10,9 +11,9 @@ from textwrap import dedent
 from typing import Any
 
 from bashrun.bash import bash
-from pydantic import create_model
+from pydantic import Field, create_model
 from pydantic.alias_generators import to_snake
-from sqlalchemy import MetaData, create_engine, inspect as sa_inspect
+from sqlalchemy import BigInteger, MetaData, create_engine, inspect as sa_inspect
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.sql.sqltypes import Enum as SAEnum
 from typer import run
@@ -79,6 +80,13 @@ def _generate_datamodels_for_schema(database_schema: str, models_path: Path, eng
         for column in columns:
             column_type = column.type.python_type
 
+            # Mark bigint columns as int64 (using x-format so datamodel-codegen doesn't drop it)
+            make_field = (
+                partial(Field, json_schema_extra={"x-format": "int64"})
+                if isinstance(column.type, BigInteger)
+                else Field
+            )
+
             # Ensure that raw Enums (str) do not appear (should be post-processed into strict Enums)
             if isinstance(column.type, SAEnum) and not issubclass(column_type, Enum):
                 raise NotImplementedError(
@@ -90,9 +98,9 @@ def _generate_datamodels_for_schema(database_schema: str, models_path: Path, eng
                 continue
 
             if getattr(column, "nullable", True):
-                read_fields[column.name] = (column_type | None, None)
+                read_fields[column.name] = (column_type | None, make_field(None))
             else:
-                read_fields[column.name] = (column_type, ...)
+                read_fields[column.name] = (column_type, make_field(...))
 
             # Skip read-only fields in create/update/batch update DTOs
             #
@@ -115,25 +123,25 @@ def _generate_datamodels_for_schema(database_schema: str, models_path: Path, eng
                 continue
 
             if column.name in primary_keys:
-                batch_update_fields[column.name] = (column_type, ...)
+                batch_update_fields[column.name] = (column_type, make_field(...))
             else:
-                update_fields[column.name] = (column_type | None, None)
-                batch_update_fields[column.name] = (column_type | None, None)
+                update_fields[column.name] = (column_type | None, make_field(None))
+                batch_update_fields[column.name] = (column_type | None, make_field(None))
 
             if (
                 getattr(column, "nullable", True)
                 or getattr(column, "default", None) is not None
                 or getattr(column, "server_default", None) is not None
             ):
-                create_fields[column.name] = (column_type | None, None)
+                create_fields[column.name] = (column_type | None, make_field(None))
                 # For BatchCreate, 'id' must be required, even if the DB has a default generator.
                 if column.name == "id":
-                    batch_create_fields[column.name] = (column_type, ...)
+                    batch_create_fields[column.name] = (column_type, make_field(...))
                 else:
-                    batch_create_fields[column.name] = (column_type | None, None)
+                    batch_create_fields[column.name] = (column_type | None, make_field(None))
             else:
-                create_fields[column.name] = (column_type, ...)
-                batch_create_fields[column.name] = (column_type, ...)
+                create_fields[column.name] = (column_type, make_field(...))
+                batch_create_fields[column.name] = (column_type, make_field(...))
 
         for schema_name, fields in [
             (f"{table_name}Create", create_fields),
@@ -167,6 +175,7 @@ def _generate_datamodels_for_schema(database_schema: str, models_path: Path, eng
 
         print(f"Generating DTO classes for schema: {database_schema}")
 
+        # Strip the x- back to plain format on the DTO fields, which types generated clients 64-bit
         bash(
             f"uv run --no_workspace "
             f"datamodel-codegen "
@@ -175,7 +184,8 @@ def _generate_datamodels_for_schema(database_schema: str, models_path: Path, eng
             f"--output {dtos_path} "
             f"--target-python-version {sys.version_info.major}.{sys.version_info.minor} "
             f"--output-model-type pydantic_v2.BaseModel "
-            f"--use-default-kwarg"
+            f"--use-default-kwarg "
+            f"--field-extra-keys-without-x-prefix x-format"
         )
 
         # datamodel-codegen may generate duplicate Enum definitions, so we need to deduplicate them

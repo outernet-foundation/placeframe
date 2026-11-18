@@ -4206,6 +4206,7 @@
             "description": "datetime with the constraint that the value must have timezone info"
           },
           "size_bytes": {
+            "format": "int64",
             "title": "Size Bytes",
             "nullable": true,
             "type": "integer"
@@ -4242,6 +4243,7 @@
             "description": "datetime with the constraint that the value must have timezone info"
           },
           "size_bytes": {
+            "format": "int64",
             "title": "Size Bytes",
             "nullable": true,
             "type": "integer"
@@ -4312,6 +4314,7 @@
           },
           "size_bytes": {
             "type": "integer",
+            "format": "int64",
             "title": "Size Bytes"
           },
           "device_type": {
@@ -4344,6 +4347,7 @@
             "description": "datetime with the constraint that the value must have timezone info"
           },
           "size_bytes": {
+            "format": "int64",
             "title": "Size Bytes",
             "nullable": true,
             "type": "integer"
@@ -4770,6 +4774,7 @@
           },
           "frame_timestamp": {
             "type": "integer",
+            "format": "int64",
             "title": "Frame Timestamp"
           },
           "inlier_coverage": {
@@ -4878,6 +4883,7 @@
           },
           "frame_timestamp": {
             "type": "integer",
+            "format": "int64",
             "title": "Frame Timestamp"
           },
           "updated_at": {
@@ -5038,6 +5044,7 @@
             "format": "double"
           },
           "color": {
+            "format": "int64",
             "title": "Color",
             "nullable": true,
             "type": "integer"
@@ -5114,6 +5121,7 @@
           },
           "color": {
             "type": "integer",
+            "format": "int64",
             "title": "Color"
           },
           "active": {
@@ -5201,6 +5209,7 @@
           },
           "color": {
             "type": "integer",
+            "format": "int64",
             "title": "Color"
           },
           "created_at": {
@@ -5293,6 +5302,7 @@
             "format": "double"
           },
           "color": {
+            "format": "int64",
             "title": "Color",
             "nullable": true,
             "type": "integer"

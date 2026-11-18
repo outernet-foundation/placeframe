@@ -54,7 +54,7 @@ namespace PlaceframeApiClient.Model
         /// <param name="active">active (required).</param>
         /// <param name="lighting">lighting.</param>
         /// <param name="name">name.</param>
-        public LocalizationMapRead(Guid reconstructionId, Guid id, double rotationY, double positionX, double positionY, double positionZ, double rotationX, DateTime updatedAt, double rotationZ, double rotationW, int color, DateTime createdAt, bool active)
+        public LocalizationMapRead(Guid reconstructionId, Guid id, double rotationY, double positionX, double positionY, double positionZ, double rotationX, DateTime updatedAt, double rotationZ, double rotationW, long color, DateTime createdAt, bool active)
         {
             this.ReconstructionId = reconstructionId;
             this.Id = id;
@@ -316,7 +316,7 @@ namespace PlaceframeApiClient.Model
         /// Gets or Sets Color
         /// </summary>
         [DataMember(Name = "color", IsRequired = true, EmitDefaultValue = true)]
-        public int Color
+        public long Color
         {
             get{ return _Color;}
             set
@@ -325,7 +325,7 @@ namespace PlaceframeApiClient.Model
                 _flagColor = true;
             }
         }
-        private int _Color;
+        private long _Color;
         private bool _flagColor;
 
         /// <summary>
