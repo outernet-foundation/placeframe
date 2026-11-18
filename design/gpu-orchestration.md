@@ -44,19 +44,13 @@ that opens by reading this doc must check this section first.
 4. **Plan session (complete, 2026-11-16).** The plan lives in
    [gpu-orchestration-plan.md](gpu-orchestration-plan.md).
  5. **Execution session(s).** One phase per session, per the plan's execution
-    protocol. Phase 1 (boatyard) complete, 2026-11-17: branch `gpu-managed`
-    off the released line (World A — the `boatyard/*` namespace kept), local
-    at `17d038c`, unpushed (the sandbox token cannot push; the operator
-    pushes). Re-executed the same day on Q3's split-annotation amendment —
-    the first pass made `managed` a gpu-annotation value and widened the
-    template guards; the redo leaves the templates byte-identical to the
-    released line and keys selective-start on a separate annotation,
-    renamed once to the behavior-named `boatyard/autostart: "false"`
-    ("managed" named a motivation boatyard cannot see). A
-    pinned-compose-binary cache also landed on that branch —
-    boatyard's preflight was re-downloading the ~32MB binary every run.
-    Next: phase 2 (mode switcher workload), which runs against released
-    boatyard per the plan.
+    protocol. Phase 1 (boatyard) complete: merged into boatyard `dev` via
+    PR #36 (`837be6c`, tip `17d038c`), version 0.9.0, no PyPI release yet.
+    The execution sessions re-did it three times on operator direction —
+    split annotation, behavior-named `boatyard/autostart: "false"`, bundle
+    records carried on the assembly plan — all recorded in the plan's
+    phase 1 and Q3's amendment. Next: phase 2 (mode switcher workload),
+    which runs against released boatyard per the plan.
 6. **Promotion.** Fold hardened truth into co-located `AGENTS.md` files per
    `design/AGENTS.md` promotion conventions; this note stops being
    load-bearing.

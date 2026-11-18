@@ -149,14 +149,14 @@ behavior-named `boatyard/autostart: "false"` ("managed" named the
 consumer's motivation — an external orchestrator — which boatyard can
 neither see nor enforce; the annotation's whole contract is whether the
 container starts at `up`). boatyard branch `gpu-managed`
-(World A: off the released line, `boatyard/*` namespace kept): one code
+(World A: off the released line, `boatyard/*` namespace kept — confirmed:
+pushed and merged into boatyard `dev` via PR #36, `837be6c`): one code
 commit `06882a7` (the autostart-annotation selective start, the
 pinned-compose test-binary cache, the compose_command dissolution with
 quoting in `temp.py` as `quote_command_token`, and bundle records —
 held services and declared ports — carried on the assembly plan, the
 plan carrying the config; version 0.9.0 — the lock format grew, so
-consumers relock once), then one AGENTS.md prose commit, tip `17d038c`,
-unpushed.
+consumers relock once), then one AGENTS.md prose commit, tip `17d038c`.
 Facts the later phases rely on: the gateway
 project stays one-shot `up -d` (no annotation can appear in a document
 boatyard itself renders, so the two-step applies to bundles only); docker
@@ -171,9 +171,9 @@ override bundles (placeframe's GPU workloads are local: the annotation
 flows at resolve, no relock).
 
 Produced at `/workspace/boatyard/` (the bind mount, not a fresh clone).
-No push or publish — placeframe consumes the changes via a path reference
-on the local checkout (landed in phase 5). The branch the change lands on
-is the namespace fork (World A vs B above); the operator names it.
+Merged to boatyard `dev` (PR #36); no PyPI release yet — until 0.9.0
+publishes, placeframe still needs the phase 5 path reference (or pin the
+merged dev line).
 
 - `src/boatyard/verbs/up.py` (`_orchestrate_up`): after materializing the
   compose file, run `docker compose up -d --no-start` (creates all
@@ -366,9 +366,9 @@ mode switcher reconciles (Q3 option (b), the intermediate).
   phase 1's changes. `uv sync --all-packages` (regenerates the workspace
   `uv.lock` against the local boatyard). This is the bridge that makes
   phase 1's annotation + `up` logic changes consumable from placeframe
-  without a boatyard publish. The path reference reverts to a `>=0.9`
-  version pin when boatyard publishes the autostart annotation +
-  selective-start changes.
+  without a boatyard publish. If boatyard 0.9.0 has published to PyPI by
+  the time this phase runs, skip the bridge and pin `>=0.9` directly.
+  Either way the pin reverts to `>=0.9` once published.
 - `stack/score/localizer.yaml:5` — add `boatyard/autostart: "false"` beside
   the existing gpu annotation (World A; the gpu annotation itself is
   untouched). World B: the whole namespace migrates to
