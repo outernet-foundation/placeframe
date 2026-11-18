@@ -27,6 +27,7 @@ from placeframe_api_client.models.expanded_capture_session import ExpandedCaptur
 from placeframe_api_client.models.expanded_reconstruction import ExpandedReconstruction
 from placeframe_api_client.models.float3 import Float3
 from placeframe_api_client.models.float4 import Float4
+from placeframe_api_client.models.gate_detail import GateDetail
 from placeframe_api_client.models.get_capture_sessions400_response import GetCaptureSessions400Response
 from placeframe_api_client.models.get_capture_sessions400_response_extra import GetCaptureSessions400ResponseExtra
 from placeframe_api_client.models.group_batch_create import GroupBatchCreate
@@ -38,6 +39,7 @@ from placeframe_api_client.models.layer_batch_update import LayerBatchUpdate
 from placeframe_api_client.models.layer_create import LayerCreate
 from placeframe_api_client.models.layer_read import LayerRead
 from placeframe_api_client.models.link_type import LinkType
+from placeframe_api_client.models.localization_detail import LocalizationDetail
 from placeframe_api_client.models.localization_evaluation_create import LocalizationEvaluationCreate
 from placeframe_api_client.models.localization_evaluation_read import LocalizationEvaluationRead
 from placeframe_api_client.models.localization_map_batch_update import LocalizationMapBatchUpdate
@@ -50,6 +52,7 @@ from placeframe_api_client.models.node_batch_create import NodeBatchCreate
 from placeframe_api_client.models.node_batch_update import NodeBatchUpdate
 from placeframe_api_client.models.node_create import NodeCreate
 from placeframe_api_client.models.node_read import NodeRead
+from placeframe_api_client.models.pair_detail import PairDetail
 from placeframe_api_client.models.phase_timing import PhaseTiming
 from placeframe_api_client.models.pinhole_camera_config import PinholeCameraConfig
 from placeframe_api_client.models.reconstruction_create import ReconstructionCreate
