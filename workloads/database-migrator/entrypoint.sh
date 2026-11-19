@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Required env:
-#   DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD, SCHEMA_DIR
+#   DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD, DATABASE_SCHEMA_DIR
 # Optional:
 #   ALLOWED_HAZARDS (comma-separated)
 #   EXTRA_PGOPTIONS (defaults to "-c check_function_bodies=off")
@@ -26,7 +26,7 @@ encode_opts() {
 ENC_OPTS="$(encode_opts "$EXTRA_PGOPTIONS")"
 OWNER_DSN="postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?options=${ENC_OPTS}"
 
-args=(apply --from-dsn "$OWNER_DSN" --to-dir "${APP_DIR:-/app}/${DATABASE_SCHEMA_DIR}" --skip-confirm-prompt)
+args=(apply --from-dsn "$OWNER_DSN" --to-dir "${APP_DIR:-/app}/${DATABASE_SCHEMA_DIR}" --skip-confirm-prompt --data-pack-new-tables=false)
 
 if [[ -n "${ALLOWED_HAZARDS}" ]]; then
   args+=(--allow-hazards "$ALLOWED_HAZARDS")
