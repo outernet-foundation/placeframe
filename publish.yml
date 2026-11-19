@@ -9,6 +9,11 @@ packages:
     major_minor: "2.0"
     registry: npm
     identity: org.outernet.placeframe.apiclient
+  placeframe-api-client-typescript:
+    path: packages/generated/typescript-fetch/api-client
+    major_minor: "0.1"
+    registry: npm
+    identity: "@placeframe/api-client"
   placeframe-core:
     path: packages/unity/Placeframe/Assets/Package/Core
     major_minor: "2.0"
