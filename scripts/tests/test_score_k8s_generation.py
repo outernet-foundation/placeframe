@@ -18,8 +18,9 @@ def _documents() -> dict[str, dict]:
 
 
 def _index_reference(name: str) -> str:
+    # Artifacts bake the decorated spelling; the lock records the upstream one
     lock = yaml.safe_load((REPO_ROOT / "boatyard.lock.yml").read_text(encoding="utf-8"))
-    return lock["images"][name]["index"]
+    return f"ghcr.io/outernet-foundation/mirror/{lock['images'][name]['index']}"
 
 
 def test_gpu_workloads_carry_the_nvidia_contract_and_scale_to_zero() -> None:
