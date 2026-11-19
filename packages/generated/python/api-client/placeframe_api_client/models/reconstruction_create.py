@@ -28,11 +28,11 @@ class ReconstructionCreate(BaseModel):
     """
     ReconstructionCreate
     """ # noqa: E501
-    id: Optional[UUID] = None
     requeue_count: Optional[StrictInt] = None
+    id: Optional[UUID] = None
     capture_session_id: Optional[UUID] = None
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["id", "requeue_count", "capture_session_id"]
+    __properties: ClassVar[List[str]] = ["requeue_count", "id", "capture_session_id"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -80,15 +80,15 @@ class ReconstructionCreate(BaseModel):
             for _key, _value in self.additional_properties.items():
                 _dict[_key] = _value
 
-        # set to None if id (nullable) is None
-        # and model_fields_set contains the field
-        if self.id is None and "id" in self.model_fields_set:
-            _dict['id'] = None
-
         # set to None if requeue_count (nullable) is None
         # and model_fields_set contains the field
         if self.requeue_count is None and "requeue_count" in self.model_fields_set:
             _dict['requeue_count'] = None
+
+        # set to None if id (nullable) is None
+        # and model_fields_set contains the field
+        if self.id is None and "id" in self.model_fields_set:
+            _dict['id'] = None
 
         # set to None if capture_session_id (nullable) is None
         # and model_fields_set contains the field
@@ -107,8 +107,8 @@ class ReconstructionCreate(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "id": obj.get("id"),
             "requeue_count": obj.get("requeue_count"),
+            "id": obj.get("id"),
             "capture_session_id": obj.get("capture_session_id")
         })
         # store additional fields in additional_properties

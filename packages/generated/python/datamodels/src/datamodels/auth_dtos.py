@@ -29,8 +29,8 @@ class TenantBatchUpdate(BaseModel):
 
 
 class TenantRead(BaseModel):
-    id: UUID = Field(..., title="Id")
     created_at: AwareDatetime = Field(..., title="Created At")
+    id: UUID = Field(..., title="Id")
 
 
 class UserCreate(BaseModel):
@@ -50,8 +50,8 @@ class UserBatchUpdate(BaseModel):
 
 
 class UserRead(BaseModel):
-    id: UUID = Field(..., title="Id")
     created_at: AwareDatetime = Field(..., title="Created At")
+    id: UUID = Field(..., title="Id")
 
 
 class MembershipCreate(BaseModel):
@@ -79,10 +79,10 @@ class MembershipBatchUpdate(BaseModel):
 
 class MembershipRead(BaseModel):
     user_id: UUID = Field(..., title="User Id")
-    created_at: AwareDatetime = Field(..., title="Created At")
-    updated_at: AwareDatetime = Field(..., title="Updated At")
     role: MembershipRole
     is_personal: bool = Field(..., title="Is Personal")
+    created_at: AwareDatetime = Field(..., title="Created At")
+    updated_at: AwareDatetime = Field(..., title="Updated At")
 
 
 def membership_from_dto(create: MembershipCreate) -> Membership:

@@ -1840,10 +1840,6 @@ components:
         device_type: ARFoundation
         id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
       properties:
-        id:
-          format: uuid
-          title: Id
-          type: string
         recorded_at:
           description: datetime with the constraint that the value must have timezone
             info
@@ -1851,15 +1847,19 @@ components:
           nullable: true
           title: Recorded At
           type: string
+        name:
+          nullable: true
+          title: Name
+          type: string
+        device_type:
+          $ref: "#/components/schemas/DeviceType"
         size_bytes:
           nullable: true
           title: Size Bytes
           type: integer
-        device_type:
-          $ref: "#/components/schemas/DeviceType"
-        name:
-          nullable: true
-          title: Name
+        id:
+          format: uuid
+          title: Id
           type: string
       required:
       - id
@@ -1873,11 +1873,6 @@ components:
         device_type: ARFoundation
         id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
       properties:
-        id:
-          format: uuid
-          nullable: true
-          title: Id
-          type: string
         recorded_at:
           description: datetime with the constraint that the value must have timezone
             info
@@ -1885,14 +1880,19 @@ components:
           nullable: true
           title: Recorded At
           type: string
+        name:
+          title: Name
+          type: string
+        device_type:
+          $ref: "#/components/schemas/DeviceType"
         size_bytes:
           nullable: true
           title: Size Bytes
           type: integer
-        device_type:
-          $ref: "#/components/schemas/DeviceType"
-        name:
-          title: Name
+        id:
+          format: uuid
+          nullable: true
+          title: Id
           type: string
       required:
       - device_type
@@ -2010,10 +2010,6 @@ components:
         device_type: ARFoundation
         id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
       properties:
-        id:
-          format: uuid
-          title: Id
-          type: string
         created_at:
           description: datetime with the constraint that the value must have timezone
             info
@@ -2032,13 +2028,17 @@ components:
           format: date-time
           title: Created At
           type: string
+        name:
+          title: Name
+          type: string
+        device_type:
+          $ref: "#/components/schemas/DeviceType"
         size_bytes:
           title: Size Bytes
           type: integer
-        device_type:
-          $ref: "#/components/schemas/DeviceType"
-        name:
-          title: Name
+        id:
+          format: uuid
+          title: Id
           type: string
       required:
       - created_at
@@ -2064,16 +2064,16 @@ components:
           nullable: true
           title: Recorded At
           type: string
-        size_bytes:
-          nullable: true
-          title: Size Bytes
-          type: integer
-        device_type:
-          $ref: "#/components/schemas/DeviceType"
         name:
           nullable: true
           title: Name
           type: string
+        device_type:
+          $ref: "#/components/schemas/DeviceType"
+        size_bytes:
+          nullable: true
+          title: Size Bytes
+          type: integer
       title: CaptureSessionUpdate
       type: object
     CaptureSessionUploadRequest:
@@ -2119,8 +2119,8 @@ components:
               progress_total: 5
               manifest_version: 6
               queue_depth: 7
-              id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
               requeue_count: 0
+              id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
               status: queued
             localization_map_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
           - reconstruction:
@@ -2136,8 +2136,8 @@ components:
               progress_total: 5
               manifest_version: 6
               queue_depth: 7
-              id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
               requeue_count: 0
+              id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
               status: queued
             localization_map_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
           capture_session:
@@ -2162,8 +2162,8 @@ components:
               progress_total: 5
               manifest_version: 6
               queue_depth: 7
-              id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
               requeue_count: 0
+              id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
               status: queued
             localization_map_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
           - reconstruction:
@@ -2179,8 +2179,8 @@ components:
               progress_total: 5
               manifest_version: 6
               queue_depth: 7
-              id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
               requeue_count: 0
+              id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
               status: queued
             localization_map_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
           capture_session:
@@ -2204,18 +2204,18 @@ components:
       example:
         nodes:
         - rotation_x: 5.962133916683182
-          rotation_w: 2.3021358869347655
-          label_scale: 2.027123023002322
+          rotation_w: 7.061401241503109
+          label_scale: 9.301444243932576
           link: link
           active: true
-          rotation_z: 0.8008281904610115
+          rotation_z: 2.3021358869347655
           label_type: automatic
           rotation_y: 5.637376656633329
           label: label
-          label_height: 3.616076749251911
-          label_width: 9.301444243932576
+          label_height: 2.027123023002322
+          label_width: 3.616076749251911
           link_type: none
-          position_x: 7.061401241503109
+          position_x: 0.8008281904610115
           position_y: 6.027456183070403
           layer_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
           position_z: 1.4658129805029452
@@ -2223,18 +2223,18 @@ components:
           name: name
           id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         - rotation_x: 5.962133916683182
-          rotation_w: 2.3021358869347655
-          label_scale: 2.027123023002322
+          rotation_w: 7.061401241503109
+          label_scale: 9.301444243932576
           link: link
           active: true
-          rotation_z: 0.8008281904610115
+          rotation_z: 2.3021358869347655
           label_type: automatic
           rotation_y: 5.637376656633329
           label: label
-          label_height: 3.616076749251911
-          label_width: 9.301444243932576
+          label_height: 2.027123023002322
+          label_width: 3.616076749251911
           link_type: none
-          position_x: 7.061401241503109
+          position_x: 0.8008281904610115
           position_y: 6.027456183070403
           layer_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
           position_z: 1.4658129805029452
@@ -2263,44 +2263,44 @@ components:
       example:
         nodes:
         - rotation_x: 5.962133916683182
-          rotation_w: 2.3021358869347655
-          label_scale: 2.027123023002322
+          rotation_w: 7.061401241503109
+          label_scale: 9.301444243932576
           link: link
           created_at: 2000-01-23T04:56:07.000+00:00
           active: true
-          rotation_z: 0.8008281904610115
+          rotation_z: 2.3021358869347655
           label_type: automatic
           rotation_y: 5.637376656633329
           label: label
-          label_height: 3.616076749251911
-          label_width: 9.301444243932576
+          label_height: 2.027123023002322
+          label_width: 3.616076749251911
           link_type: none
-          position_x: 7.061401241503109
+          position_x: 0.8008281904610115
           position_y: 6.027456183070403
           layer_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-          position_z: 1.4658129805029452
           updated_at: 2000-01-23T04:56:07.000+00:00
+          position_z: 1.4658129805029452
           parent_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
           name: name
           id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         - rotation_x: 5.962133916683182
-          rotation_w: 2.3021358869347655
-          label_scale: 2.027123023002322
+          rotation_w: 7.061401241503109
+          label_scale: 9.301444243932576
           link: link
           created_at: 2000-01-23T04:56:07.000+00:00
           active: true
-          rotation_z: 0.8008281904610115
+          rotation_z: 2.3021358869347655
           label_type: automatic
           rotation_y: 5.637376656633329
           label: label
-          label_height: 3.616076749251911
-          label_width: 9.301444243932576
+          label_height: 2.027123023002322
+          label_width: 3.616076749251911
           link_type: none
-          position_x: 7.061401241503109
+          position_x: 0.8008281904610115
           position_y: 6.027456183070403
           layer_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-          position_z: 1.4658129805029452
           updated_at: 2000-01-23T04:56:07.000+00:00
+          position_z: 1.4658129805029452
           parent_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
           name: name
           id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
@@ -2351,8 +2351,8 @@ components:
             progress_total: 5
             manifest_version: 6
             queue_depth: 7
-            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
             requeue_count: 0
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
             status: queued
           localization_map_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         - reconstruction:
@@ -2368,8 +2368,8 @@ components:
             progress_total: 5
             manifest_version: 6
             queue_depth: 7
-            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
             requeue_count: 0
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
             status: queued
           localization_map_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         capture_session:
@@ -2407,8 +2407,8 @@ components:
           progress_total: 5
           manifest_version: 6
           queue_depth: 7
-          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
           requeue_count: 0
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
           status: queued
         localization_map_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
       properties:
@@ -2475,12 +2475,12 @@ components:
         name: name
         id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
       properties:
+        name:
+          title: Name
+          type: string
         id:
           format: uuid
           title: Id
-          type: string
-        name:
-          title: Name
           type: string
         parent_id:
           format: uuid
@@ -2498,13 +2498,13 @@ components:
         name: name
         id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
       properties:
-        id:
-          format: uuid
-          title: Id
-          type: string
         name:
           nullable: true
           title: Name
+          type: string
+        id:
+          format: uuid
+          title: Id
           type: string
         parent_id:
           format: uuid
@@ -2521,13 +2521,13 @@ components:
         name: name
         id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
       properties:
+        name:
+          title: Name
+          type: string
         id:
           format: uuid
           nullable: true
           title: Id
-          type: string
-        name:
-          title: Name
           type: string
         parent_id:
           format: uuid
@@ -2546,10 +2546,6 @@ components:
         created_at: 2000-01-23T04:56:07.000+00:00
         id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
       properties:
-        id:
-          format: uuid
-          title: Id
-          type: string
         created_at:
           description: datetime with the constraint that the value must have timezone
             info
@@ -2564,6 +2560,10 @@ components:
           type: string
         name:
           title: Name
+          type: string
+        id:
+          format: uuid
+          title: Id
           type: string
         parent_id:
           format: uuid
@@ -2589,13 +2589,13 @@ components:
         name: name
         id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
       properties:
-        id:
-          format: uuid
-          title: Id
-          type: string
         name:
           nullable: true
           title: Name
+          type: string
+        id:
+          format: uuid
+          title: Id
           type: string
       required:
       - id
@@ -2606,13 +2606,13 @@ components:
         name: name
         id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
       properties:
+        name:
+          title: Name
+          type: string
         id:
           format: uuid
           nullable: true
           title: Id
-          type: string
-        name:
-          title: Name
           type: string
       required:
       - name
@@ -2625,10 +2625,6 @@ components:
         created_at: 2000-01-23T04:56:07.000+00:00
         id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
       properties:
-        id:
-          format: uuid
-          title: Id
-          type: string
         created_at:
           description: datetime with the constraint that the value must have timezone
             info
@@ -2643,6 +2639,10 @@ components:
           type: string
         name:
           title: Name
+          type: string
+        id:
+          format: uuid
+          title: Id
           type: string
       required:
       - created_at
@@ -2662,88 +2662,78 @@ components:
     LocalizationEvaluationCreate:
       example:
         pipeline_version: pipeline_version
-        err_r_deg: 4.145608029883936
-        num_inliers: 9
-        ransac_threshold: 0.8008281904610115
-        inlier_ratio: 2.3021358869347655
+        err_r_deg: 7.386281948385884
+        num_inliers: 2
+        ransac_threshold: 1.4658129805029452
+        inlier_ratio: 7.061401241503109
         pnp_covariance:
         - ""
         - ""
-        num_correspondences: 2
-        inlier_coverage: 1.4658129805029452
+        num_correspondences: 5
+        inlier_coverage: 9.301444243932576
         reconstruction_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-        frame_timestamp: 6
-        err_t_m: 7.386281948385884
+        frame_timestamp: 0
+        err_t_m: 4.145608029883936
         id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-        query_image_diagonal_px: 5.962133916683182
-        num_matches: 3
+        num_matches: 5
+        query_image_diagonal_px: 2.027123023002322
         se3_residual:
         - ""
         - ""
-        reproj_error_median: 5.637376656633329
-        retrieval_top_k: 7
+        retrieval_top_k: 6
+        reproj_error_median: 3.616076749251911
         succeeded: true
       properties:
         reconstruction_id:
           format: uuid
           title: Reconstruction Id
           type: string
-        id:
-          format: uuid
-          nullable: true
-          title: Id
-          type: string
+        frame_timestamp:
+          title: Frame Timestamp
+          type: integer
+        retrieval_top_k:
+          title: Retrieval Top K
+          type: integer
         ransac_threshold:
           format: double
           title: Ransac Threshold
           type: number
-        frame_timestamp:
-          title: Frame Timestamp
+        pipeline_version:
+          title: Pipeline Version
+          type: string
+        succeeded:
+          title: Succeeded
+          type: boolean
+        num_correspondences:
+          title: Num Correspondences
           type: integer
+        num_matches:
+          title: Num Matches
+          type: integer
+        num_inliers:
+          title: Num Inliers
+          type: integer
+        inlier_ratio:
+          format: double
+          title: Inlier Ratio
+          type: number
         inlier_coverage:
           format: double
           title: Inlier Coverage
-          type: number
-        query_image_diagonal_px:
-          format: double
-          title: Query Image Diagonal Px
           type: number
         reproj_error_median:
           format: double
           title: Reproj Error Median
           type: number
-        inlier_ratio:
+        query_image_diagonal_px:
           format: double
-          title: Inlier Ratio
+          title: Query Image Diagonal Px
           type: number
-        retrieval_top_k:
-          title: Retrieval Top K
-          type: integer
-        num_inliers:
-          title: Num Inliers
-          type: integer
-        num_matches:
-          title: Num Matches
-          type: integer
-        num_correspondences:
-          title: Num Correspondences
-          type: integer
-        succeeded:
-          title: Succeeded
-          type: boolean
-        pipeline_version:
-          title: Pipeline Version
+        id:
+          format: uuid
+          nullable: true
+          title: Id
           type: string
-        err_r_deg:
-          format: double
-          nullable: true
-          title: Err R Deg
-          type: number
-        err_t_m:
-          format: double
-          nullable: true
-          title: Err T M
-          type: number
         pnp_covariance:
           items: {}
           nullable: true
@@ -2754,6 +2744,16 @@ components:
           nullable: true
           title: Se3 Residual
           type: array
+        err_t_m:
+          format: double
+          nullable: true
+          title: Err T M
+          type: number
+        err_r_deg:
+          format: double
+          nullable: true
+          title: Err R Deg
+          type: number
       required:
       - frame_timestamp
       - inlier_coverage
@@ -2773,101 +2773,91 @@ components:
     LocalizationEvaluationRead:
       example:
         pipeline_version: pipeline_version
-        err_r_deg: 4.145608029883936
-        num_inliers: 9
-        ransac_threshold: 0.8008281904610115
-        inlier_ratio: 2.3021358869347655
+        err_r_deg: 7.386281948385884
+        num_inliers: 2
+        ransac_threshold: 1.4658129805029452
+        inlier_ratio: 7.061401241503109
         created_at: 2000-01-23T04:56:07.000+00:00
         pnp_covariance:
         - ""
         - ""
-        num_correspondences: 2
-        inlier_coverage: 1.4658129805029452
+        num_correspondences: 5
+        inlier_coverage: 9.301444243932576
         updated_at: 2000-01-23T04:56:07.000+00:00
         reconstruction_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-        frame_timestamp: 6
-        err_t_m: 7.386281948385884
+        frame_timestamp: 0
+        err_t_m: 4.145608029883936
         id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-        query_image_diagonal_px: 5.962133916683182
-        num_matches: 3
+        num_matches: 5
+        query_image_diagonal_px: 2.027123023002322
         se3_residual:
         - ""
         - ""
-        reproj_error_median: 5.637376656633329
-        retrieval_top_k: 7
+        retrieval_top_k: 6
+        reproj_error_median: 3.616076749251911
         succeeded: true
       properties:
-        reconstruction_id:
-          format: uuid
-          title: Reconstruction Id
-          type: string
-        id:
-          format: uuid
-          title: Id
-          type: string
-        ransac_threshold:
-          format: double
-          title: Ransac Threshold
-          type: number
-        frame_timestamp:
-          title: Frame Timestamp
-          type: integer
-        updated_at:
-          description: datetime with the constraint that the value must have timezone
-            info
-          format: date-time
-          title: Created At
-          type: string
-        inlier_coverage:
-          format: double
-          title: Inlier Coverage
-          type: number
         created_at:
           description: datetime with the constraint that the value must have timezone
             info
           format: date-time
           title: Created At
           type: string
-        query_image_diagonal_px:
+        updated_at:
+          description: datetime with the constraint that the value must have timezone
+            info
+          format: date-time
+          title: Created At
+          type: string
+        reconstruction_id:
+          format: uuid
+          title: Reconstruction Id
+          type: string
+        frame_timestamp:
+          title: Frame Timestamp
+          type: integer
+        retrieval_top_k:
+          title: Retrieval Top K
+          type: integer
+        ransac_threshold:
           format: double
-          title: Query Image Diagonal Px
+          title: Ransac Threshold
+          type: number
+        pipeline_version:
+          title: Pipeline Version
+          type: string
+        succeeded:
+          title: Succeeded
+          type: boolean
+        num_correspondences:
+          title: Num Correspondences
+          type: integer
+        num_matches:
+          title: Num Matches
+          type: integer
+        num_inliers:
+          title: Num Inliers
+          type: integer
+        inlier_ratio:
+          format: double
+          title: Inlier Ratio
+          type: number
+        inlier_coverage:
+          format: double
+          title: Inlier Coverage
           type: number
         reproj_error_median:
           format: double
           title: Reproj Error Median
           type: number
-        inlier_ratio:
+        query_image_diagonal_px:
           format: double
-          title: Inlier Ratio
+          title: Query Image Diagonal Px
           type: number
-        retrieval_top_k:
-          title: Retrieval Top K
-          type: integer
-        num_inliers:
-          title: Num Inliers
-          type: integer
-        num_matches:
-          title: Num Matches
-          type: integer
-        num_correspondences:
-          title: Num Correspondences
-          type: integer
-        succeeded:
-          title: Succeeded
-          type: boolean
-        pipeline_version:
-          title: Pipeline Version
+        id:
+          format: uuid
+          title: Id
           type: string
-        err_r_deg:
-          format: double
-          nullable: true
-          title: Err R Deg
-          type: number
-        err_t_m:
-          format: double
-          nullable: true
-          title: Err T M
-          type: number
         pnp_covariance:
           items: {}
           nullable: true
@@ -2878,6 +2868,16 @@ components:
           nullable: true
           title: Se3 Residual
           type: array
+        err_t_m:
+          format: double
+          nullable: true
+          title: Err T M
+          type: number
+        err_r_deg:
+          format: double
+          nullable: true
+          title: Err R Deg
+          type: number
       required:
       - created_at
       - frame_timestamp
@@ -2899,16 +2899,16 @@ components:
       type: object
     LocalizationMapBatchUpdate:
       example:
-        rotation_x: 5.637376656633329
+        rotation_x: 5.962133916683182
         color: 9
         rotation_w: 7.061401241503109
         active: true
         rotation_z: 2.3021358869347655
-        rotation_y: 0.8008281904610115
+        rotation_y: 5.637376656633329
         lighting: 3
-        position_x: 6.027456183070403
-        position_y: 1.4658129805029452
-        position_z: 5.962133916683182
+        position_x: 0.8008281904610115
+        position_y: 6.027456183070403
+        position_z: 1.4658129805029452
         name: name
         reconstruction_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
@@ -2918,15 +2918,6 @@ components:
           nullable: true
           title: Reconstruction Id
           type: string
-        id:
-          format: uuid
-          title: Id
-          type: string
-        rotation_y:
-          format: double
-          nullable: true
-          title: Rotation Y
-          type: number
         position_x:
           format: double
           nullable: true
@@ -2947,6 +2938,11 @@ components:
           nullable: true
           title: Rotation X
           type: number
+        rotation_y:
+          format: double
+          nullable: true
+          title: Rotation Y
+          type: number
         rotation_z:
           format: double
           nullable: true
@@ -2957,38 +2953,42 @@ components:
           nullable: true
           title: Rotation W
           type: number
-        color:
-          nullable: true
-          title: Color
-          type: integer
         active:
           nullable: true
           title: Active
           type: boolean
-        lighting:
+        color:
           nullable: true
-          title: Lighting
+          title: Color
           type: integer
+        id:
+          format: uuid
+          title: Id
+          type: string
         name:
           nullable: true
           title: Name
           type: string
+        lighting:
+          nullable: true
+          title: Lighting
+          type: integer
       required:
       - id
       title: LocalizationMapBatchUpdate
       type: object
     LocalizationMapCreate:
       example:
-        rotation_x: 5.637376656633329
+        rotation_x: 5.962133916683182
         color: 9
         rotation_w: 7.061401241503109
         active: true
         rotation_z: 2.3021358869347655
-        rotation_y: 0.8008281904610115
+        rotation_y: 5.637376656633329
         lighting: 3
-        position_x: 6.027456183070403
-        position_y: 1.4658129805029452
-        position_z: 5.962133916683182
+        position_x: 0.8008281904610115
+        position_y: 6.027456183070403
+        position_z: 1.4658129805029452
         name: name
         reconstruction_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
@@ -2997,15 +2997,6 @@ components:
           format: uuid
           title: Reconstruction Id
           type: string
-        id:
-          format: uuid
-          nullable: true
-          title: Id
-          type: string
-        rotation_y:
-          format: double
-          title: Rotation Y
-          type: number
         position_x:
           format: double
           title: Position X
@@ -3022,6 +3013,10 @@ components:
           format: double
           title: Rotation X
           type: number
+        rotation_y:
+          format: double
+          title: Rotation Y
+          type: number
         rotation_z:
           format: double
           title: Rotation Z
@@ -3030,21 +3025,26 @@ components:
           format: double
           title: Rotation W
           type: number
-        color:
-          title: Color
-          type: integer
         active:
           nullable: true
           title: Active
           type: boolean
-        lighting:
-          nullable: true
-          title: Lighting
+        color:
+          title: Color
           type: integer
+        id:
+          format: uuid
+          nullable: true
+          title: Id
+          type: string
         name:
           nullable: true
           title: Name
           type: string
+        lighting:
+          nullable: true
+          title: Lighting
+          type: integer
       required:
       - color
       - position_x
@@ -3059,34 +3059,38 @@ components:
       type: object
     LocalizationMapRead:
       example:
-        rotation_x: 5.637376656633329
+        rotation_x: 5.962133916683182
         color: 9
         rotation_w: 7.061401241503109
         created_at: 2000-01-23T04:56:07.000+00:00
         active: true
         rotation_z: 2.3021358869347655
-        rotation_y: 0.8008281904610115
+        rotation_y: 5.637376656633329
         lighting: 3
-        position_x: 6.027456183070403
-        position_y: 1.4658129805029452
-        position_z: 5.962133916683182
+        position_x: 0.8008281904610115
+        position_y: 6.027456183070403
         updated_at: 2000-01-23T04:56:07.000+00:00
+        position_z: 1.4658129805029452
         name: name
         reconstruction_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
       properties:
+        created_at:
+          description: datetime with the constraint that the value must have timezone
+            info
+          format: date-time
+          title: Created At
+          type: string
+        updated_at:
+          description: datetime with the constraint that the value must have timezone
+            info
+          format: date-time
+          title: Created At
+          type: string
         reconstruction_id:
           format: uuid
           title: Reconstruction Id
           type: string
-        id:
-          format: uuid
-          title: Id
-          type: string
-        rotation_y:
-          format: double
-          title: Rotation Y
-          type: number
         position_x:
           format: double
           title: Position X
@@ -3103,12 +3107,10 @@ components:
           format: double
           title: Rotation X
           type: number
-        updated_at:
-          description: datetime with the constraint that the value must have timezone
-            info
-          format: date-time
-          title: Created At
-          type: string
+        rotation_y:
+          format: double
+          title: Rotation Y
+          type: number
         rotation_z:
           format: double
           title: Rotation Z
@@ -3117,26 +3119,24 @@ components:
           format: double
           title: Rotation W
           type: number
-        color:
-          title: Color
-          type: integer
-        created_at:
-          description: datetime with the constraint that the value must have timezone
-            info
-          format: date-time
-          title: Created At
-          type: string
         active:
           title: Active
           type: boolean
-        lighting:
-          nullable: true
-          title: Lighting
+        color:
+          title: Color
           type: integer
+        id:
+          format: uuid
+          title: Id
+          type: string
         name:
           nullable: true
           title: Name
           type: string
+        lighting:
+          nullable: true
+          title: Lighting
+          type: integer
       required:
       - active
       - color
@@ -3155,17 +3155,17 @@ components:
       type: object
     LocalizationMapUpdate:
       example:
-        position_x: 6.027456183070403
-        position_y: 1.4658129805029452
-        position_z: 5.962133916683182
-        rotation_x: 5.637376656633329
+        position_x: 0.8008281904610115
+        position_y: 6.027456183070403
+        position_z: 1.4658129805029452
+        rotation_x: 5.962133916683182
         color: 9
         rotation_w: 7.061401241503109
         name: name
         reconstruction_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         active: true
         rotation_z: 2.3021358869347655
-        rotation_y: 0.8008281904610115
+        rotation_y: 5.637376656633329
         lighting: 3
       properties:
         reconstruction_id:
@@ -3173,11 +3173,6 @@ components:
           nullable: true
           title: Reconstruction Id
           type: string
-        rotation_y:
-          format: double
-          nullable: true
-          title: Rotation Y
-          type: number
         position_x:
           format: double
           nullable: true
@@ -3198,6 +3193,11 @@ components:
           nullable: true
           title: Rotation X
           type: number
+        rotation_y:
+          format: double
+          nullable: true
+          title: Rotation Y
+          type: number
         rotation_z:
           format: double
           nullable: true
@@ -3208,22 +3208,22 @@ components:
           nullable: true
           title: Rotation W
           type: number
-        color:
-          nullable: true
-          title: Color
-          type: integer
         active:
           nullable: true
           title: Active
           type: boolean
-        lighting:
+        color:
           nullable: true
-          title: Lighting
+          title: Color
           type: integer
         name:
           nullable: true
           title: Name
           type: string
+        lighting:
+          nullable: true
+          title: Lighting
+          type: integer
       title: LocalizationMapUpdate
       type: object
     LocalizationMetrics:
@@ -3395,18 +3395,18 @@ components:
     NodeBatchCreate:
       example:
         rotation_x: 5.962133916683182
-        rotation_w: 2.3021358869347655
-        label_scale: 2.027123023002322
+        rotation_w: 7.061401241503109
+        label_scale: 9.301444243932576
         link: link
         active: true
-        rotation_z: 0.8008281904610115
+        rotation_z: 2.3021358869347655
         label_type: automatic
         rotation_y: 5.637376656633329
         label: label
-        label_height: 3.616076749251911
-        label_width: 9.301444243932576
+        label_height: 2.027123023002322
+        label_width: 3.616076749251911
         link_type: none
-        position_x: 7.061401241503109
+        position_x: 0.8008281904610115
         position_y: 6.027456183070403
         layer_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         position_z: 1.4658129805029452
@@ -3414,13 +3414,13 @@ components:
         name: name
         id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
       properties:
-        id:
-          format: uuid
-          title: Id
-          type: string
-        rotation_z:
+        active:
+          nullable: true
+          title: Active
+          type: boolean
+        position_x:
           format: double
-          title: Rotation Z
+          title: Position X
           type: number
         position_y:
           format: double
@@ -3438,32 +3438,39 @@ components:
           format: double
           title: Rotation Y
           type: number
+        rotation_z:
+          format: double
+          title: Rotation Z
+          type: number
         rotation_w:
           format: double
           title: Rotation W
           type: number
-        position_x:
-          format: double
-          title: Position X
-          type: number
-        link_type:
-          $ref: "#/components/schemas/LinkType"
         label_type:
           $ref: "#/components/schemas/LabelType"
-        active:
-          nullable: true
-          title: Active
-          type: boolean
-        layer_id:
+        link_type:
+          $ref: "#/components/schemas/LinkType"
+        id:
           format: uuid
-          nullable: true
-          title: Layer Id
+          title: Id
           type: string
-        parent_id:
-          format: uuid
+        name:
           nullable: true
-          title: Parent Id
+          title: Name
           type: string
+        label:
+          nullable: true
+          title: Label
+          type: string
+        link:
+          nullable: true
+          title: Link
+          type: string
+        label_scale:
+          format: double
+          nullable: true
+          title: Label Scale
+          type: number
         label_width:
           format: double
           nullable: true
@@ -3474,22 +3481,15 @@ components:
           nullable: true
           title: Label Height
           type: number
-        label_scale:
-          format: double
+        parent_id:
+          format: uuid
           nullable: true
-          title: Label Scale
-          type: number
-        link:
-          nullable: true
-          title: Link
+          title: Parent Id
           type: string
-        label:
+        layer_id:
+          format: uuid
           nullable: true
-          title: Label
-          type: string
-        name:
-          nullable: true
-          title: Name
+          title: Layer Id
           type: string
       required:
       - id
@@ -3507,18 +3507,18 @@ components:
     NodeBatchUpdate:
       example:
         rotation_x: 5.962133916683182
-        rotation_w: 2.3021358869347655
-        label_scale: 2.027123023002322
+        rotation_w: 7.061401241503109
+        label_scale: 9.301444243932576
         link: link
         active: true
-        rotation_z: 0.8008281904610115
+        rotation_z: 2.3021358869347655
         label_type: automatic
         rotation_y: 5.637376656633329
         label: label
-        label_height: 3.616076749251911
-        label_width: 9.301444243932576
+        label_height: 2.027123023002322
+        label_width: 3.616076749251911
         link_type: none
-        position_x: 7.061401241503109
+        position_x: 0.8008281904610115
         position_y: 6.027456183070403
         layer_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         position_z: 1.4658129805029452
@@ -3526,14 +3526,14 @@ components:
         name: name
         id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
       properties:
-        id:
-          format: uuid
-          title: Id
-          type: string
-        rotation_z:
+        active:
+          nullable: true
+          title: Active
+          type: boolean
+        position_x:
           format: double
           nullable: true
-          title: Rotation Z
+          title: Position X
           type: number
         position_y:
           format: double
@@ -3555,34 +3555,41 @@ components:
           nullable: true
           title: Rotation Y
           type: number
+        rotation_z:
+          format: double
+          nullable: true
+          title: Rotation Z
+          type: number
         rotation_w:
           format: double
           nullable: true
           title: Rotation W
           type: number
-        position_x:
-          format: double
-          nullable: true
-          title: Position X
-          type: number
-        link_type:
-          $ref: "#/components/schemas/LinkType"
         label_type:
           $ref: "#/components/schemas/LabelType"
-        active:
-          nullable: true
-          title: Active
-          type: boolean
-        layer_id:
+        link_type:
+          $ref: "#/components/schemas/LinkType"
+        id:
           format: uuid
-          nullable: true
-          title: Layer Id
+          title: Id
           type: string
-        parent_id:
-          format: uuid
+        name:
           nullable: true
-          title: Parent Id
+          title: Name
           type: string
+        label:
+          nullable: true
+          title: Label
+          type: string
+        link:
+          nullable: true
+          title: Link
+          type: string
+        label_scale:
+          format: double
+          nullable: true
+          title: Label Scale
+          type: number
         label_width:
           format: double
           nullable: true
@@ -3593,22 +3600,15 @@ components:
           nullable: true
           title: Label Height
           type: number
-        label_scale:
-          format: double
+        parent_id:
+          format: uuid
           nullable: true
-          title: Label Scale
-          type: number
-        link:
-          nullable: true
-          title: Link
+          title: Parent Id
           type: string
-        label:
+        layer_id:
+          format: uuid
           nullable: true
-          title: Label
-          type: string
-        name:
-          nullable: true
-          title: Name
+          title: Layer Id
           type: string
       required:
       - id
@@ -3617,18 +3617,18 @@ components:
     NodeCreate:
       example:
         rotation_x: 5.962133916683182
-        rotation_w: 2.3021358869347655
-        label_scale: 2.027123023002322
+        rotation_w: 7.061401241503109
+        label_scale: 9.301444243932576
         link: link
         active: true
-        rotation_z: 0.8008281904610115
+        rotation_z: 2.3021358869347655
         label_type: automatic
         rotation_y: 5.637376656633329
         label: label
-        label_height: 3.616076749251911
-        label_width: 9.301444243932576
+        label_height: 2.027123023002322
+        label_width: 3.616076749251911
         link_type: none
-        position_x: 7.061401241503109
+        position_x: 0.8008281904610115
         position_y: 6.027456183070403
         layer_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         position_z: 1.4658129805029452
@@ -3636,14 +3636,13 @@ components:
         name: name
         id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
       properties:
-        id:
-          format: uuid
+        active:
           nullable: true
-          title: Id
-          type: string
-        rotation_z:
+          title: Active
+          type: boolean
+        position_x:
           format: double
-          title: Rotation Z
+          title: Position X
           type: number
         position_y:
           format: double
@@ -3661,32 +3660,40 @@ components:
           format: double
           title: Rotation Y
           type: number
+        rotation_z:
+          format: double
+          title: Rotation Z
+          type: number
         rotation_w:
           format: double
           title: Rotation W
           type: number
-        position_x:
-          format: double
-          title: Position X
-          type: number
-        link_type:
-          $ref: "#/components/schemas/LinkType"
         label_type:
           $ref: "#/components/schemas/LabelType"
-        active:
-          nullable: true
-          title: Active
-          type: boolean
-        layer_id:
+        link_type:
+          $ref: "#/components/schemas/LinkType"
+        id:
           format: uuid
           nullable: true
-          title: Layer Id
+          title: Id
           type: string
-        parent_id:
-          format: uuid
+        name:
           nullable: true
-          title: Parent Id
+          title: Name
           type: string
+        label:
+          nullable: true
+          title: Label
+          type: string
+        link:
+          nullable: true
+          title: Link
+          type: string
+        label_scale:
+          format: double
+          nullable: true
+          title: Label Scale
+          type: number
         label_width:
           format: double
           nullable: true
@@ -3697,22 +3704,15 @@ components:
           nullable: true
           title: Label Height
           type: number
-        label_scale:
-          format: double
+        parent_id:
+          format: uuid
           nullable: true
-          title: Label Scale
-          type: number
-        link:
-          nullable: true
-          title: Link
+          title: Parent Id
           type: string
-        label:
+        layer_id:
+          format: uuid
           nullable: true
-          title: Label
-          type: string
-        name:
-          nullable: true
-          title: Name
+          title: Layer Id
           type: string
       required:
       - label_type
@@ -3729,34 +3729,45 @@ components:
     NodeRead:
       example:
         rotation_x: 5.962133916683182
-        rotation_w: 2.3021358869347655
-        label_scale: 2.027123023002322
+        rotation_w: 7.061401241503109
+        label_scale: 9.301444243932576
         link: link
         created_at: 2000-01-23T04:56:07.000+00:00
         active: true
-        rotation_z: 0.8008281904610115
+        rotation_z: 2.3021358869347655
         label_type: automatic
         rotation_y: 5.637376656633329
         label: label
-        label_height: 3.616076749251911
-        label_width: 9.301444243932576
+        label_height: 2.027123023002322
+        label_width: 3.616076749251911
         link_type: none
-        position_x: 7.061401241503109
+        position_x: 0.8008281904610115
         position_y: 6.027456183070403
         layer_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-        position_z: 1.4658129805029452
         updated_at: 2000-01-23T04:56:07.000+00:00
+        position_z: 1.4658129805029452
         parent_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         name: name
         id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
       properties:
-        id:
-          format: uuid
-          title: Id
+        created_at:
+          description: datetime with the constraint that the value must have timezone
+            info
+          format: date-time
+          title: Created At
           type: string
-        rotation_z:
+        updated_at:
+          description: datetime with the constraint that the value must have timezone
+            info
+          format: date-time
+          title: Created At
+          type: string
+        active:
+          title: Active
+          type: boolean
+        position_x:
           format: double
-          title: Rotation Z
+          title: Position X
           type: number
         position_y:
           format: double
@@ -3774,43 +3785,39 @@ components:
           format: double
           title: Rotation Y
           type: number
-        created_at:
-          description: datetime with the constraint that the value must have timezone
-            info
-          format: date-time
-          title: Created At
-          type: string
+        rotation_z:
+          format: double
+          title: Rotation Z
+          type: number
         rotation_w:
           format: double
           title: Rotation W
           type: number
-        updated_at:
-          description: datetime with the constraint that the value must have timezone
-            info
-          format: date-time
-          title: Created At
-          type: string
-        position_x:
-          format: double
-          title: Position X
-          type: number
-        link_type:
-          $ref: "#/components/schemas/LinkType"
         label_type:
           $ref: "#/components/schemas/LabelType"
-        active:
-          title: Active
-          type: boolean
-        layer_id:
+        link_type:
+          $ref: "#/components/schemas/LinkType"
+        id:
           format: uuid
-          nullable: true
-          title: Layer Id
+          title: Id
           type: string
-        parent_id:
-          format: uuid
+        name:
           nullable: true
-          title: Parent Id
+          title: Name
           type: string
+        label:
+          nullable: true
+          title: Label
+          type: string
+        link:
+          nullable: true
+          title: Link
+          type: string
+        label_scale:
+          format: double
+          nullable: true
+          title: Label Scale
+          type: number
         label_width:
           format: double
           nullable: true
@@ -3821,22 +3828,15 @@ components:
           nullable: true
           title: Label Height
           type: number
-        label_scale:
-          format: double
+        parent_id:
+          format: uuid
           nullable: true
-          title: Label Scale
-          type: number
-        link:
-          nullable: true
-          title: Link
+          title: Parent Id
           type: string
-        label:
+        layer_id:
+          format: uuid
           nullable: true
-          title: Label
-          type: string
-        name:
-          nullable: true
-          title: Name
+          title: Layer Id
           type: string
       required:
       - active
@@ -3921,18 +3921,18 @@ components:
     ReconstructionCreate:
       example:
         capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         requeue_count: 0
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
       properties:
+        requeue_count:
+          nullable: true
+          title: Requeue Count
+          type: integer
         id:
           format: uuid
           nullable: true
           title: Id
           type: string
-        requeue_count:
-          nullable: true
-          title: Requeue Count
-          type: integer
         capture_session_id:
           format: uuid
           nullable: true
@@ -3965,8 +3965,8 @@ components:
           sequential_window_m: 5.962133916683182
         create:
           capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
           requeue_count: 0
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
       properties:
         create:
           $ref: "#/components/schemas/ReconstructionCreate"
@@ -4280,14 +4280,10 @@ components:
         progress_total: 5
         manifest_version: 6
         queue_depth: 7
-        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         requeue_count: 0
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         status: queued
       properties:
-        id:
-          format: uuid
-          title: Id
-          type: string
         created_at:
           description: datetime with the constraint that the value must have timezone
             info
@@ -4300,22 +4296,30 @@ components:
           format: date-time
           title: Created At
           type: string
-        requeue_count:
-          title: Requeue Count
-          type: integer
         status:
           $ref: "#/components/schemas/ReconstructionStatus"
-        manifest_version:
-          title: Manifest Version
+        requeue_count:
+          title: Requeue Count
           type: integer
         manifest:
           additionalProperties: {}
           title: Manifest
           type: object
+        manifest_version:
+          title: Manifest Version
+          type: integer
+        id:
+          format: uuid
+          title: Id
+          type: string
         capture_session_id:
           format: uuid
           nullable: true
           title: Capture Session Id
+          type: string
+        error:
+          nullable: true
+          title: Error
           type: string
         progress_current:
           nullable: true
@@ -4329,10 +4333,6 @@ components:
           nullable: true
           title: Progress Attempt
           type: integer
-        error:
-          nullable: true
-          title: Error
-          type: string
         queue_position:
           nullable: true
           type: integer

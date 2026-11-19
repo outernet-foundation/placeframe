@@ -30,22 +30,22 @@ class ReconstructionReadWithQueue(BaseModel):
     """
     ReconstructionReadWithQueue
     """ # noqa: E501
-    id: UUID
     created_at: datetime = Field(description="datetime with the constraint that the value must have timezone info")
     updated_at: datetime = Field(description="datetime with the constraint that the value must have timezone info")
-    requeue_count: StrictInt
     status: ReconstructionStatus
-    manifest_version: StrictInt
+    requeue_count: StrictInt
     manifest: Dict[str, Any]
+    manifest_version: StrictInt
+    id: UUID
     capture_session_id: Optional[UUID] = None
+    error: Optional[StrictStr] = None
     progress_current: Optional[StrictInt] = None
     progress_total: Optional[StrictInt] = None
     progress_attempt: Optional[StrictInt] = None
-    error: Optional[StrictStr] = None
     queue_position: Optional[StrictInt] = None
     queue_depth: Optional[StrictInt] = None
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["id", "created_at", "updated_at", "requeue_count", "status", "manifest_version", "manifest", "capture_session_id", "progress_current", "progress_total", "progress_attempt", "error", "queue_position", "queue_depth"]
+    __properties: ClassVar[List[str]] = ["created_at", "updated_at", "status", "requeue_count", "manifest", "manifest_version", "id", "capture_session_id", "error", "progress_current", "progress_total", "progress_attempt", "queue_position", "queue_depth"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -98,6 +98,11 @@ class ReconstructionReadWithQueue(BaseModel):
         if self.capture_session_id is None and "capture_session_id" in self.model_fields_set:
             _dict['capture_session_id'] = None
 
+        # set to None if error (nullable) is None
+        # and model_fields_set contains the field
+        if self.error is None and "error" in self.model_fields_set:
+            _dict['error'] = None
+
         # set to None if progress_current (nullable) is None
         # and model_fields_set contains the field
         if self.progress_current is None and "progress_current" in self.model_fields_set:
@@ -112,11 +117,6 @@ class ReconstructionReadWithQueue(BaseModel):
         # and model_fields_set contains the field
         if self.progress_attempt is None and "progress_attempt" in self.model_fields_set:
             _dict['progress_attempt'] = None
-
-        # set to None if error (nullable) is None
-        # and model_fields_set contains the field
-        if self.error is None and "error" in self.model_fields_set:
-            _dict['error'] = None
 
         # set to None if queue_position (nullable) is None
         # and model_fields_set contains the field
@@ -140,18 +140,18 @@ class ReconstructionReadWithQueue(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "id": obj.get("id"),
             "created_at": obj.get("created_at"),
             "updated_at": obj.get("updated_at"),
-            "requeue_count": obj.get("requeue_count"),
             "status": obj.get("status"),
-            "manifest_version": obj.get("manifest_version"),
+            "requeue_count": obj.get("requeue_count"),
             "manifest": obj.get("manifest"),
+            "manifest_version": obj.get("manifest_version"),
+            "id": obj.get("id"),
             "capture_session_id": obj.get("capture_session_id"),
+            "error": obj.get("error"),
             "progress_current": obj.get("progress_current"),
             "progress_total": obj.get("progress_total"),
             "progress_attempt": obj.get("progress_attempt"),
-            "error": obj.get("error"),
             "queue_position": obj.get("queue_position"),
             "queue_depth": obj.get("queue_depth")
         })

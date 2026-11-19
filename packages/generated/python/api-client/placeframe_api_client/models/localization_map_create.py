@@ -29,20 +29,20 @@ class LocalizationMapCreate(BaseModel):
     LocalizationMapCreate
     """ # noqa: E501
     reconstruction_id: UUID
-    id: Optional[UUID] = None
-    rotation_y: Union[StrictFloat, StrictInt]
     position_x: Union[StrictFloat, StrictInt]
     position_y: Union[StrictFloat, StrictInt]
     position_z: Union[StrictFloat, StrictInt]
     rotation_x: Union[StrictFloat, StrictInt]
+    rotation_y: Union[StrictFloat, StrictInt]
     rotation_z: Union[StrictFloat, StrictInt]
     rotation_w: Union[StrictFloat, StrictInt]
-    color: StrictInt
     active: Optional[StrictBool] = None
-    lighting: Optional[StrictInt] = None
+    color: StrictInt
+    id: Optional[UUID] = None
     name: Optional[StrictStr] = None
+    lighting: Optional[StrictInt] = None
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["reconstruction_id", "id", "rotation_y", "position_x", "position_y", "position_z", "rotation_x", "rotation_z", "rotation_w", "color", "active", "lighting", "name"]
+    __properties: ClassVar[List[str]] = ["reconstruction_id", "position_x", "position_y", "position_z", "rotation_x", "rotation_y", "rotation_z", "rotation_w", "active", "color", "id", "name", "lighting"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -90,25 +90,25 @@ class LocalizationMapCreate(BaseModel):
             for _key, _value in self.additional_properties.items():
                 _dict[_key] = _value
 
-        # set to None if id (nullable) is None
-        # and model_fields_set contains the field
-        if self.id is None and "id" in self.model_fields_set:
-            _dict['id'] = None
-
         # set to None if active (nullable) is None
         # and model_fields_set contains the field
         if self.active is None and "active" in self.model_fields_set:
             _dict['active'] = None
 
-        # set to None if lighting (nullable) is None
+        # set to None if id (nullable) is None
         # and model_fields_set contains the field
-        if self.lighting is None and "lighting" in self.model_fields_set:
-            _dict['lighting'] = None
+        if self.id is None and "id" in self.model_fields_set:
+            _dict['id'] = None
 
         # set to None if name (nullable) is None
         # and model_fields_set contains the field
         if self.name is None and "name" in self.model_fields_set:
             _dict['name'] = None
+
+        # set to None if lighting (nullable) is None
+        # and model_fields_set contains the field
+        if self.lighting is None and "lighting" in self.model_fields_set:
+            _dict['lighting'] = None
 
         return _dict
 
@@ -123,18 +123,18 @@ class LocalizationMapCreate(BaseModel):
 
         _obj = cls.model_validate({
             "reconstruction_id": obj.get("reconstruction_id"),
-            "id": obj.get("id"),
-            "rotation_y": obj.get("rotation_y"),
             "position_x": obj.get("position_x"),
             "position_y": obj.get("position_y"),
             "position_z": obj.get("position_z"),
             "rotation_x": obj.get("rotation_x"),
+            "rotation_y": obj.get("rotation_y"),
             "rotation_z": obj.get("rotation_z"),
             "rotation_w": obj.get("rotation_w"),
-            "color": obj.get("color"),
             "active": obj.get("active"),
-            "lighting": obj.get("lighting"),
-            "name": obj.get("name")
+            "color": obj.get("color"),
+            "id": obj.get("id"),
+            "name": obj.get("name"),
+            "lighting": obj.get("lighting")
         })
         # store additional fields in additional_properties
         for _key in obj.keys():

@@ -34,37 +34,13 @@ namespace PlaceframeApiClient.Model
         /// <summary>
         /// Initializes a new instance of the <see cref="ReconstructionCreate" /> class.
         /// </summary>
-        /// <param name="id">id.</param>
         /// <param name="requeueCount">requeueCount.</param>
+        /// <param name="id">id.</param>
         /// <param name="captureSessionId">captureSessionId.</param>
         public ReconstructionCreate()
         {
         }
 
-        /// <summary>
-        /// Gets or Sets Id
-        /// </summary>
-        [DataMember(Name = "id", EmitDefaultValue = true)]
-        public Guid? Id
-        {
-            get{ return _Id;}
-            set
-            {
-                _Id = value;
-                _flagId = true;
-            }
-        }
-        private Guid? _Id;
-        private bool _flagId;
-
-        /// <summary>
-        /// Returns false as Id should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeId()
-        {
-            return _flagId;
-        }
         /// <summary>
         /// Gets or Sets RequeueCount
         /// </summary>
@@ -88,6 +64,30 @@ namespace PlaceframeApiClient.Model
         public bool ShouldSerializeRequeueCount()
         {
             return _flagRequeueCount;
+        }
+        /// <summary>
+        /// Gets or Sets Id
+        /// </summary>
+        [DataMember(Name = "id", EmitDefaultValue = true)]
+        public Guid? Id
+        {
+            get{ return _Id;}
+            set
+            {
+                _Id = value;
+                _flagId = true;
+            }
+        }
+        private Guid? _Id;
+        private bool _flagId;
+
+        /// <summary>
+        /// Returns false as Id should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeId()
+        {
+            return _flagId;
         }
         /// <summary>
         /// Gets or Sets CaptureSessionId
@@ -121,8 +121,8 @@ namespace PlaceframeApiClient.Model
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("class ReconstructionCreate {\n");
-            sb.Append("  Id: ").Append(Id).Append("\n");
             sb.Append("  RequeueCount: ").Append(RequeueCount).Append("\n");
+            sb.Append("  Id: ").Append(Id).Append("\n");
             sb.Append("  CaptureSessionId: ").Append(CaptureSessionId).Append("\n");
             sb.Append("}\n");
             return sb.ToString();

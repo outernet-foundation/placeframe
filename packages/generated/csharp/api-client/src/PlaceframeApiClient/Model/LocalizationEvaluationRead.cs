@@ -39,146 +39,75 @@ namespace PlaceframeApiClient.Model
         /// <summary>
         /// Initializes a new instance of the <see cref="LocalizationEvaluationRead" /> class.
         /// </summary>
-        /// <param name="reconstructionId">reconstructionId (required).</param>
-        /// <param name="id">id (required).</param>
-        /// <param name="ransacThreshold">ransacThreshold (required).</param>
-        /// <param name="frameTimestamp">frameTimestamp (required).</param>
-        /// <param name="updatedAt">datetime with the constraint that the value must have timezone info (required).</param>
-        /// <param name="inlierCoverage">inlierCoverage (required).</param>
         /// <param name="createdAt">datetime with the constraint that the value must have timezone info (required).</param>
-        /// <param name="queryImageDiagonalPx">queryImageDiagonalPx (required).</param>
-        /// <param name="reprojErrorMedian">reprojErrorMedian (required).</param>
-        /// <param name="inlierRatio">inlierRatio (required).</param>
+        /// <param name="updatedAt">datetime with the constraint that the value must have timezone info (required).</param>
+        /// <param name="reconstructionId">reconstructionId (required).</param>
+        /// <param name="frameTimestamp">frameTimestamp (required).</param>
         /// <param name="retrievalTopK">retrievalTopK (required).</param>
-        /// <param name="numInliers">numInliers (required).</param>
-        /// <param name="numMatches">numMatches (required).</param>
-        /// <param name="numCorrespondences">numCorrespondences (required).</param>
-        /// <param name="succeeded">succeeded (required).</param>
+        /// <param name="ransacThreshold">ransacThreshold (required).</param>
         /// <param name="pipelineVersion">pipelineVersion (required).</param>
-        /// <param name="errRDeg">errRDeg.</param>
-        /// <param name="errTM">errTM.</param>
+        /// <param name="succeeded">succeeded (required).</param>
+        /// <param name="numCorrespondences">numCorrespondences (required).</param>
+        /// <param name="numMatches">numMatches (required).</param>
+        /// <param name="numInliers">numInliers (required).</param>
+        /// <param name="inlierRatio">inlierRatio (required).</param>
+        /// <param name="inlierCoverage">inlierCoverage (required).</param>
+        /// <param name="reprojErrorMedian">reprojErrorMedian (required).</param>
+        /// <param name="queryImageDiagonalPx">queryImageDiagonalPx (required).</param>
+        /// <param name="id">id (required).</param>
         /// <param name="pnpCovariance">pnpCovariance.</param>
         /// <param name="se3Residual">se3Residual.</param>
-        public LocalizationEvaluationRead(Guid reconstructionId, Guid id, double ransacThreshold, int frameTimestamp, DateTime updatedAt, double inlierCoverage, DateTime createdAt, double queryImageDiagonalPx, double reprojErrorMedian, double inlierRatio, int retrievalTopK, int numInliers, int numMatches, int numCorrespondences, bool succeeded, string pipelineVersion)
+        /// <param name="errTM">errTM.</param>
+        /// <param name="errRDeg">errRDeg.</param>
+        public LocalizationEvaluationRead(DateTime createdAt, DateTime updatedAt, Guid reconstructionId, int frameTimestamp, int retrievalTopK, double ransacThreshold, string pipelineVersion, bool succeeded, int numCorrespondences, int numMatches, int numInliers, double inlierRatio, double inlierCoverage, double reprojErrorMedian, double queryImageDiagonalPx, Guid id)
         {
-            this.ReconstructionId = reconstructionId;
-            this.Id = id;
-            this.RansacThreshold = ransacThreshold;
-            this.FrameTimestamp = frameTimestamp;
-            this.UpdatedAt = updatedAt;
-            this.InlierCoverage = inlierCoverage;
             this.CreatedAt = createdAt;
-            this.QueryImageDiagonalPx = queryImageDiagonalPx;
-            this.ReprojErrorMedian = reprojErrorMedian;
-            this.InlierRatio = inlierRatio;
+            this.UpdatedAt = updatedAt;
+            this.ReconstructionId = reconstructionId;
+            this.FrameTimestamp = frameTimestamp;
             this.RetrievalTopK = retrievalTopK;
-            this.NumInliers = numInliers;
-            this.NumMatches = numMatches;
-            this.NumCorrespondences = numCorrespondences;
-            this.Succeeded = succeeded;
+            this.RansacThreshold = ransacThreshold;
             // to ensure "pipelineVersion" is required (not null)
             if (pipelineVersion == null)
             {
                 throw new ArgumentNullException("pipelineVersion is a required property for LocalizationEvaluationRead and cannot be null");
             }
             this.PipelineVersion = pipelineVersion;
+            this.Succeeded = succeeded;
+            this.NumCorrespondences = numCorrespondences;
+            this.NumMatches = numMatches;
+            this.NumInliers = numInliers;
+            this.InlierRatio = inlierRatio;
+            this.InlierCoverage = inlierCoverage;
+            this.ReprojErrorMedian = reprojErrorMedian;
+            this.QueryImageDiagonalPx = queryImageDiagonalPx;
+            this.Id = id;
         }
 
         /// <summary>
-        /// Gets or Sets ReconstructionId
+        /// datetime with the constraint that the value must have timezone info
         /// </summary>
-        [DataMember(Name = "reconstruction_id", IsRequired = true, EmitDefaultValue = true)]
-        public Guid ReconstructionId
+        /// <value>datetime with the constraint that the value must have timezone info</value>
+        [DataMember(Name = "created_at", IsRequired = true, EmitDefaultValue = true)]
+        public DateTime CreatedAt
         {
-            get{ return _ReconstructionId;}
+            get{ return _CreatedAt;}
             set
             {
-                _ReconstructionId = value;
-                _flagReconstructionId = true;
+                _CreatedAt = value;
+                _flagCreatedAt = true;
             }
         }
-        private Guid _ReconstructionId;
-        private bool _flagReconstructionId;
+        private DateTime _CreatedAt;
+        private bool _flagCreatedAt;
 
         /// <summary>
-        /// Returns false as ReconstructionId should not be serialized given that it's read-only.
+        /// Returns false as CreatedAt should not be serialized given that it's read-only.
         /// </summary>
         /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeReconstructionId()
+        public bool ShouldSerializeCreatedAt()
         {
-            return _flagReconstructionId;
-        }
-        /// <summary>
-        /// Gets or Sets Id
-        /// </summary>
-        [DataMember(Name = "id", IsRequired = true, EmitDefaultValue = true)]
-        public Guid Id
-        {
-            get{ return _Id;}
-            set
-            {
-                _Id = value;
-                _flagId = true;
-            }
-        }
-        private Guid _Id;
-        private bool _flagId;
-
-        /// <summary>
-        /// Returns false as Id should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeId()
-        {
-            return _flagId;
-        }
-        /// <summary>
-        /// Gets or Sets RansacThreshold
-        /// </summary>
-        [DataMember(Name = "ransac_threshold", IsRequired = true, EmitDefaultValue = true)]
-        public double RansacThreshold
-        {
-            get{ return _RansacThreshold;}
-            set
-            {
-                _RansacThreshold = value;
-                _flagRansacThreshold = true;
-            }
-        }
-        private double _RansacThreshold;
-        private bool _flagRansacThreshold;
-
-        /// <summary>
-        /// Returns false as RansacThreshold should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeRansacThreshold()
-        {
-            return _flagRansacThreshold;
-        }
-        /// <summary>
-        /// Gets or Sets FrameTimestamp
-        /// </summary>
-        [DataMember(Name = "frame_timestamp", IsRequired = true, EmitDefaultValue = true)]
-        public int FrameTimestamp
-        {
-            get{ return _FrameTimestamp;}
-            set
-            {
-                _FrameTimestamp = value;
-                _flagFrameTimestamp = true;
-            }
-        }
-        private int _FrameTimestamp;
-        private bool _flagFrameTimestamp;
-
-        /// <summary>
-        /// Returns false as FrameTimestamp should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeFrameTimestamp()
-        {
-            return _flagFrameTimestamp;
+            return _flagCreatedAt;
         }
         /// <summary>
         /// datetime with the constraint that the value must have timezone info
@@ -206,125 +135,52 @@ namespace PlaceframeApiClient.Model
             return _flagUpdatedAt;
         }
         /// <summary>
-        /// Gets or Sets InlierCoverage
+        /// Gets or Sets ReconstructionId
         /// </summary>
-        [DataMember(Name = "inlier_coverage", IsRequired = true, EmitDefaultValue = true)]
-        public double InlierCoverage
+        [DataMember(Name = "reconstruction_id", IsRequired = true, EmitDefaultValue = true)]
+        public Guid ReconstructionId
         {
-            get{ return _InlierCoverage;}
+            get{ return _ReconstructionId;}
             set
             {
-                _InlierCoverage = value;
-                _flagInlierCoverage = true;
+                _ReconstructionId = value;
+                _flagReconstructionId = true;
             }
         }
-        private double _InlierCoverage;
-        private bool _flagInlierCoverage;
+        private Guid _ReconstructionId;
+        private bool _flagReconstructionId;
 
         /// <summary>
-        /// Returns false as InlierCoverage should not be serialized given that it's read-only.
+        /// Returns false as ReconstructionId should not be serialized given that it's read-only.
         /// </summary>
         /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeInlierCoverage()
+        public bool ShouldSerializeReconstructionId()
         {
-            return _flagInlierCoverage;
+            return _flagReconstructionId;
         }
         /// <summary>
-        /// datetime with the constraint that the value must have timezone info
+        /// Gets or Sets FrameTimestamp
         /// </summary>
-        /// <value>datetime with the constraint that the value must have timezone info</value>
-        [DataMember(Name = "created_at", IsRequired = true, EmitDefaultValue = true)]
-        public DateTime CreatedAt
+        [DataMember(Name = "frame_timestamp", IsRequired = true, EmitDefaultValue = true)]
+        public int FrameTimestamp
         {
-            get{ return _CreatedAt;}
+            get{ return _FrameTimestamp;}
             set
             {
-                _CreatedAt = value;
-                _flagCreatedAt = true;
+                _FrameTimestamp = value;
+                _flagFrameTimestamp = true;
             }
         }
-        private DateTime _CreatedAt;
-        private bool _flagCreatedAt;
+        private int _FrameTimestamp;
+        private bool _flagFrameTimestamp;
 
         /// <summary>
-        /// Returns false as CreatedAt should not be serialized given that it's read-only.
+        /// Returns false as FrameTimestamp should not be serialized given that it's read-only.
         /// </summary>
         /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeCreatedAt()
+        public bool ShouldSerializeFrameTimestamp()
         {
-            return _flagCreatedAt;
-        }
-        /// <summary>
-        /// Gets or Sets QueryImageDiagonalPx
-        /// </summary>
-        [DataMember(Name = "query_image_diagonal_px", IsRequired = true, EmitDefaultValue = true)]
-        public double QueryImageDiagonalPx
-        {
-            get{ return _QueryImageDiagonalPx;}
-            set
-            {
-                _QueryImageDiagonalPx = value;
-                _flagQueryImageDiagonalPx = true;
-            }
-        }
-        private double _QueryImageDiagonalPx;
-        private bool _flagQueryImageDiagonalPx;
-
-        /// <summary>
-        /// Returns false as QueryImageDiagonalPx should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeQueryImageDiagonalPx()
-        {
-            return _flagQueryImageDiagonalPx;
-        }
-        /// <summary>
-        /// Gets or Sets ReprojErrorMedian
-        /// </summary>
-        [DataMember(Name = "reproj_error_median", IsRequired = true, EmitDefaultValue = true)]
-        public double ReprojErrorMedian
-        {
-            get{ return _ReprojErrorMedian;}
-            set
-            {
-                _ReprojErrorMedian = value;
-                _flagReprojErrorMedian = true;
-            }
-        }
-        private double _ReprojErrorMedian;
-        private bool _flagReprojErrorMedian;
-
-        /// <summary>
-        /// Returns false as ReprojErrorMedian should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeReprojErrorMedian()
-        {
-            return _flagReprojErrorMedian;
-        }
-        /// <summary>
-        /// Gets or Sets InlierRatio
-        /// </summary>
-        [DataMember(Name = "inlier_ratio", IsRequired = true, EmitDefaultValue = true)]
-        public double InlierRatio
-        {
-            get{ return _InlierRatio;}
-            set
-            {
-                _InlierRatio = value;
-                _flagInlierRatio = true;
-            }
-        }
-        private double _InlierRatio;
-        private bool _flagInlierRatio;
-
-        /// <summary>
-        /// Returns false as InlierRatio should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeInlierRatio()
-        {
-            return _flagInlierRatio;
+            return _flagFrameTimestamp;
         }
         /// <summary>
         /// Gets or Sets RetrievalTopK
@@ -351,100 +207,28 @@ namespace PlaceframeApiClient.Model
             return _flagRetrievalTopK;
         }
         /// <summary>
-        /// Gets or Sets NumInliers
+        /// Gets or Sets RansacThreshold
         /// </summary>
-        [DataMember(Name = "num_inliers", IsRequired = true, EmitDefaultValue = true)]
-        public int NumInliers
+        [DataMember(Name = "ransac_threshold", IsRequired = true, EmitDefaultValue = true)]
+        public double RansacThreshold
         {
-            get{ return _NumInliers;}
+            get{ return _RansacThreshold;}
             set
             {
-                _NumInliers = value;
-                _flagNumInliers = true;
+                _RansacThreshold = value;
+                _flagRansacThreshold = true;
             }
         }
-        private int _NumInliers;
-        private bool _flagNumInliers;
+        private double _RansacThreshold;
+        private bool _flagRansacThreshold;
 
         /// <summary>
-        /// Returns false as NumInliers should not be serialized given that it's read-only.
+        /// Returns false as RansacThreshold should not be serialized given that it's read-only.
         /// </summary>
         /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeNumInliers()
+        public bool ShouldSerializeRansacThreshold()
         {
-            return _flagNumInliers;
-        }
-        /// <summary>
-        /// Gets or Sets NumMatches
-        /// </summary>
-        [DataMember(Name = "num_matches", IsRequired = true, EmitDefaultValue = true)]
-        public int NumMatches
-        {
-            get{ return _NumMatches;}
-            set
-            {
-                _NumMatches = value;
-                _flagNumMatches = true;
-            }
-        }
-        private int _NumMatches;
-        private bool _flagNumMatches;
-
-        /// <summary>
-        /// Returns false as NumMatches should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeNumMatches()
-        {
-            return _flagNumMatches;
-        }
-        /// <summary>
-        /// Gets or Sets NumCorrespondences
-        /// </summary>
-        [DataMember(Name = "num_correspondences", IsRequired = true, EmitDefaultValue = true)]
-        public int NumCorrespondences
-        {
-            get{ return _NumCorrespondences;}
-            set
-            {
-                _NumCorrespondences = value;
-                _flagNumCorrespondences = true;
-            }
-        }
-        private int _NumCorrespondences;
-        private bool _flagNumCorrespondences;
-
-        /// <summary>
-        /// Returns false as NumCorrespondences should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeNumCorrespondences()
-        {
-            return _flagNumCorrespondences;
-        }
-        /// <summary>
-        /// Gets or Sets Succeeded
-        /// </summary>
-        [DataMember(Name = "succeeded", IsRequired = true, EmitDefaultValue = true)]
-        public bool Succeeded
-        {
-            get{ return _Succeeded;}
-            set
-            {
-                _Succeeded = value;
-                _flagSucceeded = true;
-            }
-        }
-        private bool _Succeeded;
-        private bool _flagSucceeded;
-
-        /// <summary>
-        /// Returns false as Succeeded should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeSucceeded()
-        {
-            return _flagSucceeded;
+            return _flagRansacThreshold;
         }
         /// <summary>
         /// Gets or Sets PipelineVersion
@@ -471,52 +255,220 @@ namespace PlaceframeApiClient.Model
             return _flagPipelineVersion;
         }
         /// <summary>
-        /// Gets or Sets ErrRDeg
+        /// Gets or Sets Succeeded
         /// </summary>
-        [DataMember(Name = "err_r_deg", EmitDefaultValue = true)]
-        public double? ErrRDeg
+        [DataMember(Name = "succeeded", IsRequired = true, EmitDefaultValue = true)]
+        public bool Succeeded
         {
-            get{ return _ErrRDeg;}
+            get{ return _Succeeded;}
             set
             {
-                _ErrRDeg = value;
-                _flagErrRDeg = true;
+                _Succeeded = value;
+                _flagSucceeded = true;
             }
         }
-        private double? _ErrRDeg;
-        private bool _flagErrRDeg;
+        private bool _Succeeded;
+        private bool _flagSucceeded;
 
         /// <summary>
-        /// Returns false as ErrRDeg should not be serialized given that it's read-only.
+        /// Returns false as Succeeded should not be serialized given that it's read-only.
         /// </summary>
         /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeErrRDeg()
+        public bool ShouldSerializeSucceeded()
         {
-            return _flagErrRDeg;
+            return _flagSucceeded;
         }
         /// <summary>
-        /// Gets or Sets ErrTM
+        /// Gets or Sets NumCorrespondences
         /// </summary>
-        [DataMember(Name = "err_t_m", EmitDefaultValue = true)]
-        public double? ErrTM
+        [DataMember(Name = "num_correspondences", IsRequired = true, EmitDefaultValue = true)]
+        public int NumCorrespondences
         {
-            get{ return _ErrTM;}
+            get{ return _NumCorrespondences;}
             set
             {
-                _ErrTM = value;
-                _flagErrTM = true;
+                _NumCorrespondences = value;
+                _flagNumCorrespondences = true;
             }
         }
-        private double? _ErrTM;
-        private bool _flagErrTM;
+        private int _NumCorrespondences;
+        private bool _flagNumCorrespondences;
 
         /// <summary>
-        /// Returns false as ErrTM should not be serialized given that it's read-only.
+        /// Returns false as NumCorrespondences should not be serialized given that it's read-only.
         /// </summary>
         /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeErrTM()
+        public bool ShouldSerializeNumCorrespondences()
         {
-            return _flagErrTM;
+            return _flagNumCorrespondences;
+        }
+        /// <summary>
+        /// Gets or Sets NumMatches
+        /// </summary>
+        [DataMember(Name = "num_matches", IsRequired = true, EmitDefaultValue = true)]
+        public int NumMatches
+        {
+            get{ return _NumMatches;}
+            set
+            {
+                _NumMatches = value;
+                _flagNumMatches = true;
+            }
+        }
+        private int _NumMatches;
+        private bool _flagNumMatches;
+
+        /// <summary>
+        /// Returns false as NumMatches should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeNumMatches()
+        {
+            return _flagNumMatches;
+        }
+        /// <summary>
+        /// Gets or Sets NumInliers
+        /// </summary>
+        [DataMember(Name = "num_inliers", IsRequired = true, EmitDefaultValue = true)]
+        public int NumInliers
+        {
+            get{ return _NumInliers;}
+            set
+            {
+                _NumInliers = value;
+                _flagNumInliers = true;
+            }
+        }
+        private int _NumInliers;
+        private bool _flagNumInliers;
+
+        /// <summary>
+        /// Returns false as NumInliers should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeNumInliers()
+        {
+            return _flagNumInliers;
+        }
+        /// <summary>
+        /// Gets or Sets InlierRatio
+        /// </summary>
+        [DataMember(Name = "inlier_ratio", IsRequired = true, EmitDefaultValue = true)]
+        public double InlierRatio
+        {
+            get{ return _InlierRatio;}
+            set
+            {
+                _InlierRatio = value;
+                _flagInlierRatio = true;
+            }
+        }
+        private double _InlierRatio;
+        private bool _flagInlierRatio;
+
+        /// <summary>
+        /// Returns false as InlierRatio should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeInlierRatio()
+        {
+            return _flagInlierRatio;
+        }
+        /// <summary>
+        /// Gets or Sets InlierCoverage
+        /// </summary>
+        [DataMember(Name = "inlier_coverage", IsRequired = true, EmitDefaultValue = true)]
+        public double InlierCoverage
+        {
+            get{ return _InlierCoverage;}
+            set
+            {
+                _InlierCoverage = value;
+                _flagInlierCoverage = true;
+            }
+        }
+        private double _InlierCoverage;
+        private bool _flagInlierCoverage;
+
+        /// <summary>
+        /// Returns false as InlierCoverage should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeInlierCoverage()
+        {
+            return _flagInlierCoverage;
+        }
+        /// <summary>
+        /// Gets or Sets ReprojErrorMedian
+        /// </summary>
+        [DataMember(Name = "reproj_error_median", IsRequired = true, EmitDefaultValue = true)]
+        public double ReprojErrorMedian
+        {
+            get{ return _ReprojErrorMedian;}
+            set
+            {
+                _ReprojErrorMedian = value;
+                _flagReprojErrorMedian = true;
+            }
+        }
+        private double _ReprojErrorMedian;
+        private bool _flagReprojErrorMedian;
+
+        /// <summary>
+        /// Returns false as ReprojErrorMedian should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeReprojErrorMedian()
+        {
+            return _flagReprojErrorMedian;
+        }
+        /// <summary>
+        /// Gets or Sets QueryImageDiagonalPx
+        /// </summary>
+        [DataMember(Name = "query_image_diagonal_px", IsRequired = true, EmitDefaultValue = true)]
+        public double QueryImageDiagonalPx
+        {
+            get{ return _QueryImageDiagonalPx;}
+            set
+            {
+                _QueryImageDiagonalPx = value;
+                _flagQueryImageDiagonalPx = true;
+            }
+        }
+        private double _QueryImageDiagonalPx;
+        private bool _flagQueryImageDiagonalPx;
+
+        /// <summary>
+        /// Returns false as QueryImageDiagonalPx should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeQueryImageDiagonalPx()
+        {
+            return _flagQueryImageDiagonalPx;
+        }
+        /// <summary>
+        /// Gets or Sets Id
+        /// </summary>
+        [DataMember(Name = "id", IsRequired = true, EmitDefaultValue = true)]
+        public Guid Id
+        {
+            get{ return _Id;}
+            set
+            {
+                _Id = value;
+                _flagId = true;
+            }
+        }
+        private Guid _Id;
+        private bool _flagId;
+
+        /// <summary>
+        /// Returns false as Id should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeId()
+        {
+            return _flagId;
         }
         /// <summary>
         /// Gets or Sets PnpCovariance
@@ -567,6 +519,54 @@ namespace PlaceframeApiClient.Model
             return _flagSe3Residual;
         }
         /// <summary>
+        /// Gets or Sets ErrTM
+        /// </summary>
+        [DataMember(Name = "err_t_m", EmitDefaultValue = true)]
+        public double? ErrTM
+        {
+            get{ return _ErrTM;}
+            set
+            {
+                _ErrTM = value;
+                _flagErrTM = true;
+            }
+        }
+        private double? _ErrTM;
+        private bool _flagErrTM;
+
+        /// <summary>
+        /// Returns false as ErrTM should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeErrTM()
+        {
+            return _flagErrTM;
+        }
+        /// <summary>
+        /// Gets or Sets ErrRDeg
+        /// </summary>
+        [DataMember(Name = "err_r_deg", EmitDefaultValue = true)]
+        public double? ErrRDeg
+        {
+            get{ return _ErrRDeg;}
+            set
+            {
+                _ErrRDeg = value;
+                _flagErrRDeg = true;
+            }
+        }
+        private double? _ErrRDeg;
+        private bool _flagErrRDeg;
+
+        /// <summary>
+        /// Returns false as ErrRDeg should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeErrRDeg()
+        {
+            return _flagErrRDeg;
+        }
+        /// <summary>
         /// Returns the string presentation of the object
         /// </summary>
         /// <returns>String presentation of the object</returns>
@@ -574,26 +574,26 @@ namespace PlaceframeApiClient.Model
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("class LocalizationEvaluationRead {\n");
-            sb.Append("  ReconstructionId: ").Append(ReconstructionId).Append("\n");
-            sb.Append("  Id: ").Append(Id).Append("\n");
-            sb.Append("  RansacThreshold: ").Append(RansacThreshold).Append("\n");
-            sb.Append("  FrameTimestamp: ").Append(FrameTimestamp).Append("\n");
-            sb.Append("  UpdatedAt: ").Append(UpdatedAt).Append("\n");
-            sb.Append("  InlierCoverage: ").Append(InlierCoverage).Append("\n");
             sb.Append("  CreatedAt: ").Append(CreatedAt).Append("\n");
-            sb.Append("  QueryImageDiagonalPx: ").Append(QueryImageDiagonalPx).Append("\n");
-            sb.Append("  ReprojErrorMedian: ").Append(ReprojErrorMedian).Append("\n");
-            sb.Append("  InlierRatio: ").Append(InlierRatio).Append("\n");
+            sb.Append("  UpdatedAt: ").Append(UpdatedAt).Append("\n");
+            sb.Append("  ReconstructionId: ").Append(ReconstructionId).Append("\n");
+            sb.Append("  FrameTimestamp: ").Append(FrameTimestamp).Append("\n");
             sb.Append("  RetrievalTopK: ").Append(RetrievalTopK).Append("\n");
-            sb.Append("  NumInliers: ").Append(NumInliers).Append("\n");
-            sb.Append("  NumMatches: ").Append(NumMatches).Append("\n");
-            sb.Append("  NumCorrespondences: ").Append(NumCorrespondences).Append("\n");
-            sb.Append("  Succeeded: ").Append(Succeeded).Append("\n");
+            sb.Append("  RansacThreshold: ").Append(RansacThreshold).Append("\n");
             sb.Append("  PipelineVersion: ").Append(PipelineVersion).Append("\n");
-            sb.Append("  ErrRDeg: ").Append(ErrRDeg).Append("\n");
-            sb.Append("  ErrTM: ").Append(ErrTM).Append("\n");
+            sb.Append("  Succeeded: ").Append(Succeeded).Append("\n");
+            sb.Append("  NumCorrespondences: ").Append(NumCorrespondences).Append("\n");
+            sb.Append("  NumMatches: ").Append(NumMatches).Append("\n");
+            sb.Append("  NumInliers: ").Append(NumInliers).Append("\n");
+            sb.Append("  InlierRatio: ").Append(InlierRatio).Append("\n");
+            sb.Append("  InlierCoverage: ").Append(InlierCoverage).Append("\n");
+            sb.Append("  ReprojErrorMedian: ").Append(ReprojErrorMedian).Append("\n");
+            sb.Append("  QueryImageDiagonalPx: ").Append(QueryImageDiagonalPx).Append("\n");
+            sb.Append("  Id: ").Append(Id).Append("\n");
             sb.Append("  PnpCovariance: ").Append(PnpCovariance).Append("\n");
             sb.Append("  Se3Residual: ").Append(Se3Residual).Append("\n");
+            sb.Append("  ErrTM: ").Append(ErrTM).Append("\n");
+            sb.Append("  ErrRDeg: ").Append(ErrRDeg).Append("\n");
             sb.Append("}\n");
             return sb.ToString();
         }

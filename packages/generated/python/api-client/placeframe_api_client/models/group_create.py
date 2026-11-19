@@ -28,11 +28,11 @@ class GroupCreate(BaseModel):
     """
     GroupCreate
     """ # noqa: E501
-    id: Optional[UUID] = None
     name: StrictStr
+    id: Optional[UUID] = None
     parent_id: Optional[UUID] = None
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["id", "name", "parent_id"]
+    __properties: ClassVar[List[str]] = ["name", "id", "parent_id"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -102,8 +102,8 @@ class GroupCreate(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "id": obj.get("id"),
             "name": obj.get("name"),
+            "id": obj.get("id"),
             "parent_id": obj.get("parent_id")
         })
         # store additional fields in additional_properties

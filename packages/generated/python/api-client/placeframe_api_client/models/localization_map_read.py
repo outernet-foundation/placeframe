@@ -29,23 +29,23 @@ class LocalizationMapRead(BaseModel):
     """
     LocalizationMapRead
     """ # noqa: E501
+    created_at: datetime = Field(description="datetime with the constraint that the value must have timezone info")
+    updated_at: datetime = Field(description="datetime with the constraint that the value must have timezone info")
     reconstruction_id: UUID
-    id: UUID
-    rotation_y: Union[StrictFloat, StrictInt]
     position_x: Union[StrictFloat, StrictInt]
     position_y: Union[StrictFloat, StrictInt]
     position_z: Union[StrictFloat, StrictInt]
     rotation_x: Union[StrictFloat, StrictInt]
-    updated_at: datetime = Field(description="datetime with the constraint that the value must have timezone info")
+    rotation_y: Union[StrictFloat, StrictInt]
     rotation_z: Union[StrictFloat, StrictInt]
     rotation_w: Union[StrictFloat, StrictInt]
-    color: StrictInt
-    created_at: datetime = Field(description="datetime with the constraint that the value must have timezone info")
     active: StrictBool
-    lighting: Optional[StrictInt] = None
+    color: StrictInt
+    id: UUID
     name: Optional[StrictStr] = None
+    lighting: Optional[StrictInt] = None
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["reconstruction_id", "id", "rotation_y", "position_x", "position_y", "position_z", "rotation_x", "updated_at", "rotation_z", "rotation_w", "color", "created_at", "active", "lighting", "name"]
+    __properties: ClassVar[List[str]] = ["created_at", "updated_at", "reconstruction_id", "position_x", "position_y", "position_z", "rotation_x", "rotation_y", "rotation_z", "rotation_w", "active", "color", "id", "name", "lighting"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -93,15 +93,15 @@ class LocalizationMapRead(BaseModel):
             for _key, _value in self.additional_properties.items():
                 _dict[_key] = _value
 
-        # set to None if lighting (nullable) is None
-        # and model_fields_set contains the field
-        if self.lighting is None and "lighting" in self.model_fields_set:
-            _dict['lighting'] = None
-
         # set to None if name (nullable) is None
         # and model_fields_set contains the field
         if self.name is None and "name" in self.model_fields_set:
             _dict['name'] = None
+
+        # set to None if lighting (nullable) is None
+        # and model_fields_set contains the field
+        if self.lighting is None and "lighting" in self.model_fields_set:
+            _dict['lighting'] = None
 
         return _dict
 
@@ -115,21 +115,21 @@ class LocalizationMapRead(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
+            "created_at": obj.get("created_at"),
+            "updated_at": obj.get("updated_at"),
             "reconstruction_id": obj.get("reconstruction_id"),
-            "id": obj.get("id"),
-            "rotation_y": obj.get("rotation_y"),
             "position_x": obj.get("position_x"),
             "position_y": obj.get("position_y"),
             "position_z": obj.get("position_z"),
             "rotation_x": obj.get("rotation_x"),
-            "updated_at": obj.get("updated_at"),
+            "rotation_y": obj.get("rotation_y"),
             "rotation_z": obj.get("rotation_z"),
             "rotation_w": obj.get("rotation_w"),
-            "color": obj.get("color"),
-            "created_at": obj.get("created_at"),
             "active": obj.get("active"),
-            "lighting": obj.get("lighting"),
-            "name": obj.get("name")
+            "color": obj.get("color"),
+            "id": obj.get("id"),
+            "name": obj.get("name"),
+            "lighting": obj.get("lighting")
         })
         # store additional fields in additional_properties
         for _key in obj.keys():

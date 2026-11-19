@@ -39,8 +39,8 @@ namespace PlaceframeApiClient.Model
         /// <summary>
         /// Initializes a new instance of the <see cref="LayerBatchUpdate" /> class.
         /// </summary>
-        /// <param name="id">id (required).</param>
         /// <param name="name">name.</param>
+        /// <param name="id">id (required).</param>
         public LayerBatchUpdate(Guid id)
         {
             this.Id = id;

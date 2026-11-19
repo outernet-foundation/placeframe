@@ -29,25 +29,25 @@ class LocalizationEvaluationCreate(BaseModel):
     LocalizationEvaluationCreate
     """ # noqa: E501
     reconstruction_id: UUID
-    id: Optional[UUID] = None
-    ransac_threshold: Union[StrictFloat, StrictInt]
     frame_timestamp: StrictInt
-    inlier_coverage: Union[StrictFloat, StrictInt]
-    query_image_diagonal_px: Union[StrictFloat, StrictInt]
-    reproj_error_median: Union[StrictFloat, StrictInt]
-    inlier_ratio: Union[StrictFloat, StrictInt]
     retrieval_top_k: StrictInt
-    num_inliers: StrictInt
-    num_matches: StrictInt
-    num_correspondences: StrictInt
-    succeeded: StrictBool
+    ransac_threshold: Union[StrictFloat, StrictInt]
     pipeline_version: StrictStr
-    err_r_deg: Optional[Union[StrictFloat, StrictInt]] = None
-    err_t_m: Optional[Union[StrictFloat, StrictInt]] = None
+    succeeded: StrictBool
+    num_correspondences: StrictInt
+    num_matches: StrictInt
+    num_inliers: StrictInt
+    inlier_ratio: Union[StrictFloat, StrictInt]
+    inlier_coverage: Union[StrictFloat, StrictInt]
+    reproj_error_median: Union[StrictFloat, StrictInt]
+    query_image_diagonal_px: Union[StrictFloat, StrictInt]
+    id: Optional[UUID] = None
     pnp_covariance: Optional[List[Any]] = None
     se3_residual: Optional[List[Any]] = None
+    err_t_m: Optional[Union[StrictFloat, StrictInt]] = None
+    err_r_deg: Optional[Union[StrictFloat, StrictInt]] = None
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["reconstruction_id", "id", "ransac_threshold", "frame_timestamp", "inlier_coverage", "query_image_diagonal_px", "reproj_error_median", "inlier_ratio", "retrieval_top_k", "num_inliers", "num_matches", "num_correspondences", "succeeded", "pipeline_version", "err_r_deg", "err_t_m", "pnp_covariance", "se3_residual"]
+    __properties: ClassVar[List[str]] = ["reconstruction_id", "frame_timestamp", "retrieval_top_k", "ransac_threshold", "pipeline_version", "succeeded", "num_correspondences", "num_matches", "num_inliers", "inlier_ratio", "inlier_coverage", "reproj_error_median", "query_image_diagonal_px", "id", "pnp_covariance", "se3_residual", "err_t_m", "err_r_deg"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -100,16 +100,6 @@ class LocalizationEvaluationCreate(BaseModel):
         if self.id is None and "id" in self.model_fields_set:
             _dict['id'] = None
 
-        # set to None if err_r_deg (nullable) is None
-        # and model_fields_set contains the field
-        if self.err_r_deg is None and "err_r_deg" in self.model_fields_set:
-            _dict['err_r_deg'] = None
-
-        # set to None if err_t_m (nullable) is None
-        # and model_fields_set contains the field
-        if self.err_t_m is None and "err_t_m" in self.model_fields_set:
-            _dict['err_t_m'] = None
-
         # set to None if pnp_covariance (nullable) is None
         # and model_fields_set contains the field
         if self.pnp_covariance is None and "pnp_covariance" in self.model_fields_set:
@@ -119,6 +109,16 @@ class LocalizationEvaluationCreate(BaseModel):
         # and model_fields_set contains the field
         if self.se3_residual is None and "se3_residual" in self.model_fields_set:
             _dict['se3_residual'] = None
+
+        # set to None if err_t_m (nullable) is None
+        # and model_fields_set contains the field
+        if self.err_t_m is None and "err_t_m" in self.model_fields_set:
+            _dict['err_t_m'] = None
+
+        # set to None if err_r_deg (nullable) is None
+        # and model_fields_set contains the field
+        if self.err_r_deg is None and "err_r_deg" in self.model_fields_set:
+            _dict['err_r_deg'] = None
 
         return _dict
 
@@ -133,23 +133,23 @@ class LocalizationEvaluationCreate(BaseModel):
 
         _obj = cls.model_validate({
             "reconstruction_id": obj.get("reconstruction_id"),
-            "id": obj.get("id"),
-            "ransac_threshold": obj.get("ransac_threshold"),
             "frame_timestamp": obj.get("frame_timestamp"),
-            "inlier_coverage": obj.get("inlier_coverage"),
-            "query_image_diagonal_px": obj.get("query_image_diagonal_px"),
-            "reproj_error_median": obj.get("reproj_error_median"),
-            "inlier_ratio": obj.get("inlier_ratio"),
             "retrieval_top_k": obj.get("retrieval_top_k"),
-            "num_inliers": obj.get("num_inliers"),
-            "num_matches": obj.get("num_matches"),
-            "num_correspondences": obj.get("num_correspondences"),
-            "succeeded": obj.get("succeeded"),
+            "ransac_threshold": obj.get("ransac_threshold"),
             "pipeline_version": obj.get("pipeline_version"),
-            "err_r_deg": obj.get("err_r_deg"),
-            "err_t_m": obj.get("err_t_m"),
+            "succeeded": obj.get("succeeded"),
+            "num_correspondences": obj.get("num_correspondences"),
+            "num_matches": obj.get("num_matches"),
+            "num_inliers": obj.get("num_inliers"),
+            "inlier_ratio": obj.get("inlier_ratio"),
+            "inlier_coverage": obj.get("inlier_coverage"),
+            "reproj_error_median": obj.get("reproj_error_median"),
+            "query_image_diagonal_px": obj.get("query_image_diagonal_px"),
+            "id": obj.get("id"),
             "pnp_covariance": obj.get("pnp_covariance"),
-            "se3_residual": obj.get("se3_residual")
+            "se3_residual": obj.get("se3_residual"),
+            "err_t_m": obj.get("err_t_m"),
+            "err_r_deg": obj.get("err_r_deg")
         })
         # store additional fields in additional_properties
         for _key in obj.keys():

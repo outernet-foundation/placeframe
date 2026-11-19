@@ -4193,11 +4193,6 @@
       },
       "CaptureSessionBatchUpdate": {
         "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Id"
-          },
           "recorded_at": {
             "title": "Recorded At",
             "nullable": true,
@@ -4205,19 +4200,24 @@
             "format": "date-time",
             "description": "datetime with the constraint that the value must have timezone info"
           },
-          "size_bytes": {
-            "title": "Size Bytes",
+          "name": {
+            "title": "Name",
             "nullable": true,
-            "type": "integer"
+            "type": "string"
           },
           "device_type": {
             "nullable": true,
             "$ref": "#/components/schemas/DeviceType"
           },
-          "name": {
-            "title": "Name",
+          "size_bytes": {
+            "title": "Size Bytes",
             "nullable": true,
-            "type": "string"
+            "type": "integer"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
           }
         },
         "type": "object",
@@ -4228,12 +4228,6 @@
       },
       "CaptureSessionCreate": {
         "properties": {
-          "id": {
-            "title": "Id",
-            "nullable": true,
-            "type": "string",
-            "format": "uuid"
-          },
           "recorded_at": {
             "title": "Recorded At",
             "nullable": true,
@@ -4241,17 +4235,23 @@
             "format": "date-time",
             "description": "datetime with the constraint that the value must have timezone info"
           },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "device_type": {
+            "$ref": "#/components/schemas/DeviceType"
+          },
           "size_bytes": {
             "title": "Size Bytes",
             "nullable": true,
             "type": "integer"
           },
-          "device_type": {
-            "$ref": "#/components/schemas/DeviceType"
-          },
-          "name": {
+          "id": {
+            "title": "Id",
+            "nullable": true,
             "type": "string",
-            "title": "Name"
+            "format": "uuid"
           }
         },
         "type": "object",
@@ -4287,11 +4287,6 @@
       },
       "CaptureSessionRead": {
         "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Id"
-          },
           "created_at": {
             "type": "string",
             "format": "date-time",
@@ -4310,16 +4305,21 @@
             "title": "Created At",
             "description": "datetime with the constraint that the value must have timezone info"
           },
-          "size_bytes": {
-            "type": "integer",
-            "title": "Size Bytes"
+          "name": {
+            "type": "string",
+            "title": "Name"
           },
           "device_type": {
             "$ref": "#/components/schemas/DeviceType"
           },
-          "name": {
+          "size_bytes": {
+            "type": "integer",
+            "title": "Size Bytes"
+          },
+          "id": {
             "type": "string",
-            "title": "Name"
+            "format": "uuid",
+            "title": "Id"
           }
         },
         "type": "object",
@@ -4343,19 +4343,19 @@
             "format": "date-time",
             "description": "datetime with the constraint that the value must have timezone info"
           },
-          "size_bytes": {
-            "title": "Size Bytes",
+          "name": {
+            "title": "Name",
             "nullable": true,
-            "type": "integer"
+            "type": "string"
           },
           "device_type": {
             "nullable": true,
             "$ref": "#/components/schemas/DeviceType"
           },
-          "name": {
-            "title": "Name",
+          "size_bytes": {
+            "title": "Size Bytes",
             "nullable": true,
-            "type": "string"
+            "type": "integer"
           }
         },
         "type": "object",
@@ -4548,14 +4548,14 @@
       },
       "GroupBatchCreate": {
         "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
           "id": {
             "type": "string",
             "format": "uuid",
             "title": "Id"
-          },
-          "name": {
-            "type": "string",
-            "title": "Name"
           },
           "parent_id": {
             "title": "Parent Id",
@@ -4573,15 +4573,15 @@
       },
       "GroupBatchUpdate": {
         "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Id"
-          },
           "name": {
             "title": "Name",
             "nullable": true,
             "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
           },
           "parent_id": {
             "title": "Parent Id",
@@ -4598,15 +4598,15 @@
       },
       "GroupCreate": {
         "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
           "id": {
             "title": "Id",
             "nullable": true,
             "type": "string",
             "format": "uuid"
-          },
-          "name": {
-            "type": "string",
-            "title": "Name"
           },
           "parent_id": {
             "title": "Parent Id",
@@ -4623,11 +4623,6 @@
       },
       "GroupRead": {
         "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Id"
-          },
           "created_at": {
             "type": "string",
             "format": "date-time",
@@ -4643,6 +4638,11 @@
           "name": {
             "type": "string",
             "title": "Name"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
           },
           "parent_id": {
             "title": "Parent Id",
@@ -4671,15 +4671,15 @@
       },
       "LayerBatchUpdate": {
         "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Id"
-          },
           "name": {
             "title": "Name",
             "nullable": true,
             "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
           }
         },
         "type": "object",
@@ -4690,15 +4690,15 @@
       },
       "LayerCreate": {
         "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
           "id": {
             "title": "Id",
             "nullable": true,
             "type": "string",
             "format": "uuid"
-          },
-          "name": {
-            "type": "string",
-            "title": "Name"
           }
         },
         "type": "object",
@@ -4709,11 +4709,6 @@
       },
       "LayerRead": {
         "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Id"
-          },
           "created_at": {
             "type": "string",
             "format": "date-time",
@@ -4729,6 +4724,11 @@
           "name": {
             "type": "string",
             "title": "Name"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
           }
         },
         "type": "object",
@@ -4757,76 +4757,64 @@
             "format": "uuid",
             "title": "Reconstruction Id"
           },
-          "id": {
-            "title": "Id",
-            "nullable": true,
-            "type": "string",
-            "format": "uuid"
+          "frame_timestamp": {
+            "type": "integer",
+            "title": "Frame Timestamp"
+          },
+          "retrieval_top_k": {
+            "type": "integer",
+            "title": "Retrieval Top K"
           },
           "ransac_threshold": {
             "type": "number",
             "format": "double",
             "title": "Ransac Threshold"
           },
-          "frame_timestamp": {
+          "pipeline_version": {
+            "type": "string",
+            "title": "Pipeline Version"
+          },
+          "succeeded": {
+            "type": "boolean",
+            "title": "Succeeded"
+          },
+          "num_correspondences": {
             "type": "integer",
-            "title": "Frame Timestamp"
+            "title": "Num Correspondences"
           },
-          "inlier_coverage": {
-            "type": "number",
-            "format": "double",
-            "title": "Inlier Coverage"
+          "num_matches": {
+            "type": "integer",
+            "title": "Num Matches"
           },
-          "query_image_diagonal_px": {
-            "type": "number",
-            "format": "double",
-            "title": "Query Image Diagonal Px"
-          },
-          "reproj_error_median": {
-            "type": "number",
-            "format": "double",
-            "title": "Reproj Error Median"
+          "num_inliers": {
+            "type": "integer",
+            "title": "Num Inliers"
           },
           "inlier_ratio": {
             "type": "number",
             "format": "double",
             "title": "Inlier Ratio"
           },
-          "retrieval_top_k": {
-            "type": "integer",
-            "title": "Retrieval Top K"
+          "inlier_coverage": {
+            "type": "number",
+            "format": "double",
+            "title": "Inlier Coverage"
           },
-          "num_inliers": {
-            "type": "integer",
-            "title": "Num Inliers"
+          "reproj_error_median": {
+            "type": "number",
+            "format": "double",
+            "title": "Reproj Error Median"
           },
-          "num_matches": {
-            "type": "integer",
-            "title": "Num Matches"
+          "query_image_diagonal_px": {
+            "type": "number",
+            "format": "double",
+            "title": "Query Image Diagonal Px"
           },
-          "num_correspondences": {
-            "type": "integer",
-            "title": "Num Correspondences"
-          },
-          "succeeded": {
-            "type": "boolean",
-            "title": "Succeeded"
-          },
-          "pipeline_version": {
+          "id": {
+            "title": "Id",
+            "nullable": true,
             "type": "string",
-            "title": "Pipeline Version"
-          },
-          "err_r_deg": {
-            "title": "Err R Deg",
-            "nullable": true,
-            "type": "number",
-            "format": "double"
-          },
-          "err_t_m": {
-            "title": "Err T M",
-            "nullable": true,
-            "type": "number",
-            "format": "double"
+            "format": "uuid"
           },
           "pnp_covariance": {
             "title": "Pnp Covariance",
@@ -4839,6 +4827,18 @@
             "nullable": true,
             "items": {},
             "type": "array"
+          },
+          "err_t_m": {
+            "title": "Err T M",
+            "nullable": true,
+            "type": "number",
+            "format": "double"
+          },
+          "err_r_deg": {
+            "title": "Err R Deg",
+            "nullable": true,
+            "type": "number",
+            "format": "double"
           }
         },
         "type": "object",
@@ -4861,24 +4861,11 @@
       },
       "LocalizationEvaluationRead": {
         "properties": {
-          "reconstruction_id": {
+          "created_at": {
             "type": "string",
-            "format": "uuid",
-            "title": "Reconstruction Id"
-          },
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Id"
-          },
-          "ransac_threshold": {
-            "type": "number",
-            "format": "double",
-            "title": "Ransac Threshold"
-          },
-          "frame_timestamp": {
-            "type": "integer",
-            "title": "Frame Timestamp"
+            "format": "date-time",
+            "title": "Created At",
+            "description": "datetime with the constraint that the value must have timezone info"
           },
           "updated_at": {
             "type": "string",
@@ -4886,67 +4873,68 @@
             "title": "Created At",
             "description": "datetime with the constraint that the value must have timezone info"
           },
-          "inlier_coverage": {
-            "type": "number",
-            "format": "double",
-            "title": "Inlier Coverage"
-          },
-          "created_at": {
+          "reconstruction_id": {
             "type": "string",
-            "format": "date-time",
-            "title": "Created At",
-            "description": "datetime with the constraint that the value must have timezone info"
+            "format": "uuid",
+            "title": "Reconstruction Id"
           },
-          "query_image_diagonal_px": {
+          "frame_timestamp": {
+            "type": "integer",
+            "title": "Frame Timestamp"
+          },
+          "retrieval_top_k": {
+            "type": "integer",
+            "title": "Retrieval Top K"
+          },
+          "ransac_threshold": {
             "type": "number",
             "format": "double",
-            "title": "Query Image Diagonal Px"
+            "title": "Ransac Threshold"
           },
-          "reproj_error_median": {
-            "type": "number",
-            "format": "double",
-            "title": "Reproj Error Median"
+          "pipeline_version": {
+            "type": "string",
+            "title": "Pipeline Version"
+          },
+          "succeeded": {
+            "type": "boolean",
+            "title": "Succeeded"
+          },
+          "num_correspondences": {
+            "type": "integer",
+            "title": "Num Correspondences"
+          },
+          "num_matches": {
+            "type": "integer",
+            "title": "Num Matches"
+          },
+          "num_inliers": {
+            "type": "integer",
+            "title": "Num Inliers"
           },
           "inlier_ratio": {
             "type": "number",
             "format": "double",
             "title": "Inlier Ratio"
           },
-          "retrieval_top_k": {
-            "type": "integer",
-            "title": "Retrieval Top K"
+          "inlier_coverage": {
+            "type": "number",
+            "format": "double",
+            "title": "Inlier Coverage"
           },
-          "num_inliers": {
-            "type": "integer",
-            "title": "Num Inliers"
+          "reproj_error_median": {
+            "type": "number",
+            "format": "double",
+            "title": "Reproj Error Median"
           },
-          "num_matches": {
-            "type": "integer",
-            "title": "Num Matches"
+          "query_image_diagonal_px": {
+            "type": "number",
+            "format": "double",
+            "title": "Query Image Diagonal Px"
           },
-          "num_correspondences": {
-            "type": "integer",
-            "title": "Num Correspondences"
-          },
-          "succeeded": {
-            "type": "boolean",
-            "title": "Succeeded"
-          },
-          "pipeline_version": {
+          "id": {
             "type": "string",
-            "title": "Pipeline Version"
-          },
-          "err_r_deg": {
-            "title": "Err R Deg",
-            "nullable": true,
-            "type": "number",
-            "format": "double"
-          },
-          "err_t_m": {
-            "title": "Err T M",
-            "nullable": true,
-            "type": "number",
-            "format": "double"
+            "format": "uuid",
+            "title": "Id"
           },
           "pnp_covariance": {
             "title": "Pnp Covariance",
@@ -4959,6 +4947,18 @@
             "nullable": true,
             "items": {},
             "type": "array"
+          },
+          "err_t_m": {
+            "title": "Err T M",
+            "nullable": true,
+            "type": "number",
+            "format": "double"
+          },
+          "err_r_deg": {
+            "title": "Err R Deg",
+            "nullable": true,
+            "type": "number",
+            "format": "double"
           }
         },
         "type": "object",
@@ -4990,17 +4990,6 @@
             "type": "string",
             "format": "uuid"
           },
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Id"
-          },
-          "rotation_y": {
-            "title": "Rotation Y",
-            "nullable": true,
-            "type": "number",
-            "format": "double"
-          },
           "position_x": {
             "title": "Position X",
             "nullable": true,
@@ -5025,6 +5014,12 @@
             "type": "number",
             "format": "double"
           },
+          "rotation_y": {
+            "title": "Rotation Y",
+            "nullable": true,
+            "type": "number",
+            "format": "double"
+          },
           "rotation_z": {
             "title": "Rotation Z",
             "nullable": true,
@@ -5037,25 +5032,30 @@
             "type": "number",
             "format": "double"
           },
-          "color": {
-            "title": "Color",
-            "nullable": true,
-            "type": "integer"
-          },
           "active": {
             "title": "Active",
             "nullable": true,
             "type": "boolean"
           },
-          "lighting": {
-            "title": "Lighting",
+          "color": {
+            "title": "Color",
             "nullable": true,
             "type": "integer"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
           },
           "name": {
             "title": "Name",
             "nullable": true,
             "type": "string"
+          },
+          "lighting": {
+            "title": "Lighting",
+            "nullable": true,
+            "type": "integer"
           }
         },
         "type": "object",
@@ -5070,17 +5070,6 @@
             "type": "string",
             "format": "uuid",
             "title": "Reconstruction Id"
-          },
-          "id": {
-            "title": "Id",
-            "nullable": true,
-            "type": "string",
-            "format": "uuid"
-          },
-          "rotation_y": {
-            "type": "number",
-            "format": "double",
-            "title": "Rotation Y"
           },
           "position_x": {
             "type": "number",
@@ -5102,6 +5091,11 @@
             "format": "double",
             "title": "Rotation X"
           },
+          "rotation_y": {
+            "type": "number",
+            "format": "double",
+            "title": "Rotation Y"
+          },
           "rotation_z": {
             "type": "number",
             "format": "double",
@@ -5112,24 +5106,30 @@
             "format": "double",
             "title": "Rotation W"
           },
-          "color": {
-            "type": "integer",
-            "title": "Color"
-          },
           "active": {
             "title": "Active",
             "nullable": true,
             "type": "boolean"
           },
-          "lighting": {
-            "title": "Lighting",
+          "color": {
+            "type": "integer",
+            "title": "Color"
+          },
+          "id": {
+            "title": "Id",
             "nullable": true,
-            "type": "integer"
+            "type": "string",
+            "format": "uuid"
           },
           "name": {
             "title": "Name",
             "nullable": true,
             "type": "string"
+          },
+          "lighting": {
+            "title": "Lighting",
+            "nullable": true,
+            "type": "integer"
           }
         },
         "type": "object",
@@ -5148,20 +5148,22 @@
       },
       "LocalizationMapRead": {
         "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "datetime with the constraint that the value must have timezone info"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "datetime with the constraint that the value must have timezone info"
+          },
           "reconstruction_id": {
             "type": "string",
             "format": "uuid",
             "title": "Reconstruction Id"
-          },
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Id"
-          },
-          "rotation_y": {
-            "type": "number",
-            "format": "double",
-            "title": "Rotation Y"
           },
           "position_x": {
             "type": "number",
@@ -5183,11 +5185,10 @@
             "format": "double",
             "title": "Rotation X"
           },
-          "updated_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Created At",
-            "description": "datetime with the constraint that the value must have timezone info"
+          "rotation_y": {
+            "type": "number",
+            "format": "double",
+            "title": "Rotation Y"
           },
           "rotation_z": {
             "type": "number",
@@ -5199,29 +5200,28 @@
             "format": "double",
             "title": "Rotation W"
           },
-          "color": {
-            "type": "integer",
-            "title": "Color"
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Created At",
-            "description": "datetime with the constraint that the value must have timezone info"
-          },
           "active": {
             "type": "boolean",
             "title": "Active"
           },
-          "lighting": {
-            "title": "Lighting",
-            "nullable": true,
-            "type": "integer"
+          "color": {
+            "type": "integer",
+            "title": "Color"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
           },
           "name": {
             "title": "Name",
             "nullable": true,
             "type": "string"
+          },
+          "lighting": {
+            "title": "Lighting",
+            "nullable": true,
+            "type": "integer"
           }
         },
         "type": "object",
@@ -5250,12 +5250,6 @@
             "type": "string",
             "format": "uuid"
           },
-          "rotation_y": {
-            "title": "Rotation Y",
-            "nullable": true,
-            "type": "number",
-            "format": "double"
-          },
           "position_x": {
             "title": "Position X",
             "nullable": true,
@@ -5280,6 +5274,12 @@
             "type": "number",
             "format": "double"
           },
+          "rotation_y": {
+            "title": "Rotation Y",
+            "nullable": true,
+            "type": "number",
+            "format": "double"
+          },
           "rotation_z": {
             "title": "Rotation Z",
             "nullable": true,
@@ -5292,18 +5292,13 @@
             "type": "number",
             "format": "double"
           },
-          "color": {
-            "title": "Color",
-            "nullable": true,
-            "type": "integer"
-          },
           "active": {
             "title": "Active",
             "nullable": true,
             "type": "boolean"
           },
-          "lighting": {
-            "title": "Lighting",
+          "color": {
+            "title": "Color",
             "nullable": true,
             "type": "integer"
           },
@@ -5311,6 +5306,11 @@
             "title": "Name",
             "nullable": true,
             "type": "string"
+          },
+          "lighting": {
+            "title": "Lighting",
+            "nullable": true,
+            "type": "integer"
           }
         },
         "type": "object",
@@ -5457,15 +5457,15 @@
       },
       "NodeBatchCreate": {
         "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Id"
+          "active": {
+            "title": "Active",
+            "nullable": true,
+            "type": "boolean"
           },
-          "rotation_z": {
+          "position_x": {
             "type": "number",
             "format": "double",
-            "title": "Rotation Z"
+            "title": "Position X"
           },
           "position_y": {
             "type": "number",
@@ -5487,38 +5487,47 @@
             "format": "double",
             "title": "Rotation Y"
           },
+          "rotation_z": {
+            "type": "number",
+            "format": "double",
+            "title": "Rotation Z"
+          },
           "rotation_w": {
             "type": "number",
             "format": "double",
             "title": "Rotation W"
           },
-          "position_x": {
-            "type": "number",
-            "format": "double",
-            "title": "Position X"
+          "label_type": {
+            "$ref": "#/components/schemas/LabelType"
           },
           "link_type": {
             "$ref": "#/components/schemas/LinkType"
           },
-          "label_type": {
-            "$ref": "#/components/schemas/LabelType"
-          },
-          "active": {
-            "title": "Active",
-            "nullable": true,
-            "type": "boolean"
-          },
-          "layer_id": {
-            "title": "Layer Id",
-            "nullable": true,
+          "id": {
             "type": "string",
-            "format": "uuid"
+            "format": "uuid",
+            "title": "Id"
           },
-          "parent_id": {
-            "title": "Parent Id",
+          "name": {
+            "title": "Name",
             "nullable": true,
-            "type": "string",
-            "format": "uuid"
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "nullable": true,
+            "type": "string"
+          },
+          "link": {
+            "title": "Link",
+            "nullable": true,
+            "type": "string"
+          },
+          "label_scale": {
+            "title": "Label Scale",
+            "nullable": true,
+            "type": "number",
+            "format": "double"
           },
           "label_width": {
             "title": "Label Width",
@@ -5532,26 +5541,17 @@
             "type": "number",
             "format": "double"
           },
-          "label_scale": {
-            "title": "Label Scale",
+          "parent_id": {
+            "title": "Parent Id",
             "nullable": true,
-            "type": "number",
-            "format": "double"
+            "type": "string",
+            "format": "uuid"
           },
-          "link": {
-            "title": "Link",
+          "layer_id": {
+            "title": "Layer Id",
             "nullable": true,
-            "type": "string"
-          },
-          "label": {
-            "title": "Label",
-            "nullable": true,
-            "type": "string"
-          },
-          "name": {
-            "title": "Name",
-            "nullable": true,
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           }
         },
         "type": "object",
@@ -5571,13 +5571,13 @@
       },
       "NodeBatchUpdate": {
         "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Id"
+          "active": {
+            "title": "Active",
+            "nullable": true,
+            "type": "boolean"
           },
-          "rotation_z": {
-            "title": "Rotation Z",
+          "position_x": {
+            "title": "Position X",
             "nullable": true,
             "type": "number",
             "format": "double"
@@ -5606,42 +5606,51 @@
             "type": "number",
             "format": "double"
           },
+          "rotation_z": {
+            "title": "Rotation Z",
+            "nullable": true,
+            "type": "number",
+            "format": "double"
+          },
           "rotation_w": {
             "title": "Rotation W",
             "nullable": true,
             "type": "number",
             "format": "double"
           },
-          "position_x": {
-            "title": "Position X",
+          "label_type": {
             "nullable": true,
-            "type": "number",
-            "format": "double"
+            "$ref": "#/components/schemas/LabelType"
           },
           "link_type": {
             "nullable": true,
             "$ref": "#/components/schemas/LinkType"
           },
-          "label_type": {
-            "nullable": true,
-            "$ref": "#/components/schemas/LabelType"
-          },
-          "active": {
-            "title": "Active",
-            "nullable": true,
-            "type": "boolean"
-          },
-          "layer_id": {
-            "title": "Layer Id",
-            "nullable": true,
+          "id": {
             "type": "string",
-            "format": "uuid"
+            "format": "uuid",
+            "title": "Id"
           },
-          "parent_id": {
-            "title": "Parent Id",
+          "name": {
+            "title": "Name",
             "nullable": true,
-            "type": "string",
-            "format": "uuid"
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "nullable": true,
+            "type": "string"
+          },
+          "link": {
+            "title": "Link",
+            "nullable": true,
+            "type": "string"
+          },
+          "label_scale": {
+            "title": "Label Scale",
+            "nullable": true,
+            "type": "number",
+            "format": "double"
           },
           "label_width": {
             "title": "Label Width",
@@ -5655,26 +5664,17 @@
             "type": "number",
             "format": "double"
           },
-          "label_scale": {
-            "title": "Label Scale",
+          "parent_id": {
+            "title": "Parent Id",
             "nullable": true,
-            "type": "number",
-            "format": "double"
+            "type": "string",
+            "format": "uuid"
           },
-          "link": {
-            "title": "Link",
+          "layer_id": {
+            "title": "Layer Id",
             "nullable": true,
-            "type": "string"
-          },
-          "label": {
-            "title": "Label",
-            "nullable": true,
-            "type": "string"
-          },
-          "name": {
-            "title": "Name",
-            "nullable": true,
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           }
         },
         "type": "object",
@@ -5685,16 +5685,15 @@
       },
       "NodeCreate": {
         "properties": {
-          "id": {
-            "title": "Id",
+          "active": {
+            "title": "Active",
             "nullable": true,
-            "type": "string",
-            "format": "uuid"
+            "type": "boolean"
           },
-          "rotation_z": {
+          "position_x": {
             "type": "number",
             "format": "double",
-            "title": "Rotation Z"
+            "title": "Position X"
           },
           "position_y": {
             "type": "number",
@@ -5716,38 +5715,48 @@
             "format": "double",
             "title": "Rotation Y"
           },
+          "rotation_z": {
+            "type": "number",
+            "format": "double",
+            "title": "Rotation Z"
+          },
           "rotation_w": {
             "type": "number",
             "format": "double",
             "title": "Rotation W"
           },
-          "position_x": {
-            "type": "number",
-            "format": "double",
-            "title": "Position X"
+          "label_type": {
+            "$ref": "#/components/schemas/LabelType"
           },
           "link_type": {
             "$ref": "#/components/schemas/LinkType"
           },
-          "label_type": {
-            "$ref": "#/components/schemas/LabelType"
-          },
-          "active": {
-            "title": "Active",
-            "nullable": true,
-            "type": "boolean"
-          },
-          "layer_id": {
-            "title": "Layer Id",
+          "id": {
+            "title": "Id",
             "nullable": true,
             "type": "string",
             "format": "uuid"
           },
-          "parent_id": {
-            "title": "Parent Id",
+          "name": {
+            "title": "Name",
             "nullable": true,
-            "type": "string",
-            "format": "uuid"
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "nullable": true,
+            "type": "string"
+          },
+          "link": {
+            "title": "Link",
+            "nullable": true,
+            "type": "string"
+          },
+          "label_scale": {
+            "title": "Label Scale",
+            "nullable": true,
+            "type": "number",
+            "format": "double"
           },
           "label_width": {
             "title": "Label Width",
@@ -5761,26 +5770,17 @@
             "type": "number",
             "format": "double"
           },
-          "label_scale": {
-            "title": "Label Scale",
+          "parent_id": {
+            "title": "Parent Id",
             "nullable": true,
-            "type": "number",
-            "format": "double"
+            "type": "string",
+            "format": "uuid"
           },
-          "link": {
-            "title": "Link",
+          "layer_id": {
+            "title": "Layer Id",
             "nullable": true,
-            "type": "string"
-          },
-          "label": {
-            "title": "Label",
-            "nullable": true,
-            "type": "string"
-          },
-          "name": {
-            "title": "Name",
-            "nullable": true,
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           }
         },
         "type": "object",
@@ -5799,15 +5799,26 @@
       },
       "NodeRead": {
         "properties": {
-          "id": {
+          "created_at": {
             "type": "string",
-            "format": "uuid",
-            "title": "Id"
+            "format": "date-time",
+            "title": "Created At",
+            "description": "datetime with the constraint that the value must have timezone info"
           },
-          "rotation_z": {
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "datetime with the constraint that the value must have timezone info"
+          },
+          "active": {
+            "type": "boolean",
+            "title": "Active"
+          },
+          "position_x": {
             "type": "number",
             "format": "double",
-            "title": "Rotation Z"
+            "title": "Position X"
           },
           "position_y": {
             "type": "number",
@@ -5829,49 +5840,47 @@
             "format": "double",
             "title": "Rotation Y"
           },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Created At",
-            "description": "datetime with the constraint that the value must have timezone info"
+          "rotation_z": {
+            "type": "number",
+            "format": "double",
+            "title": "Rotation Z"
           },
           "rotation_w": {
             "type": "number",
             "format": "double",
             "title": "Rotation W"
           },
-          "updated_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Created At",
-            "description": "datetime with the constraint that the value must have timezone info"
-          },
-          "position_x": {
-            "type": "number",
-            "format": "double",
-            "title": "Position X"
+          "label_type": {
+            "$ref": "#/components/schemas/LabelType"
           },
           "link_type": {
             "$ref": "#/components/schemas/LinkType"
           },
-          "label_type": {
-            "$ref": "#/components/schemas/LabelType"
-          },
-          "active": {
-            "type": "boolean",
-            "title": "Active"
-          },
-          "layer_id": {
-            "title": "Layer Id",
-            "nullable": true,
+          "id": {
             "type": "string",
-            "format": "uuid"
+            "format": "uuid",
+            "title": "Id"
           },
-          "parent_id": {
-            "title": "Parent Id",
+          "name": {
+            "title": "Name",
             "nullable": true,
-            "type": "string",
-            "format": "uuid"
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "nullable": true,
+            "type": "string"
+          },
+          "link": {
+            "title": "Link",
+            "nullable": true,
+            "type": "string"
+          },
+          "label_scale": {
+            "title": "Label Scale",
+            "nullable": true,
+            "type": "number",
+            "format": "double"
           },
           "label_width": {
             "title": "Label Width",
@@ -5885,26 +5894,17 @@
             "type": "number",
             "format": "double"
           },
-          "label_scale": {
-            "title": "Label Scale",
+          "parent_id": {
+            "title": "Parent Id",
             "nullable": true,
-            "type": "number",
-            "format": "double"
+            "type": "string",
+            "format": "uuid"
           },
-          "link": {
-            "title": "Link",
+          "layer_id": {
+            "title": "Layer Id",
             "nullable": true,
-            "type": "string"
-          },
-          "label": {
-            "title": "Label",
-            "nullable": true,
-            "type": "string"
-          },
-          "name": {
-            "title": "Name",
-            "nullable": true,
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           }
         },
         "type": "object",
@@ -5996,16 +5996,16 @@
       },
       "ReconstructionCreate": {
         "properties": {
+          "requeue_count": {
+            "title": "Requeue Count",
+            "nullable": true,
+            "type": "integer"
+          },
           "id": {
             "title": "Id",
             "nullable": true,
             "type": "string",
             "format": "uuid"
-          },
-          "requeue_count": {
-            "title": "Requeue Count",
-            "nullable": true,
-            "type": "integer"
           },
           "capture_session_id": {
             "title": "Capture Session Id",
@@ -6278,11 +6278,6 @@
       },
       "ReconstructionReadWithQueue": {
         "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Id"
-          },
           "created_at": {
             "type": "string",
             "format": "date-time",
@@ -6295,27 +6290,37 @@
             "title": "Created At",
             "description": "datetime with the constraint that the value must have timezone info"
           },
-          "requeue_count": {
-            "type": "integer",
-            "title": "Requeue Count"
-          },
           "status": {
             "$ref": "#/components/schemas/ReconstructionStatus"
           },
-          "manifest_version": {
+          "requeue_count": {
             "type": "integer",
-            "title": "Manifest Version"
+            "title": "Requeue Count"
           },
           "manifest": {
             "additionalProperties": {},
             "type": "object",
             "title": "Manifest"
           },
+          "manifest_version": {
+            "type": "integer",
+            "title": "Manifest Version"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
           "capture_session_id": {
             "title": "Capture Session Id",
             "nullable": true,
             "type": "string",
             "format": "uuid"
+          },
+          "error": {
+            "title": "Error",
+            "nullable": true,
+            "type": "string"
           },
           "progress_current": {
             "title": "Progress Current",
@@ -6331,11 +6336,6 @@
             "title": "Progress Attempt",
             "nullable": true,
             "type": "integer"
-          },
-          "error": {
-            "title": "Error",
-            "nullable": true,
-            "type": "string"
           },
           "queue_position": {
             "nullable": true,

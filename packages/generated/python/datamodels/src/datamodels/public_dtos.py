@@ -30,14 +30,14 @@ class Model(BaseModel):
 
 
 class GroupCreate(BaseModel):
-    id: UUID | None = Field(default=None, title="Id")
     name: str = Field(..., title="Name")
+    id: UUID | None = Field(default=None, title="Id")
     parent_id: UUID | None = Field(default=None, title="Parent Id")
 
 
 class GroupBatchCreate(BaseModel):
-    id: UUID = Field(..., title="Id")
     name: str = Field(..., title="Name")
+    id: UUID = Field(..., title="Id")
     parent_id: UUID | None = Field(default=None, title="Parent Id")
 
 
@@ -47,27 +47,27 @@ class GroupUpdate(BaseModel):
 
 
 class GroupBatchUpdate(BaseModel):
-    id: UUID = Field(..., title="Id")
     name: str | None = Field(default=None, title="Name")
+    id: UUID = Field(..., title="Id")
     parent_id: UUID | None = Field(default=None, title="Parent Id")
 
 
 class GroupRead(BaseModel):
-    id: UUID = Field(..., title="Id")
     created_at: AwareDatetime = Field(..., title="Created At")
     updated_at: AwareDatetime = Field(..., title="Updated At")
     name: str = Field(..., title="Name")
+    id: UUID = Field(..., title="Id")
     parent_id: UUID | None = Field(default=None, title="Parent Id")
 
 
 class LayerCreate(BaseModel):
-    id: UUID | None = Field(default=None, title="Id")
     name: str = Field(..., title="Name")
+    id: UUID | None = Field(default=None, title="Id")
 
 
 class LayerBatchCreate(BaseModel):
-    id: UUID = Field(..., title="Id")
     name: str = Field(..., title="Name")
+    id: UUID = Field(..., title="Id")
 
 
 class LayerUpdate(BaseModel):
@@ -75,218 +75,218 @@ class LayerUpdate(BaseModel):
 
 
 class LayerBatchUpdate(BaseModel):
-    id: UUID = Field(..., title="Id")
     name: str | None = Field(default=None, title="Name")
+    id: UUID = Field(..., title="Id")
 
 
 class LayerRead(BaseModel):
-    id: UUID = Field(..., title="Id")
     created_at: AwareDatetime = Field(..., title="Created At")
     updated_at: AwareDatetime = Field(..., title="Updated At")
     name: str = Field(..., title="Name")
+    id: UUID = Field(..., title="Id")
 
 
 class LocalizationEvaluationCreate(BaseModel):
     reconstruction_id: UUID = Field(..., title="Reconstruction Id")
-    id: UUID | None = Field(default=None, title="Id")
-    ransac_threshold: float = Field(..., title="Ransac Threshold")
     frame_timestamp: int = Field(..., title="Frame Timestamp")
-    inlier_coverage: float = Field(..., title="Inlier Coverage")
-    query_image_diagonal_px: float = Field(..., title="Query Image Diagonal Px")
-    reproj_error_median: float = Field(..., title="Reproj Error Median")
-    inlier_ratio: float = Field(..., title="Inlier Ratio")
     retrieval_top_k: int = Field(..., title="Retrieval Top K")
-    num_inliers: int = Field(..., title="Num Inliers")
-    num_matches: int = Field(..., title="Num Matches")
-    num_correspondences: int = Field(..., title="Num Correspondences")
-    succeeded: bool = Field(..., title="Succeeded")
+    ransac_threshold: float = Field(..., title="Ransac Threshold")
     pipeline_version: str = Field(..., title="Pipeline Version")
-    err_r_deg: float | None = Field(default=None, title="Err R Deg")
-    err_t_m: float | None = Field(default=None, title="Err T M")
+    succeeded: bool = Field(..., title="Succeeded")
+    num_correspondences: int = Field(..., title="Num Correspondences")
+    num_matches: int = Field(..., title="Num Matches")
+    num_inliers: int = Field(..., title="Num Inliers")
+    inlier_ratio: float = Field(..., title="Inlier Ratio")
+    inlier_coverage: float = Field(..., title="Inlier Coverage")
+    reproj_error_median: float = Field(..., title="Reproj Error Median")
+    query_image_diagonal_px: float = Field(..., title="Query Image Diagonal Px")
+    id: UUID | None = Field(default=None, title="Id")
     pnp_covariance: list[Any] | None = Field(default=None, title="Pnp Covariance")
     se3_residual: list[Any] | None = Field(default=None, title="Se3 Residual")
+    err_t_m: float | None = Field(default=None, title="Err T M")
+    err_r_deg: float | None = Field(default=None, title="Err R Deg")
 
 
 class LocalizationEvaluationBatchCreate(BaseModel):
     reconstruction_id: UUID = Field(..., title="Reconstruction Id")
-    id: UUID = Field(..., title="Id")
-    ransac_threshold: float = Field(..., title="Ransac Threshold")
     frame_timestamp: int = Field(..., title="Frame Timestamp")
-    inlier_coverage: float = Field(..., title="Inlier Coverage")
-    query_image_diagonal_px: float = Field(..., title="Query Image Diagonal Px")
-    reproj_error_median: float = Field(..., title="Reproj Error Median")
-    inlier_ratio: float = Field(..., title="Inlier Ratio")
     retrieval_top_k: int = Field(..., title="Retrieval Top K")
-    num_inliers: int = Field(..., title="Num Inliers")
-    num_matches: int = Field(..., title="Num Matches")
-    num_correspondences: int = Field(..., title="Num Correspondences")
-    succeeded: bool = Field(..., title="Succeeded")
+    ransac_threshold: float = Field(..., title="Ransac Threshold")
     pipeline_version: str = Field(..., title="Pipeline Version")
-    err_r_deg: float | None = Field(default=None, title="Err R Deg")
-    err_t_m: float | None = Field(default=None, title="Err T M")
+    succeeded: bool = Field(..., title="Succeeded")
+    num_correspondences: int = Field(..., title="Num Correspondences")
+    num_matches: int = Field(..., title="Num Matches")
+    num_inliers: int = Field(..., title="Num Inliers")
+    inlier_ratio: float = Field(..., title="Inlier Ratio")
+    inlier_coverage: float = Field(..., title="Inlier Coverage")
+    reproj_error_median: float = Field(..., title="Reproj Error Median")
+    query_image_diagonal_px: float = Field(..., title="Query Image Diagonal Px")
+    id: UUID = Field(..., title="Id")
     pnp_covariance: list[Any] | None = Field(default=None, title="Pnp Covariance")
     se3_residual: list[Any] | None = Field(default=None, title="Se3 Residual")
+    err_t_m: float | None = Field(default=None, title="Err T M")
+    err_r_deg: float | None = Field(default=None, title="Err R Deg")
 
 
 class LocalizationEvaluationUpdate(BaseModel):
     reconstruction_id: UUID | None = Field(default=None, title="Reconstruction Id")
-    ransac_threshold: float | None = Field(default=None, title="Ransac Threshold")
     frame_timestamp: int | None = Field(default=None, title="Frame Timestamp")
-    inlier_coverage: float | None = Field(default=None, title="Inlier Coverage")
-    query_image_diagonal_px: float | None = Field(default=None, title="Query Image Diagonal Px")
-    reproj_error_median: float | None = Field(default=None, title="Reproj Error Median")
-    inlier_ratio: float | None = Field(default=None, title="Inlier Ratio")
     retrieval_top_k: int | None = Field(default=None, title="Retrieval Top K")
-    num_inliers: int | None = Field(default=None, title="Num Inliers")
-    num_matches: int | None = Field(default=None, title="Num Matches")
-    num_correspondences: int | None = Field(default=None, title="Num Correspondences")
-    succeeded: bool | None = Field(default=None, title="Succeeded")
+    ransac_threshold: float | None = Field(default=None, title="Ransac Threshold")
     pipeline_version: str | None = Field(default=None, title="Pipeline Version")
-    err_r_deg: float | None = Field(default=None, title="Err R Deg")
-    err_t_m: float | None = Field(default=None, title="Err T M")
+    succeeded: bool | None = Field(default=None, title="Succeeded")
+    num_correspondences: int | None = Field(default=None, title="Num Correspondences")
+    num_matches: int | None = Field(default=None, title="Num Matches")
+    num_inliers: int | None = Field(default=None, title="Num Inliers")
+    inlier_ratio: float | None = Field(default=None, title="Inlier Ratio")
+    inlier_coverage: float | None = Field(default=None, title="Inlier Coverage")
+    reproj_error_median: float | None = Field(default=None, title="Reproj Error Median")
+    query_image_diagonal_px: float | None = Field(default=None, title="Query Image Diagonal Px")
     pnp_covariance: list[Any] | None = Field(default=None, title="Pnp Covariance")
     se3_residual: list[Any] | None = Field(default=None, title="Se3 Residual")
+    err_t_m: float | None = Field(default=None, title="Err T M")
+    err_r_deg: float | None = Field(default=None, title="Err R Deg")
 
 
 class LocalizationEvaluationBatchUpdate(BaseModel):
     reconstruction_id: UUID | None = Field(default=None, title="Reconstruction Id")
-    id: UUID = Field(..., title="Id")
-    ransac_threshold: float | None = Field(default=None, title="Ransac Threshold")
     frame_timestamp: int | None = Field(default=None, title="Frame Timestamp")
-    inlier_coverage: float | None = Field(default=None, title="Inlier Coverage")
-    query_image_diagonal_px: float | None = Field(default=None, title="Query Image Diagonal Px")
-    reproj_error_median: float | None = Field(default=None, title="Reproj Error Median")
-    inlier_ratio: float | None = Field(default=None, title="Inlier Ratio")
     retrieval_top_k: int | None = Field(default=None, title="Retrieval Top K")
-    num_inliers: int | None = Field(default=None, title="Num Inliers")
-    num_matches: int | None = Field(default=None, title="Num Matches")
-    num_correspondences: int | None = Field(default=None, title="Num Correspondences")
-    succeeded: bool | None = Field(default=None, title="Succeeded")
+    ransac_threshold: float | None = Field(default=None, title="Ransac Threshold")
     pipeline_version: str | None = Field(default=None, title="Pipeline Version")
-    err_r_deg: float | None = Field(default=None, title="Err R Deg")
-    err_t_m: float | None = Field(default=None, title="Err T M")
+    succeeded: bool | None = Field(default=None, title="Succeeded")
+    num_correspondences: int | None = Field(default=None, title="Num Correspondences")
+    num_matches: int | None = Field(default=None, title="Num Matches")
+    num_inliers: int | None = Field(default=None, title="Num Inliers")
+    inlier_ratio: float | None = Field(default=None, title="Inlier Ratio")
+    inlier_coverage: float | None = Field(default=None, title="Inlier Coverage")
+    reproj_error_median: float | None = Field(default=None, title="Reproj Error Median")
+    query_image_diagonal_px: float | None = Field(default=None, title="Query Image Diagonal Px")
+    id: UUID = Field(..., title="Id")
     pnp_covariance: list[Any] | None = Field(default=None, title="Pnp Covariance")
     se3_residual: list[Any] | None = Field(default=None, title="Se3 Residual")
+    err_t_m: float | None = Field(default=None, title="Err T M")
+    err_r_deg: float | None = Field(default=None, title="Err R Deg")
 
 
 class LocalizationEvaluationRead(BaseModel):
-    reconstruction_id: UUID = Field(..., title="Reconstruction Id")
-    id: UUID = Field(..., title="Id")
-    ransac_threshold: float = Field(..., title="Ransac Threshold")
-    frame_timestamp: int = Field(..., title="Frame Timestamp")
-    updated_at: AwareDatetime = Field(..., title="Updated At")
-    inlier_coverage: float = Field(..., title="Inlier Coverage")
     created_at: AwareDatetime = Field(..., title="Created At")
-    query_image_diagonal_px: float = Field(..., title="Query Image Diagonal Px")
-    reproj_error_median: float = Field(..., title="Reproj Error Median")
-    inlier_ratio: float = Field(..., title="Inlier Ratio")
+    updated_at: AwareDatetime = Field(..., title="Updated At")
+    reconstruction_id: UUID = Field(..., title="Reconstruction Id")
+    frame_timestamp: int = Field(..., title="Frame Timestamp")
     retrieval_top_k: int = Field(..., title="Retrieval Top K")
-    num_inliers: int = Field(..., title="Num Inliers")
-    num_matches: int = Field(..., title="Num Matches")
-    num_correspondences: int = Field(..., title="Num Correspondences")
-    succeeded: bool = Field(..., title="Succeeded")
+    ransac_threshold: float = Field(..., title="Ransac Threshold")
     pipeline_version: str = Field(..., title="Pipeline Version")
-    err_r_deg: float | None = Field(default=None, title="Err R Deg")
-    err_t_m: float | None = Field(default=None, title="Err T M")
+    succeeded: bool = Field(..., title="Succeeded")
+    num_correspondences: int = Field(..., title="Num Correspondences")
+    num_matches: int = Field(..., title="Num Matches")
+    num_inliers: int = Field(..., title="Num Inliers")
+    inlier_ratio: float = Field(..., title="Inlier Ratio")
+    inlier_coverage: float = Field(..., title="Inlier Coverage")
+    reproj_error_median: float = Field(..., title="Reproj Error Median")
+    query_image_diagonal_px: float = Field(..., title="Query Image Diagonal Px")
+    id: UUID = Field(..., title="Id")
     pnp_covariance: list[Any] | None = Field(default=None, title="Pnp Covariance")
     se3_residual: list[Any] | None = Field(default=None, title="Se3 Residual")
+    err_t_m: float | None = Field(default=None, title="Err T M")
+    err_r_deg: float | None = Field(default=None, title="Err R Deg")
 
 
 class LocalizationMapCreate(BaseModel):
     reconstruction_id: UUID = Field(..., title="Reconstruction Id")
-    id: UUID | None = Field(default=None, title="Id")
-    rotation_y: float = Field(..., title="Rotation Y")
     position_x: float = Field(..., title="Position X")
     position_y: float = Field(..., title="Position Y")
     position_z: float = Field(..., title="Position Z")
     rotation_x: float = Field(..., title="Rotation X")
+    rotation_y: float = Field(..., title="Rotation Y")
     rotation_z: float = Field(..., title="Rotation Z")
     rotation_w: float = Field(..., title="Rotation W")
-    color: int = Field(..., title="Color")
     active: bool | None = Field(default=None, title="Active")
-    lighting: int | None = Field(default=None, title="Lighting")
+    color: int = Field(..., title="Color")
+    id: UUID | None = Field(default=None, title="Id")
     name: str | None = Field(default=None, title="Name")
+    lighting: int | None = Field(default=None, title="Lighting")
 
 
 class LocalizationMapBatchCreate(BaseModel):
     reconstruction_id: UUID = Field(..., title="Reconstruction Id")
-    id: UUID = Field(..., title="Id")
-    rotation_y: float = Field(..., title="Rotation Y")
     position_x: float = Field(..., title="Position X")
     position_y: float = Field(..., title="Position Y")
     position_z: float = Field(..., title="Position Z")
     rotation_x: float = Field(..., title="Rotation X")
+    rotation_y: float = Field(..., title="Rotation Y")
     rotation_z: float = Field(..., title="Rotation Z")
     rotation_w: float = Field(..., title="Rotation W")
-    color: int = Field(..., title="Color")
     active: bool | None = Field(default=None, title="Active")
-    lighting: int | None = Field(default=None, title="Lighting")
+    color: int = Field(..., title="Color")
+    id: UUID = Field(..., title="Id")
     name: str | None = Field(default=None, title="Name")
+    lighting: int | None = Field(default=None, title="Lighting")
 
 
 class LocalizationMapUpdate(BaseModel):
     reconstruction_id: UUID | None = Field(default=None, title="Reconstruction Id")
-    rotation_y: float | None = Field(default=None, title="Rotation Y")
     position_x: float | None = Field(default=None, title="Position X")
     position_y: float | None = Field(default=None, title="Position Y")
     position_z: float | None = Field(default=None, title="Position Z")
     rotation_x: float | None = Field(default=None, title="Rotation X")
+    rotation_y: float | None = Field(default=None, title="Rotation Y")
     rotation_z: float | None = Field(default=None, title="Rotation Z")
     rotation_w: float | None = Field(default=None, title="Rotation W")
-    color: int | None = Field(default=None, title="Color")
     active: bool | None = Field(default=None, title="Active")
-    lighting: int | None = Field(default=None, title="Lighting")
+    color: int | None = Field(default=None, title="Color")
     name: str | None = Field(default=None, title="Name")
+    lighting: int | None = Field(default=None, title="Lighting")
 
 
 class LocalizationMapBatchUpdate(BaseModel):
     reconstruction_id: UUID | None = Field(default=None, title="Reconstruction Id")
-    id: UUID = Field(..., title="Id")
-    rotation_y: float | None = Field(default=None, title="Rotation Y")
     position_x: float | None = Field(default=None, title="Position X")
     position_y: float | None = Field(default=None, title="Position Y")
     position_z: float | None = Field(default=None, title="Position Z")
     rotation_x: float | None = Field(default=None, title="Rotation X")
+    rotation_y: float | None = Field(default=None, title="Rotation Y")
     rotation_z: float | None = Field(default=None, title="Rotation Z")
     rotation_w: float | None = Field(default=None, title="Rotation W")
-    color: int | None = Field(default=None, title="Color")
     active: bool | None = Field(default=None, title="Active")
-    lighting: int | None = Field(default=None, title="Lighting")
+    color: int | None = Field(default=None, title="Color")
+    id: UUID = Field(..., title="Id")
     name: str | None = Field(default=None, title="Name")
+    lighting: int | None = Field(default=None, title="Lighting")
 
 
 class LocalizationMapRead(BaseModel):
+    created_at: AwareDatetime = Field(..., title="Created At")
+    updated_at: AwareDatetime = Field(..., title="Updated At")
     reconstruction_id: UUID = Field(..., title="Reconstruction Id")
-    id: UUID = Field(..., title="Id")
-    rotation_y: float = Field(..., title="Rotation Y")
     position_x: float = Field(..., title="Position X")
     position_y: float = Field(..., title="Position Y")
     position_z: float = Field(..., title="Position Z")
     rotation_x: float = Field(..., title="Rotation X")
-    updated_at: AwareDatetime = Field(..., title="Updated At")
+    rotation_y: float = Field(..., title="Rotation Y")
     rotation_z: float = Field(..., title="Rotation Z")
     rotation_w: float = Field(..., title="Rotation W")
-    color: int = Field(..., title="Color")
-    created_at: AwareDatetime = Field(..., title="Created At")
     active: bool = Field(..., title="Active")
-    lighting: int | None = Field(default=None, title="Lighting")
+    color: int = Field(..., title="Color")
+    id: UUID = Field(..., title="Id")
     name: str | None = Field(default=None, title="Name")
+    lighting: int | None = Field(default=None, title="Lighting")
 
 
 class LocalizationMapCameraPositionCreate(BaseModel):
     localization_map_id: UUID = Field(..., title="Localization Map Id")
-    id: UUID | None = Field(default=None, title="Id")
     position_x: float = Field(..., title="Position X")
     position_y: float = Field(..., title="Position Y")
     position_z: float = Field(..., title="Position Z")
+    id: UUID | None = Field(default=None, title="Id")
 
 
 class LocalizationMapCameraPositionBatchCreate(BaseModel):
     localization_map_id: UUID = Field(..., title="Localization Map Id")
-    id: UUID = Field(..., title="Id")
     position_x: float = Field(..., title="Position X")
     position_y: float = Field(..., title="Position Y")
     position_z: float = Field(..., title="Position Z")
+    id: UUID = Field(..., title="Id")
 
 
 class LocalizationMapCameraPositionUpdate(BaseModel):
@@ -298,18 +298,18 @@ class LocalizationMapCameraPositionUpdate(BaseModel):
 
 class LocalizationMapCameraPositionBatchUpdate(BaseModel):
     localization_map_id: UUID | None = Field(default=None, title="Localization Map Id")
-    id: UUID = Field(..., title="Id")
     position_x: float | None = Field(default=None, title="Position X")
     position_y: float | None = Field(default=None, title="Position Y")
     position_z: float | None = Field(default=None, title="Position Z")
+    id: UUID = Field(..., title="Id")
 
 
 class LocalizationMapCameraPositionRead(BaseModel):
     localization_map_id: UUID = Field(..., title="Localization Map Id")
-    id: UUID = Field(..., title="Id")
     position_x: float = Field(..., title="Position X")
     position_y: float = Field(..., title="Position Y")
     position_z: float = Field(..., title="Position Z")
+    id: UUID = Field(..., title="Id")
 
 
 class LocalizationSessionCreate(BaseModel):
@@ -329,21 +329,21 @@ class LocalizationSessionBatchUpdate(BaseModel):
 
 
 class LocalizationSessionRead(BaseModel):
-    id: UUID = Field(..., title="Id")
     created_at: AwareDatetime = Field(..., title="Created At")
     container_id: str = Field(..., title="Container Id")
     container_url: str = Field(..., title="Container Url")
+    id: UUID = Field(..., title="Id")
 
 
 class ReconstructionCreate(BaseModel):
-    id: UUID | None = Field(default=None, title="Id")
     requeue_count: int | None = Field(default=None, title="Requeue Count")
+    id: UUID | None = Field(default=None, title="Id")
     capture_session_id: UUID | None = Field(default=None, title="Capture Session Id")
 
 
 class ReconstructionBatchCreate(BaseModel):
-    id: UUID = Field(..., title="Id")
     requeue_count: int | None = Field(default=None, title="Requeue Count")
+    id: UUID = Field(..., title="Id")
     capture_session_id: UUID | None = Field(default=None, title="Capture Session Id")
 
 
@@ -353,8 +353,8 @@ class ReconstructionUpdate(BaseModel):
 
 
 class ReconstructionBatchUpdate(BaseModel):
-    id: UUID = Field(..., title="Id")
     requeue_count: int | None = Field(default=None, title="Requeue Count")
+    id: UUID = Field(..., title="Id")
     capture_session_id: UUID | None = Field(default=None, title="Capture Session Id")
 
 
@@ -414,175 +414,175 @@ class TenantBatchUpdate(BaseModel):
 
 
 class TenantRead(BaseModel):
-    id: UUID = Field(..., title="Id")
     created_at: AwareDatetime = Field(..., title="Created At")
+    id: UUID = Field(..., title="Id")
 
 
 class CaptureSessionCreate(BaseModel):
-    id: UUID | None = Field(default=None, title="Id")
     recorded_at: AwareDatetime | None = Field(default=None, title="Recorded At")
-    size_bytes: int | None = Field(default=None, title="Size Bytes")
-    device_type: DeviceType
     name: str = Field(..., title="Name")
+    device_type: DeviceType
+    size_bytes: int | None = Field(default=None, title="Size Bytes")
+    id: UUID | None = Field(default=None, title="Id")
 
 
 class CaptureSessionBatchCreate(BaseModel):
-    id: UUID = Field(..., title="Id")
     recorded_at: AwareDatetime | None = Field(default=None, title="Recorded At")
-    size_bytes: int | None = Field(default=None, title="Size Bytes")
-    device_type: DeviceType
     name: str = Field(..., title="Name")
+    device_type: DeviceType
+    size_bytes: int | None = Field(default=None, title="Size Bytes")
+    id: UUID = Field(..., title="Id")
 
 
 class CaptureSessionUpdate(BaseModel):
     recorded_at: AwareDatetime | None = Field(default=None, title="Recorded At")
-    size_bytes: int | None = Field(default=None, title="Size Bytes")
-    device_type: DeviceType | None = None
     name: str | None = Field(default=None, title="Name")
+    device_type: DeviceType | None = None
+    size_bytes: int | None = Field(default=None, title="Size Bytes")
 
 
 class CaptureSessionBatchUpdate(BaseModel):
-    id: UUID = Field(..., title="Id")
     recorded_at: AwareDatetime | None = Field(default=None, title="Recorded At")
-    size_bytes: int | None = Field(default=None, title="Size Bytes")
-    device_type: DeviceType | None = None
     name: str | None = Field(default=None, title="Name")
+    device_type: DeviceType | None = None
+    size_bytes: int | None = Field(default=None, title="Size Bytes")
+    id: UUID = Field(..., title="Id")
 
 
 class CaptureSessionRead(BaseModel):
-    id: UUID = Field(..., title="Id")
     created_at: AwareDatetime = Field(..., title="Created At")
     updated_at: AwareDatetime = Field(..., title="Updated At")
     recorded_at: AwareDatetime = Field(..., title="Recorded At")
-    size_bytes: int = Field(..., title="Size Bytes")
-    device_type: DeviceType
     name: str = Field(..., title="Name")
+    device_type: DeviceType
+    size_bytes: int = Field(..., title="Size Bytes")
+    id: UUID = Field(..., title="Id")
 
 
 class NodeCreate(BaseModel):
-    id: UUID | None = Field(default=None, title="Id")
-    rotation_z: float = Field(..., title="Rotation Z")
+    active: bool | None = Field(default=None, title="Active")
+    position_x: float = Field(..., title="Position X")
     position_y: float = Field(..., title="Position Y")
     position_z: float = Field(..., title="Position Z")
     rotation_x: float = Field(..., title="Rotation X")
     rotation_y: float = Field(..., title="Rotation Y")
+    rotation_z: float = Field(..., title="Rotation Z")
     rotation_w: float = Field(..., title="Rotation W")
-    position_x: float = Field(..., title="Position X")
-    link_type: LinkType
     label_type: LabelType
-    active: bool | None = Field(default=None, title="Active")
-    layer_id: UUID | None = Field(default=None, title="Layer Id")
-    parent_id: UUID | None = Field(default=None, title="Parent Id")
+    link_type: LinkType
+    id: UUID | None = Field(default=None, title="Id")
+    name: str | None = Field(default=None, title="Name")
+    label: str | None = Field(default=None, title="Label")
+    link: str | None = Field(default=None, title="Link")
+    label_scale: float | None = Field(default=None, title="Label Scale")
     label_width: float | None = Field(default=None, title="Label Width")
     label_height: float | None = Field(default=None, title="Label Height")
-    label_scale: float | None = Field(default=None, title="Label Scale")
-    link: str | None = Field(default=None, title="Link")
-    label: str | None = Field(default=None, title="Label")
-    name: str | None = Field(default=None, title="Name")
+    parent_id: UUID | None = Field(default=None, title="Parent Id")
+    layer_id: UUID | None = Field(default=None, title="Layer Id")
 
 
 class NodeBatchCreate(BaseModel):
-    id: UUID = Field(..., title="Id")
-    rotation_z: float = Field(..., title="Rotation Z")
+    active: bool | None = Field(default=None, title="Active")
+    position_x: float = Field(..., title="Position X")
     position_y: float = Field(..., title="Position Y")
     position_z: float = Field(..., title="Position Z")
     rotation_x: float = Field(..., title="Rotation X")
     rotation_y: float = Field(..., title="Rotation Y")
+    rotation_z: float = Field(..., title="Rotation Z")
     rotation_w: float = Field(..., title="Rotation W")
-    position_x: float = Field(..., title="Position X")
-    link_type: LinkType
     label_type: LabelType
-    active: bool | None = Field(default=None, title="Active")
-    layer_id: UUID | None = Field(default=None, title="Layer Id")
-    parent_id: UUID | None = Field(default=None, title="Parent Id")
+    link_type: LinkType
+    id: UUID = Field(..., title="Id")
+    name: str | None = Field(default=None, title="Name")
+    label: str | None = Field(default=None, title="Label")
+    link: str | None = Field(default=None, title="Link")
+    label_scale: float | None = Field(default=None, title="Label Scale")
     label_width: float | None = Field(default=None, title="Label Width")
     label_height: float | None = Field(default=None, title="Label Height")
-    label_scale: float | None = Field(default=None, title="Label Scale")
-    link: str | None = Field(default=None, title="Link")
-    label: str | None = Field(default=None, title="Label")
-    name: str | None = Field(default=None, title="Name")
+    parent_id: UUID | None = Field(default=None, title="Parent Id")
+    layer_id: UUID | None = Field(default=None, title="Layer Id")
 
 
 class NodeUpdate(BaseModel):
-    rotation_z: float | None = Field(default=None, title="Rotation Z")
+    active: bool | None = Field(default=None, title="Active")
+    position_x: float | None = Field(default=None, title="Position X")
     position_y: float | None = Field(default=None, title="Position Y")
     position_z: float | None = Field(default=None, title="Position Z")
     rotation_x: float | None = Field(default=None, title="Rotation X")
     rotation_y: float | None = Field(default=None, title="Rotation Y")
+    rotation_z: float | None = Field(default=None, title="Rotation Z")
     rotation_w: float | None = Field(default=None, title="Rotation W")
-    position_x: float | None = Field(default=None, title="Position X")
-    link_type: LinkType | None = None
     label_type: LabelType | None = None
-    active: bool | None = Field(default=None, title="Active")
-    layer_id: UUID | None = Field(default=None, title="Layer Id")
-    parent_id: UUID | None = Field(default=None, title="Parent Id")
+    link_type: LinkType | None = None
+    name: str | None = Field(default=None, title="Name")
+    label: str | None = Field(default=None, title="Label")
+    link: str | None = Field(default=None, title="Link")
+    label_scale: float | None = Field(default=None, title="Label Scale")
     label_width: float | None = Field(default=None, title="Label Width")
     label_height: float | None = Field(default=None, title="Label Height")
-    label_scale: float | None = Field(default=None, title="Label Scale")
-    link: str | None = Field(default=None, title="Link")
-    label: str | None = Field(default=None, title="Label")
-    name: str | None = Field(default=None, title="Name")
+    parent_id: UUID | None = Field(default=None, title="Parent Id")
+    layer_id: UUID | None = Field(default=None, title="Layer Id")
 
 
 class NodeBatchUpdate(BaseModel):
-    id: UUID = Field(..., title="Id")
-    rotation_z: float | None = Field(default=None, title="Rotation Z")
+    active: bool | None = Field(default=None, title="Active")
+    position_x: float | None = Field(default=None, title="Position X")
     position_y: float | None = Field(default=None, title="Position Y")
     position_z: float | None = Field(default=None, title="Position Z")
     rotation_x: float | None = Field(default=None, title="Rotation X")
     rotation_y: float | None = Field(default=None, title="Rotation Y")
+    rotation_z: float | None = Field(default=None, title="Rotation Z")
     rotation_w: float | None = Field(default=None, title="Rotation W")
-    position_x: float | None = Field(default=None, title="Position X")
-    link_type: LinkType | None = None
     label_type: LabelType | None = None
-    active: bool | None = Field(default=None, title="Active")
-    layer_id: UUID | None = Field(default=None, title="Layer Id")
-    parent_id: UUID | None = Field(default=None, title="Parent Id")
+    link_type: LinkType | None = None
+    id: UUID = Field(..., title="Id")
+    name: str | None = Field(default=None, title="Name")
+    label: str | None = Field(default=None, title="Label")
+    link: str | None = Field(default=None, title="Link")
+    label_scale: float | None = Field(default=None, title="Label Scale")
     label_width: float | None = Field(default=None, title="Label Width")
     label_height: float | None = Field(default=None, title="Label Height")
-    label_scale: float | None = Field(default=None, title="Label Scale")
-    link: str | None = Field(default=None, title="Link")
-    label: str | None = Field(default=None, title="Label")
-    name: str | None = Field(default=None, title="Name")
+    parent_id: UUID | None = Field(default=None, title="Parent Id")
+    layer_id: UUID | None = Field(default=None, title="Layer Id")
 
 
 class NodeRead(BaseModel):
-    id: UUID = Field(..., title="Id")
-    rotation_z: float = Field(..., title="Rotation Z")
+    created_at: AwareDatetime = Field(..., title="Created At")
+    updated_at: AwareDatetime = Field(..., title="Updated At")
+    active: bool = Field(..., title="Active")
+    position_x: float = Field(..., title="Position X")
     position_y: float = Field(..., title="Position Y")
     position_z: float = Field(..., title="Position Z")
     rotation_x: float = Field(..., title="Rotation X")
     rotation_y: float = Field(..., title="Rotation Y")
-    created_at: AwareDatetime = Field(..., title="Created At")
+    rotation_z: float = Field(..., title="Rotation Z")
     rotation_w: float = Field(..., title="Rotation W")
-    updated_at: AwareDatetime = Field(..., title="Updated At")
-    position_x: float = Field(..., title="Position X")
-    link_type: LinkType
     label_type: LabelType
-    active: bool = Field(..., title="Active")
-    layer_id: UUID | None = Field(default=None, title="Layer Id")
-    parent_id: UUID | None = Field(default=None, title="Parent Id")
+    link_type: LinkType
+    id: UUID = Field(..., title="Id")
+    name: str | None = Field(default=None, title="Name")
+    label: str | None = Field(default=None, title="Label")
+    link: str | None = Field(default=None, title="Link")
+    label_scale: float | None = Field(default=None, title="Label Scale")
     label_width: float | None = Field(default=None, title="Label Width")
     label_height: float | None = Field(default=None, title="Label Height")
-    label_scale: float | None = Field(default=None, title="Label Scale")
-    link: str | None = Field(default=None, title="Link")
-    label: str | None = Field(default=None, title="Label")
-    name: str | None = Field(default=None, title="Name")
+    parent_id: UUID | None = Field(default=None, title="Parent Id")
+    layer_id: UUID | None = Field(default=None, title="Layer Id")
 
 
 class ReconstructionRead(BaseModel):
-    id: UUID = Field(..., title="Id")
     created_at: AwareDatetime = Field(..., title="Created At")
     updated_at: AwareDatetime = Field(..., title="Updated At")
-    requeue_count: int = Field(..., title="Requeue Count")
     status: ReconstructionStatus
-    manifest_version: int = Field(..., title="Manifest Version")
+    requeue_count: int = Field(..., title="Requeue Count")
     manifest: dict[str, Any] = Field(..., title="Manifest")
+    manifest_version: int = Field(..., title="Manifest Version")
+    id: UUID = Field(..., title="Id")
     capture_session_id: UUID | None = Field(default=None, title="Capture Session Id")
+    error: str | None = Field(default=None, title="Error")
     progress_current: int | None = Field(default=None, title="Progress Current")
     progress_total: int | None = Field(default=None, title="Progress Total")
     progress_attempt: int | None = Field(default=None, title="Progress Attempt")
-    error: str | None = Field(default=None, title="Error")
 
 
 def capture_session_from_dto(create: CaptureSessionCreate) -> CaptureSession:

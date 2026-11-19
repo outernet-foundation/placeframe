@@ -30,15 +30,15 @@ class CaptureSessionRead(BaseModel):
     """
     CaptureSessionRead
     """ # noqa: E501
-    id: UUID
     created_at: datetime = Field(description="datetime with the constraint that the value must have timezone info")
     updated_at: datetime = Field(description="datetime with the constraint that the value must have timezone info")
     recorded_at: datetime = Field(description="datetime with the constraint that the value must have timezone info")
-    size_bytes: StrictInt
-    device_type: DeviceType
     name: StrictStr
+    device_type: DeviceType
+    size_bytes: StrictInt
+    id: UUID
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["id", "created_at", "updated_at", "recorded_at", "size_bytes", "device_type", "name"]
+    __properties: ClassVar[List[str]] = ["created_at", "updated_at", "recorded_at", "name", "device_type", "size_bytes", "id"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -98,13 +98,13 @@ class CaptureSessionRead(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "id": obj.get("id"),
             "created_at": obj.get("created_at"),
             "updated_at": obj.get("updated_at"),
             "recorded_at": obj.get("recorded_at"),
-            "size_bytes": obj.get("size_bytes"),
+            "name": obj.get("name"),
             "device_type": obj.get("device_type"),
-            "name": obj.get("name")
+            "size_bytes": obj.get("size_bytes"),
+            "id": obj.get("id")
         })
         # store additional fields in additional_properties
         for _key in obj.keys():

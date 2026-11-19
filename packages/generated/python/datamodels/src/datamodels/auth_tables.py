@@ -24,8 +24,8 @@ class Tenant(Base):
     __tablename__ = "tenants"
     __table_args__ = (PrimaryKeyConstraint("id", name="tenants_pkey"), {"schema": "auth"})
 
-    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("gen_random_uuid()"))
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("gen_random_uuid()"))
 
     memberships: Mapped[list["Membership"]] = relationship("Membership", back_populates="tenant", passive_deletes=True)
 
@@ -34,8 +34,8 @@ class User(Base):
     __tablename__ = "users"
     __table_args__ = (PrimaryKeyConstraint("id", name="users_pkey"), {"schema": "auth"})
 
-    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
 
     memberships: Mapped[list["Membership"]] = relationship("Membership", back_populates="user", passive_deletes=True)
 
@@ -52,14 +52,14 @@ class Membership(Base):
 
     user_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
     tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
-    updated_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
     role: Mapped[MembershipRole] = mapped_column(
         Enum(MembershipRole, name="membership_role", values_callable=enum_values),
         nullable=False,
         server_default=text("'member'::membership_role"),
     )
     is_personal: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
+    updated_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
 
     tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="memberships")
     user: Mapped["User"] = relationship("User", back_populates="memberships")
