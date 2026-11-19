@@ -1,5 +1,5 @@
 ---
-updated: 2026-11-17
+updated: 2026-11-19
 ---
 
 # GPU orchestration — mode switcher and localization router
@@ -43,14 +43,16 @@ that opens by reading this doc must check this section first.
    `boatyard/autostart` annotation.
 4. **Plan session (complete, 2026-11-16).** The plan lives in
    [gpu-orchestration-plan.md](gpu-orchestration-plan.md).
- 5. **Execution session(s).** One phase per session, per the plan's execution
-    protocol. Phase 1 (boatyard) complete: merged into boatyard `dev` via
-    PR #36 (`837be6c`, tip `17d038c`), version 0.9.0, no PyPI release yet.
-    The execution sessions re-did it three times on operator direction —
-    split annotation, behavior-named `boatyard/autostart: "false"`, bundle
-    records carried on the assembly plan — all recorded in the plan's
-    phase 1 and Q3's amendment. Next: phase 2 (mode switcher workload),
-    which runs against released boatyard per the plan.
+  5. **Execution session(s).** One phase per session, per the plan's execution
+     protocol. Phase 1 (boatyard) complete: merged into boatyard `dev` via
+     PR #36 (`837be6c`, tip `17d038c`), version 0.9.0, published to PyPI.
+     The execution sessions re-did it three times on operator direction —
+     split annotation, behavior-named `boatyard/autostart: "false"`, bundle
+     records carried on the assembly plan — all recorded in the plan's
+     phase 1 and Q3's amendment. Phase 2 (mode switcher workload) complete
+     2026-11-19 (`9767028d`), standalone with stubbed-Docker unit tests,
+     not yet wired into the stack. Next: phase 3 (provisioner pair + score
+     wiring).
 6. **Promotion.** Fold hardened truth into co-located `AGENTS.md` files per
    `design/AGENTS.md` promotion conventions; this note stops being
    load-bearing.

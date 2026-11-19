@@ -1,5 +1,5 @@
 ---
-updated: 2026-11-17
+updated: 2026-11-19
 ---
 
 # GPU orchestration — execution plan
@@ -209,6 +209,25 @@ live in the local checkout that phase 5's path reference points at.
 
 ### 2. Mode switcher workload
 
+Complete, 2026-11-19 — one code commit `9767028d` ("Add the mode-switcher
+workload"), preceded by a canonical `Run generate-clients` (`682b55ac`) for
+staleness pre-existing on `origin/dev` (the `successful` field on
+`ReconstructionMetrics` in placeframe-core landed there without a regen;
+preflight's hard gate required it, and it is unrelated to this phase's
+surface). Executed deviations from the text below, all forced by the plan's
+own `src/mode_switcher/` layout, which contradicts the `src.main:app`
+uvicorn target borrowed from lease-server: the package is an installable
+hatchling package (the s3-initializer shape, so the tests import
+`mode_switcher` from the workspace venv), the uvicorn target is
+`mode_switcher.main:app`, and boot reconciliation runs in an `on_startup`
+hook appended after `create_litestar_app` (which does not forward hooks),
+with handlers receiving the switcher via Litestar `State` injection and the
+Docker SDK calls wrapped in `asyncio.to_thread`. The root `testpaths` gained
+`workloads/mode-switcher/tests` so preflight's plain pytest runs them (the
+s3-initializer precedent). Compose project label
+`com.docker.compose.project=placeframe` confirmed against `boatyard.yml`'s
+`project_name`. Full battery + preflight green.
+
 The service itself, standalone-verifiable. Not yet wired into the stack
 (phase 3 wires it); the workload exists at `workloads/mode-switcher/` with
 its Dockerfile, pyproject, entrypoint, and unit tests against a mocked
@@ -355,6 +374,14 @@ gpu-mode --help` + unit test of the POST against a stubbed endpoint.
 Commit: code commits, then canonical `Run generate-clients`.
 
 ### 5. Path-pin boatyard + autostart annotation + selective-start activation
+
+Note (2026-11-19): boatyard 0.9.0 has published to PyPI, and
+`scripts/pyproject.toml` already pins `boatyard>=0.9` (bumped on `origin/dev`
+by the pg-schema-diff work, `bfa97626`) with `uv.lock` resolving 0.9.0 from
+the registry — the path-reference bridge below is moot, and so is the
+World A/World B fork's dependency on the local `/workspace/boatyard/`
+checkout's branch. This phase reduces to the two autostart annotations +
+`Run generate-score`.
 
 Depends on phase 1's changes being in the local `/workspace/boatyard/`
 checkout. This is the phase that activates selective-start and closes the
