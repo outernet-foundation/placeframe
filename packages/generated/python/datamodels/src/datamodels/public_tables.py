@@ -37,17 +37,17 @@ class DeviceType(enum.Enum):
     ZED = "Zed"
 
 
+class LabelType(enum.Enum):
+    AUTOMATIC = "automatic"
+    TEXT = "text"
+    IMAGE = "image"
+
+
 class LinkType(enum.Enum):
     NONE = "none"
     ADDRESS = "address"
     ANNOTATION = "annotation"
     IMAGE_LIST = "image_list"
-
-
-class LabelType(enum.Enum):
-    AUTOMATIC = "automatic"
-    TEXT = "text"
-    IMAGE = "image"
 
 
 class ReconstructionStatus(enum.Enum):
@@ -72,8 +72,8 @@ class Tenant(Base):
     __tablename__ = "tenants"
     __table_args__ = (PrimaryKeyConstraint("id", name="tenants_pkey"), {"schema": "auth"})
 
-    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("gen_random_uuid()"))
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("gen_random_uuid()"))
 
     capture_sessions: Mapped[list["CaptureSession"]] = relationship("CaptureSession", back_populates="tenant")
     groups: Mapped[list["Group"]] = relationship("Group", back_populates="tenant")
@@ -146,15 +146,15 @@ class CaptureSession(Base):
     )
 
     tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False, server_default=text("current_tenant()"))
-    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("uuid_generate_v4()"))
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
     updated_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
     recorded_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
-    size_bytes: Mapped[int] = mapped_column(BigInteger, nullable=False, server_default=text("0"))
+    name: Mapped[str] = mapped_column(Text, nullable=False)
     device_type: Mapped[DeviceType] = mapped_column(
         Enum(DeviceType, name="device_type", values_callable=enum_values), nullable=False
     )
-    name: Mapped[str] = mapped_column(Text, nullable=False)
+    size_bytes: Mapped[int] = mapped_column(BigInteger, nullable=False, server_default=text("0"))
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("uuid_generate_v4()"))
 
     tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="capture_sessions")
     reconstructions: Mapped[list["Reconstruction"]] = relationship("Reconstruction", back_populates="capture_session")
@@ -170,10 +170,10 @@ class Group(Base):
     )
 
     tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False, server_default=text("current_tenant()"))
-    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("gen_random_uuid()"))
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
     updated_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
     name: Mapped[str] = mapped_column(Text, nullable=False)
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("gen_random_uuid()"))
     parent_id: Mapped[Optional[uuid.UUID]] = mapped_column(Uuid)
 
     parent: Mapped[Optional["Group"]] = relationship("Group", remote_side=[id], back_populates="parent_reverse")
@@ -191,10 +191,10 @@ class Layer(Base):
     )
 
     tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False, server_default=text("current_tenant()"))
-    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("gen_random_uuid()"))
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
     updated_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
     name: Mapped[str] = mapped_column(Text, nullable=False)
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("gen_random_uuid()"))
 
     tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="layers")
     nodes: Mapped[list["Node"]] = relationship("Node", back_populates="layer")
@@ -211,10 +211,10 @@ class LocalizationSession(Base):
     )
 
     tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False, server_default=text("current_tenant()"))
-    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("gen_random_uuid()"))
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
     container_id: Mapped[str] = mapped_column(Text, nullable=False)
     container_url: Mapped[str] = mapped_column(Text, nullable=False)
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("gen_random_uuid()"))
 
     tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="localization_sessions")
 
@@ -231,31 +231,31 @@ class Node(Base):
     )
 
     tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False, server_default=text("current_tenant()"))
-    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("gen_random_uuid()"))
-    rotation_z: Mapped[float] = mapped_column(Double(53), nullable=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
+    updated_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
+    active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
+    position_x: Mapped[float] = mapped_column(Double(53), nullable=False)
     position_y: Mapped[float] = mapped_column(Double(53), nullable=False)
     position_z: Mapped[float] = mapped_column(Double(53), nullable=False)
     rotation_x: Mapped[float] = mapped_column(Double(53), nullable=False)
     rotation_y: Mapped[float] = mapped_column(Double(53), nullable=False)
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
+    rotation_z: Mapped[float] = mapped_column(Double(53), nullable=False)
     rotation_w: Mapped[float] = mapped_column(Double(53), nullable=False)
-    updated_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
-    position_x: Mapped[float] = mapped_column(Double(53), nullable=False)
-    link_type: Mapped[LinkType] = mapped_column(
-        Enum(LinkType, name="link_type", values_callable=enum_values), nullable=False
-    )
     label_type: Mapped[LabelType] = mapped_column(
         Enum(LabelType, name="label_type", values_callable=enum_values), nullable=False
     )
-    active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
-    layer_id: Mapped[Optional[uuid.UUID]] = mapped_column(Uuid)
-    parent_id: Mapped[Optional[uuid.UUID]] = mapped_column(Uuid)
+    link_type: Mapped[LinkType] = mapped_column(
+        Enum(LinkType, name="link_type", values_callable=enum_values), nullable=False
+    )
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("gen_random_uuid()"))
+    name: Mapped[Optional[str]] = mapped_column(Text)
+    label: Mapped[Optional[str]] = mapped_column(Text)
+    link: Mapped[Optional[str]] = mapped_column(Text)
+    label_scale: Mapped[Optional[float]] = mapped_column(Double(53))
     label_width: Mapped[Optional[float]] = mapped_column(Double(53))
     label_height: Mapped[Optional[float]] = mapped_column(Double(53))
-    label_scale: Mapped[Optional[float]] = mapped_column(Double(53))
-    link: Mapped[Optional[str]] = mapped_column(Text)
-    label: Mapped[Optional[str]] = mapped_column(Text)
-    name: Mapped[Optional[str]] = mapped_column(Text)
+    parent_id: Mapped[Optional[uuid.UUID]] = mapped_column(Uuid)
+    layer_id: Mapped[Optional[uuid.UUID]] = mapped_column(Uuid)
 
     layer: Mapped[Optional["Layer"]] = relationship("Layer", back_populates="nodes")
     parent: Mapped[Optional["Group"]] = relationship("Group", back_populates="nodes")
@@ -279,22 +279,22 @@ class Reconstruction(Base):
     )
 
     tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False, server_default=text("current_tenant()"))
-    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("uuid_generate_v4()"))
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
     updated_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
-    requeue_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
     status: Mapped[ReconstructionStatus] = mapped_column(
         Enum(ReconstructionStatus, name="reconstruction_status", values_callable=enum_values),
         nullable=False,
         server_default=text("'queued'::reconstruction_status"),
     )
-    manifest_version: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    requeue_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
     manifest: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    manifest_version: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("uuid_generate_v4()"))
     capture_session_id: Mapped[Optional[uuid.UUID]] = mapped_column(Uuid)
+    error: Mapped[Optional[str]] = mapped_column(Text)
     progress_current: Mapped[Optional[int]] = mapped_column(Integer)
     progress_total: Mapped[Optional[int]] = mapped_column(Integer)
     progress_attempt: Mapped[Optional[int]] = mapped_column(Integer)
-    error: Mapped[Optional[str]] = mapped_column(Text)
 
     capture_session: Mapped[Optional["CaptureSession"]] = relationship(
         "CaptureSession", back_populates="reconstructions"
@@ -341,27 +341,27 @@ class LocalizationEvaluation(Base):
         {"schema": "public"},
     )
 
-    reconstruction_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
-    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("uuid_generate_v4()"))
     tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False, server_default=text("current_tenant()"))
-    ransac_threshold: Mapped[float] = mapped_column(Double(53), nullable=False)
-    frame_timestamp: Mapped[int] = mapped_column(BigInteger, nullable=False)
-    updated_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
-    inlier_coverage: Mapped[float] = mapped_column(Double(53), nullable=False)
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
-    query_image_diagonal_px: Mapped[float] = mapped_column(Double(53), nullable=False)
-    reproj_error_median: Mapped[float] = mapped_column(Double(53), nullable=False)
-    inlier_ratio: Mapped[float] = mapped_column(Double(53), nullable=False)
+    updated_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
+    reconstruction_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
+    frame_timestamp: Mapped[int] = mapped_column(BigInteger, nullable=False)
     retrieval_top_k: Mapped[int] = mapped_column(Integer, nullable=False)
-    num_inliers: Mapped[int] = mapped_column(Integer, nullable=False)
-    num_matches: Mapped[int] = mapped_column(Integer, nullable=False)
-    num_correspondences: Mapped[int] = mapped_column(Integer, nullable=False)
-    succeeded: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    ransac_threshold: Mapped[float] = mapped_column(Double(53), nullable=False)
     pipeline_version: Mapped[str] = mapped_column(Text, nullable=False)
-    err_r_deg: Mapped[Optional[float]] = mapped_column(Double(53))
-    err_t_m: Mapped[Optional[float]] = mapped_column(Double(53))
+    succeeded: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    num_correspondences: Mapped[int] = mapped_column(Integer, nullable=False)
+    num_matches: Mapped[int] = mapped_column(Integer, nullable=False)
+    num_inliers: Mapped[int] = mapped_column(Integer, nullable=False)
+    inlier_ratio: Mapped[float] = mapped_column(Double(53), nullable=False)
+    inlier_coverage: Mapped[float] = mapped_column(Double(53), nullable=False)
+    reproj_error_median: Mapped[float] = mapped_column(Double(53), nullable=False)
+    query_image_diagonal_px: Mapped[float] = mapped_column(Double(53), nullable=False)
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("uuid_generate_v4()"))
     pnp_covariance: Mapped[Optional[list[float]]] = mapped_column(ARRAY[float](Double(53)))
     se3_residual: Mapped[Optional[list[float]]] = mapped_column(ARRAY[float](Double(53)))
+    err_t_m: Mapped[Optional[float]] = mapped_column(Double(53))
+    err_r_deg: Mapped[Optional[float]] = mapped_column(Double(53))
 
     reconstruction: Mapped["Reconstruction"] = relationship("Reconstruction", back_populates="localization_evaluations")
     tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="localization_evaluations")
@@ -385,22 +385,22 @@ class LocalizationMap(Base):
         {"schema": "public"},
     )
 
-    reconstruction_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
-    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("gen_random_uuid()"))
     tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False, server_default=text("current_tenant()"))
-    rotation_y: Mapped[float] = mapped_column(Double(53), nullable=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
+    updated_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
+    reconstruction_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
     position_x: Mapped[float] = mapped_column(Double(53), nullable=False)
     position_y: Mapped[float] = mapped_column(Double(53), nullable=False)
     position_z: Mapped[float] = mapped_column(Double(53), nullable=False)
     rotation_x: Mapped[float] = mapped_column(Double(53), nullable=False)
-    updated_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
+    rotation_y: Mapped[float] = mapped_column(Double(53), nullable=False)
     rotation_z: Mapped[float] = mapped_column(Double(53), nullable=False)
     rotation_w: Mapped[float] = mapped_column(Double(53), nullable=False)
-    color: Mapped[int] = mapped_column(BigInteger, nullable=False)
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
     active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
-    lighting: Mapped[Optional[int]] = mapped_column(Integer)
+    color: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("gen_random_uuid()"))
     name: Mapped[Optional[str]] = mapped_column(Text)
+    lighting: Mapped[Optional[int]] = mapped_column(Integer)
 
     reconstruction: Mapped["Reconstruction"] = relationship("Reconstruction", back_populates="localization_map")
     tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="localization_maps")
@@ -432,10 +432,10 @@ class LocalizationMapCameraPosition(Base):
 
     tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False, server_default=text("current_tenant()"))
     localization_map_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
-    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("gen_random_uuid()"))
     position_x: Mapped[float] = mapped_column(Double(53), nullable=False)
     position_y: Mapped[float] = mapped_column(Double(53), nullable=False)
     position_z: Mapped[float] = mapped_column(Double(53), nullable=False)
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("gen_random_uuid()"))
 
     localization_map: Mapped["LocalizationMap"] = relationship(
         "LocalizationMap", back_populates="localization_map_camera_positions"

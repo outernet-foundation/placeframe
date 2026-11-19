@@ -28,10 +28,10 @@ class LayerBatchUpdate(BaseModel):
     """
     LayerBatchUpdate
     """ # noqa: E501
-    id: UUID
     name: Optional[StrictStr] = None
+    id: UUID
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["id", "name"]
+    __properties: ClassVar[List[str]] = ["name", "id"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -96,8 +96,8 @@ class LayerBatchUpdate(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "id": obj.get("id"),
-            "name": obj.get("name")
+            "name": obj.get("name"),
+            "id": obj.get("id")
         })
         # store additional fields in additional_properties
         for _key in obj.keys():

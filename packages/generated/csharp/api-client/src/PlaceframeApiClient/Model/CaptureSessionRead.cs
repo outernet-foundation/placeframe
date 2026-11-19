@@ -65,53 +65,29 @@ namespace PlaceframeApiClient.Model
         /// <summary>
         /// Initializes a new instance of the <see cref="CaptureSessionRead" /> class.
         /// </summary>
-        /// <param name="id">id (required).</param>
         /// <param name="createdAt">datetime with the constraint that the value must have timezone info (required).</param>
         /// <param name="updatedAt">datetime with the constraint that the value must have timezone info (required).</param>
         /// <param name="recordedAt">datetime with the constraint that the value must have timezone info (required).</param>
-        /// <param name="sizeBytes">sizeBytes (required).</param>
-        /// <param name="deviceType">deviceType (required).</param>
         /// <param name="name">name (required).</param>
-        public CaptureSessionRead(Guid id, DateTime createdAt, DateTime updatedAt, DateTime recordedAt, int sizeBytes, DeviceType deviceType, string name)
+        /// <param name="deviceType">deviceType (required).</param>
+        /// <param name="sizeBytes">sizeBytes (required).</param>
+        /// <param name="id">id (required).</param>
+        public CaptureSessionRead(DateTime createdAt, DateTime updatedAt, DateTime recordedAt, string name, DeviceType deviceType, int sizeBytes, Guid id)
         {
-            this.Id = id;
             this.CreatedAt = createdAt;
             this.UpdatedAt = updatedAt;
             this.RecordedAt = recordedAt;
-            this.SizeBytes = sizeBytes;
-            this.DeviceType = deviceType;
             // to ensure "name" is required (not null)
             if (name == null)
             {
                 throw new ArgumentNullException("name is a required property for CaptureSessionRead and cannot be null");
             }
             this.Name = name;
+            this.DeviceType = deviceType;
+            this.SizeBytes = sizeBytes;
+            this.Id = id;
         }
 
-        /// <summary>
-        /// Gets or Sets Id
-        /// </summary>
-        [DataMember(Name = "id", IsRequired = true, EmitDefaultValue = true)]
-        public Guid Id
-        {
-            get{ return _Id;}
-            set
-            {
-                _Id = value;
-                _flagId = true;
-            }
-        }
-        private Guid _Id;
-        private bool _flagId;
-
-        /// <summary>
-        /// Returns false as Id should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeId()
-        {
-            return _flagId;
-        }
         /// <summary>
         /// datetime with the constraint that the value must have timezone info
         /// </summary>
@@ -188,30 +164,6 @@ namespace PlaceframeApiClient.Model
             return _flagRecordedAt;
         }
         /// <summary>
-        /// Gets or Sets SizeBytes
-        /// </summary>
-        [DataMember(Name = "size_bytes", IsRequired = true, EmitDefaultValue = true)]
-        public int SizeBytes
-        {
-            get{ return _SizeBytes;}
-            set
-            {
-                _SizeBytes = value;
-                _flagSizeBytes = true;
-            }
-        }
-        private int _SizeBytes;
-        private bool _flagSizeBytes;
-
-        /// <summary>
-        /// Returns false as SizeBytes should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeSizeBytes()
-        {
-            return _flagSizeBytes;
-        }
-        /// <summary>
         /// Gets or Sets Name
         /// </summary>
         [DataMember(Name = "name", IsRequired = true, EmitDefaultValue = true)]
@@ -236,6 +188,54 @@ namespace PlaceframeApiClient.Model
             return _flagName;
         }
         /// <summary>
+        /// Gets or Sets SizeBytes
+        /// </summary>
+        [DataMember(Name = "size_bytes", IsRequired = true, EmitDefaultValue = true)]
+        public int SizeBytes
+        {
+            get{ return _SizeBytes;}
+            set
+            {
+                _SizeBytes = value;
+                _flagSizeBytes = true;
+            }
+        }
+        private int _SizeBytes;
+        private bool _flagSizeBytes;
+
+        /// <summary>
+        /// Returns false as SizeBytes should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeSizeBytes()
+        {
+            return _flagSizeBytes;
+        }
+        /// <summary>
+        /// Gets or Sets Id
+        /// </summary>
+        [DataMember(Name = "id", IsRequired = true, EmitDefaultValue = true)]
+        public Guid Id
+        {
+            get{ return _Id;}
+            set
+            {
+                _Id = value;
+                _flagId = true;
+            }
+        }
+        private Guid _Id;
+        private bool _flagId;
+
+        /// <summary>
+        /// Returns false as Id should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeId()
+        {
+            return _flagId;
+        }
+        /// <summary>
         /// Returns the string presentation of the object
         /// </summary>
         /// <returns>String presentation of the object</returns>
@@ -243,13 +243,13 @@ namespace PlaceframeApiClient.Model
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("class CaptureSessionRead {\n");
-            sb.Append("  Id: ").Append(Id).Append("\n");
             sb.Append("  CreatedAt: ").Append(CreatedAt).Append("\n");
             sb.Append("  UpdatedAt: ").Append(UpdatedAt).Append("\n");
             sb.Append("  RecordedAt: ").Append(RecordedAt).Append("\n");
-            sb.Append("  SizeBytes: ").Append(SizeBytes).Append("\n");
-            sb.Append("  DeviceType: ").Append(DeviceType).Append("\n");
             sb.Append("  Name: ").Append(Name).Append("\n");
+            sb.Append("  DeviceType: ").Append(DeviceType).Append("\n");
+            sb.Append("  SizeBytes: ").Append(SizeBytes).Append("\n");
+            sb.Append("  Id: ").Append(Id).Append("\n");
             sb.Append("}\n");
             return sb.ToString();
         }

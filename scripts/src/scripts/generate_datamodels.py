@@ -97,8 +97,8 @@ def _generate_datamodels_for_schema(database_schema: str, models_path: Path, eng
             # Skip read-only fields in create/update/batch update DTOs
             #
             # Ideally we would infer these per table directly from the database schema based on
-            # column privileges, but column privileges are not currently used in our schemas
-            # because pg-schema-diff does not support them.
+            # column privileges, but pg-schema-diff tracks table privileges only, so column
+            # privileges never appear in the schemas it manages.
             if column.name in (
                 "created_at",
                 "updated_at",

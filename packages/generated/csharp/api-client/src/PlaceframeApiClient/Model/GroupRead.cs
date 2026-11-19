@@ -39,14 +39,13 @@ namespace PlaceframeApiClient.Model
         /// <summary>
         /// Initializes a new instance of the <see cref="GroupRead" /> class.
         /// </summary>
-        /// <param name="id">id (required).</param>
         /// <param name="createdAt">datetime with the constraint that the value must have timezone info (required).</param>
         /// <param name="updatedAt">datetime with the constraint that the value must have timezone info (required).</param>
         /// <param name="name">name (required).</param>
+        /// <param name="id">id (required).</param>
         /// <param name="parentId">parentId.</param>
-        public GroupRead(Guid id, DateTime createdAt, DateTime updatedAt, string name)
+        public GroupRead(DateTime createdAt, DateTime updatedAt, string name, Guid id)
         {
-            this.Id = id;
             this.CreatedAt = createdAt;
             this.UpdatedAt = updatedAt;
             // to ensure "name" is required (not null)
@@ -55,32 +54,9 @@ namespace PlaceframeApiClient.Model
                 throw new ArgumentNullException("name is a required property for GroupRead and cannot be null");
             }
             this.Name = name;
+            this.Id = id;
         }
 
-        /// <summary>
-        /// Gets or Sets Id
-        /// </summary>
-        [DataMember(Name = "id", IsRequired = true, EmitDefaultValue = true)]
-        public Guid Id
-        {
-            get{ return _Id;}
-            set
-            {
-                _Id = value;
-                _flagId = true;
-            }
-        }
-        private Guid _Id;
-        private bool _flagId;
-
-        /// <summary>
-        /// Returns false as Id should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeId()
-        {
-            return _flagId;
-        }
         /// <summary>
         /// datetime with the constraint that the value must have timezone info
         /// </summary>
@@ -156,6 +132,30 @@ namespace PlaceframeApiClient.Model
             return _flagName;
         }
         /// <summary>
+        /// Gets or Sets Id
+        /// </summary>
+        [DataMember(Name = "id", IsRequired = true, EmitDefaultValue = true)]
+        public Guid Id
+        {
+            get{ return _Id;}
+            set
+            {
+                _Id = value;
+                _flagId = true;
+            }
+        }
+        private Guid _Id;
+        private bool _flagId;
+
+        /// <summary>
+        /// Returns false as Id should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeId()
+        {
+            return _flagId;
+        }
+        /// <summary>
         /// Gets or Sets ParentId
         /// </summary>
         [DataMember(Name = "parent_id", EmitDefaultValue = true)]
@@ -187,10 +187,10 @@ namespace PlaceframeApiClient.Model
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("class GroupRead {\n");
-            sb.Append("  Id: ").Append(Id).Append("\n");
             sb.Append("  CreatedAt: ").Append(CreatedAt).Append("\n");
             sb.Append("  UpdatedAt: ").Append(UpdatedAt).Append("\n");
             sb.Append("  Name: ").Append(Name).Append("\n");
+            sb.Append("  Id: ").Append(Id).Append("\n");
             sb.Append("  ParentId: ").Append(ParentId).Append("\n");
             sb.Append("}\n");
             return sb.ToString();

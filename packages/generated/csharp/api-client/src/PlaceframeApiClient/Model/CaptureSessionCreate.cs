@@ -65,20 +65,20 @@ namespace PlaceframeApiClient.Model
         /// <summary>
         /// Initializes a new instance of the <see cref="CaptureSessionCreate" /> class.
         /// </summary>
-        /// <param name="id">id.</param>
         /// <param name="recordedAt">datetime with the constraint that the value must have timezone info.</param>
-        /// <param name="sizeBytes">sizeBytes.</param>
-        /// <param name="deviceType">deviceType (required).</param>
         /// <param name="name">name (required).</param>
-        public CaptureSessionCreate(DeviceType deviceType, string name)
+        /// <param name="deviceType">deviceType (required).</param>
+        /// <param name="sizeBytes">sizeBytes.</param>
+        /// <param name="id">id.</param>
+        public CaptureSessionCreate(string name, DeviceType deviceType)
         {
-            this.DeviceType = deviceType;
             // to ensure "name" is required (not null)
             if (name == null)
             {
                 throw new ArgumentNullException("name is a required property for CaptureSessionCreate and cannot be null");
             }
             this.Name = name;
+            this.DeviceType = deviceType;
         }
 
         /// <summary>
@@ -104,30 +104,6 @@ namespace PlaceframeApiClient.Model
         public bool ShouldSerializeName()
         {
             return _flagName;
-        }
-        /// <summary>
-        /// Gets or Sets Id
-        /// </summary>
-        [DataMember(Name = "id", EmitDefaultValue = true)]
-        public Guid? Id
-        {
-            get{ return _Id;}
-            set
-            {
-                _Id = value;
-                _flagId = true;
-            }
-        }
-        private Guid? _Id;
-        private bool _flagId;
-
-        /// <summary>
-        /// Returns false as Id should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeId()
-        {
-            return _flagId;
         }
         /// <summary>
         /// datetime with the constraint that the value must have timezone info
@@ -179,6 +155,30 @@ namespace PlaceframeApiClient.Model
             return _flagSizeBytes;
         }
         /// <summary>
+        /// Gets or Sets Id
+        /// </summary>
+        [DataMember(Name = "id", EmitDefaultValue = true)]
+        public Guid? Id
+        {
+            get{ return _Id;}
+            set
+            {
+                _Id = value;
+                _flagId = true;
+            }
+        }
+        private Guid? _Id;
+        private bool _flagId;
+
+        /// <summary>
+        /// Returns false as Id should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeId()
+        {
+            return _flagId;
+        }
+        /// <summary>
         /// Returns the string presentation of the object
         /// </summary>
         /// <returns>String presentation of the object</returns>
@@ -186,11 +186,11 @@ namespace PlaceframeApiClient.Model
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("class CaptureSessionCreate {\n");
-            sb.Append("  DeviceType: ").Append(DeviceType).Append("\n");
             sb.Append("  Name: ").Append(Name).Append("\n");
-            sb.Append("  Id: ").Append(Id).Append("\n");
+            sb.Append("  DeviceType: ").Append(DeviceType).Append("\n");
             sb.Append("  RecordedAt: ").Append(RecordedAt).Append("\n");
             sb.Append("  SizeBytes: ").Append(SizeBytes).Append("\n");
+            sb.Append("  Id: ").Append(Id).Append("\n");
             sb.Append("}\n");
             return sb.ToString();
         }

@@ -38,6 +38,7 @@ RUN --mount=type=cache,id=uvcache,sharing=locked,target=/root/.cache/uv \
 # Install project
 COPY packages/python/common/ /app/packages/python/common
 COPY workloads/database-manager/ /app/workloads/database-manager/
+COPY database/ /app/database/
 RUN uv pip install --no-deps --no-sources \
     /app/packages/python/common \
     /app/workloads/database-manager

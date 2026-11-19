@@ -30,13 +30,13 @@ class CaptureSessionBatchUpdate(BaseModel):
     """
     CaptureSessionBatchUpdate
     """ # noqa: E501
-    id: UUID
     recorded_at: Optional[datetime] = Field(default=None, description="datetime with the constraint that the value must have timezone info")
-    size_bytes: Optional[StrictInt] = None
-    device_type: Optional[DeviceType] = None
     name: Optional[StrictStr] = None
+    device_type: Optional[DeviceType] = None
+    size_bytes: Optional[StrictInt] = None
+    id: UUID
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["id", "recorded_at", "size_bytes", "device_type", "name"]
+    __properties: ClassVar[List[str]] = ["recorded_at", "name", "device_type", "size_bytes", "id"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -89,15 +89,15 @@ class CaptureSessionBatchUpdate(BaseModel):
         if self.recorded_at is None and "recorded_at" in self.model_fields_set:
             _dict['recorded_at'] = None
 
-        # set to None if size_bytes (nullable) is None
-        # and model_fields_set contains the field
-        if self.size_bytes is None and "size_bytes" in self.model_fields_set:
-            _dict['size_bytes'] = None
-
         # set to None if name (nullable) is None
         # and model_fields_set contains the field
         if self.name is None and "name" in self.model_fields_set:
             _dict['name'] = None
+
+        # set to None if size_bytes (nullable) is None
+        # and model_fields_set contains the field
+        if self.size_bytes is None and "size_bytes" in self.model_fields_set:
+            _dict['size_bytes'] = None
 
         return _dict
 
@@ -111,11 +111,11 @@ class CaptureSessionBatchUpdate(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "id": obj.get("id"),
             "recorded_at": obj.get("recorded_at"),
-            "size_bytes": obj.get("size_bytes"),
+            "name": obj.get("name"),
             "device_type": obj.get("device_type"),
-            "name": obj.get("name")
+            "size_bytes": obj.get("size_bytes"),
+            "id": obj.get("id")
         })
         # store additional fields in additional_properties
         for _key in obj.keys():

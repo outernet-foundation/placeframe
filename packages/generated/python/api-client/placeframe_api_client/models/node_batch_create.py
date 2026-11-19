@@ -30,27 +30,27 @@ class NodeBatchCreate(BaseModel):
     """
     NodeBatchCreate
     """ # noqa: E501
-    id: UUID
-    rotation_z: Union[StrictFloat, StrictInt]
+    active: Optional[StrictBool] = None
+    position_x: Union[StrictFloat, StrictInt]
     position_y: Union[StrictFloat, StrictInt]
     position_z: Union[StrictFloat, StrictInt]
     rotation_x: Union[StrictFloat, StrictInt]
     rotation_y: Union[StrictFloat, StrictInt]
+    rotation_z: Union[StrictFloat, StrictInt]
     rotation_w: Union[StrictFloat, StrictInt]
-    position_x: Union[StrictFloat, StrictInt]
-    link_type: LinkType
     label_type: LabelType
-    active: Optional[StrictBool] = None
-    layer_id: Optional[UUID] = None
-    parent_id: Optional[UUID] = None
+    link_type: LinkType
+    id: UUID
+    name: Optional[StrictStr] = None
+    label: Optional[StrictStr] = None
+    link: Optional[StrictStr] = None
+    label_scale: Optional[Union[StrictFloat, StrictInt]] = None
     label_width: Optional[Union[StrictFloat, StrictInt]] = None
     label_height: Optional[Union[StrictFloat, StrictInt]] = None
-    label_scale: Optional[Union[StrictFloat, StrictInt]] = None
-    link: Optional[StrictStr] = None
-    label: Optional[StrictStr] = None
-    name: Optional[StrictStr] = None
+    parent_id: Optional[UUID] = None
+    layer_id: Optional[UUID] = None
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["id", "rotation_z", "position_y", "position_z", "rotation_x", "rotation_y", "rotation_w", "position_x", "link_type", "label_type", "active", "layer_id", "parent_id", "label_width", "label_height", "label_scale", "link", "label", "name"]
+    __properties: ClassVar[List[str]] = ["active", "position_x", "position_y", "position_z", "rotation_x", "rotation_y", "rotation_z", "rotation_w", "label_type", "link_type", "id", "name", "label", "link", "label_scale", "label_width", "label_height", "parent_id", "layer_id"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -103,15 +103,25 @@ class NodeBatchCreate(BaseModel):
         if self.active is None and "active" in self.model_fields_set:
             _dict['active'] = None
 
-        # set to None if layer_id (nullable) is None
+        # set to None if name (nullable) is None
         # and model_fields_set contains the field
-        if self.layer_id is None and "layer_id" in self.model_fields_set:
-            _dict['layer_id'] = None
+        if self.name is None and "name" in self.model_fields_set:
+            _dict['name'] = None
 
-        # set to None if parent_id (nullable) is None
+        # set to None if label (nullable) is None
         # and model_fields_set contains the field
-        if self.parent_id is None and "parent_id" in self.model_fields_set:
-            _dict['parent_id'] = None
+        if self.label is None and "label" in self.model_fields_set:
+            _dict['label'] = None
+
+        # set to None if link (nullable) is None
+        # and model_fields_set contains the field
+        if self.link is None and "link" in self.model_fields_set:
+            _dict['link'] = None
+
+        # set to None if label_scale (nullable) is None
+        # and model_fields_set contains the field
+        if self.label_scale is None and "label_scale" in self.model_fields_set:
+            _dict['label_scale'] = None
 
         # set to None if label_width (nullable) is None
         # and model_fields_set contains the field
@@ -123,25 +133,15 @@ class NodeBatchCreate(BaseModel):
         if self.label_height is None and "label_height" in self.model_fields_set:
             _dict['label_height'] = None
 
-        # set to None if label_scale (nullable) is None
+        # set to None if parent_id (nullable) is None
         # and model_fields_set contains the field
-        if self.label_scale is None and "label_scale" in self.model_fields_set:
-            _dict['label_scale'] = None
+        if self.parent_id is None and "parent_id" in self.model_fields_set:
+            _dict['parent_id'] = None
 
-        # set to None if link (nullable) is None
+        # set to None if layer_id (nullable) is None
         # and model_fields_set contains the field
-        if self.link is None and "link" in self.model_fields_set:
-            _dict['link'] = None
-
-        # set to None if label (nullable) is None
-        # and model_fields_set contains the field
-        if self.label is None and "label" in self.model_fields_set:
-            _dict['label'] = None
-
-        # set to None if name (nullable) is None
-        # and model_fields_set contains the field
-        if self.name is None and "name" in self.model_fields_set:
-            _dict['name'] = None
+        if self.layer_id is None and "layer_id" in self.model_fields_set:
+            _dict['layer_id'] = None
 
         return _dict
 
@@ -155,25 +155,25 @@ class NodeBatchCreate(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "id": obj.get("id"),
-            "rotation_z": obj.get("rotation_z"),
+            "active": obj.get("active"),
+            "position_x": obj.get("position_x"),
             "position_y": obj.get("position_y"),
             "position_z": obj.get("position_z"),
             "rotation_x": obj.get("rotation_x"),
             "rotation_y": obj.get("rotation_y"),
+            "rotation_z": obj.get("rotation_z"),
             "rotation_w": obj.get("rotation_w"),
-            "position_x": obj.get("position_x"),
-            "link_type": obj.get("link_type"),
             "label_type": obj.get("label_type"),
-            "active": obj.get("active"),
-            "layer_id": obj.get("layer_id"),
-            "parent_id": obj.get("parent_id"),
+            "link_type": obj.get("link_type"),
+            "id": obj.get("id"),
+            "name": obj.get("name"),
+            "label": obj.get("label"),
+            "link": obj.get("link"),
+            "label_scale": obj.get("label_scale"),
             "label_width": obj.get("label_width"),
             "label_height": obj.get("label_height"),
-            "label_scale": obj.get("label_scale"),
-            "link": obj.get("link"),
-            "label": obj.get("label"),
-            "name": obj.get("name")
+            "parent_id": obj.get("parent_id"),
+            "layer_id": obj.get("layer_id")
         })
         # store additional fields in additional_properties
         for _key in obj.keys():

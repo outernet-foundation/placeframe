@@ -65,60 +65,36 @@ namespace PlaceframeApiClient.Model
         /// <summary>
         /// Initializes a new instance of the <see cref="ReconstructionReadWithQueue" /> class.
         /// </summary>
-        /// <param name="id">id (required).</param>
         /// <param name="createdAt">datetime with the constraint that the value must have timezone info (required).</param>
         /// <param name="updatedAt">datetime with the constraint that the value must have timezone info (required).</param>
-        /// <param name="requeueCount">requeueCount (required).</param>
         /// <param name="status">status (required).</param>
-        /// <param name="manifestVersion">manifestVersion (required).</param>
+        /// <param name="requeueCount">requeueCount (required).</param>
         /// <param name="manifest">manifest (required).</param>
+        /// <param name="manifestVersion">manifestVersion (required).</param>
+        /// <param name="id">id (required).</param>
         /// <param name="captureSessionId">captureSessionId.</param>
+        /// <param name="error">error.</param>
         /// <param name="progressCurrent">progressCurrent.</param>
         /// <param name="progressTotal">progressTotal.</param>
         /// <param name="progressAttempt">progressAttempt.</param>
-        /// <param name="error">error.</param>
         /// <param name="queuePosition">queuePosition.</param>
         /// <param name="queueDepth">queueDepth.</param>
-        public ReconstructionReadWithQueue(Guid id, DateTime createdAt, DateTime updatedAt, int requeueCount, ReconstructionStatus status, int manifestVersion, Dictionary<string, Object> manifest)
+        public ReconstructionReadWithQueue(DateTime createdAt, DateTime updatedAt, ReconstructionStatus status, int requeueCount, Dictionary<string, Object> manifest, int manifestVersion, Guid id)
         {
-            this.Id = id;
             this.CreatedAt = createdAt;
             this.UpdatedAt = updatedAt;
-            this.RequeueCount = requeueCount;
             this.Status = status;
-            this.ManifestVersion = manifestVersion;
+            this.RequeueCount = requeueCount;
             // to ensure "manifest" is required (not null)
             if (manifest == null)
             {
                 throw new ArgumentNullException("manifest is a required property for ReconstructionReadWithQueue and cannot be null");
             }
             this.Manifest = manifest;
+            this.ManifestVersion = manifestVersion;
+            this.Id = id;
         }
 
-        /// <summary>
-        /// Gets or Sets Id
-        /// </summary>
-        [DataMember(Name = "id", IsRequired = true, EmitDefaultValue = true)]
-        public Guid Id
-        {
-            get{ return _Id;}
-            set
-            {
-                _Id = value;
-                _flagId = true;
-            }
-        }
-        private Guid _Id;
-        private bool _flagId;
-
-        /// <summary>
-        /// Returns false as Id should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeId()
-        {
-            return _flagId;
-        }
         /// <summary>
         /// datetime with the constraint that the value must have timezone info
         /// </summary>
@@ -194,30 +170,6 @@ namespace PlaceframeApiClient.Model
             return _flagRequeueCount;
         }
         /// <summary>
-        /// Gets or Sets ManifestVersion
-        /// </summary>
-        [DataMember(Name = "manifest_version", IsRequired = true, EmitDefaultValue = true)]
-        public int ManifestVersion
-        {
-            get{ return _ManifestVersion;}
-            set
-            {
-                _ManifestVersion = value;
-                _flagManifestVersion = true;
-            }
-        }
-        private int _ManifestVersion;
-        private bool _flagManifestVersion;
-
-        /// <summary>
-        /// Returns false as ManifestVersion should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeManifestVersion()
-        {
-            return _flagManifestVersion;
-        }
-        /// <summary>
         /// Gets or Sets Manifest
         /// </summary>
         [DataMember(Name = "manifest", IsRequired = true, EmitDefaultValue = true)]
@@ -242,6 +194,54 @@ namespace PlaceframeApiClient.Model
             return _flagManifest;
         }
         /// <summary>
+        /// Gets or Sets ManifestVersion
+        /// </summary>
+        [DataMember(Name = "manifest_version", IsRequired = true, EmitDefaultValue = true)]
+        public int ManifestVersion
+        {
+            get{ return _ManifestVersion;}
+            set
+            {
+                _ManifestVersion = value;
+                _flagManifestVersion = true;
+            }
+        }
+        private int _ManifestVersion;
+        private bool _flagManifestVersion;
+
+        /// <summary>
+        /// Returns false as ManifestVersion should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeManifestVersion()
+        {
+            return _flagManifestVersion;
+        }
+        /// <summary>
+        /// Gets or Sets Id
+        /// </summary>
+        [DataMember(Name = "id", IsRequired = true, EmitDefaultValue = true)]
+        public Guid Id
+        {
+            get{ return _Id;}
+            set
+            {
+                _Id = value;
+                _flagId = true;
+            }
+        }
+        private Guid _Id;
+        private bool _flagId;
+
+        /// <summary>
+        /// Returns false as Id should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeId()
+        {
+            return _flagId;
+        }
+        /// <summary>
         /// Gets or Sets CaptureSessionId
         /// </summary>
         [DataMember(Name = "capture_session_id", EmitDefaultValue = true)]
@@ -264,6 +264,30 @@ namespace PlaceframeApiClient.Model
         public bool ShouldSerializeCaptureSessionId()
         {
             return _flagCaptureSessionId;
+        }
+        /// <summary>
+        /// Gets or Sets Error
+        /// </summary>
+        [DataMember(Name = "error", EmitDefaultValue = true)]
+        public string Error
+        {
+            get{ return _Error;}
+            set
+            {
+                _Error = value;
+                _flagError = true;
+            }
+        }
+        private string _Error;
+        private bool _flagError;
+
+        /// <summary>
+        /// Returns false as Error should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeError()
+        {
+            return _flagError;
         }
         /// <summary>
         /// Gets or Sets ProgressCurrent
@@ -338,30 +362,6 @@ namespace PlaceframeApiClient.Model
             return _flagProgressAttempt;
         }
         /// <summary>
-        /// Gets or Sets Error
-        /// </summary>
-        [DataMember(Name = "error", EmitDefaultValue = true)]
-        public string Error
-        {
-            get{ return _Error;}
-            set
-            {
-                _Error = value;
-                _flagError = true;
-            }
-        }
-        private string _Error;
-        private bool _flagError;
-
-        /// <summary>
-        /// Returns false as Error should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeError()
-        {
-            return _flagError;
-        }
-        /// <summary>
         /// Gets or Sets QueuePosition
         /// </summary>
         [DataMember(Name = "queue_position", EmitDefaultValue = true)]
@@ -417,18 +417,18 @@ namespace PlaceframeApiClient.Model
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("class ReconstructionReadWithQueue {\n");
-            sb.Append("  Id: ").Append(Id).Append("\n");
             sb.Append("  CreatedAt: ").Append(CreatedAt).Append("\n");
             sb.Append("  UpdatedAt: ").Append(UpdatedAt).Append("\n");
-            sb.Append("  RequeueCount: ").Append(RequeueCount).Append("\n");
             sb.Append("  Status: ").Append(Status).Append("\n");
-            sb.Append("  ManifestVersion: ").Append(ManifestVersion).Append("\n");
+            sb.Append("  RequeueCount: ").Append(RequeueCount).Append("\n");
             sb.Append("  Manifest: ").Append(Manifest).Append("\n");
+            sb.Append("  ManifestVersion: ").Append(ManifestVersion).Append("\n");
+            sb.Append("  Id: ").Append(Id).Append("\n");
             sb.Append("  CaptureSessionId: ").Append(CaptureSessionId).Append("\n");
+            sb.Append("  Error: ").Append(Error).Append("\n");
             sb.Append("  ProgressCurrent: ").Append(ProgressCurrent).Append("\n");
             sb.Append("  ProgressTotal: ").Append(ProgressTotal).Append("\n");
             sb.Append("  ProgressAttempt: ").Append(ProgressAttempt).Append("\n");
-            sb.Append("  Error: ").Append(Error).Append("\n");
             sb.Append("  QueuePosition: ").Append(QueuePosition).Append("\n");
             sb.Append("  QueueDepth: ").Append(QueueDepth).Append("\n");
             sb.Append("}\n");

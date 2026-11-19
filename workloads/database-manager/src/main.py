@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from importlib.resources import files as pkg_files
+from pathlib import Path
 from typing import Any, LiteralString, cast
 
 from placeframe_common.boto_clients import create_secretsmanager_client
@@ -15,6 +16,8 @@ from .database_utils import postgres_cursor
 from .settings import Settings, get_settings
 
 configure_logging("database-manager")
+
+SCHEMA_DIR = Path("/app/database")
 
 
 def _read_sql(name: str) -> str:
@@ -67,9 +70,8 @@ def _create_database(
     orchestration_user = f"{database_name}_orchestration_user"
 
     # Ensure database exists
-    if _database_exists(settings, database_name):
-        print(f"Database {database_name} already exists, skipping creation")
-    else:
+    database_exists = _database_exists(settings, database_name)
+    if not database_exists:
         with postgres_cursor(
             "postgres", settings.postgres_host, settings.postgres_admin_user, settings.postgres_admin_password
         ) as cursor:
@@ -95,6 +97,15 @@ def _create_database(
         auth_user_password,
         orchestration_user_password,
     )
+
+    if not database_exists:
+        print(f"Bootstrapping schema into new database {database_name}")
+        with postgres_cursor(database_name, settings.postgres_host, owner, owner_password) as cursor:
+            with cursor.connection.transaction():
+                for schema_file in sorted(SCHEMA_DIR.glob("*.sql")):
+                    cursor.execute(schema_file.read_bytes())
+
+    _harden_schemas(settings, database_name, api_user, auth_user, orchestration_user)
 
 
 def _update_database(
@@ -125,6 +136,8 @@ def _update_database(
         auth_user_password,
         orchestration_user_password,
     )
+
+    _harden_schemas(settings, database_name, api_user, auth_user, orchestration_user)
 
 
 def _delete_database(settings: Settings, database_name: str) -> None:
@@ -195,15 +208,14 @@ def _put_roles(
     auth_user_password: str,
     orchestration_user_password: str,
 ):
-    # Connect to default "postgres" database to create/update roles
+    # Connect to the target database; roles are cluster-wide.
     with postgres_cursor(
-        "postgres", settings.postgres_host, settings.postgres_admin_user, settings.postgres_admin_password
+        database_name, settings.postgres_host, settings.postgres_admin_user, settings.postgres_admin_password
     ) as cursor:
-        print(f"Creating roles for database {database_name}")
+        print(f"Configuring cluster roles and privileges for database {database_name}")
 
-        # Ensure roles exist and have correct passwords
         cursor.execute(
-            SQL(cast(LiteralString, _read_sql("put_roles.template.sql"))).format(
+            SQL(cast(LiteralString, _read_sql("configure_cluster.template.sql"))).format(
                 owner=Identifier(owner),
                 owner_literal=Literal(owner),
                 owner_password=Literal(owner_password),
@@ -221,19 +233,24 @@ def _put_roles(
             )
         )
 
-    # Connect to new database to configure role privileges
+
+def _harden_schemas(
+    settings: Settings,
+    database_name: str,
+    api_user: str,
+    auth_user: str,
+    orchestration_user: str,
+) -> None:
     with postgres_cursor(
         database_name, settings.postgres_host, settings.postgres_admin_user, settings.postgres_admin_password
     ) as cursor:
-        print(f"Configuring privileges for database {database_name}")
+        print(f"Hardening schema usage and function privileges for database {database_name}")
 
         cursor.execute(
-            SQL(cast(LiteralString, _read_sql("configure_database.template.sql"))).format(
-                database=Identifier(database_name),
-                owner=Identifier(owner),
+            SQL(cast(LiteralString, _read_sql("harden_schemas.template.sql"))).format(
                 api_user=Identifier(api_user),
-                auth_user=Identifier(auth_user),
                 orchestration_user=Identifier(orchestration_user),
+                auth_user=Identifier(auth_user),
                 auth_schema=Identifier("auth"),
             )
         )

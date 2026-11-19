@@ -5,10 +5,13 @@ ARG ALPINE_IMAGE
 # --- build stage ---
 # 2. Append the digest variable from images.lock. The ref carries no tag:
 #    without the lock the build fails instead of floating to :latest.
+#    pg-schema-diff's version and module digests come from the committed
+#    tools/ module (go.mod + go.sum); go install verifies the h1: hashes.
 FROM ${GOLANG_IMAGE} AS build
-ARG PGS_VERSION=v1.0.2
-RUN apk add --no-cache git \
-    && go install github.com/stripe/pg-schema-diff/cmd/pg-schema-diff@${PGS_VERSION}
+RUN apk add --no-cache git
+COPY workloads/database-migrator/tools/ /tools/
+WORKDIR /tools
+RUN go install github.com/stripe/pg-schema-diff/cmd/pg-schema-diff
 
 # --- runtime stage ---
 # 3. Do the same for the runtime base

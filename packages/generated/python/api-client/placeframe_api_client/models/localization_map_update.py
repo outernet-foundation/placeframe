@@ -29,19 +29,19 @@ class LocalizationMapUpdate(BaseModel):
     LocalizationMapUpdate
     """ # noqa: E501
     reconstruction_id: Optional[UUID] = None
-    rotation_y: Optional[Union[StrictFloat, StrictInt]] = None
     position_x: Optional[Union[StrictFloat, StrictInt]] = None
     position_y: Optional[Union[StrictFloat, StrictInt]] = None
     position_z: Optional[Union[StrictFloat, StrictInt]] = None
     rotation_x: Optional[Union[StrictFloat, StrictInt]] = None
+    rotation_y: Optional[Union[StrictFloat, StrictInt]] = None
     rotation_z: Optional[Union[StrictFloat, StrictInt]] = None
     rotation_w: Optional[Union[StrictFloat, StrictInt]] = None
-    color: Optional[StrictInt] = None
     active: Optional[StrictBool] = None
-    lighting: Optional[StrictInt] = None
+    color: Optional[StrictInt] = None
     name: Optional[StrictStr] = None
+    lighting: Optional[StrictInt] = None
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["reconstruction_id", "rotation_y", "position_x", "position_y", "position_z", "rotation_x", "rotation_z", "rotation_w", "color", "active", "lighting", "name"]
+    __properties: ClassVar[List[str]] = ["reconstruction_id", "position_x", "position_y", "position_z", "rotation_x", "rotation_y", "rotation_z", "rotation_w", "active", "color", "name", "lighting"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -94,11 +94,6 @@ class LocalizationMapUpdate(BaseModel):
         if self.reconstruction_id is None and "reconstruction_id" in self.model_fields_set:
             _dict['reconstruction_id'] = None
 
-        # set to None if rotation_y (nullable) is None
-        # and model_fields_set contains the field
-        if self.rotation_y is None and "rotation_y" in self.model_fields_set:
-            _dict['rotation_y'] = None
-
         # set to None if position_x (nullable) is None
         # and model_fields_set contains the field
         if self.position_x is None and "position_x" in self.model_fields_set:
@@ -119,6 +114,11 @@ class LocalizationMapUpdate(BaseModel):
         if self.rotation_x is None and "rotation_x" in self.model_fields_set:
             _dict['rotation_x'] = None
 
+        # set to None if rotation_y (nullable) is None
+        # and model_fields_set contains the field
+        if self.rotation_y is None and "rotation_y" in self.model_fields_set:
+            _dict['rotation_y'] = None
+
         # set to None if rotation_z (nullable) is None
         # and model_fields_set contains the field
         if self.rotation_z is None and "rotation_z" in self.model_fields_set:
@@ -129,25 +129,25 @@ class LocalizationMapUpdate(BaseModel):
         if self.rotation_w is None and "rotation_w" in self.model_fields_set:
             _dict['rotation_w'] = None
 
-        # set to None if color (nullable) is None
-        # and model_fields_set contains the field
-        if self.color is None and "color" in self.model_fields_set:
-            _dict['color'] = None
-
         # set to None if active (nullable) is None
         # and model_fields_set contains the field
         if self.active is None and "active" in self.model_fields_set:
             _dict['active'] = None
 
-        # set to None if lighting (nullable) is None
+        # set to None if color (nullable) is None
         # and model_fields_set contains the field
-        if self.lighting is None and "lighting" in self.model_fields_set:
-            _dict['lighting'] = None
+        if self.color is None and "color" in self.model_fields_set:
+            _dict['color'] = None
 
         # set to None if name (nullable) is None
         # and model_fields_set contains the field
         if self.name is None and "name" in self.model_fields_set:
             _dict['name'] = None
+
+        # set to None if lighting (nullable) is None
+        # and model_fields_set contains the field
+        if self.lighting is None and "lighting" in self.model_fields_set:
+            _dict['lighting'] = None
 
         return _dict
 
@@ -162,17 +162,17 @@ class LocalizationMapUpdate(BaseModel):
 
         _obj = cls.model_validate({
             "reconstruction_id": obj.get("reconstruction_id"),
-            "rotation_y": obj.get("rotation_y"),
             "position_x": obj.get("position_x"),
             "position_y": obj.get("position_y"),
             "position_z": obj.get("position_z"),
             "rotation_x": obj.get("rotation_x"),
+            "rotation_y": obj.get("rotation_y"),
             "rotation_z": obj.get("rotation_z"),
             "rotation_w": obj.get("rotation_w"),
-            "color": obj.get("color"),
             "active": obj.get("active"),
-            "lighting": obj.get("lighting"),
-            "name": obj.get("name")
+            "color": obj.get("color"),
+            "name": obj.get("name"),
+            "lighting": obj.get("lighting")
         })
         # store additional fields in additional_properties
         for _key in obj.keys():

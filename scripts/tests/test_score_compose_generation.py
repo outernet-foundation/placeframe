@@ -32,8 +32,9 @@ def _artifact(entry: str) -> dict[str, dict]:
 
 
 def _platform_manifest(name: str) -> str:
+    # Artifacts bake the decorated spelling; the lock records the upstream one
     lock = yaml.safe_load((REPO_ROOT / "boatyard.lock.yml").read_text(encoding="utf-8"))
-    return lock["images"][name]["platforms"]["linux/amd64"]
+    return f"ghcr.io/outernet-foundation/mirror/{lock['images'][name]['platforms']['linux/amd64']}"
 
 
 def test_each_bundle_artifact_carries_services_under_the_project_name() -> None:

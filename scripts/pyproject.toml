@@ -4,7 +4,7 @@ version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [
     "bashrun>=0.8.2.dev91",
-    "boatyard>=0.8",
+    "boatyard>=0.9",
     "openapi-client-codegen>=0.3.3.dev87",
     "python-devkit>=0.3.2.dev73",
     "placeframe-core",
@@ -46,5 +46,6 @@ sweep-postprocess = "scripts.sweep_postprocess:app"
 two-view-diagnostic = "scripts.two_view_diagnostic:app"
 reconstruction = "scripts.reconstruction:app"
 pf-secrets = "scripts.secrets_exec:app"
+migrate = "scripts.migrate:app"
 generate-clients = "openapi_client_codegen.cli:app"
 generate-datamodels = "scripts.generate_datamodels:main"

@@ -2,9 +2,10 @@
 set -euo pipefail
 
 # Required env:
-#   DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD, SCHEMA_DIR
+#   DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD, DATABASE_SCHEMA_DIR
 # Optional:
 #   ALLOWED_HAZARDS (comma-separated)
+#   CONFIRM_PROMPT (set to keep the tool's y/N apply prompt; requires a tty)
 #   EXTRA_PGOPTIONS (defaults to "-c check_function_bodies=off")
 
 : "${DB_HOST:?set DB_HOST}"
@@ -26,7 +27,11 @@ encode_opts() {
 ENC_OPTS="$(encode_opts "$EXTRA_PGOPTIONS")"
 OWNER_DSN="postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?options=${ENC_OPTS}"
 
-args=(apply --from-dsn "$OWNER_DSN" --to-dir "${APP_DIR:-/app}/${DATABASE_SCHEMA_DIR}" --skip-confirm-prompt)
+args=(apply --from-dsn "$OWNER_DSN" --to-dir "${APP_DIR:-/app}/${DATABASE_SCHEMA_DIR}" --data-pack-new-tables=false)
+
+if [[ -z "${CONFIRM_PROMPT:-}" ]]; then
+  args+=(--skip-confirm-prompt)
+fi
 
 if [[ -n "${ALLOWED_HAZARDS}" ]]; then
   args+=(--allow-hazards "$ALLOWED_HAZARDS")

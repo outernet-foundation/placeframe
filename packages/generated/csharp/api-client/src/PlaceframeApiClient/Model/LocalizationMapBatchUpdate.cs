@@ -40,18 +40,18 @@ namespace PlaceframeApiClient.Model
         /// Initializes a new instance of the <see cref="LocalizationMapBatchUpdate" /> class.
         /// </summary>
         /// <param name="reconstructionId">reconstructionId.</param>
-        /// <param name="id">id (required).</param>
-        /// <param name="rotationY">rotationY.</param>
         /// <param name="positionX">positionX.</param>
         /// <param name="positionY">positionY.</param>
         /// <param name="positionZ">positionZ.</param>
         /// <param name="rotationX">rotationX.</param>
+        /// <param name="rotationY">rotationY.</param>
         /// <param name="rotationZ">rotationZ.</param>
         /// <param name="rotationW">rotationW.</param>
-        /// <param name="color">color.</param>
         /// <param name="active">active.</param>
-        /// <param name="lighting">lighting.</param>
+        /// <param name="color">color.</param>
+        /// <param name="id">id (required).</param>
         /// <param name="name">name.</param>
+        /// <param name="lighting">lighting.</param>
         public LocalizationMapBatchUpdate(Guid id)
         {
             this.Id = id;
@@ -104,30 +104,6 @@ namespace PlaceframeApiClient.Model
         public bool ShouldSerializeReconstructionId()
         {
             return _flagReconstructionId;
-        }
-        /// <summary>
-        /// Gets or Sets RotationY
-        /// </summary>
-        [DataMember(Name = "rotation_y", EmitDefaultValue = true)]
-        public double? RotationY
-        {
-            get{ return _RotationY;}
-            set
-            {
-                _RotationY = value;
-                _flagRotationY = true;
-            }
-        }
-        private double? _RotationY;
-        private bool _flagRotationY;
-
-        /// <summary>
-        /// Returns false as RotationY should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeRotationY()
-        {
-            return _flagRotationY;
         }
         /// <summary>
         /// Gets or Sets PositionX
@@ -226,6 +202,30 @@ namespace PlaceframeApiClient.Model
             return _flagRotationX;
         }
         /// <summary>
+        /// Gets or Sets RotationY
+        /// </summary>
+        [DataMember(Name = "rotation_y", EmitDefaultValue = true)]
+        public double? RotationY
+        {
+            get{ return _RotationY;}
+            set
+            {
+                _RotationY = value;
+                _flagRotationY = true;
+            }
+        }
+        private double? _RotationY;
+        private bool _flagRotationY;
+
+        /// <summary>
+        /// Returns false as RotationY should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeRotationY()
+        {
+            return _flagRotationY;
+        }
+        /// <summary>
         /// Gets or Sets RotationZ
         /// </summary>
         [DataMember(Name = "rotation_z", EmitDefaultValue = true)]
@@ -274,30 +274,6 @@ namespace PlaceframeApiClient.Model
             return _flagRotationW;
         }
         /// <summary>
-        /// Gets or Sets Color
-        /// </summary>
-        [DataMember(Name = "color", EmitDefaultValue = true)]
-        public int? Color
-        {
-            get{ return _Color;}
-            set
-            {
-                _Color = value;
-                _flagColor = true;
-            }
-        }
-        private int? _Color;
-        private bool _flagColor;
-
-        /// <summary>
-        /// Returns false as Color should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeColor()
-        {
-            return _flagColor;
-        }
-        /// <summary>
         /// Gets or Sets Active
         /// </summary>
         [DataMember(Name = "active", EmitDefaultValue = true)]
@@ -322,28 +298,28 @@ namespace PlaceframeApiClient.Model
             return _flagActive;
         }
         /// <summary>
-        /// Gets or Sets Lighting
+        /// Gets or Sets Color
         /// </summary>
-        [DataMember(Name = "lighting", EmitDefaultValue = true)]
-        public int? Lighting
+        [DataMember(Name = "color", EmitDefaultValue = true)]
+        public int? Color
         {
-            get{ return _Lighting;}
+            get{ return _Color;}
             set
             {
-                _Lighting = value;
-                _flagLighting = true;
+                _Color = value;
+                _flagColor = true;
             }
         }
-        private int? _Lighting;
-        private bool _flagLighting;
+        private int? _Color;
+        private bool _flagColor;
 
         /// <summary>
-        /// Returns false as Lighting should not be serialized given that it's read-only.
+        /// Returns false as Color should not be serialized given that it's read-only.
         /// </summary>
         /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeLighting()
+        public bool ShouldSerializeColor()
         {
-            return _flagLighting;
+            return _flagColor;
         }
         /// <summary>
         /// Gets or Sets Name
@@ -370,6 +346,30 @@ namespace PlaceframeApiClient.Model
             return _flagName;
         }
         /// <summary>
+        /// Gets or Sets Lighting
+        /// </summary>
+        [DataMember(Name = "lighting", EmitDefaultValue = true)]
+        public int? Lighting
+        {
+            get{ return _Lighting;}
+            set
+            {
+                _Lighting = value;
+                _flagLighting = true;
+            }
+        }
+        private int? _Lighting;
+        private bool _flagLighting;
+
+        /// <summary>
+        /// Returns false as Lighting should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeLighting()
+        {
+            return _flagLighting;
+        }
+        /// <summary>
         /// Returns the string presentation of the object
         /// </summary>
         /// <returns>String presentation of the object</returns>
@@ -379,17 +379,17 @@ namespace PlaceframeApiClient.Model
             sb.Append("class LocalizationMapBatchUpdate {\n");
             sb.Append("  Id: ").Append(Id).Append("\n");
             sb.Append("  ReconstructionId: ").Append(ReconstructionId).Append("\n");
-            sb.Append("  RotationY: ").Append(RotationY).Append("\n");
             sb.Append("  PositionX: ").Append(PositionX).Append("\n");
             sb.Append("  PositionY: ").Append(PositionY).Append("\n");
             sb.Append("  PositionZ: ").Append(PositionZ).Append("\n");
             sb.Append("  RotationX: ").Append(RotationX).Append("\n");
+            sb.Append("  RotationY: ").Append(RotationY).Append("\n");
             sb.Append("  RotationZ: ").Append(RotationZ).Append("\n");
             sb.Append("  RotationW: ").Append(RotationW).Append("\n");
-            sb.Append("  Color: ").Append(Color).Append("\n");
             sb.Append("  Active: ").Append(Active).Append("\n");
-            sb.Append("  Lighting: ").Append(Lighting).Append("\n");
+            sb.Append("  Color: ").Append(Color).Append("\n");
             sb.Append("  Name: ").Append(Name).Append("\n");
+            sb.Append("  Lighting: ").Append(Lighting).Append("\n");
             sb.Append("}\n");
             return sb.ToString();
         }
