@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 import time
-from pathlib import Path
 
 from bashrun.bash import bash, bash_check, bash_output
 
@@ -16,19 +15,9 @@ def main() -> None:
         POSTGRES_ADMIN_PASSWORD="password",
         POSTGRES_HOST="localhost",
         POSTGRES_PORT="55432",
-        BACKEND="docker",
-        APP_DIR=".",
-        DB_HOST="localhost",
-        DB_PORT="55432",
-        DB_NAME="placeframe",
-        DB_USER="placeframe_owner",
-        DB_PASSWORD="password",
-        DATABASE_SCHEMA_DIR="database",
-        ALLOWED_HAZARDS="HAS_UNTRACKABLE_DEPENDENCIES",
     )
-    # Build the postgres wrapper locally so its tree-tag image tag resolves without
-    # needing a registry push first.
-    bash("uv run --locked boatyard build --targets postgres")
+    # Build the migration-path images so their tree tags resolve without a registry push
+    bash("uv run --locked boatyard build --targets 'postgres database-manager database-migrator'")
     postgres_tag = bash_output("uv run --locked boatyard tree-tags postgres").strip()
     # Run postgres as one throwaway container instead of a compose project: an isolated
     # bring-up cannot collide with (or tear down) a concurrently running dev stack, and
@@ -50,19 +39,30 @@ def main() -> None:
     if not ready:
         logs = bash_output("docker logs pf-preflight-postgres")
         raise SystemExit(f"preflight postgres never became ready:\n{logs}")
-    gopath = bash_output("go env GOPATH").strip()
-    gopath_bin = Path(gopath) / "bin"
-    gopath_bin.mkdir(parents=True, exist_ok=True)
-    os.environ["PATH"] = f"{gopath_bin}{os.pathsep}{os.environ['PATH']}"
-    bash("go install github.com/stripe/pg-schema-diff/cmd/pg-schema-diff@latest")
+    # Run the same database-manager invocation the compose provisioner runs
+    database_manager_tag = bash_output("uv run --locked boatyard tree-tags database-manager").strip()
     bash(
-        "uv run --directory workloads/database-manager python -m src.main --op create --name placeframe"
+        "docker run --rm --network host"
+        " -e POSTGRES_HOST=localhost -e POSTGRES_PORT=55432"
+        " -e POSTGRES_ADMIN_USER=postgres -e POSTGRES_ADMIN_PASSWORD=password"
+        " --entrypoint uv"
+        f" ghcr.io/outernet-foundation/placeframe/database-manager:{database_manager_tag}"
+        " run --no-sync python -m src.main --op create --name placeframe"
         " --owner-password password"
         " --api-user-password password"
         " --auth-user-password password"
         " --orchestration-user-password password"
     )
-    bash("./workloads/database-migrator/entrypoint.sh")
+    migrator_tag = bash_output("uv run --locked boatyard tree-tags database-migrator").strip()
+    # Prove the standing hazard gate passes a no-op re-up
+    bash(
+        "docker run --rm --network host"
+        " -e DB_HOST=localhost -e DB_PORT=55432 -e DB_NAME=placeframe"
+        " -e DB_USER=placeframe_owner -e DB_PASSWORD=password"
+        " -e DATABASE_SCHEMA_DIR=database"
+        " -e ALLOWED_HAZARDS=HAS_UNTRACKABLE_DEPENDENCIES"
+        f" ghcr.io/outernet-foundation/placeframe/database-migrator:{migrator_tag}"
+    )
 
     # Score staleness gate disabled: generated stack/ output embeds per-service tree-tag image
     # tags, so every dependency-lock bump re-stales it (see stack/AGENTS.md).
