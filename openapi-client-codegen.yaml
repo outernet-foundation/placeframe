@@ -1,10 +1,11 @@
-requires: ">=0.1"
+requires: ">=0.3.3"
 root_name: placeframe
 generated_root: packages/generated
 spec_command: uv run --project . python -m src.dump_openapi
 spec_env:
   CODEGEN: "1"
 npm_scope: org.outernet.placeframe
+typescript_npm_scope: placeframe
 license_spdx: Apache-2.0
 repository_url: https://github.com/outernet-foundation/placeframe.git
 projects:
@@ -13,5 +14,6 @@ projects:
   workloads/api:
     - python
     - csharp
+    - typescript-fetch
   workloads/lease-server:
     - python

@@ -5,7 +5,7 @@ requires-python = ">=3.13"
 dependencies = [
     "bashrun>=0.8.2.dev91",
     "boatyard>=0.9",
-    "openapi-client-codegen>=0.3.3.dev87",
+    "openapi-client-codegen>=0.3.3",
     "python-devkit>=0.3.2.dev73",
     "placeframe-core",
     "placeframe-api-client",
