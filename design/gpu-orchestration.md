@@ -49,10 +49,14 @@ that opens by reading this doc must check this section first.
      The execution sessions re-did it three times on operator direction —
      split annotation, behavior-named `boatyard/autostart: "false"`, bundle
      records carried on the assembly plan — all recorded in the plan's
-     phase 1 and Q3's amendment. Phase 2 (mode switcher workload) complete
-     2026-11-19 (`9767028d`), standalone with stubbed-Docker unit tests,
-     not yet wired into the stack. Next: phase 3 (provisioner pair + score
-     wiring).
+      phase 1 and Q3's amendment. Phase 2 (mode switcher workload) complete
+      2026-11-19 (`9767028d`), standalone with stubbed-Docker unit tests,
+      not yet wired into the stack. Phase 3 (provisioner pair + score
+      wiring) executed 2026-11-19: placeframe-side source complete and
+      e2e-validated, blocked on two boatyard 0.9.0 defects (no authored
+      host mounts; gateway never recreated on route change), parked on
+      local branch `phase-3-wip` pending a boatyard fix session — see the
+      plan's phase 3 record.
 6. **Promotion.** Fold hardened truth into co-located `AGENTS.md` files per
    `design/AGENTS.md` promotion conventions; this note stops being
    load-bearing.

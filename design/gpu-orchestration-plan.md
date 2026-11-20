@@ -277,6 +277,59 @@ Commit: one code commit.
 
 ### 3. Provisioner pair + score wiring + test invariants
 
+Executed 2026-11-19 — placeframe-side source is complete and validated, but
+the phase is **blocked on two boatyard 0.9.0 defects** the mandatory e2e
+surfaced; the full phase-3 state is parked on local branch `phase-3-wip`
+(tip `d9eda8d2`: source `dadabe55`, workload fix `805fc9cb`, regen
+`d9eda8d2` — the regen was produced under a venv-patched boatyard and must
+be re-produced from a clean clone once boatyard carries defect 1's fix).
+The working branch carries only the phase-2 workload bug fix the e2e
+exposed (`6ef2b10c`); it stays green. The boatyard fixes are
+phase-1-shaped work (branch off dev, code + tests, operator pushes,
+publish) and need their own directive. The defects:
+
+1. **No provisioner service can author a host mount.**
+   `boatyard/score_compose.py`'s hermetic pass treats every `type: bind`
+   as a score-materialized repo file to inline (`config.root / source`
+   read as text; the `BindVolume` validator rejects absolute sources), so
+   the ADR's "provisioners author full compose service definitions
+   including volumes" holds only for `type: volume`. Validated fix shape:
+   `bind_volumes` selects only relative-source binds for inlining and
+   `strip_bind_volumes` removes exactly that set (strip-everything drops
+   the absolute bind silently — the first patch attempt did exactly
+   that); absolute-source binds pass through authored. The alternative
+   spellings are dead ends, both tried: a named volume with local-driver
+   `o: bind` opts renders but fails at create ("not a directory" — the
+   local driver cannot bind a single socket file onto its pre-created
+   `_data` dir), and mounting `/var/run` wholesale is a wider host
+   exposure than the single socket.
+2. **Route changes never reach a live gateway.** The gateway one-shot
+   `up -d` cannot propagate a Caddyfile change: compose 5.1.3 does not
+   recreate a service on `configs.content`-only change (verified in
+   isolation: content flip → "Running", no recreate — the per-service
+   hash covers the config *reference*, not the content). Validated fix
+   shape: `--force-recreate` on the gateway invocation.
+
+Deviations from the text below, all forced by execution: the route entry
+is `/gpu-mode/*=mode-switcher:8000,strip` (as written, without `,strip`,
+the gateway forwards the prefixed path and the switcher 404s — it serves
+`/mode` at root; keycloak's `/auth/*` is the strip precedent); phase 2's
+`ModeSwitcher` hardcoded `com.docker.compose.project=placeframe`, which
+matches nothing at runtime (per-entry projects are `placeframe-core-cuda`
+etc.), so the switcher saw zero GPU containers and reconciled as a silent
+no-op — `6ef2b10c` discovers the project from the switcher's own
+container labels (`attrs["Config"]["Labels"]`, since typeshed's docker
+stubs leave `Container.labels` unannotated). Everything else landed as
+written. The full mandatory e2e passed under the patched venv boatyard:
+mode-switcher healthy in `docker compose ps`, the barrier gates on it,
+`curl localhost:8443/gpu-mode/mode` → `{"mode":"localization"}`,
+`/gpu-mode/localizer-address` → the address, the socket sees the GPU
+containers under the discovered project, boot reconcile stopped a
+left-over reconstructor, and a POST toggle cycle exercised the real
+SIGTERM → wait → start lifecycle both directions. "Phases 2-4 do not
+depend on phase 1" above is now false for phase 3; the World A/World B
+fork is untouched (neither defect touches annotations).
+
 Wires the mode switcher into the compose stack. The mode switcher now
 exists in `docker compose ps`, the gateway routes `/gpu-mode/*` to it, and
 the score generation tests assert its presence. The API is unchanged (still
