@@ -7,7 +7,7 @@ from litestar.openapi.spec import Server
 from placeframe_common.litestar import create_litestar_app
 from placeframe_common.logging_config import configure_logging
 
-from .docker_lifecycle import ModeSwitcher
+from .docker_lifecycle import ModeSwitcher, compose_project_of
 from .routers.mode import router as mode_router
 from .settings import get_settings
 
@@ -21,7 +21,8 @@ openapi_config = OpenAPIConfig(
 
 
 async def bootstrap(app: Litestar) -> None:
-    switcher = ModeSwitcher(from_env(), get_settings().default_mode)
+    client = from_env()
+    switcher = ModeSwitcher(client, get_settings().default_mode, compose_project_of(client))
     await to_thread(switcher.reconcile)
     app.state.mode_switcher = switcher
 

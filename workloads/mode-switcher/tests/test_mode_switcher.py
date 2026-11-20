@@ -5,12 +5,18 @@ from litestar import Litestar
 from litestar.openapi.config import OpenAPIConfig
 from litestar.testing import TestClient
 from mode_switcher import docker_lifecycle
-from mode_switcher.docker_lifecycle import LOCALIZATION_DRAIN_SECONDS, ModeSwitcher
+from mode_switcher.docker_lifecycle import (
+    LOCALIZATION_DRAIN_SECONDS,
+    ModeSwitcher,
+    compose_project_of,
+)
 from mode_switcher.routers.mode import router as mode_router
 from mode_switcher.settings import Mode
 from placeframe_common.litestar import create_litestar_app
 
 SERVICE_LABEL_PREFIX = "com.docker.compose.service="
+PROJECT_LABEL_PREFIX = "com.docker.compose.project="
+COMPOSE_PROJECT = "placeframe-core-cuda"
 
 
 class FakeContainer:
@@ -32,22 +38,44 @@ class FakeContainer:
         return 0
 
 
+class FakeOwnContainer:
+    def __init__(self, labels: dict[str, str]) -> None:
+        self.name = "own"
+        self.status = "running"
+        self.attrs: dict[str, object] = {"Config": {"Labels": labels}}
+
+
 class FakeContainerCollection:
-    def __init__(self, containers: dict[str, FakeContainer]) -> None:
+    def __init__(self, containers: dict[str, FakeContainer], project: str, own_container: FakeOwnContainer) -> None:
         self._containers = containers
+        self._project = project
+        self._own_container = own_container
+
+    def get(self, _name: str) -> FakeOwnContainer:
+        return self._own_container
 
     def list(self, *, filters: dict[str, list[str]], **_options: object) -> list[FakeContainer]:
+        service = None
         for label in filters["label"]:
             if label.startswith(SERVICE_LABEL_PREFIX):
                 service = label.removeprefix(SERVICE_LABEL_PREFIX)
-                container = self._containers.get(service)
-                return [container] if container is not None else []
-        return []
+            else:
+                assert label == f"{PROJECT_LABEL_PREFIX}{self._project}", (
+                    f"list() filtered on unexpected project label {label!r}"
+                )
+        container = self._containers.get(service or "")
+        return [container] if container is not None else []
 
 
 class FakeDockerClient:
-    def __init__(self, containers: dict[str, FakeContainer]) -> None:
-        self.containers = FakeContainerCollection(containers)
+    def __init__(
+        self,
+        containers: dict[str, FakeContainer],
+        project: str = COMPOSE_PROJECT,
+        own_labels: dict[str, str] | None = None,
+    ) -> None:
+        labels = own_labels if own_labels is not None else {"com.docker.compose.project": project}
+        self.containers = FakeContainerCollection(containers, project, FakeOwnContainer(labels))
 
 
 class SleepRecorder:
@@ -63,7 +91,9 @@ def make_switcher(
 ) -> ModeSwitcher:
     localizer = FakeContainer("localizer", localizer_status, events)
     reconstructor = FakeContainer("reconstructor", reconstructor_status, events)
-    return ModeSwitcher(FakeDockerClient({"localizer": localizer, "reconstructor": reconstructor}), default_mode)
+    return ModeSwitcher(
+        FakeDockerClient({"localizer": localizer, "reconstructor": reconstructor}), default_mode, COMPOSE_PROJECT
+    )
 
 
 def make_test_client(events: list[str], localizer_status: str, reconstructor_status: str) -> TestClient[Litestar]:
@@ -122,7 +152,7 @@ def test_switch_without_running_source_container_skips_stop(monkeypatch: pytest.
 def test_switch_with_missing_target_container_raises() -> None:
     events: list[str] = []
     localizer = FakeContainer("localizer", "running", events)
-    switcher = ModeSwitcher(FakeDockerClient({"localizer": localizer}), "localization")
+    switcher = ModeSwitcher(FakeDockerClient({"localizer": localizer}), "localization", COMPOSE_PROJECT)
 
     with pytest.raises(ValueError, match="no reconstructor container"):
         switcher.switch("reconstruction")
@@ -165,10 +195,25 @@ def test_reconcile_with_none_running_starts_the_default() -> None:
 
 def test_reconcile_without_containers_reports_default() -> None:
     events: list[str] = []
-    switcher = ModeSwitcher(FakeDockerClient({}), "localization")
+    switcher = ModeSwitcher(FakeDockerClient({}), "localization", COMPOSE_PROJECT)
 
     assert switcher.reconcile() == "localization"
     assert events == []
+
+
+def test_compose_project_of_reads_the_own_container_label(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("mode_switcher.docker_lifecycle.gethostname", lambda: "abc123")
+    client = FakeDockerClient({}, own_labels={"com.docker.compose.project": "placeframe-core-rocm"})
+
+    assert compose_project_of(client) == "placeframe-core-rocm"
+
+
+def test_compose_project_of_without_the_label_raises(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("mode_switcher.docker_lifecycle.gethostname", lambda: "abc123")
+    client = FakeDockerClient({}, own_labels={})
+
+    with pytest.raises(ValueError, match=r"carries no com\.docker\.compose\.project label"):
+        compose_project_of(client)
 
 
 def test_localizer_address_when_running() -> None:
