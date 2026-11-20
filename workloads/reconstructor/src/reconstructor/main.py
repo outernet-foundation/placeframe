@@ -1,6 +1,7 @@
 import asyncio
 import os
 from asyncio import CancelledError, run, sleep
+from concurrent.futures import ThreadPoolExecutor
 from signal import SIGTERM
 from typing import NoReturn, cast
 from uuid import UUID
@@ -34,6 +35,11 @@ async def worker_loop() -> None:
 
     configuration = Configuration(host=str(settings.lease_server_url))
 
+    # Every job runs on this one thread. On the loop's default executor, consecutive jobs land on different pool
+    # threads (it also runs the loop's other blocking work, such as DNS lookups), and each new thread that runs the pipeline gets its own
+    # OpenMP thread team and malloc arena, which stay for the life of the process.
+    job_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="reconstruction")
+
     async with ApiClient(configuration) as api_client:
         api = DefaultApi(api_client)
         loop = asyncio.get_running_loop()
@@ -66,7 +72,7 @@ async def worker_loop() -> None:
 
                 print(f"[{lease.reconstruction_id}] Acquired lease")
                 active_lease_id = lease.reconstruction_id
-                await _run_and_report(api, loop, lease)
+                await _run_and_report(api, loop, job_executor, lease)
                 active_lease_id = None
 
             except CancelledError:
@@ -77,7 +83,9 @@ async def worker_loop() -> None:
                 await sleep(POLL_INTERVAL_SECONDS)
 
 
-async def _run_and_report(api: DefaultApi, loop: asyncio.AbstractEventLoop, lease: LeaseResponse) -> None:
+async def _run_and_report(
+    api: DefaultApi, loop: asyncio.AbstractEventLoop, job_executor: ThreadPoolExecutor, lease: LeaseResponse
+) -> None:
     reconstruction_id = lease.reconstruction_id
     capture_id = lease.capture_session_id
     options = CoreReconstructionOptions.model_validate(lease.options.model_dump())
@@ -89,7 +97,7 @@ async def _run_and_report(api: DefaultApi, loop: asyncio.AbstractEventLoop, leas
         # run_reconstruction is sync and CPU/GPU-bound; push it to a thread so the
         # event loop stays live for progress writes the publisher dispatches back.
         metrics = await loop.run_in_executor(
-            None,
+            job_executor,
             run_reconstruction,
             reconstruction_id,
             capture_id,
