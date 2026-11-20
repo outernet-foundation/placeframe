@@ -71,6 +71,9 @@ resources:
     params:
       workload: localizer
       port: http
+  localizer-router:
+    type: localizer-router
+    id: placeframe-localizer-router
   config:
     type: placeframe-config
     id: placeframe-config
