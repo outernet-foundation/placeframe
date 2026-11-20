@@ -362,6 +362,41 @@ Commit: source commits, then canonical `Run generate-score`.
 
 ### 4. API integration + CLI verb
 
+Complete, 2026-11-19 — one code commit `60537b7c`, then canonical regens
+`783bfc61` (`Run generate-clients`) and `0f260137` (`Run generate-score`;
+see deviations). The battery + full preflight green. Executed deviations
+from the text below, all recorded in the landed source: (1) the phase
+regenerates the score artifacts too — the plan's regen table listed only
+lock + clients, but the `api.yaml` env/resource change bakes literals
+into all three artifacts and `test_score_k8s_generation.py` asserts the
+committed k8s artifact, so the staleness gate forces `Run generate-score`
+at this boundary, not at phase 5's; (2) `localizer_router_address` is a
+required `Field()`, not `AnyHttpUrl | None = None` — the replaced
+`localizer_container_url` was required, every tier's provisioner always
+provides the router outputs, and required keeps a missing wire a loud
+boot error rather than a request-time crash; (3) the resolver lives in a
+new leaf module `workloads/api/src/routers/localizer_router.py` (the
+`localization_maps.py` sibling-helper precedent) exporting
+`resolve_localizer_address` + `UNAVAILABLE_DETAIL` — `localization.py`
+transitively imports `src/database.py`, whose module-level `get_settings()`
+crashes import outside a provisioned env, and the leaf module is what
+makes the router-query branch unit-testable; `localization.py` dropped
+its module-level `settings` global in the move; (4) the 502→503
+replacement is total per the end-state text — the ApiException fallthrough
+also raises 503 `Localization unavailable` (the shared constant), not
+just the null-address path; (5) `api_auth._read_public_url` is renamed
+`read_public_url` (two entry-point modules now consume it; the private
+name tripped basedpyright's reportPrivateUsage); (6) the k8s generation
+test now asserts `LOCALIZER_ROUTER_ADDRESS`/`GPU_MODE_MANAGED` on the api
+Deployment — the plan didn't list it, but that test locks the committed
+k8s artifact's mechanics and follows the env swap. The lock-python run
+was a no-op (entry-point additions don't touch locks). Unit tests landed:
+router-query branch against a real stdlib HTTP stub (address ⇒ forward,
+null ⇒ 503, unreachable router ⇒ 503, unmanaged ⇒ direct return with the
+stub never queried), server-info handler via Litestar TestClient in both
+auth modes, and the CLI verb against a stubbed POST (payload, clean
+exit-1 on switcher error, --help lists both modes).
+
 The API stops hitting `LOCALIZER_CONTAINER_URL` directly and starts asking
 the router for the localizer address. `/server-info` gains the
 `gpu_mode_managed` capability field. The CLI verb lands alongside.
@@ -492,5 +527,5 @@ Commit: prose commit(s).
 | Phase | Regen | Canonical commit |
 |---|---|---|
 | 3 | score artifacts | `Run generate-score` |
-| 4 | lock + clients (ServerInfo `gpu_mode_managed`) | `Run generate-clients` |
+| 4 | lock + clients (ServerInfo `gpu_mode_managed`) + score artifacts (api env/resource swap) | `Run generate-clients`, `Run generate-score` |
 | 5 | score artifacts | `Run generate-score` |
