@@ -53,10 +53,10 @@ that opens by reading this doc must check this section first.
       2026-11-19 (`9767028d`), standalone with stubbed-Docker unit tests,
       not yet wired into the stack. Phase 3 (provisioner pair + score
       wiring) executed 2026-11-19: placeframe-side source complete and
-      e2e-validated, blocked on two boatyard 0.9.0 defects (no authored
-      host mounts; gateway never recreated on route change), parked on
-      local branch `phase-3-wip` pending a boatyard fix session — see the
-      plan's phase 3 record.
+      e2e-validated, blocked on one boatyard 0.9.0 defect (no authored
+      host mounts; fix authored on boatyard branch `host-binds`
+      `ed3795f`), parked on local branch `phase-3-wip` pending publish
+      and replay — see the plan's phase 3 record.
 6. **Promotion.** Fold hardened truth into co-located `AGENTS.md` files per
    `design/AGENTS.md` promotion conventions; this note stops being
    load-bearing.
