@@ -89,6 +89,7 @@ services:
         required: true
     image: ghcr.io/outernet-foundation/placeframe/reconstructor-cuda:${CORE_CUDA__BOATYARD_TREE__RECONSTRUCTOR_SHA}
     annotations:
+      boatyard/autostart: 'false'
       boatyard/dockerfile: reconstructor=workloads/reconstructor/Dockerfile
       boatyard/gpu: 'true'
       compose.score.dev/workload-name: reconstructor
@@ -117,6 +118,7 @@ services:
         required: true
     image: ghcr.io/outernet-foundation/placeframe/localizer-cuda:${CORE_CUDA__BOATYARD_TREE__LOCALIZER_SHA}
     annotations:
+      boatyard/autostart: 'false'
       boatyard/dockerfile: localizer=workloads/localizer/Dockerfile
       boatyard/gpu: 'true'
       boatyard/probe-adapter: python-urllib

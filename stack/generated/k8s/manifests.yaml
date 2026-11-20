@@ -531,6 +531,7 @@ spec:
   template:
     metadata:
       annotations:
+        boatyard/autostart: "false"
         boatyard/dockerfile: localizer=workloads/localizer/Dockerfile
         boatyard/gpu: "true"
         boatyard/probe-adapter: python-urllib
@@ -602,6 +603,7 @@ spec:
   template:
     metadata:
       annotations:
+        boatyard/autostart: "false"
         boatyard/dockerfile: reconstructor=workloads/reconstructor/Dockerfile
         boatyard/gpu: "true"
         k8s.score.dev/workload-name: reconstructor
