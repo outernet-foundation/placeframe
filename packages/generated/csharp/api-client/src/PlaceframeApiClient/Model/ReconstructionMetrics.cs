@@ -34,6 +34,7 @@ namespace PlaceframeApiClient.Model
         /// <summary>
         /// Initializes a new instance of the <see cref="ReconstructionMetrics" /> class.
         /// </summary>
+        /// <param name="successful">True if the reconstruction produced a model, false otherwise. (default to false).</param>
         /// <param name="reprojectionPixelError50thPercentile">Median reprojection error in pixels across all valid 2D observations in registered images..</param>
         /// <param name="reprojectionPixelError90thPercentile">90th percentile reprojection error in pixels across all valid 2D observations..</param>
         /// <param name="trackLength50thPercentile">Median number of distinct images observing each 3D point..</param>
@@ -59,6 +60,31 @@ namespace PlaceframeApiClient.Model
         {
         }
 
+        /// <summary>
+        /// True if the reconstruction produced a model, false otherwise.
+        /// </summary>
+        /// <value>True if the reconstruction produced a model, false otherwise.</value>
+        [DataMember(Name = "successful", EmitDefaultValue = true)]
+        public bool Successful
+        {
+            get{ return _Successful;}
+            set
+            {
+                _Successful = value;
+                _flagSuccessful = true;
+            }
+        }
+        private bool _Successful = false;
+        private bool _flagSuccessful;
+
+        /// <summary>
+        /// Returns false as Successful should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeSuccessful()
+        {
+            return _flagSuccessful;
+        }
         /// <summary>
         /// Median reprojection error in pixels across all valid 2D observations in registered images.
         /// </summary>
@@ -592,6 +618,7 @@ namespace PlaceframeApiClient.Model
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("class ReconstructionMetrics {\n");
+            sb.Append("  Successful: ").Append(Successful).Append("\n");
             sb.Append("  ReprojectionPixelError50thPercentile: ").Append(ReprojectionPixelError50thPercentile).Append("\n");
             sb.Append("  ReprojectionPixelError90thPercentile: ").Append(ReprojectionPixelError90thPercentile).Append("\n");
             sb.Append("  TrackLength50thPercentile: ").Append(TrackLength50thPercentile).Append("\n");

@@ -6037,6 +6037,11 @@
       },
       "ReconstructionMetrics": {
         "properties": {
+          "successful": {
+            "type": "boolean",
+            "description": "True if the reconstruction produced a model, false otherwise.",
+            "default": false
+          },
           "reprojection_pixel_error_50th_percentile": {
             "description": "Median reprojection error in pixels across all valid 2D observations in registered images.",
             "nullable": true,
@@ -6444,6 +6449,9 @@
               "disabled"
             ]
           },
+          "gpu_mode_managed": {
+            "type": "boolean"
+          },
           "issuer_url": {
             "nullable": true,
             "type": "string"
@@ -6463,7 +6471,8 @@
         },
         "type": "object",
         "required": [
-          "auth_mode"
+          "auth_mode",
+          "gpu_mode_managed"
         ],
         "title": "ServerInfo"
       },
