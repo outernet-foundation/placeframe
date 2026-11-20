@@ -334,7 +334,9 @@ spec:
                 secretKeyRef:
                   key: DEPLOYMENT_ENVIRONMENT
                   name: placeframe-secrets
-            - name: LOCALIZER_CONTAINER_URL
+            - name: GPU_MODE_MANAGED
+              value: "false"
+            - name: LOCALIZER_ROUTER_ADDRESS
               value: http://localizer:8000
             - name: LOKI_URL
               value: http://loki:3100
@@ -533,6 +535,7 @@ spec:
   template:
     metadata:
       annotations:
+        boatyard/autostart: "false"
         boatyard/dockerfile: localizer=workloads/localizer/Dockerfile
         boatyard/gpu: "true"
         boatyard/probe-adapter: python-urllib
@@ -606,6 +609,7 @@ spec:
   template:
     metadata:
       annotations:
+        boatyard/autostart: "false"
         boatyard/dockerfile: reconstructor=workloads/reconstructor/Dockerfile
         boatyard/gpu: "true"
         k8s.score.dev/workload-name: reconstructor

@@ -28,7 +28,8 @@ services:
       DEBUG_API: 'false'
       DEBUG_WAIT_API: 'false'
       DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-development}
-      LOCALIZER_CONTAINER_URL: http://localizer:8000
+      GPU_MODE_MANAGED: 'true'
+      LOCALIZER_ROUTER_ADDRESS: http://mode-switcher:8000
       LOKI_URL: http://loki:3100
       OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4317
       POSTGRES_HOST: pf-postgres
@@ -91,6 +92,7 @@ services:
         required: true
     image: ghcr.io/outernet-foundation/placeframe/reconstructor-cuda:${CORE_CUDA__BOATYARD_TREE__RECONSTRUCTOR_SHA}
     annotations:
+      boatyard/autostart: 'false'
       boatyard/dockerfile: reconstructor=workloads/reconstructor/Dockerfile
       boatyard/gpu: 'true'
       compose.score.dev/workload-name: reconstructor
@@ -119,6 +121,7 @@ services:
         required: true
     image: ghcr.io/outernet-foundation/placeframe/localizer-cuda:${CORE_CUDA__BOATYARD_TREE__LOCALIZER_SHA}
     annotations:
+      boatyard/autostart: 'false'
       boatyard/dockerfile: localizer=workloads/localizer/Dockerfile
       boatyard/gpu: 'true'
       boatyard/probe-adapter: python-urllib
@@ -263,6 +266,27 @@ services:
       interval: 5s
       retries: 20
       start_period: 10s
+  mode-switcher:
+    volumes:
+    - type: bind
+      source: /var/run/docker.sock
+      target: /var/run/docker.sock
+    image: ghcr.io/outernet-foundation/placeframe/mode-switcher:${CORE_CUDA__BOATYARD_TREE__MODE_SWITCHER_SHA}
+    annotations:
+      boatyard/port: '8000'
+      boatyard/route: /gpu-mode/*
+    environment:
+      LOCALIZER_URL: http://localizer:8000
+    healthcheck:
+      test:
+      - CMD
+      - python
+      - -c
+      - import urllib.request; urllib.request.urlopen('http://localhost:8000/mode')
+      timeout: 5s
+      interval: 5s
+      retries: 6
+      start_period: 30s
   pf-postgres:
     volumes:
     - type: volume
@@ -405,6 +429,9 @@ services:
         condition: service_started
         required: true
       loki:
+        condition: service_healthy
+        required: true
+      mode-switcher:
         condition: service_healthy
         required: true
       pf-postgres:
