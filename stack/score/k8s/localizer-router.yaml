@@ -1,0 +1,11 @@
+# Kubernetes twin of compose/localizer-router.yaml: outputs-only, no service emitted.
+# On k8s the localizer is an always-on Deployment on its own GPU node — no shared GPU
+# slot, no mode switching — so the router degenerates to the localizer's own address
+# with managed=false: the API forwards directly and never queries /localizer-address
+# (design/gpu-orchestration.md, Q10's managed-branch refinement).
+- uri: template://placeframe/localizer-router-k8s
+  type: localizer-router
+  description: Degenerate router outputs — the always-on localizer, unmanaged.
+  outputs:
+    address: http://localizer:8000
+    managed: "false"

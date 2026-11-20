@@ -1,0 +1,39 @@
+# Custom Score provisioner: the GPU mode switcher as the compose implementation of the
+# localizer-router resource type. The api declares `resources.localizer-router` and (from
+# phase 4) consumes `outputs.address` / `outputs.managed`; here the router is the mode
+# switcher container, which holds the single GPU slot shared by the localizer and
+# reconstructor (design/gpu-orchestration.md). The docker-socket bind is authored directly
+# in the service's volumes: — an absolute-source bind is an authored host mount that
+# boatyard's hermetic pass passes through untouched (relative-source binds are the
+# inlined repo files) — and is the one sanctioned bind in the artifacts (the scoped
+# assertion in scripts/tests/test_score_compose_generation.py). The mode switcher is NOT
+# a score workload and not in boatyard.yml's workloads list; it exists only in the
+# compose rendering (the k8s twin is outputs-only).
+- uri: template://placeframe/localizer-router
+  type: localizer-router
+  description: GPU mode switcher routing localization to the running GPU container.
+  outputs:
+    address: http://mode-switcher:8000
+    managed: "true"
+  services:
+    mode-switcher:
+      image: {dockerfile: workloads/mode-switcher/Dockerfile}
+      volumes:
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+      # The readiness contract: the app is serving /mode, which requires boot
+      # reconciliation (inspect GPU containers, adopt or start the default-mode one)
+      # to have completed — start_period covers the container start it may perform.
+      healthcheck:
+        test:
+          [
+            "CMD",
+            "python",
+            "-c",
+            "import urllib.request; urllib.request.urlopen('http://localhost:8000/mode')",
+          ]
+        interval: 5s
+        retries: 6
+        start_period: 30s
+        timeout: 5s

@@ -5,7 +5,9 @@ metadata:
     boatyard/probe-adapter: python-urllib
     # The routes the consumer's gateway mounts, in order; grafana and loki ride
     # unprotected until the auth bundle ships its oauth2-proxy validator sidecar.
-    boatyard/route: /grafana/*=grafana:3000,/loki/*=loki:3100,/*=api:8000
+    # /gpu-mode/* reaches the mode-switcher provisioner service ahead of the catch-all,
+    # prefix stripped — the switcher serves /mode at its root.
+    boatyard/route: /grafana/*=grafana:3000,/loki/*=loki:3100,/gpu-mode/*=mode-switcher:8000,strip,/*=api:8000
     boatyard/dockerfile: api=workloads/api/Dockerfile
 containers:
   api:
@@ -63,6 +65,9 @@ resources:
     params:
       workload: localizer
       port: http
+  localizer-router:
+    type: localizer-router
+    id: placeframe-localizer-router
   config:
     type: placeframe-config
     id: placeframe-config
