@@ -28,9 +28,9 @@ MatchIndices = dict[
 Keypoints = NewType("Keypoints", MutableMapping[str, Tensor])
 Descriptors = NewType("Descriptors", MutableMapping[str, Tensor])
 KeypointsArrays = NewType("KeypointsArrays", dict[str, ndarray[tuple[int, int], dtype[float32]]])
-# Local descriptors are kept in half precision: matching is insensitive to it, and it halves the reconstructor's
-# largest memory use. LightGlue receives them as float32 on the device.
-DescriptorsArrays = NewType("DescriptorsArrays", dict[str, ndarray[tuple[int, int], dtype[float16]]])
+# Local descriptors are kept in half or full precision (ReconstructionOptions.half_precision_descriptors); LightGlue
+# receives them as float32 on the device either way.
+DescriptorsArrays = NewType("DescriptorsArrays", dict[str, ndarray[tuple[int, int], dtype[float16 | float32]]])
 
 
 def lightglue_match(

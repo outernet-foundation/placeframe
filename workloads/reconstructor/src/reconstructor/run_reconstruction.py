@@ -32,7 +32,7 @@ from placeframe_core.reconstruction_options import ReconstructionOptions
 from placeframe_core.model_wrappers import RetrievalDim
 from placeframe_core.tensor_types import TT
 from neural_networks.models import load_aliked, load_DIR, load_lightglue
-from numpy import asarray, ascontiguousarray, dtype, float16, float32, float64, ndarray, random, vstack
+from numpy import asarray, ascontiguousarray, dtype, float32, float64, ndarray, random, vstack
 from numpy.typing import NDArray  # noqa: TID251 — tracked in PLE-233
 from placeframe_lease_server_client import ReconstructionStatus
 from pycolmap._core import set_random_seed  # noqa: PLC2701 — no public API
@@ -184,7 +184,7 @@ def run_reconstruction(
 
         global_descriptors[image_name] = image_descriptor.cpu().numpy().astype(float32, copy=False)
         keypoints[image_name] = image_keypoints.cpu().numpy().astype(float32, copy=False)
-        descriptors[image_name] = image_descriptors.cpu().numpy().astype(float16, copy=False)
+        descriptors[image_name] = image_descriptors.cpu().numpy().astype(options.local_descriptor_dtype(), copy=False)
         sizes[image_name] = (image.height, image.width)
 
     # Write global descriptors to storage
