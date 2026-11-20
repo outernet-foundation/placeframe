@@ -64,8 +64,14 @@ that opens by reading this doc must check this section first.
       (`45b83751` + regen): both GPU workloads carry
       `boatyard/autostart: "false"`, `boatyard up` creates them stopped, and
       the mode switcher starts the default-mode one — the boot-race gap is
-      closed, verified end-to-end on the live stack. Remaining: phase 6
-      (promotion and closeout).
+      closed, verified end-to-end on the live stack. Phase 6 (promotion and
+      closeout) complete 2026-11-19: hardened truth folded into
+      `stack/AGENTS.md`, `workloads/AGENTS.md`,
+      `workloads/mode-switcher/AGENTS.md`, and `scripts/AGENTS.md`; the
+      managed-conditional contract lives as a block comment at
+      `workloads/api/src/routers/localizer_router.py`. Execution complete —
+      this ADR stops being load-bearing (the file remains as the record of
+      the decisions).
 6. **Promotion.** Fold hardened truth into co-located `AGENTS.md` files per
    `design/AGENTS.md` promotion conventions; this note stops being
    load-bearing.

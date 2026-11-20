@@ -521,6 +521,15 @@ Commit: code commit (path-pin + annotations), then canonical
 
 ### 6. Promotion and closeout
 
+Complete, 2026-11-19 — every item below landed, with two text-vs-tree
+adjustments: the block comment lives at
+`workloads/api/src/routers/localizer_router.py` (the router-query branch
+moved out of `localization.py` in phase 4), and the mode-switcher doc
+mirrors `workloads/localizer/` (which carries `AGENTS.md` + a one-line
+`CLAUDE.md` import; `workloads/lease-server/` carries neither). Prose
+commit for the docs, code commit for the block comment; verification
+prose-only per the plan.
+
 - Fold hardened truth into co-located docs:
   - `stack/AGENTS.md` — the gpu-annotation constraint (`"true"` substrate
     semantics, templates its reader) and the separate `boatyard/autostart`
