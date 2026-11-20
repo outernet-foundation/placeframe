@@ -277,44 +277,39 @@ Commit: one code commit.
 
 ### 3. Provisioner pair + score wiring + test invariants
 
-Executed 2026-11-19 — placeframe-side source is complete and validated, but
-the phase is **blocked on a boatyard 0.9.0 defect** the mandatory e2e
-surfaced (a second candidate, the gateway one-shot `up -d` not recreating
-on Caddyfile change, was ruled a known compose limitation, not a boatyard
-defect — operational consequence: route changes need a manual gateway
-recreate until compose changes it). The boatyard fix is authored and
-validated on the local checkout's branch `host-binds` (commit `ed3795f`,
-off dev `555331c`): repo-relative bind sources inline as configs content
-(today's behavior), absolute sources are authored host mounts that pass
-through untouched. The full phase-3 state is parked on local branch
-`phase-3-wip` (tip `df4d5823`: source `fd65fdfb` incl. the `,strip` route
-fix lost once to a dirty reset, workload fix `29a4186c`, regen `df4d5823`
-— produced from a clean clone by the `host-binds` build and proven a
-byte-identical no-op on re-run). The working branch carries only the
-phase-2 workload bug fix the e2e exposed (`6ef2b10c`); it stays green.
-When boatyard publishes the fix, the replay session relocks
-(`uv lock --upgrade-package boatyard`), replays `phase-3-wip` onto the
-working branch, re-verifies, and proceeds to phase 4.
-
-Deviations from the text below, all forced by execution: the route entry
-is `/gpu-mode/*=mode-switcher:8000,strip` (as written, without `,strip`,
-the gateway forwards the prefixed path and the switcher 404s — it serves
-`/mode` at root; keycloak's `/auth/*` is the strip precedent); phase 2's
-`ModeSwitcher` hardcoded `com.docker.compose.project=placeframe`, which
-matches nothing at runtime (per-entry projects are `placeframe-core-cuda`
-etc.), so the switcher saw zero GPU containers and reconciled as a silent
-no-op — `6ef2b10c` discovers the project from the switcher's own
-container labels (`attrs["Config"]["Labels"]`, since typeshed's docker
-stubs leave `Container.labels` unannotated). Everything else landed as
-written. The full mandatory e2e passed under the patched venv boatyard:
-mode-switcher healthy in `docker compose ps`, the barrier gates on it,
-`curl localhost:8443/gpu-mode/mode` → `{"mode":"localization"}`,
-`/gpu-mode/localizer-address` → the address, the socket sees the GPU
-containers under the discovered project, boot reconcile stopped a
-left-over reconstructor, and a POST toggle cycle exercised the real
-SIGTERM → wait → start lifecycle both directions. "Phases 2-4 do not
-depend on phase 1" above is now false for phase 3; the World A/World B
-fork is untouched (neither defect touches annotations).
+Complete, 2026-11-19 — replayed onto `gpu-orchestration` after boatyard
+0.9.1 published the host-binds change (branch `host-binds`, merged; the
+relock is `ee5c30b1`, the replayed source `2a77d673`, the regen
+`078a1e07`; the published 0.9.1 regenerates the committed artifacts as a
+byte-identical no-op). Execution discovered two things the plan's text
+got wrong, both fixed in the landed source: the route entry needs
+`,strip` (`/gpu-mode/*=mode-switcher:8000,strip` — without it the gateway
+forwards the prefixed path and the switcher 404s; keycloak's `/auth/*` is
+the strip precedent), and phase 2's `ModeSwitcher` hardcoded
+`com.docker.compose.project=placeframe`, which matches nothing at runtime
+(per-entry projects are `placeframe-core-cuda` etc.) — the switcher now
+discovers the project from its own container labels
+(`attrs["Config"]["Labels"]`, since typeshed's docker stubs leave
+`Container.labels` unannotated), landed as `6ef2b10c`. The docker-socket
+bind required the boatyard 0.9.1 host-binds change (repo-relative bind
+sources inline as configs content, absolute sources are authored host
+mounts that pass through — the alternative spellings are dead ends: a
+named volume with local-driver `o: bind` opts renders but fails at
+create, "not a directory", because the local driver cannot bind a single
+socket file onto its pre-created `_data` dir). A second candidate defect
+— the gateway one-shot `up -d` not recreating on Caddyfile change — was
+ruled a known compose limitation, not a boatyard defect (compose 5.1.3
+does not recreate on `configs.content`-only change; operational
+consequence: route changes need a manual gateway recreate). Verified
+end-to-end twice (venv-patched boatyard at execution, published 0.9.1 at
+replay): mode-switcher healthy in `docker compose ps`, the barrier gates
+on it, `curl localhost:8443/gpu-mode/mode` →
+`{"mode":"localization"}`, `/gpu-mode/localizer-address` → the address,
+the socket sees the GPU containers under the discovered project, boot
+reconcile stops a left-over extra, and a POST toggle cycle exercises the
+real SIGTERM → wait → start lifecycle both directions. Both GPU
+containers still auto-start at `up` (the accepted intermediate, Q3
+option (b)) until phase 5's annotations.
 
 Wires the mode switcher into the compose stack. The mode switcher now
 exists in `docker compose ps`, the gateway routes `/gpu-mode/*` to it, and

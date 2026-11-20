@@ -52,11 +52,9 @@ that opens by reading this doc must check this section first.
       phase 1 and Q3's amendment. Phase 2 (mode switcher workload) complete
       2026-11-19 (`9767028d`), standalone with stubbed-Docker unit tests,
       not yet wired into the stack. Phase 3 (provisioner pair + score
-      wiring) executed 2026-11-19: placeframe-side source complete and
-      e2e-validated, blocked on one boatyard 0.9.0 defect (no authored
-      host mounts; fix authored on boatyard branch `host-binds`
-      `ed3795f`), parked on local branch `phase-3-wip` pending publish
-      and replay — see the plan's phase 3 record.
+      wiring) complete 2026-11-19, replayed after boatyard 0.9.1 published
+      the host-binds change — see the plan's phase 3 record. Next: phase 4
+      (API integration + CLI verb).
 6. **Promotion.** Fold hardened truth into co-located `AGENTS.md` files per
    `design/AGENTS.md` promotion conventions; this note stops being
    load-bearing.
