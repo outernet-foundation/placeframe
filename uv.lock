@@ -141,7 +141,7 @@ wheels = [
 
 [[package]]
 name = "boatyard"
-version = "0.9.0"
+version = "0.9.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "bashrun" },
@@ -151,9 +151,9 @@ dependencies = [
     { name = "pyyaml" },
     { name = "typer" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/2e/4c/d50c543f75564d78d8a3ea567235bfda315ea9df88d6b34a2172099c21a0/boatyard-0.9.0.tar.gz", hash = "sha256:fd3869ba5df16a805bb94759cf20f65486a8d277cee165343bf92143f90e9996", size = 175172, upload-time = "2026-11-19T01:15:10.6Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/86/2f/ea3f43d29f5100c67a01ad0efa1959407ae77e0b26c7344b8758ddeba1a2/boatyard-0.9.1.tar.gz", hash = "sha256:32198ec99ba92feac359db28e15d0b9148eb91b13980db7b3c7d3f8245747fab", size = 175758, upload-time = "2026-11-20T01:28:38.974Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d6/e3/88ba154b02ff0dfd94abfba04d255307aa730f5df56ad3e9a4151f0982a2/boatyard-0.9.0-py3-none-any.whl", hash = "sha256:aeb8ac31abe901c25d1a3efaec8e09ff448f63cedac718211d6ee4f62245bb0a", size = 77920, upload-time = "2026-11-19T01:15:09.328Z" },
+    { url = "https://files.pythonhosted.org/packages/51/7b/fe9ccbd18d64611f0cec3bc67e5018070ab12d61f7739688e12b38477f55/boatyard-0.9.1-py3-none-any.whl", hash = "sha256:feddadf63e712cf928cd46e12f7c949517b669ea9e3c8a4dda6daf097995d546", size = 78017, upload-time = "2026-11-20T01:28:38.14Z" },
 ]
 
 [[package]]
