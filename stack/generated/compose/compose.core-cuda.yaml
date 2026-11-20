@@ -8,7 +8,7 @@ services:
     annotations:
       boatyard/dockerfile: api=workloads/api/Dockerfile
       boatyard/probe-adapter: python-urllib
-      boatyard/route: /grafana/*=grafana:3000,/loki/*=loki:3100,/*=api:8000
+      boatyard/route: /grafana/*=grafana:3000,/loki/*=loki:3100,/gpu-mode/*=mode-switcher:8000,strip,/*=api:8000
       compose.score.dev/workload-name: api
     environment:
       AUTH_AUDIENCE: ${AUTH_AUDIENCE:-}
@@ -253,6 +253,22 @@ services:
       interval: 5s
       retries: 20
       start_period: 10s
+  mode-switcher:
+    volumes:
+    - type: bind
+      source: /var/run/docker.sock
+      target: /var/run/docker.sock
+    image: ghcr.io/outernet-foundation/placeframe/mode-switcher:${CORE_CUDA__BOATYARD_TREE__MODE_SWITCHER_SHA}
+    healthcheck:
+      test:
+      - CMD
+      - python
+      - -c
+      - import urllib.request; urllib.request.urlopen('http://localhost:8000/mode')
+      timeout: 5s
+      interval: 5s
+      retries: 6
+      start_period: 30s
   pf-postgres:
     volumes:
     - type: volume
@@ -395,6 +411,9 @@ services:
         condition: service_started
         required: true
       loki:
+        condition: service_healthy
+        required: true
+      mode-switcher:
         condition: service_healthy
         required: true
       pf-postgres:

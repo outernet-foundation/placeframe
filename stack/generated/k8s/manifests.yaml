@@ -266,7 +266,7 @@ spec:
       annotations:
         boatyard/dockerfile: api=workloads/api/Dockerfile
         boatyard/probe-adapter: python-urllib
-        boatyard/route: /grafana/*=grafana:3000,/loki/*=loki:3100,/*=api:8000
+        boatyard/route: /grafana/*=grafana:3000,/loki/*=loki:3100,/gpu-mode/*=mode-switcher:8000,strip,/*=api:8000
         k8s.score.dev/workload-name: api
       labels:
         app.kubernetes.io/instance: api-14c2529eb4
