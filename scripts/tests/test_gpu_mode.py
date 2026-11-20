@@ -82,3 +82,13 @@ def test_gpu_mode_help_lists_both_modes() -> None:
     assert result.exit_code == 0
     assert "localization" in result.output
     assert "reconstruction" in result.output
+
+
+def test_read_public_url_derives_from_host_and_scheme(monkeypatch, tmp_path) -> None:
+    monkeypatch.delenv("PUBLIC_URL", raising=False)
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "boatyard.values.yaml").write_text("public_host: example.ngrok-free.dev\npublic_scheme: https\n")
+
+    from scripts.api_auth import read_public_url
+
+    assert read_public_url() == "https://example.ngrok-free.dev"
