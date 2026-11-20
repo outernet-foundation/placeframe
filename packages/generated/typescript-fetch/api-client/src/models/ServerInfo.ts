@@ -27,6 +27,12 @@ export interface ServerInfo {
     authMode: ServerInfoAuthModeEnum;
     /**
      * 
+     * @type {boolean}
+     * @memberof ServerInfo
+     */
+    gpuModeManaged: boolean;
+    /**
+     * 
      * @type {string}
      * @memberof ServerInfo
      */
@@ -67,6 +73,7 @@ export type ServerInfoAuthModeEnum = typeof ServerInfoAuthModeEnum[keyof typeof 
  */
 export function instanceOfServerInfo(value: object): value is ServerInfo {
     if (!('authMode' in value) || value['authMode'] === undefined) return false;
+    if (!('gpuModeManaged' in value) || value['gpuModeManaged'] === undefined) return false;
     return true;
 }
 
@@ -81,6 +88,7 @@ export function ServerInfoFromJSONTyped(json: any, ignoreDiscriminator: boolean)
     return {
         
         'authMode': json['auth_mode'],
+        'gpuModeManaged': json['gpu_mode_managed'],
         'issuerUrl': json['issuer_url'] == null ? undefined : json['issuer_url'],
         'authUrl': json['auth_url'] == null ? undefined : json['auth_url'],
         'tokenUrl': json['token_url'] == null ? undefined : json['token_url'],
@@ -100,6 +108,7 @@ export function ServerInfoToJSONTyped(value?: ServerInfo | null, ignoreDiscrimin
     return {
         
         'auth_mode': value['authMode'],
+        'gpu_mode_managed': value['gpuModeManaged'],
         'issuer_url': value['issuerUrl'],
         'auth_url': value['authUrl'],
         'token_url': value['tokenUrl'],

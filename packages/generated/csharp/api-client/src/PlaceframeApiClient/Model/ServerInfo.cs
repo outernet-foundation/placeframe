@@ -85,15 +85,41 @@ namespace PlaceframeApiClient.Model
         /// Initializes a new instance of the <see cref="ServerInfo" /> class.
         /// </summary>
         /// <param name="authMode">authMode (required).</param>
+        /// <param name="gpuModeManaged">gpuModeManaged (required).</param>
         /// <param name="issuerUrl">issuerUrl.</param>
         /// <param name="authUrl">authUrl.</param>
         /// <param name="tokenUrl">tokenUrl.</param>
         /// <param name="audience">audience.</param>
-        public ServerInfo(AuthModeEnum authMode)
+        public ServerInfo(AuthModeEnum authMode, bool gpuModeManaged)
         {
             this.AuthMode = authMode;
+            this.GpuModeManaged = gpuModeManaged;
         }
 
+        /// <summary>
+        /// Gets or Sets GpuModeManaged
+        /// </summary>
+        [DataMember(Name = "gpu_mode_managed", IsRequired = true, EmitDefaultValue = true)]
+        public bool GpuModeManaged
+        {
+            get{ return _GpuModeManaged;}
+            set
+            {
+                _GpuModeManaged = value;
+                _flagGpuModeManaged = true;
+            }
+        }
+        private bool _GpuModeManaged;
+        private bool _flagGpuModeManaged;
+
+        /// <summary>
+        /// Returns false as GpuModeManaged should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeGpuModeManaged()
+        {
+            return _flagGpuModeManaged;
+        }
         /// <summary>
         /// Gets or Sets IssuerUrl
         /// </summary>
@@ -199,6 +225,7 @@ namespace PlaceframeApiClient.Model
             StringBuilder sb = new StringBuilder();
             sb.Append("class ServerInfo {\n");
             sb.Append("  AuthMode: ").Append(AuthMode).Append("\n");
+            sb.Append("  GpuModeManaged: ").Append(GpuModeManaged).Append("\n");
             sb.Append("  IssuerUrl: ").Append(IssuerUrl).Append("\n");
             sb.Append("  AuthUrl: ").Append(AuthUrl).Append("\n");
             sb.Append("  TokenUrl: ").Append(TokenUrl).Append("\n");

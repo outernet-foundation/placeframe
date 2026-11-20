@@ -4476,6 +4476,7 @@ components:
       example:
         audience: audience
         issuer_url: issuer_url
+        gpu_mode_managed: true
         auth_mode: keycloak
         auth_url: auth_url
         token_url: token_url
@@ -4485,6 +4486,8 @@ components:
           - keycloak
           - disabled
           type: string
+        gpu_mode_managed:
+          type: boolean
         issuer_url:
           nullable: true
           type: string
@@ -4499,6 +4502,7 @@ components:
           type: string
       required:
       - auth_mode
+      - gpu_mode_managed
       title: ServerInfo
       type: object
     Transform:

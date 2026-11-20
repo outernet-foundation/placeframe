@@ -6449,6 +6449,9 @@
               "disabled"
             ]
           },
+          "gpu_mode_managed": {
+            "type": "boolean"
+          },
           "issuer_url": {
             "nullable": true,
             "type": "string"
@@ -6468,7 +6471,8 @@
         },
         "type": "object",
         "required": [
-          "auth_mode"
+          "auth_mode",
+          "gpu_mode_managed"
         ],
         "title": "ServerInfo"
       },
