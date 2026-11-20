@@ -27,7 +27,8 @@ services:
       DEBUG_API: 'false'
       DEBUG_WAIT_API: 'false'
       DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-development}
-      LOCALIZER_CONTAINER_URL: http://localizer:8000
+      GPU_MODE_MANAGED: 'true'
+      LOCALIZER_ROUTER_ADDRESS: http://mode-switcher:8000
       LOKI_URL: http://loki:3100
       OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4317
       POSTGRES_HOST: pf-postgres

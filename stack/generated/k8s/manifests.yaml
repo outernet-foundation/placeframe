@@ -334,7 +334,9 @@ spec:
                 secretKeyRef:
                   key: DEPLOYMENT_ENVIRONMENT
                   name: placeframe-secrets
-            - name: LOCALIZER_CONTAINER_URL
+            - name: GPU_MODE_MANAGED
+              value: "false"
+            - name: LOCALIZER_ROUTER_ADDRESS
               value: http://localizer:8000
             - name: LOKI_URL
               value: http://loki:3100
