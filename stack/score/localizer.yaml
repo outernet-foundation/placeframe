@@ -3,6 +3,9 @@ metadata:
   name: localizer
   annotations:
     boatyard/gpu: "true"
+    # Created-stopped at boatyard up — the mode switcher owns this container's
+    # start/stop. Removing the annotation restores auto-start.
+    boatyard/autostart: "false"
     boatyard/probe-adapter: python-urllib
     boatyard/dockerfile: localizer=workloads/localizer/Dockerfile
 containers:

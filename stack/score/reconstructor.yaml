@@ -5,6 +5,9 @@ metadata:
     # The GPU marker boatyard's built-in gpu patch templates key on; accelerator
     # plumbing is generated, never hand-declared.
     boatyard/gpu: "true"
+    # Created-stopped at boatyard up — the mode switcher owns this container's
+    # start/stop. Removing the annotation restores auto-start.
+    boatyard/autostart: "false"
     boatyard/dockerfile: reconstructor=workloads/reconstructor/Dockerfile
 containers:
   reconstructor:
