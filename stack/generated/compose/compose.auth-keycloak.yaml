@@ -8,8 +8,9 @@ services:
     annotations:
       boatyard/lock: keycloak=KEYCLOAK_IMAGE
       boatyard/probe-adapter: bash-http
-      boatyard/route: /auth/*=keycloak:8080,strip
+      boatyard/route: /auth/*, strip
       compose.score.dev/workload-name: keycloak
+      boatyard/port: '8080'
     command:
     - start-dev
     - --health-enabled=true
