@@ -18,7 +18,7 @@ from litestar.di import Provide
 from litestar.enums import RequestEncodingType
 from litestar.exceptions import HTTPException
 from litestar.params import Body
-from litestar.status_codes import HTTP_422_UNPROCESSABLE_ENTITY, HTTP_502_BAD_GATEWAY
+from litestar.status_codes import HTTP_422_UNPROCESSABLE_ENTITY, HTTP_503_SERVICE_UNAVAILABLE
 from placeframe_localizer_client import ApiClient, ApiException, Configuration
 from placeframe_localizer_client.api.default_api import DefaultApi
 from placeframe_localizer_client.models.axis_convention import AxisConvention as LocalizerAxisConvention
@@ -31,10 +31,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_session
-from ..settings import get_settings
 from .localization_maps import fetch_localization_maps
-
-settings = get_settings()
+from .localizer_router import UNAVAILABLE_DETAIL, resolve_localizer_address
 
 
 class LocalizationRequest(MultipartRequestModel):
@@ -68,8 +66,9 @@ async def localize_image(
         )
     ).all()
     image = await data.image.read()
+    localizer_address = await resolve_localizer_address()
 
-    async with ApiClient(Configuration(host=str(settings.localizer_container_url))) as api_client:
+    async with ApiClient(Configuration(host=localizer_address)) as api_client:
         try:
             localizations = await DefaultApi(api_client).localize_image(
                 reconstruction_ids=list(reconstruction_id_to_map_id.keys()),
@@ -110,12 +109,12 @@ async def localize_image(
             status = cast(int | None, e.status)
             if status == 422:
                 raise HTTPException(status_code=HTTP_422_UNPROCESSABLE_ENTITY) from e
-            raise HTTPException(status_code=HTTP_502_BAD_GATEWAY, detail="Localization session backend error") from e
+            raise HTTPException(status_code=HTTP_503_SERVICE_UNAVAILABLE, detail=UNAVAILABLE_DETAIL) from e
 
 
 @get("/version")
 async def get_localizer_version() -> str:
-    async with ApiClient(Configuration(host=str(settings.localizer_container_url))) as api_client:
+    async with ApiClient(Configuration(host=await resolve_localizer_address())) as api_client:
         return await DefaultApi(api_client).get_localizer_version()
 
 
