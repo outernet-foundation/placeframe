@@ -1,0 +1,37 @@
+# Emit the mode switcher as the compose half of the localizer-router provisioner pair
+- uri: template://placeframe/localizer-router
+  type: localizer-router
+  description: GPU mode switcher routing localization to the running GPU container.
+  # The localizer's score spec rides in as parsed structure so the service env and
+  # the sibling k8s twin derive the localizer's listen port from its own declaration
+  # (stack/score/localizer.yaml service.ports) instead of copying the number.
+  state:
+    localizer_spec:
+      include-yaml: stack/score/localizer.yaml
+  outputs:
+    address: http://mode-switcher:8000
+    managed: "true"
+  services:
+    mode-switcher:
+      route: /gpu-mode/*
+      port: 8000
+      image: {dockerfile: workloads/mode-switcher/Dockerfile}
+      volumes:
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+      environment:
+        LOCALIZER_URL: 'http://localizer:{{ .State.localizer_spec.service.ports.http.port }}'
+      # If /mode responds, boot reconciliation has completed
+      healthcheck:
+        test:
+          [
+            "CMD",
+            "python",
+            "-c",
+            "import urllib.request; urllib.request.urlopen('http://localhost:8000/mode')",
+          ]
+        interval: 5s
+        retries: 6
+        start_period: 30s
+        timeout: 5s

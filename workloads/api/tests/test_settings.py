@@ -15,7 +15,7 @@ REQUIRED_ENV = {
     "DATABASE_AUTH_USER_PASSWORD": "password",
     "DATABASE_ORCHESTRATION_USER": "placeframe_orchestration_user",
     "DATABASE_ORCHESTRATION_USER_PASSWORD": "password",
-    "LOCALIZER_CONTAINER_URL": "http://localizer:8000",
+    "LOCALIZER_ROUTER_ADDRESS": "http://mode-switcher:8000",
     "LOKI_URL": "http://loki:3100",
     "RECONSTRUCTIONS_BUCKET": "dev-reconstructions",
     "CAPTURES_BUCKET": "captures",
@@ -118,3 +118,24 @@ def test_audience_override_is_kept(monkeypatch: pytest.MonkeyPatch) -> None:
     settings = build_settings()
 
     assert settings.auth_audience == "https://api.example.com"
+
+
+def test_gpu_mode_managed_defaults_to_false() -> None:
+    settings = build_settings()
+
+    assert settings.gpu_mode_managed is False
+
+
+def test_gpu_mode_managed_parses_env_strings(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("GPU_MODE_MANAGED", "true")
+    assert build_settings().gpu_mode_managed is True
+
+    monkeypatch.setenv("GPU_MODE_MANAGED", "false")
+    assert build_settings().gpu_mode_managed is False
+
+
+def test_router_address_is_required(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("LOCALIZER_ROUTER_ADDRESS", raising=False)
+
+    with pytest.raises(ValidationError):
+        build_settings()

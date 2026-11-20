@@ -3,6 +3,8 @@ metadata:
   name: localizer
   annotations:
     boatyard/gpu: "true"
+    # Hold this container out of boatyard up and let the mode switcher start it
+    boatyard/autostart: "false"
     boatyard/probe-adapter: python-urllib
     boatyard/dockerfile: localizer=workloads/localizer/Dockerfile
 containers:
@@ -13,6 +15,7 @@ containers:
       S3_SECRET_KEY: ${resources.bucket.secret_key}
       RECONSTRUCTIONS_BUCKET: ${resources.bucket.bucket}
       DEPLOYMENT_ENVIRONMENT: ${resources.config.deployment_environment}
+      SERVICE_PORT: ${resources.self-port.port}
       SERVICE_VERSION: ${LOCALIZER_SHA}
       OTEL_EXPORTER_OTLP_ENDPOINT: ${resources.observability.otlp_endpoint}
     livenessProbe:
@@ -29,6 +32,12 @@ service:
       port: 8000
       targetPort: 8000
 resources:
+  self-port:
+    type: service-port
+    id: localizer-http-self
+    params:
+      workload: localizer
+      port: http
   bucket:
     type: s3
     id: placeframe-bucket

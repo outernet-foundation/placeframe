@@ -28,6 +28,12 @@ import {
  */
 export interface ReconstructionMetrics {
     /**
+     * True if the reconstruction produced a model, false otherwise.
+     * @type {boolean}
+     * @memberof ReconstructionMetrics
+     */
+    successful?: boolean;
+    /**
      * Median reprojection error in pixels across all valid 2D observations in registered images.
      * @type {number}
      * @memberof ReconstructionMetrics
@@ -172,6 +178,7 @@ export function ReconstructionMetricsFromJSONTyped(json: any, ignoreDiscriminato
     }
     return {
         
+        'successful': json['successful'] == null ? undefined : json['successful'],
         'reprojectionPixelError50thPercentile': json['reprojection_pixel_error_50th_percentile'] == null ? undefined : json['reprojection_pixel_error_50th_percentile'],
         'reprojectionPixelError90thPercentile': json['reprojection_pixel_error_90th_percentile'] == null ? undefined : json['reprojection_pixel_error_90th_percentile'],
         'trackLength50thPercentile': json['track_length_50th_percentile'] == null ? undefined : json['track_length_50th_percentile'],
@@ -207,6 +214,7 @@ export function ReconstructionMetricsToJSONTyped(value?: ReconstructionMetrics |
 
     return {
         
+        'successful': value['successful'],
         'reprojection_pixel_error_50th_percentile': value['reprojectionPixelError50thPercentile'],
         'reprojection_pixel_error_90th_percentile': value['reprojectionPixelError90thPercentile'],
         'track_length_50th_percentile': value['trackLength50thPercentile'],

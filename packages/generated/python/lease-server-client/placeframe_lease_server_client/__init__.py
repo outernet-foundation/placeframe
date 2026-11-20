@@ -29,6 +29,7 @@ __all__ = [
     "ApiAttributeError",
     "ApiException",
     "FailLeaseRequest",
+    "Lease",
     "LeaseResponse",
     "PhaseTiming",
     "ProgressUpdate",
@@ -55,6 +56,7 @@ from placeframe_lease_server_client.exceptions import ApiException as ApiExcepti
 
 # import models into sdk package
 from placeframe_lease_server_client.models.fail_lease_request import FailLeaseRequest as FailLeaseRequest
+from placeframe_lease_server_client.models.lease import Lease as Lease
 from placeframe_lease_server_client.models.lease_response import LeaseResponse as LeaseResponse
 from placeframe_lease_server_client.models.phase_timing import PhaseTiming as PhaseTiming
 from placeframe_lease_server_client.models.progress_update import ProgressUpdate as ProgressUpdate

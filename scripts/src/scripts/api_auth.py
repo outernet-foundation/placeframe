@@ -18,7 +18,7 @@ _VALUES_DOCUMENT = TypeAdapter(dict[str, object])
 
 @asynccontextmanager
 async def authenticated_api_client() -> AsyncGenerator[DefaultApi]:
-    public_url = _read_public_url()
+    public_url = read_public_url()
     async with ApiClient(Configuration(host=public_url)) as api_client:
         # The unauthenticated /server-info endpoint reports how the backend wants to be addressed:
         # a Keycloak bearer token under keycloak mode, or nothing under disabled mode (where every
@@ -33,11 +33,16 @@ async def authenticated_api_client() -> AsyncGenerator[DefaultApi]:
         yield DefaultApi(api_client)
 
 
-def _read_public_url() -> str:
+def read_public_url() -> str:
     public_url = environ.get("PUBLIC_URL")
     if not public_url:
         document = _VALUES_DOCUMENT.validate_python(yaml.safe_load(_find_values_file().read_text(encoding="utf-8")))
         public_url = str(document.get("public_url") or document.get("PUBLIC_URL") or "")
+        if not public_url:
+            host = str(document.get("public_host") or "")
+            scheme = str(document.get("public_scheme") or "")
+            if host and scheme:
+                public_url = f"{scheme}://{host}"
 
     if not public_url:
         raise RuntimeError("PUBLIC_URL not found in environment or boatyard.values.yaml")

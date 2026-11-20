@@ -29,7 +29,8 @@ class Settings(BaseSettings):
     s3_access_key: str | None = None
     s3_secret_key: str | None = None
 
-    localizer_container_url: AnyHttpUrl = Field()
+    gpu_mode_managed: bool = False
+    localizer_router_address: AnyHttpUrl = Field()
     loki_url: AnyHttpUrl = Field()
 
     reconstructions_bucket: str = Field(...)

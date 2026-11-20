@@ -17,6 +17,7 @@ CORE_SERVICES = {
     "initialize-loki",
     "initialize-s3",
     "loki",
+    "mode-switcher",
     "pf-postgres",
     "pf-postgres-create",
     "pf-postgres-migrate",
@@ -53,7 +54,12 @@ def test_every_service_is_bare_declares_no_network_and_is_hermetic() -> None:
             assert "profiles" not in service, f"{entry}/{service_name} still declares compose profiles"
             assert "ports" not in service, f"{entry}/{service_name} still publishes a host port"
             for volume in service.get("volumes") or []:
-                assert volume.get("type") != "bind", f"{entry}/{service_name} carries a non-inlined bind"
+                if volume.get("type") == "bind":
+                    # The one audited exception: the mode switcher's Docker socket
+                    assert service_name == "mode-switcher", f"{entry}/{service_name} carries a non-inlined bind"
+                    assert volume["source"] == volume["target"] == "/var/run/docker.sock", (
+                        f"{entry}/mode-switcher carries a bind other than the Docker socket"
+                    )
 
 
 def test_the_core_variants_carry_the_full_stack_each() -> None:
@@ -61,11 +67,30 @@ def test_the_core_variants_carry_the_full_stack_each() -> None:
         assert set(_artifact(f"core-{variant}")["services"]) == CORE_SERVICES
 
 
-def test_the_api_carries_soft_auth_slots_prod_safe_toggles_and_its_route_annotation() -> None:
+def test_the_api_carries_soft_auth_slots_prod_safe_toggles_and_its_route_claim() -> None:
     api = _artifact("core-cuda")["services"]["api"]
     assert api["environment"]["AUTH_JWKS_URL"] == "${AUTH_JWKS_URL:-}"
     assert api["environment"]["DEBUG_API"] == "false"
-    assert api["annotations"]["boatyard/route"] == "/grafana/*=grafana:3000,/loki/*=loki:3100,/*=api:8000"
+    assert api["environment"]["SERVICE_PORT"] == "8000"
+    assert api["annotations"]["boatyard/route"] == "/*"
+
+
+def test_the_mode_switcher_claims_its_route_mounts_the_docker_socket_and_gates_the_barrier() -> None:
+    for variant in ("cuda", "rocm"):
+        artifact = _artifact(f"core-{variant}")
+        switcher = artifact["services"]["mode-switcher"]
+        assert switcher["annotations"]["boatyard/route"] == "/gpu-mode/*"
+        assert switcher["annotations"]["boatyard/port"] == "8000"
+        assert switcher["environment"]["LOCALIZER_URL"] == "http://localizer:8000", (
+            "the localizer URL must derive from the localizer workload's service.ports declaration"
+        )
+        assert switcher["volumes"] == [
+            {"type": "bind", "source": "/var/run/docker.sock", "target": "/var/run/docker.sock"}
+        ]
+        assert artifact["services"]["wait-for-resources"]["depends_on"]["mode-switcher"] == {
+            "condition": "service_healthy",
+            "required": True,
+        }
 
 
 def test_the_keycloak_bundle_pins_its_image_adopts_its_route_and_gates_boot() -> None:
@@ -74,7 +99,8 @@ def test_the_keycloak_bundle_pins_its_image_adopts_its_route_and_gates_boot() ->
 
     keycloak = bundle["keycloak"]
     assert keycloak["image"] == _platform_manifest("KEYCLOAK_IMAGE")
-    assert keycloak["annotations"]["boatyard/route"] == "/auth/*=keycloak:8080,strip"
+    assert keycloak["annotations"]["boatyard/route"] == "/auth/*, strip"
+    assert keycloak["annotations"]["boatyard/port"] == "8080"
     assert keycloak["environment"]["KC_HOSTNAME"] == "${PUBLIC_URL:?err}/auth"
     assert "${KEYCLOAK_ADMIN_PASSWORD:?err}" in list(keycloak["environment"].values())
     assert keycloak["healthcheck"]["test"][:3] == ["CMD", "bash", "-c"]

@@ -4003,7 +4003,12 @@ components:
         map_viewpoint_diversity: 1.4894159098541704
         stereo_verified_match_inliers_mean: 2.027123023002322
         map_avg_track_length: 1.0246457001441578
+        successful: false
       properties:
+        successful:
+          default: false
+          description: "True if the reconstruction produced a model, false otherwise."
+          type: boolean
         reprojection_pixel_error_50th_percentile:
           description: Median reprojection error in pixels across all valid 2D observations
             in registered images.
@@ -4471,6 +4476,7 @@ components:
       example:
         audience: audience
         issuer_url: issuer_url
+        gpu_mode_managed: true
         auth_mode: keycloak
         auth_url: auth_url
         token_url: token_url
@@ -4480,6 +4486,8 @@ components:
           - keycloak
           - disabled
           type: string
+        gpu_mode_managed:
+          type: boolean
         issuer_url:
           nullable: true
           type: string
@@ -4494,6 +4502,7 @@ components:
           type: string
       required:
       - auth_mode
+      - gpu_mode_managed
       title: ServerInfo
       type: object
     Transform:

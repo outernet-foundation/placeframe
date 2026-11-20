@@ -17,7 +17,7 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, StrictStr, field_validator
+from pydantic import BaseModel, ConfigDict, StrictBool, StrictStr, field_validator
 from typing import Any, ClassVar, Dict, List, Optional
 from typing import Optional, Set
 from typing_extensions import Self
@@ -28,12 +28,13 @@ class ServerInfo(BaseModel):
     ServerInfo
     """ # noqa: E501
     auth_mode: StrictStr
+    gpu_mode_managed: StrictBool
     issuer_url: Optional[StrictStr] = None
     auth_url: Optional[StrictStr] = None
     token_url: Optional[StrictStr] = None
     audience: Optional[StrictStr] = None
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["auth_mode", "issuer_url", "auth_url", "token_url", "audience"]
+    __properties: ClassVar[List[str]] = ["auth_mode", "gpu_mode_managed", "issuer_url", "auth_url", "token_url", "audience"]
 
     @field_validator('auth_mode')
     def auth_mode_validate_enum(cls, value):
@@ -121,6 +122,7 @@ class ServerInfo(BaseModel):
 
         _obj = cls.model_validate({
             "auth_mode": obj.get("auth_mode"),
+            "gpu_mode_managed": obj.get("gpu_mode_managed"),
             "issuer_url": obj.get("issuer_url"),
             "auth_url": obj.get("auth_url"),
             "token_url": obj.get("token_url"),

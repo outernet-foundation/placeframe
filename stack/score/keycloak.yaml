@@ -3,10 +3,11 @@ metadata:
   name: keycloak
   annotations:
     boatyard/probe-adapter: bash-http
-    # The route the consumer's gateway mounts (strip: the edge strips /auth
-    # before proxying — keycloak serves at root; the /auth path in KC_HOSTNAME
-    # is advertise-only).
-    boatyard/route: /auth/*=keycloak:8080,strip
+    # The route the consumer's gateway mounts (strip: the edge strips the claimed
+    # prefix before proxying — keycloak serves at root; the path in KC_HOSTNAME
+    # is advertise-only, and every /auth spelling in the repo derives from this
+    # claim via the KEYCLOAK_ROUTE_PATH render export).
+    boatyard/route: /auth/*, strip
     # The lock source resolves at generation and the digest lands inline in both
     # renderings (a runtime ${KEYCLOAK_IMAGE:?err} slot would demand the producer's
     # lock entry from every consumer of the published bundle).

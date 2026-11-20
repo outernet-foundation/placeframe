@@ -10,6 +10,7 @@ placeframe_lease_server_client/configuration.py
 placeframe_lease_server_client/exceptions.py
 placeframe_lease_server_client/models/__init__.py
 placeframe_lease_server_client/models/fail_lease_request.py
+placeframe_lease_server_client/models/lease.py
 placeframe_lease_server_client/models/lease_response.py
 placeframe_lease_server_client/models/phase_timing.py
 placeframe_lease_server_client/models/progress_update.py

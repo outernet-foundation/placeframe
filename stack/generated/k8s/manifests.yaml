@@ -266,7 +266,7 @@ spec:
       annotations:
         boatyard/dockerfile: api=workloads/api/Dockerfile
         boatyard/probe-adapter: python-urllib
-        boatyard/route: /grafana/*=grafana:3000,/loki/*=loki:3100,/*=api:8000
+        boatyard/route: /*
         k8s.score.dev/workload-name: api
       labels:
         app.kubernetes.io/instance: api-14c2529eb4
@@ -334,7 +334,9 @@ spec:
                 secretKeyRef:
                   key: DEPLOYMENT_ENVIRONMENT
                   name: placeframe-secrets
-            - name: LOCALIZER_CONTAINER_URL
+            - name: GPU_MODE_MANAGED
+              value: "false"
+            - name: LOCALIZER_ROUTER_ADDRESS
               value: http://localizer:8000
             - name: LOKI_URL
               value: http://loki:3100
@@ -363,6 +365,8 @@ spec:
                 secretKeyRef:
                   key: S3_SECRET_KEY
                   name: placeframe-secrets
+            - name: SERVICE_PORT
+              value: "8000"
             - name: SERVICE_VERSION
               value: tree-0000000000000000000000000000000000000000
           image: ghcr.io/outernet-foundation/placeframe/api:tree-0000000000000000000000000000000000000000
@@ -398,7 +402,7 @@ spec:
       annotations:
         boatyard/lock: keycloak=KEYCLOAK_IMAGE
         boatyard/probe-adapter: bash-http
-        boatyard/route: /auth/*=keycloak:8080,strip
+        boatyard/route: /auth/*, strip
         k8s.score.dev/workload-name: keycloak
       labels:
         app.kubernetes.io/instance: keycloak-d63f4a0cda
@@ -496,6 +500,8 @@ spec:
               value: pf-postgres
             - name: RELOAD
               value: "false"
+            - name: SERVICE_PORT
+              value: "8000"
             - name: SERVICE_VERSION
               value: tree-0000000000000000000000000000000000000000
           image: ghcr.io/outernet-foundation/placeframe/lease-server:tree-0000000000000000000000000000000000000000
@@ -529,6 +535,7 @@ spec:
   template:
     metadata:
       annotations:
+        boatyard/autostart: "false"
         boatyard/dockerfile: localizer=workloads/localizer/Dockerfile
         boatyard/gpu: "true"
         boatyard/probe-adapter: python-urllib
@@ -561,6 +568,8 @@ spec:
                 secretKeyRef:
                   key: S3_SECRET_KEY
                   name: placeframe-secrets
+            - name: SERVICE_PORT
+              value: "8000"
             - name: SERVICE_VERSION
               value: tree-0000000000000000000000000000000000000000
           image: ghcr.io/outernet-foundation/placeframe/localizer-cuda:tree-0000000000000000000000000000000000000000
@@ -600,6 +609,7 @@ spec:
   template:
     metadata:
       annotations:
+        boatyard/autostart: "false"
         boatyard/dockerfile: reconstructor=workloads/reconstructor/Dockerfile
         boatyard/gpu: "true"
         k8s.score.dev/workload-name: reconstructor

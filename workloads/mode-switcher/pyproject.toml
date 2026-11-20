@@ -1,0 +1,23 @@
+[project]
+name = "placeframe-mode-switcher"
+version = "0.1.0"
+description = "Compose-only GPU mode switcher: holds the single GPU container slot shared by the localizer and reconstructor"
+requires-python = ">=3.13"
+dependencies = [
+    "placeframe-common",
+    "debugpy>=1.8.16",
+    "docker>=7.1.0",
+    "litestar>=2.19.0",
+    "pydantic>=2.12.5",
+    "uvicorn[standard]>=0.35.0",
+]
+
+[tool.deptry.per_rule_ignores]
+DEP002 = ["uvicorn", "debugpy"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mode_switcher"]
