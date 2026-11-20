@@ -12,19 +12,36 @@ nodes and the k8s provisioner twin is outputs-only.
 
 ## Shape
 
-- `GET /mode` — the current mode, `localization` | `reconstruction`.
-- `POST /mode` — switch: drain ~700 ms for in-flight localization before stopping the
-  localizer; interrupt a running reconstruction immediately (its SIGTERM requeue is
-  purpose-built). Stop the current GPU container, `.wait()` for exit, start the other.
-- `GET /localizer-address` — `{"address": "http://localizer:8000"}` when the localizer is
+One module, `src/mode_switcher/main.py` — state, Docker logic, and routes in a
+single file (no routers/ package, no settings module; the default mode is a
+constant, not a deployment knob). State is module-level: the write-once
+`_client`/`_project` pair and the boot repair (both inside `initialize()`,
+run once from bootstrap), the `_transition` marker, and the two locks
+(`_switch_lock` serializes whole switch sequences, `_flag_lock` guards the
+marker for microseconds so mode reads never block behind a switch).
+
+- `GET /mode` — the current mode, `localizer` | `reconstructor`: the compose
+  service names themselves, one vocabulary end to end. The mode is derived
+  from container state at read time; a single running container is the mode,
+  and the transition marker answers the target while a switch is in flight.
+  Zero or two running encode no mode and answer the default.
+- `POST /mode` — switch (converge): stop the other GPU container if it runs
+  (drain ~700 ms for in-flight localization first; an interrupted
+  reconstruction requeues — its SIGTERM requeue is purpose-built), `.wait()`
+  for exit, start the target if it is not already running. Idempotent.
+- `GET /localizer-address` — the localizer's compose-network URL (from the
+  `LOCALIZER_URL` env, injected by the provisioner and templated from the
+  localizer workload's own `service.ports` declaration — no copied port) when the
+  localizer is
   running, `{"address": null}` when not. The API's localization proxy calls this per
   request (`workloads/api/src/routers/localizer_router.py`); a client-facing UI reads the
   mode over the gateway's public `/gpu-mode/*` route (prefix stripped at the edge).
 
-Boot reconciliation: at start, inspect the GPU containers and adopt the running one's
-mode as current — both running → keep the default, stop the other; none running → start
-the default (`localization`; AR tracking is the time-sensitive case, reconstructions
-queue). Container state is the source of truth; no persisted mode.
+Boot repair (inside `initialize()`, run once from bootstrap): inspect the GPU
+containers — both running → stop the non-default; a single one running → adopt
+it; none running → start the default (`localizer`; AR tracking is the
+time-sensitive case, reconstructions queue). Container state is the source of
+truth; no persisted mode, no remembered mode at all.
 
 ## Constraints
 

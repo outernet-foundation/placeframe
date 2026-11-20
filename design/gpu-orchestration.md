@@ -123,11 +123,18 @@ race, no coordination layer bolted onto existing services.
 
 A small, always-on container that exists only in the compose stack. Its job:
 
-- Track the current mode: `localization` or `reconstruction`.
+- Answer "which GPU container is running?" as the mode: the mode values are
+  the compose service names themselves, `localizer` | `reconstructor` — one
+  vocabulary, no mode↔service mapping. Mode is derived from container state
+  at read time; the only remembered state is a transition marker (set under a
+  short-lived flag lock while a switch is in flight, cleared in the switch's
+  `finally`) so a mode read during the 10-30s stop/wait/start window answers
+  the switch's target without blocking behind it.
 - Expose `GET /mode`, `POST /mode`, and `GET /localizer-address`.
-- On mode switch: stop the current GPU container → wait for exit → start
-  the other. Uses the Docker SDK to manage containers by name.
-- Default mode at boot: localization (AR tracking is the primary use case;
+- On mode switch: stop the other GPU container → wait for exit → start the
+  target (a no-op if it already runs; a second POST of the current mode does
+  nothing). Uses the Docker SDK to manage containers by name.
+- Default mode at boot: localizer (AR tracking is the primary use case;
   reconstructions queue and wait for the user to toggle).
 
 `GET /localizer-address` returns `{"address": "http://localizer:8000"}` when
@@ -162,9 +169,11 @@ from the mode switcher, not from the API or the localizer.
 
 ### What stays unchanged
 
-- **Localizer:** zero code changes. Loads models at boot, holds VRAM for its
+- **Localizer:** no orchestration code changes. Loads models at boot, holds VRAM for its
   lifetime, serves requests, dies when stopped. No GpuSessionManager, no
-  heartbeat, no idle timeout, no yield endpoint, no env-gating. The same
+  heartbeat, no idle timeout, no yield endpoint, no env-gating. Its listen port
+  arrives from env derived from its own score `service.ports` declaration, and
+  the same
   container image runs on k8s (always-on Deployment) and compose
   (started/stopped by the mode switcher). It does not know which
   infrastructure manages its lifecycle.
@@ -426,18 +435,20 @@ audited. The profiles assertion (line 52) is **unchanged** — no profiles
 exist anywhere in the artifacts. `CORE_SERVICES` (line 10) gains the mode
 switcher.
 
-**Boot reconciliation (sub-decision).** At its own boot/restart, the mode
-switcher does NOT blindly start `DEFAULT_MODE`. It inspects existing GPU
-container state and reconciles: adopt the running GPU container's mode as
-the current mode, stop any extras. Container state is the source of truth;
-no persisted mode state is needed. This covers edge cases that blind-start
+**Boot repair (sub-decision).** At its own boot/restart, the mode
+switcher does NOT blindly start the default. It inspects existing GPU
+container state and repairs it: stop any extras beyond the default, adopt
+whatever single container is already running, start the default only when
+none is. Container state is the source of truth — and because mode is
+derived from it at read time, there is no remembered mode to reconcile;
+repair touches containers only. This covers edge cases that blind-start
 would re-introduce the OOM race in: `boatyard up` after partial cleanup
 (leftover GPU container), mode switcher crash + restart (if a restart
 policy is ever added — today's default `no` mitigates this but the
-reconciliation makes it robust), and operator-triggered raw
+repair makes it robust), and operator-triggered raw
 `docker compose up` (both GPU containers start; the mode switcher stops
 one). Selective-start prevents the `boatyard up` dual-start race;
-reconciliation prevents the mode-switcher-boot race and the raw-`up` case.
+repair prevents the mode-switcher-boot race and the raw-`up` case.
 Both are boot-race prevention.
 
 The exact interface contract — whether the API does a runtime HTTP query to

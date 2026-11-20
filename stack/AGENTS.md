@@ -44,8 +44,9 @@ group level (`workloads:` — `core`), where the option set derives from the sin
 group's image closure fans (the Dockerfiles fan on `TORCH_DEVICE` into the
 `core-cuda`/`core-rocm` options — the fan's one spelling is the built
 `NEURAL_NETWORKS_BASE` entry in `base_images`), plus group-level `ports:` that ride
-unconditionally (routes live in the workloads' `boatyard/route` annotations and
-are adopted into the bundle records at lock and resolve).
+unconditionally (routes are per-service path claims — a workload's
+`boatyard/route: /auth/*, strip` annotation or a provisioner stanza's
+`route:`/`port:` keys — resolved into the bundle records at lock and resolve).
 `bundles:` names options only, by qualified `group-option` spelling. Provisioner registration derives by resource-type closure
 over the rendering's workloads — no provisioner list is authored anywhere.
 Deployment-surface behavior — healthchecks, gpu plumbing, the relay restart, the
@@ -112,16 +113,25 @@ External consumers (Make-it-Sing) declare the published OCI bundles as `ref: oci
 entries instead, or point a `path_overrides:` entry at a sibling checkout's
 `stack/generated/compose/` output.
 
-The gateway is emitted by boatyard from the routes the workload annotations declare —
-never authored in `boatyard.yml`: `gateway_port: 8443` (an integer in `boatyard.yml`)
+The gateway is emitted by boatyard from per-service route claims — never authored in
+`boatyard.yml`: `gateway_port: 8443` (an integer in `boatyard.yml`)
 publishes the gateway's host port, the values file's typed `gateway_port:` override
 retargets it, the gateway
-listens `:8443` internally, and the route table (`/auth/*` strip-prefix to keycloak via
-the keycloak workload's route annotation, `/grafana/*` and `/loki/*` unprotected plus
-`/*` to the api via the api workload's route annotation) is authored workload surface
-adopted into the bundle records — the gateway does no token validation (the `protected`
+listens `:8443` internally, and each public path is claimed by the service that serves
+it — `boatyard/route: /auth/*, strip` on the keycloak workload, `route: /grafana/*` +
+`port: 3000` on the observability provisioner's grafana stanza (loki likewise), the
+mode-switcher's own claim in `stack/score/compose/localizer-router.yaml`, and
+`boatyard/route: /*` (the catch-all) on the api. The upstream address is derived —
+the claiming service at its `service.ports` listen port — so no route spelling
+hand-copies a port; the rendered stanza carries the claim verbatim plus a derived
+`boatyard/port` annotation, and ordering comes from path specificity, not author
+order. Each claim also exports `<WORKLOAD>_ROUTE_PATH` into every rendering's
+provisioner-template env (assembly-wide, so the grafana OAuth URLs and the
+keycloak `KC_HOSTNAME` derive the `/auth` prefix from keycloak's claim — the claim
+is the repo's only authored `/auth` spelling). The gateway does no token
+validation (the `protected`
 flag and its forward_auth emission are stripped; re-protection is a bundle-shipped
-oauth2-proxy sidecar treaty, tracked as a comment beside the api's route annotation).
+oauth2-proxy sidecar treaty, tracked as a comment beside the api's route claim).
 Host
 ports beyond the door live in the config's `ports:` as integer defaults (api and
 lease-server debug ports, localhost-bound; the seaweedfs-admin console) — consumer-side
