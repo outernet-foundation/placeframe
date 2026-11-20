@@ -17,7 +17,7 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, Field, StrictFloat, StrictInt
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictFloat, StrictInt
 from typing import Any, ClassVar, Dict, List, Optional, Union
 from typing import Optional, Set
 from typing_extensions import Self
@@ -44,9 +44,10 @@ class ReconstructionOptions(BaseModel):
     pair_vio_em_max_translation_direction_deg: Optional[Union[StrictFloat, StrictInt]] = Field(default=60.0, description="Companion to pair_vio_em_max_rotation_disagreement_deg: bounds the angle between the essential-matrix translation direction (camera-1 origin direction in camera-2) and the VIO-implied translation direction for the same camera pair. Skipped when the essential-matrix baseline is below pair_vio_em_min_baseline_m, where translation direction is ill-conditioned. 0 disables.")
     pair_vio_em_min_baseline_m: Optional[Union[StrictFloat, StrictInt]] = Field(default=0.3, description="Essential-matrix-baseline floor below which the VIO-vs-essential-matrix translation-direction component is skipped. Near-co-located camera pairs (intra-rig stereo timing jitter, hover frames in slow motion) have ill-defined essential-matrix translation direction; the rotation component still applies.")
     max_keypoints_per_image: Optional[StrictInt] = Field(default=2500, description="Maximum ALIKED keypoints retained per image.")
+    half_precision_descriptors: Optional[StrictBool] = Field(default=True, description="Keep each image's local (ALIKED) descriptors in half precision (float16) from feature extraction to matching, which halves the reconstructor's largest memory use; LightGlue and FAISS still compute in float32. False keeps them in full precision (float32).")
     held_out_frame_timestamps: Optional[List[StrictInt]] = Field(default=None, description="Frame timestamps (ms) to exclude from this reconstruction so they can later be localized as held-out queries.")
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["deterministic_seed", "keyframe_min_distance_m", "sequential_window_m", "retrieval_neighbors", "retrieval_min_score", "ransac_max_error", "ransac_min_inlier_ratio", "two_view_min_num_inliers", "triangulation_minimum_angle", "mapper_filter_max_reprojection_error", "bundle_adjustment_global_frames_ratio", "bundle_adjustment_global_function_tolerance", "pose_prior_position_sigma_m", "pair_vio_em_max_rotation_disagreement_deg", "pair_vio_em_max_translation_direction_deg", "pair_vio_em_min_baseline_m", "max_keypoints_per_image", "held_out_frame_timestamps"]
+    __properties: ClassVar[List[str]] = ["deterministic_seed", "keyframe_min_distance_m", "sequential_window_m", "retrieval_neighbors", "retrieval_min_score", "ransac_max_error", "ransac_min_inlier_ratio", "two_view_min_num_inliers", "triangulation_minimum_angle", "mapper_filter_max_reprojection_error", "bundle_adjustment_global_frames_ratio", "bundle_adjustment_global_function_tolerance", "pose_prior_position_sigma_m", "pair_vio_em_max_rotation_disagreement_deg", "pair_vio_em_max_translation_direction_deg", "pair_vio_em_min_baseline_m", "max_keypoints_per_image", "half_precision_descriptors", "held_out_frame_timestamps"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -133,6 +134,7 @@ class ReconstructionOptions(BaseModel):
             "pair_vio_em_max_translation_direction_deg": obj.get("pair_vio_em_max_translation_direction_deg") if obj.get("pair_vio_em_max_translation_direction_deg") is not None else 60.0,
             "pair_vio_em_min_baseline_m": obj.get("pair_vio_em_min_baseline_m") if obj.get("pair_vio_em_min_baseline_m") is not None else 0.3,
             "max_keypoints_per_image": obj.get("max_keypoints_per_image") if obj.get("max_keypoints_per_image") is not None else 2500,
+            "half_precision_descriptors": obj.get("half_precision_descriptors") if obj.get("half_precision_descriptors") is not None else True,
             "held_out_frame_timestamps": obj.get("held_out_frame_timestamps")
         })
         # store additional fields in additional_properties
