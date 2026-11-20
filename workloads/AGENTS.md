@@ -14,6 +14,7 @@ Placeframe's server-side stack: a set of cooperating microservices that ingest c
 | `lease-server` | `lease-server/` | Litestar (ASGI) | Control-plane work-queue: four lease endpoints (`request`, `progress`, `succeed`, `fail`) the reconstructor polls. Bound only to the compose-internal network — no gateway upstream, no auth middleware. |
 | `localizer` | `localizer/` | Litestar (ASGI) | Image-to-map localization (LightGlue feature matching + RANSAC). |
 | `reconstructor` | `reconstructor/` | Python + pycolmap | Builds sparse 3D maps from capture sessions. GPU-resident. Pulls work from `lease-server` via container DNS. |
+| `mode-switcher` | `mode-switcher/` | Litestar (ASGI) | Compose-only GPU mode switcher: tracks `localization`/`reconstruction`, starts/stops the localizer and reconstructor containers via the Docker SDK (the two share one GPU slot), and answers `/localizer-address` for the API's localization proxy. Not a score workload — the compose provisioner for the `localizer-router` resource emits it; no k8s twin (both GPU workloads run on separate GPU nodes there). See `workloads/mode-switcher/AGENTS.md`. |
 | `database-manager` | `database-manager/` | Python | Creates the database, the cluster-wide `placeframe_*` roles, everything pg-schema-diff cannot see (database ownership, extensions; schema usage and function-EXECUTE hardening in a post-bootstrap pass), and bootstraps the schema dir into a database it just created — then exits. Table grants live in `database/99_permissions.sql`; migrations against an existing database are the `database-migrator`'s job. |
 | `auth-initializer` | `auth-initializer/` | Python | Configures the Keycloak realm post-boot, then exits: polls keycloak's admin API, then creates or updates the realm from the committed export over the admin REST API, substituting the `KEYCLOAK_*`/`PUBLIC_URL` holes from env; when `SEED_TEST_USERS` (`username:password` pairs) is set, also create-or-updates those users. The old file-import path is gone; in the score tier the emitted `keycloak-configurator` service (compose) and realm Job (k8s) run it. |
 | `gateway` | — | (deleted) | The gateway workload, image, and entrypoint are gone: the edge is emitted by boatyard from the consumer config's routes (a pinned caddy whose Caddyfile renders at `up`), and auth-mode composition is the config's `auth`/`keycloak` option, not a container synthesizing a Caddyfile from mounted snippets. |
@@ -36,12 +37,24 @@ phone --[tar]--> api --[row+blob]--> SeaweedFS
                         |
                         '--[h5/pq/sfm]--> SeaweedFS
                                           ^
-phone --[query img]--> localizer --[lookup]'
+phone --[query img]--> api --[address?]--> mode-switcher --(null => 503)
+                        |                     |
+                        '----[address]-------->--> localizer --[lookup]'
 ```
 
 1. **Capture**: the capture-tool phone app (in the [placeframe-capture-tool](https://github.com/outernet-foundation/placeframe-capture-tool) repo) records images + sensor data and POSTs a `.tar` to the API. The API stores the tar in `captures/<capture_session_id>.tar` and inserts a row at `queued`.
 2. **Reconstruction**: the `reconstructor` worker polls `lease-server`'s `POST /leases/request` over the compose network to claim queued work (no separate orchestrator service — it's a worker-pull architecture). On a successful claim, it downloads the tar, runs feature extraction → matching → OPQ/PQ training → geometric verification → SfM, uploads outputs to `reconstructions/<reconstruction_id>/`, then `PUT`s `/leases/<id>/succeed` (or `/fail`) to `lease-server`. Progress updates between phases go through `/leases/<id>/progress`.
-3. **Localization**: a Unity client posts a query image to `localizer`, which matches it against the stored map and estimates a 6-DOF pose via RANSAC / PnP.
+3. **Localization**: a Unity client posts a query image to the API's `/localize`, which asks
+   the localizer-router for the address at request time (`workloads/api/src/routers/localizer_router.py`).
+   On compose (`GPU_MODE_MANAGED=true`) the router is the mode switcher: it returns the localizer's
+   address, or null while the stack is in reconstruction mode — the API then answers
+   503 "Localization unavailable" (the status code is the contract; the shared 5xx handler masks
+   the detail body, and the client learns the "why" from the mode switcher directly). On k8s
+   (`managed=false`, localizer always-on) the API forwards straight to the router address, which
+   is the localizer itself. The localizer matches the query image against the stored map and
+   estimates a 6-DOF pose via RANSAC / PnP. Mode switching itself (compose) goes client →
+   `POST /gpu-mode/mode` through the gateway, or operator-side via `uv run gpu-mode` — never
+   through the API.
 4. **Georeferencing**: out of scope for this stack — map-to-world registration against Cesium tilesets was the (now-deleted) Map Registration Tool's job; the Cesium asset pipeline under `build/` remains for producing tilesets.
 
 ### Authentication and public URL

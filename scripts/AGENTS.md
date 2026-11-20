@@ -22,6 +22,7 @@ Registered in `scripts/pyproject.toml`:
 | `migrate` | `migrate.py` | Per-incident migrator hazard override: runs the migrator image once against the running stack's postgres (tag via `boatyard tree-tags`, network discovered from the `pf-postgres` container, owner password from `boatyard.values.yaml`). `--allow-hazard <CLASS>` (repeatable) extends the standing list for that one run; with any extension the run is attended — tty attached, `CONFIRM_PROMPT` set — so pg-schema-diff's y/N prompt on the printed plan is the consent. Creation never goes through the migrator (database-manager bootstraps new databases directly), so every migrator run applies the standing list. |
 | `tune-reconstruction` | `tune_reconstruction.py` | Plackett-Burman sweep over `ReconstructionOptions` per capture. One reconstruction per cell. Aggregates map-quality metrics into a JSON report. |
 | `fit-calibration` | `fit_calibration.py` | Algorithm 1: pick held-out frames, build/reuse reconstructions, localize each held-out frame, fit logistic+isotonic for tight/loose success probability, fit Σ_meas `(α, β)`, write `workloads/localizer/calibration/global.json`. |
+| `gpu-mode` | `gpu_mode.py` | POST the GPU mode switch (`localization`/`reconstruction`) to the mode switcher via `${PUBLIC_URL}/gpu-mode/mode` (URL from env or `boatyard.values.yaml` — `PUBLIC_URL`, or `public_host`/`public_scheme`). Compose-only surface; exits non-zero only on infrastructure failure. |
 
 `api_auth.py` (shared) and `held_out_selection.py` (consumed by `fit-calibration`) are library modules, not entry points.
 
@@ -34,6 +35,7 @@ Registered in `scripts/pyproject.toml`:
         generate_datamodels.py                  -- sqlacodegen datamodel generation
         sqlacodegen_generator.py                -- custom sqlacodegen DeclarativeGenerator (enums, passive deletes, ARRAY binding)
         api_auth.py                             -- async auth: read boatyard.values.yaml, POST Keycloak, default-header inject
+        gpu_mode.py                             -- POST the GPU mode switcher toggle
         forward_unity_android_debug_port.py     -- adb port forward for Unity debug
         list_debug_targets.py                   -- enumerate docker containers exposing :5678
         tune_reconstruction.py                  -- PB sweep over ReconstructionOptions

@@ -257,7 +257,12 @@ proliferate.
   materializes workload `files:` as binds into its state dir; boatyard's post-pass
   rewrites every bind into a top-level `configs.content` entry with each `$` doubled (compose
   interpolation would otherwise eat loki's `${VAR}` and caddy's `{$VAR}`). A bind surviving in
-  a generated compose is a bug.
+  a generated compose is a bug — the one sanctioned exception is the mode switcher's
+  `/var/run/docker.sock` bind, authored as an absolute-source host mount in
+  `stack/score/compose/localizer-router.yaml` (absolute sources pass the hermetic pass
+  through untouched; relative sources are the inlined repo files). The scoped assertion in
+  `scripts/tests/test_score_compose_generation.py` permits exactly that one bind on exactly
+  the `mode-switcher` service; every other bind remains a failure.
 - **No secret resolves at generation time.** Compose provisioners emit literal `${VAR:?err}`
   slots that docker fills from the per-run env file at run time (boatyard.values.yaml is the single credential
   source, shared with the hand stack); k8s provisioners emit `encodeSecretRef` pointers into
@@ -379,11 +384,33 @@ proliferate.
   the NVIDIA device plugin and GPU-worker labeling live in infra, and renaming any of the
   three breaks scheduling, not generation. The annotation is org-namespaced; the
   nodeSelector label stays `placeframe.io/gpu`, exactly what Pulumi labels GPU nodes with.
+  Start policy is a separate annotation (`boatyard/autostart`, the bullet below) — the gpu
+  annotation answers "does this workload need GPU reservations?", never "does it start at
+  `up`?".
 - **Cross-workload URLs ride the native `service-port` resource** — `${resources.x.hostname}`
   resolves to the same string on both tiers (compose: the workload `hostname:` field, which
-  Docker's embedded DNS serves; k8s: the per-workload Service). The api's
-  `LOCALIZER_CONTAINER_URL` and the reconstructor's `LEASE_SERVER_URL` are wired this way;
-  no alias patch templates and no hardcoded `<workload>-<container>` names.
+  Docker's embedded DNS serves; k8s: the per-workload Service). The reconstructor's
+  `LEASE_SERVER_URL` is wired this way; no alias patch templates and no hardcoded
+  `<workload>-<container>` names. The api's localizer wiring does not use a service-port: it
+  declares the `localizer-router` resource (`type: localizer-router`,
+  `stack/score/api.yaml`) and consumes two outputs — `address` (`LOCALIZER_ROUTER_ADDRESS`)
+  and `managed` (`GPU_MODE_MANAGED`). The provisioner pair differs per tier: compose
+  (`stack/score/compose/localizer-router.yaml`) emits the mode-switcher service with the
+  docker-socket bind and outputs `http://mode-switcher:8000` / `true`; k8s
+  (`stack/score/k8s/localizer-router.yaml`) is outputs-only — `http://localizer:8000` /
+  `false`, no service, no stub. The mode switcher is the second compose-only emitted
+  service (beside the relay), authored in a provisioner — not a score workload, not in
+  `boatyard.yml`'s workloads list.
+- **GPU workloads are held out of `up` via `boatyard/autostart: "false"`** — a start-policy
+  annotation separate from the gpu annotation (`boatyard/gpu` stays substrate-only: `"true"`,
+  the patch templates its one reader). A workload carrying the autostart annotation is
+  created stopped by `boatyard up` (`docker compose up -d --no-start`, then `docker compose
+  start` of everything unheld — the selective-start is `up` logic, not a patch template)
+  and is left for whatever enables it: the mode switcher starts the default-mode GPU
+  container at its boot. Any service can carry the annotation, gpu or not; removing it
+  restores auto-start. The caveat: raw `docker compose up` (the pressure valve) starts
+  both GPU containers — the dual-start returns; use `boatyard up` or start services
+  selectively.
 - **KEDA scale-to-zero is declared as a workload resource** (`type: keda-scaled-object`): the
   k8s provisioner renders the ScaledObject (postgres trigger on queued reconstructions,
   300 s cooldown, `maxReplicaCount: 8` baked — per-cloud node caps stay in the ASG/MIG/CAS
