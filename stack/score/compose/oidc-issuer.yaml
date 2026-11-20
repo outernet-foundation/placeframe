@@ -21,7 +21,7 @@
     realm: placeframe-dev
   outputs:
     admin_password: ${KEYCLOAK_ADMIN_PASSWORD:?err}
-    hostname: ${PUBLIC_URL:?err}/auth
+    hostname: '${PUBLIC_URL:?err}{{ env "KEYCLOAK_ROUTE_PATH" }}'
     certs_url: ${AUTH_JWKS_URL:-}
     realm: "{{ .State.realm }}"
   services:

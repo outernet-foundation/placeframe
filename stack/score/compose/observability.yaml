@@ -2,8 +2,9 @@
 # mode on the shared SeaweedFS), alloy (OTLP relay), grafana (query UI) — plus the
 # initialize-loki chown sidecar. Ported from the hand compose stack, which this
 # replaces. Service names are load-bearing DNS names: the api/lease-server
-# OTEL endpoints address `alloy`, the edge routes `loki:3100` and
-# `grafana:3000`, and loki's committed config addresses `seaweedfs:8333`.
+# OTEL endpoints address `alloy`, the edge routing derives from the per-service
+# `route:`/`port:` declarations below (loki and grafana claim their public
+# paths), and loki's committed config addresses `seaweedfs:8333`.
 #
 # Configs ride binds of the committed workloads/*/config.* paths — the generation
 # converter rewrites each into a top-level configs.content entry with every `$`
@@ -39,6 +40,8 @@
         target: /loki
       entrypoint: ["/bin/sh", "-c", "chown -R 10001:10001 /loki"]
     loki:
+      route: /loki/*
+      port: 3100
       image: {lock: LOKI_IMAGE}
       depends_on:
         initialize-s3:
@@ -85,6 +88,8 @@
         source: workloads/alloy/config.alloy
         target: /etc/alloy/config.alloy
     grafana:
+      route: /grafana/*
+      port: 3000
       image: {lock: GRAFANA_IMAGE}
       depends_on:
         loki:
@@ -113,9 +118,9 @@
         GF_AUTH_GENERIC_OAUTH_NAME: Keycloak
         GF_AUTH_GENERIC_OAUTH_CLIENT_ID: placeframe-grafana
         GF_AUTH_GENERIC_OAUTH_SCOPES: openid email profile
-        GF_AUTH_GENERIC_OAUTH_AUTH_URL: "${PUBLIC_URL:?err}/auth/realms/{{ .State.realm }}/protocol/openid-connect/auth"
-        GF_AUTH_GENERIC_OAUTH_TOKEN_URL: "${PUBLIC_URL:?err}/auth/realms/{{ .State.realm }}/protocol/openid-connect/token"
-        GF_AUTH_GENERIC_OAUTH_API_URL: "${PUBLIC_URL:?err}/auth/realms/{{ .State.realm }}/protocol/openid-connect/userinfo"
+        GF_AUTH_GENERIC_OAUTH_AUTH_URL: '${PUBLIC_URL:?err}{{ env "KEYCLOAK_ROUTE_PATH" }}/realms/{{ .State.realm }}/protocol/openid-connect/auth'
+        GF_AUTH_GENERIC_OAUTH_TOKEN_URL: '${PUBLIC_URL:?err}{{ env "KEYCLOAK_ROUTE_PATH" }}/realms/{{ .State.realm }}/protocol/openid-connect/token'
+        GF_AUTH_GENERIC_OAUTH_API_URL: '${PUBLIC_URL:?err}{{ env "KEYCLOAK_ROUTE_PATH" }}/realms/{{ .State.realm }}/protocol/openid-connect/userinfo'
         GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_PATH: "'Admin'"
       volumes:
       - type: bind
