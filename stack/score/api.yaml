@@ -26,7 +26,8 @@ containers:
       DATABASE_AUTH_USER_PASSWORD: ${resources.db.auth_password}
       DATABASE_ORCHESTRATION_USER: ${resources.db.orchestration_username}
       DATABASE_ORCHESTRATION_USER_PASSWORD: ${resources.db.orchestration_password}
-      LOCALIZER_CONTAINER_URL: http://${resources.localizer.hostname}:${resources.localizer.port}
+      GPU_MODE_MANAGED: ${resources.localizer-router.managed}
+      LOCALIZER_ROUTER_ADDRESS: ${resources.localizer-router.address}
       LOKI_URL: ${resources.observability.loki_url}
       OTEL_EXPORTER_OTLP_ENDPOINT: ${resources.observability.otlp_endpoint}
       SERVICE_PORT: ${resources.self-port.port}
@@ -65,12 +66,6 @@ resources:
   bucket:
     type: s3
     id: placeframe-bucket
-  localizer:
-    type: service-port
-    id: localizer-http
-    params:
-      workload: localizer
-      port: http
   localizer-router:
     type: localizer-router
     id: placeframe-localizer-router
