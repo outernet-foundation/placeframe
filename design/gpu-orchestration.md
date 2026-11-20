@@ -59,8 +59,13 @@ that opens by reading this doc must check this section first.
       / `GPU_MODE_MANAGED`), branches on `managed` in
       `workloads/api/src/routers/localizer_router.py`, reports
       `gpu_mode_managed` on `/server-info`, and `uv run gpu-mode` POSTs the
-      switcher through the public `/gpu-mode/mode` path. Next: phase 5
-      (autostart annotations + selective-start activation).
+      switcher through the public `/gpu-mode/mode` path. Phase 5 (autostart
+      annotations + selective-start activation) complete 2026-11-19
+      (`45b83751` + regen): both GPU workloads carry
+      `boatyard/autostart: "false"`, `boatyard up` creates them stopped, and
+      the mode switcher starts the default-mode one — the boot-race gap is
+      closed, verified end-to-end on the live stack. Remaining: phase 6
+      (promotion and closeout).
 6. **Promotion.** Fold hardened truth into co-located `AGENTS.md` files per
    `design/AGENTS.md` promotion conventions; this note stops being
    load-bearing.

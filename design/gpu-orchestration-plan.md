@@ -444,6 +444,34 @@ Commit: code commits, then canonical `Run generate-clients`.
 
 ### 5. Path-pin boatyard + autostart annotation + selective-start activation
 
+Complete, 2026-11-19 — as the note below reduced it: the two annotations
+(`45b83751`), the regen (`839d847e`, `Run generate-score` — amended once to
+fix a copy mistake that had landed the k8s manifest at
+`stack/generated/manifests.yaml` instead of `stack/generated/k8s/`), and one
+follow-up code commit the end-to-end forced (`96762654`): `gpu-mode` failed
+against the repo's own values file because `read_public_url` only knew the
+literal `public_url`/`PUBLIC_URL` keys while placeframe's values spell it
+`public_host` + `public_scheme` — the helper now derives
+`scheme://host` from that pair (fit-calibration and tune-reconstruction
+inherit the fix). End-to-end verified on the live stack: `boatyard up`
+leaves the reconstructor `Created` (held) and the localizer `Up healthy`
+— started by the mode switcher, not `up`; no dual-start. `uv run gpu-mode
+reconstruction` drains and SIGTERMs the localizer (Exited 143), cold-starts
+the reconstructor, and `GET /localize/version` returns 503 while in
+reconstruction mode; toggling back reverses both containers and the route
+answers 200. One observed behavior recorded: the response body on that 503
+reads `{"detail":"Internal Server Error"}` — placeframe_common's shared
+exception handler masks every ≥500 detail (`log_http_exception`,
+`packages/python/common/src/placeframe_common/litestar.py`) — the status
+code is the wire contract and the real detail reaches the api logs; the
+client learns "why" from the mode switcher, which is Q5 decision (a)'s
+intent. Two build mechanics noted on the way: the moved tree tags had to
+be rebuilt with targeted `boatyard build --targets <service>` (the
+no-targets form minted a divergent tag set — clean-tree hashes — that
+`up`'s working-tree hashes refused), and the annotation rides the k8s
+manifest as inert workload-metadata lines (selective-start is compose-only
+`up` behavior).
+
 Note (2026-11-19): boatyard 0.9.0 has published to PyPI, and
 `scripts/pyproject.toml` already pins `boatyard>=0.9` (bumped on `origin/dev`
 by the pg-schema-diff work, `bfa97626`) with `uv.lock` resolving 0.9.0 from
@@ -528,4 +556,4 @@ Commit: prose commit(s).
 |---|---|---|
 | 3 | score artifacts | `Run generate-score` |
 | 4 | lock + clients (ServerInfo `gpu_mode_managed`) + score artifacts (api env/resource swap) | `Run generate-clients`, `Run generate-score` |
-| 5 | score artifacts | `Run generate-score` |
+| 5 | score artifacts (autostart annotations) | `Run generate-score` |
