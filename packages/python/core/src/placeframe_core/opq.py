@@ -35,12 +35,17 @@ def train_pq_quantizer(
     return product_quantizer
 
 
+# Progress is printed about this many times per call (every 5%), not once per image.
+PROGRESS_STEPS = 20
+
+
 def encode_descriptors(
     opq_matrix: OPQMatrix, product_quantizer: ProductQuantizer, image_descriptors: dict[str, NDArray[float32]]
 ):
     images_codes: dict[str, NDArray[uint8]] = {}
     for i, name in enumerate(image_descriptors.keys()):
-        print(f"Encoding image {i + 1} of {len(image_descriptors)}")
+        if (i + 1) % max(1, len(image_descriptors) // PROGRESS_STEPS) == 0 or i + 1 == len(image_descriptors):
+            print(f"Encoding image {i + 1} of {len(image_descriptors)}")
         descriptors_contiguous = ascontiguousarray(image_descriptors[name])
         descriptors_rotated = cast(NDArray[float32], opq_matrix.apply(descriptors_contiguous))  # type: ignore
         codes = cast(NDArray[uint8], product_quantizer.compute_codes(descriptors_rotated))  # type: ignore

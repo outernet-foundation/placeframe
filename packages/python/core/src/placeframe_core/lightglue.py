@@ -15,6 +15,9 @@ logger = logging.getLogger(__name__)
 
 NumMatches = NewType("NumMatches", int)
 
+# Progress is logged about this many times per call (every 5%), not once per batch.
+PROGRESS_STEPS = 20
+
 MatchIndices = dict[
     tuple[str, str],
     tuple[ndarray[tuple[NumMatches], dtype[intp]], ndarray[tuple[NumMatches], dtype[intp]]],
@@ -60,7 +63,9 @@ def lightglue_match_tensors(
     num_batches = (len(pairs) + batch_size - 1) // batch_size
     match_indices: MatchIndices = {}
     for batch_start in range(0, len(pairs), batch_size):
-        logger.info("Matching features: batch %d of %d", batch_start // batch_size + 1, num_batches)
+        batch_number = batch_start // batch_size + 1
+        if batch_number == num_batches or batch_number % max(1, num_batches // PROGRESS_STEPS) == 0:
+            logger.info("Matching features: batch %d of %d", batch_number, num_batches)
         batch_pairs = pairs[batch_start : batch_start + batch_size]
 
         with inference_mode():
