@@ -275,6 +275,11 @@ def run_colmap_reconstruction(
     # TODO: Write information to metrics about this for visibility
     best_reconstruction = max(reconstructions.values(), key=lambda r: r.num_reg_images())
 
+    # The mapper colours a point only through the image being registered when the point already
+    # exists, so points triangulated after every image that sees them was registered stay black
+    # (0, 0, 0) -- 17% of a spherical capture's map. Recolour each from all its observations.
+    best_reconstruction.extract_colors_for_all_images(str(images_path))  # pyright: ignore[reportUnknownMemberType] — upstream stub uses unparameterized os.PathLike
+
     # Disabled: final standalone BA with rig refinement re-enabled. The incremental loop above ran
     # with rig refinement off (every global BA refining rig poses scales N times); this final pass
     # was meant to let sensor_from_rig settle against the converged geometry, but on large captures
