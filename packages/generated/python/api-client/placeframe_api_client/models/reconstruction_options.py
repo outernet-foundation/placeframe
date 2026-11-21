@@ -45,8 +45,9 @@ class ReconstructionOptions(BaseModel):
     pair_vio_em_min_baseline_m: Optional[Union[StrictFloat, StrictInt]] = Field(default=0.3, description="Essential-matrix-baseline floor below which the VIO-vs-essential-matrix translation-direction component is skipped. Near-co-located camera pairs (intra-rig stereo timing jitter, hover frames in slow motion) have ill-defined essential-matrix translation direction; the rotation component still applies.")
     max_keypoints_per_image: Optional[StrictInt] = Field(default=2500, description="Maximum ALIKED keypoints retained per image.")
     held_out_frame_timestamps: Optional[List[StrictInt]] = Field(default=None, description="Frame timestamps (ms) to exclude from this reconstruction so they can later be localized as held-out queries.")
+    cross_rig_pair_distance_m: Optional[Union[StrictFloat, StrictInt]] = Field(default=0.0, description="Pair frames of *different* rigs whose position priors put them within this many metres, in addition to the sequential and retrieval sources. 0 disables it. Only meaningful when the rigs' priors are already in one frame -- separate captures arrive in unrelated frames, so this does nothing until something has placed them relative to each other. It exists because retrieval is the only source that crosses rigs, and it is chosen by descriptor similarity: two captures that genuinely overlap can still lose to hundreds of higher-scoring within-capture neighbours and never be paired. Proximity is a signal retrieval does not have.")
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["deterministic_seed", "keyframe_min_distance_m", "sequential_window_m", "retrieval_neighbors", "retrieval_min_score", "ransac_max_error", "ransac_min_inlier_ratio", "two_view_min_num_inliers", "triangulation_minimum_angle", "mapper_filter_max_reprojection_error", "bundle_adjustment_global_frames_ratio", "bundle_adjustment_global_function_tolerance", "pose_prior_position_sigma_m", "pair_vio_em_max_rotation_disagreement_deg", "pair_vio_em_max_translation_direction_deg", "pair_vio_em_min_baseline_m", "max_keypoints_per_image", "held_out_frame_timestamps"]
+    __properties: ClassVar[List[str]] = ["deterministic_seed", "keyframe_min_distance_m", "sequential_window_m", "retrieval_neighbors", "retrieval_min_score", "ransac_max_error", "ransac_min_inlier_ratio", "two_view_min_num_inliers", "triangulation_minimum_angle", "mapper_filter_max_reprojection_error", "bundle_adjustment_global_frames_ratio", "bundle_adjustment_global_function_tolerance", "pose_prior_position_sigma_m", "pair_vio_em_max_rotation_disagreement_deg", "pair_vio_em_max_translation_direction_deg", "pair_vio_em_min_baseline_m", "max_keypoints_per_image", "held_out_frame_timestamps", "cross_rig_pair_distance_m"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -133,7 +134,8 @@ class ReconstructionOptions(BaseModel):
             "pair_vio_em_max_translation_direction_deg": obj.get("pair_vio_em_max_translation_direction_deg") if obj.get("pair_vio_em_max_translation_direction_deg") is not None else 60.0,
             "pair_vio_em_min_baseline_m": obj.get("pair_vio_em_min_baseline_m") if obj.get("pair_vio_em_min_baseline_m") is not None else 0.3,
             "max_keypoints_per_image": obj.get("max_keypoints_per_image") if obj.get("max_keypoints_per_image") is not None else 2500,
-            "held_out_frame_timestamps": obj.get("held_out_frame_timestamps")
+            "held_out_frame_timestamps": obj.get("held_out_frame_timestamps"),
+            "cross_rig_pair_distance_m": obj.get("cross_rig_pair_distance_m") if obj.get("cross_rig_pair_distance_m") is not None else 0.0
         })
         # store additional fields in additional_properties
         for _key in obj.keys():

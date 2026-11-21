@@ -13,3 +13,4 @@
     auth_authorization_endpoint: ${AUTH_AUTHORIZATION_ENDPOINT:-}
     auth_token_endpoint: ${AUTH_TOKEN_ENDPOINT:-}
     deployment_environment: ${DEPLOYMENT_ENVIRONMENT:-development}
+    lightglue_batch_size: ${LIGHTGLUE_BATCH_SIZE:-}

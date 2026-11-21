@@ -78,3 +78,7 @@ class ReconstructionOptions(BaseModel):
         default=None,
         description="Frame timestamps (ms) to exclude from this reconstruction so they can later be localized as held-out queries.",
     )
+    cross_rig_pair_distance_m: float = Field(
+        default=0.0,
+        description="Pair frames of *different* rigs whose position priors put them within this many metres, in addition to the sequential and retrieval sources. 0 disables it. Only meaningful when the rigs' priors are already in one frame -- separate captures arrive in unrelated frames, so this does nothing until something has placed them relative to each other. It exists because retrieval is the only source that crosses rigs, and it is chosen by descriptor similarity: two captures that genuinely overlap can still lose to hundreds of higher-scoring within-capture neighbours and never be paired. Proximity is a signal retrieval does not have.",
+    )
