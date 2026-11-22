@@ -24,6 +24,7 @@ members = [
     "workloads/auth-initializer",
     "workloads/lease-server",
     "workloads/localizer",
+    "workloads/gpu-orchestrator",
     "workloads/reconstructor",
     "packages/python/core",
     "packages/python/common",
@@ -83,5 +84,12 @@ include = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["packages/python/common/tests", "scripts/tests", "workloads/s3-initializer/tests", "workloads/api/tests"]
+testpaths = [
+    "packages/python/common/tests",
+    "scripts/tests",
+    "workloads/s3-initializer/tests",
+    "workloads/api/tests",
+    "workloads/gpu-orchestrator/tests",
+    "workloads/lease-server/tests",
+]
 pythonpath = ["workloads/api"]

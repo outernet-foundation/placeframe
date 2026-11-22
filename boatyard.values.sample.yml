@@ -14,6 +14,13 @@ values:
   S3_SECRET_KEY: password
   NGROK_DOMAIN: <your-ngrok-domain>
   NGROK_AUTHTOKEN: <your-ngrok-authtoken>
+  # GPU orchestrator (core bundle) — optional, defaults shown. GPU_CONTENDED false
+  # runs both GPU workloads (no arbitration, drift repair only); the timers are
+  # live-tunable via `uv run gpu-policy` (floors: idle window 60 s, poll 5 s).
+  # GPU_CONTENDED: "true"
+  # GPU_IDLE_WINDOW_S: 600
+  # GPU_POLL_INTERVAL_S: 15
+  # GPU_RETRY_AFTER_SECONDS: 60
   # OIDC edge — uncomment with auth-keycloak in bundles. The four KEYCLOAK_*
   # slots are required (no defaults); AUTH_* carry the ${PUBLIC_URL}/${EDGE_BASE_URL}
   # refs boatyard mints from public_host/public_scheme; SEED_TEST_USERS is optional.
