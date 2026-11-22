@@ -3,24 +3,25 @@ metadata:
   name: keycloak
   annotations:
     boatyard/probe-adapter: bash-http
-    # The route the consumer's gateway mounts (strip: the edge strips /auth
-    # before proxying — keycloak serves at root; the /auth path in KC_HOSTNAME
-    # is advertise-only).
-    boatyard/route: /auth/*=keycloak:8080,strip
-    # The lock source resolves at generation and the digest lands inline in both
-    # renderings (a runtime ${KEYCLOAK_IMAGE:?err} slot would demand the producer's
-    # lock entry from every consumer of the published bundle).
-    boatyard/lock: keycloak=KEYCLOAK_IMAGE
+boatyard:
+  # Strip the claimed prefix because keycloak serves at root
+  # This claim is the repo's only authored /auth spelling
+  route:
+    path: /auth/*
+    port: http
+    strip: true
+  # Bake the digest at generation because a runtime slot would demand the lock entry from every consumer
+  lock:
+    keycloak: KEYCLOAK_IMAGE
+# The mgmt listener is internal because only its own probes use it
+listeners:
+  http: 8080
+  mgmt:
+    port: 9000
+    internal: true
 containers:
   keycloak:
-    # Tier-neutral by construction: the container is keycloak on both renderings, and
-    # every deployment fact arrives through the oidc-issuer outputs — the one mechanism
-    # that is per-tier by design (compose runtime holes filled from .env and the lock
-    # env-file; k8s secretKeyRefs). Keycloak serves at root; the /auth path in
-    # KC_HOSTNAME is advertise-only, and the edge does the strip (the door's
-    # strip_prefix route, a traefik StripPrefix middleware at the cluster edge).
-    # Score's command maps to the image entrypoint slot (compose entrypoint, k8s command),
-    # so the flags ride as args and the image's own kc.sh entrypoint stands.
+    # Pass flags as args so the image's own kc.sh entrypoint stands
     args: ["start-dev", "--health-enabled=true"]
     variables:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
@@ -32,16 +33,11 @@ containers:
     livenessProbe:
       httpGet:
         path: /health/live
-        port: 9000
+        port: mgmt
     readinessProbe:
       httpGet:
         path: /health/ready
-        port: 9000
-service:
-  ports:
-    http:
-      port: 8080
-      targetPort: 8080
+        port: mgmt
 resources:
   auth:
     type: oidc-issuer

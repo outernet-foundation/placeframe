@@ -1,11 +1,4 @@
-# Config provisioner (Kubernetes): emits the environment-specific app config (public URL,
-# auth endpoints, deployment environment) as references to the externally managed
-# placeframe-secrets Secret. Because score-k8s can only reference a Secret (encodeSecretRef,
-# there is no configMap equivalent), these non-secret values live in placeframe-secrets too.
-# The result is that `score-k8s generate` emits secretKeyRef env with no baked values and no
-# post-processing; the actual values are supplied by the Pulumi infra program when it creates
-# placeframe-secrets. The api selects its auth mode from AUTH_ISSUER_URL presence (empty =>
-# anonymous).
+# K8s twin of compose/config.yaml
 - uri: template://placeframe/config-k8s
   type: placeframe-config
   description: Environment app config referenced from the externally managed placeframe-secrets Secret.

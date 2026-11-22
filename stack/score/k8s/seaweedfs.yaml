@@ -1,10 +1,4 @@
-# Kubernetes twin of compose/seaweedfs.yaml. Emits the weed server as a
-# Service + StatefulSet, the fluent audit relay as a Deployment + Service (the entrypoint
-# wrapper renders fluent.json pointing at `seaweedfs-audit`), and an s3-initializer bucket
-# Job. Credentials are NOT generated or emitted here: every secret is referenced from the
-# externally managed `placeframe-secrets` Secret (created by the Pulumi infra program)
-# under the same S3_* keys the API reads, so the generated manifests contain zero secret
-# values and are safe to commit for GitOps.
+# K8s twin of compose/seaweedfs.yaml
 - uri: template://placeframe/seaweedfs-k8s
   type: s3
   description: SeaweedFS object storage with buckets converged by s3-initializer; credentials via placeframe-secrets.
@@ -66,8 +60,7 @@
                   secretKeyRef:
                     name: placeframe-secrets
                     key: S3_SECRET_KEY
-              # Readiness mirrors the compose healthcheck: weed binds its listeners
-              # staggered, so a master-only probe would pass before S3 on 8333 answers.
+              # Probe master and S3 both because weed binds its listeners staggered
               readinessProbe:
                 exec:
                   command:
@@ -121,13 +114,6 @@
       kind: Job
       metadata:
         name: "{{ .State.service }}-bucket"
-        # A Job's spec.template is immutable, so Argo CD cannot patch this in place once
-        # the image tag moves; without the hook the sync fails with "field is immutable"
-        # and selfHeal retries forever. As a Sync hook the previous Job is deleted first.
-        # Re-running is safe: the initializer verifies existing buckets and creates only
-        # missing ones, retrying until the S3 endpoint accepts connections. The weight
-        # pins this Job to the same ordering phase as the postgres create Job; without
-        # explicit weights Argo orders same-phase hooks alphabetically by accident.
         annotations:
           argocd.argoproj.io/hook: Sync
           argocd.argoproj.io/hook-weight: "10"
@@ -140,11 +126,7 @@
             containers:
             - name: bucket
               image: {dockerfile: workloads/s3-initializer/Dockerfile}
-              # All buckets, not just the resource's own. capturesBucket is the name the
-              # api hardcodes (workloads/api/src/routers/capture_sessions.py) and the
-              # reconstructor reads from, and lokiBucket is what the loki config
-              # addresses, so without them an upload or log push fails against a bucket
-              # that does not exist.
+              # All buckets, not just this resource's own, because consumers address each by name
               env:
               - name: S3_ENDPOINT_URL
                 value: http://{{ .State.service }}:8333

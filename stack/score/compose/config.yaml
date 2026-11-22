@@ -1,7 +1,4 @@
-# Config provisioner (compose): local counterpart of k8s/config.yaml.
-# Every output is a literal ${VAR} placeholder rather than a resolved value, so the generated
-# compose.yaml stays hermetic and docker compose resolves it from --env-file at run time. The
-# AUTH_* block carries soft passthroughs (empty => unset => anonymous mode).
+# Compose twin of k8s/config.yaml
 - uri: template://placeframe/config
   type: placeframe-config
   description: App config resolved from .env at run time, soft passthroughs for the auth block.
@@ -13,3 +10,8 @@
     auth_authorization_endpoint: ${AUTH_AUTHORIZATION_ENDPOINT:-}
     auth_token_endpoint: ${AUTH_TOKEN_ENDPOINT:-}
     deployment_environment: ${DEPLOYMENT_ENVIRONMENT:-development}
+    gpu_contended: ${GPU_CONTENDED:-true}
+    gpu_idle_window_s: ${GPU_IDLE_WINDOW_S:-600}
+    gpu_poll_interval_s: ${GPU_POLL_INTERVAL_S:-15}
+    gpu_retry_after_seconds: ${GPU_RETRY_AFTER_SECONDS:-60}
+    compose_project: ${COMPOSE_PROJECT_NAME:-}

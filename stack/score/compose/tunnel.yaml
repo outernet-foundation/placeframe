@@ -1,13 +1,4 @@
-# Tunnel config provisioner (compose): outputs-only passthrough for the ngrok
-# relay workload (tunnel-ngrok.yaml). The relay itself is a workload now — one
-# artifact, no profiles — so the provisioner emits no services; it exists
-# because score workload specs cannot carry runtime ${VAR}
-# holes (score validates placeholders as dotted resource references), while the
-# provisioner output strings pass through to compose as docker-runtime
-# interpolation holes, exactly like the placeframe-config valve. Every hole is a
-# soft `:-` so a no-relay assembly leaves the keys empty.
-# There is no k8s twin — tunnels are compose-only and the k8s workload list
-# carries no relay workloads, so the type never resolves on that tier.
+# Outputs-only, no k8s twin because tunnels are compose-only
 - uri: template://placeframe/tunnel-config
   type: tunnel-config
   description: Runtime relay credentials resolved from .env at run time.

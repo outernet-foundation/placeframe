@@ -48,12 +48,9 @@ def test_gpu_workloads_carry_the_nvidia_contract_and_scale_to_zero() -> None:
 
     api_spec = documents["Deployment/api"]["spec"]["template"]["spec"]
     assert "runtimeClassName" not in api_spec
-    localizer_url = next(
-        variable["value"]
-        for variable in api_spec["containers"][0]["env"]
-        if variable["name"] == "LOCALIZER_CONTAINER_URL"
-    )
-    assert localizer_url == "http://localizer:8000"
+    api_env = {variable["name"]: variable for variable in api_spec["containers"][0]["env"]}
+    assert api_env["LOCALIZER_ROUTER_ADDRESS"]["value"] == "http://localizer:8000"
+    assert api_env["LOCALIZER_ROUTER_MANAGED"]["value"] == "false"
 
 
 def test_keda_crs_derive_from_the_declared_resource() -> None:

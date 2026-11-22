@@ -1,12 +1,4 @@
-# Kubernetes twin of compose/observability.yaml. Loki and grafana arrive as the
-# digest-pinned official Grafana charts declared under generate-score's charts:
-# section (rendered by helm template into this same manifests.yaml — their
-# Services land at the fixed DNS names loki:3100 and grafana:3000 the gateway
-# Caddyfile proxies). Alloy's chart has no OCI artifact, so it is the hand-written
-# twin: Deployment + Service + ConfigMap, the seaweedfs-k8s pattern. The
-# ConfigMap body sources the committed workloads/alloy/config.alloy through an
-# include marker — one file for both renderings (the compose rendering binds it
-# directly).
+# K8s twin of compose/observability.yaml
 - uri: template://placeframe/observability-k8s
   type: observability
   description: Loki/Grafana via official charts plus a hand-written alloy relay; outputs the fixed service URLs.
