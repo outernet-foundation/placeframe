@@ -6037,6 +6037,11 @@
       },
       "ReconstructionMetrics": {
         "properties": {
+          "successful": {
+            "type": "boolean",
+            "description": "True if the reconstruction produced a model, false otherwise.",
+            "default": false
+          },
           "reprojection_pixel_error_50th_percentile": {
             "description": "Median reprojection error in pixels across all valid 2D observations in registered images.",
             "nullable": true,
