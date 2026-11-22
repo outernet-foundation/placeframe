@@ -44,8 +44,9 @@ group level (`workloads:` — `core`), where the option set derives from the sin
 group's image closure fans (the Dockerfiles fan on `TORCH_DEVICE` into the
 `core-cuda`/`core-rocm` options — the fan's one spelling is the built
 `NEURAL_NETWORKS_BASE` entry in `base_images`), plus group-level `ports:` that ride
-unconditionally (routes live in the workloads' `boatyard/route` annotations and
-are adopted into the bundle records at lock and resolve).
+unconditionally (routes are per-service path claims — a workload's nested
+`boatyard: {route: {path, port, strip}}` block or a provisioner stanza's
+`route: {path, port, strip}` mapping — resolved into the bundle records at lock and resolve).
 `bundles:` names options only, by qualified `group-option` spelling. Provisioner registration derives by resource-type closure
 over the rendering's workloads — no provisioner list is authored anywhere.
 Deployment-surface behavior — healthchecks, gpu plumbing, the relay restart, the
@@ -112,19 +113,34 @@ External consumers (Make-it-Sing) declare the published OCI bundles as `ref: oci
 entries instead, or point a `path_overrides:` entry at a sibling checkout's
 `stack/generated/compose/` output.
 
-The gateway is emitted by boatyard from the routes the workload annotations declare —
-never authored in `boatyard.yml`: `gateway_port: 8443` (an integer in `boatyard.yml`)
+The gateway is emitted by boatyard from per-service route claims — never authored in
+`boatyard.yml`: `gateway_port: 8443` (an integer in `boatyard.yml`)
 publishes the gateway's host port, the values file's typed `gateway_port:` override
 retargets it, the gateway
-listens `:8443` internally, and the route table (`/auth/*` strip-prefix to keycloak via
-the keycloak workload's route annotation, `/grafana/*` and `/loki/*` unprotected plus
-`/*` to the api via the api workload's route annotation) is authored workload surface
-adopted into the bundle records — the gateway does no token validation (the `protected`
+listens `:8443` internally, and each public path is claimed by the service that serves
+it — `boatyard: {route: {path: /auth/*, port: http, strip: true}}` on the keycloak
+workload, `route: {path: /grafana/*, port: '{{ .State.grafana_port }}'}` on the
+observability provisioner's grafana stanza (loki likewise; a provisioner stanza's
+`route.port` is a literal or a whole-string `{{ .State.* }}` template rendering to an
+int, a workload's `route.port` names a listener), and
+`boatyard: {route: {path: /*, port: http}}` (the catch-all) on the api — the
+gpu-orchestrator claims no
+route: nothing about it is gateway-reachable in any deployment, and its operator
+surface is the loopback publish below. The upstream address is derived —
+the claiming service at its claimed listener's port — so no route spelling
+hand-copies a port; the rendered stanza carries the claim as
+`boatyard/route-path`/`route-port`/`route-strip` labels (the port label derived), and ordering comes from path specificity, not author
+order. The grafana OAuth URLs and the keycloak `KC_HOSTNAME` read the `/auth` prefix
+through the `route:` marker (`keycloak_route_path: {route: keycloak}` state entries,
+validated at compile) — the claim is the repo's only authored `/auth` spelling. The gateway does no token
+validation (the `protected`
 flag and its forward_auth emission are stripped; re-protection is a bundle-shipped
-oauth2-proxy sidecar treaty, tracked as a comment beside the api's route annotation).
+oauth2-proxy sidecar treaty, tracked as a comment beside the api's route claim).
 Host
 ports beyond the door live in the config's `ports:` as integer defaults (api and
-lease-server debug ports, localhost-bound; the seaweedfs-admin console) — consumer-side
+lease-server debug ports and the gpu-orchestrator's operator port — its target a
+`{listener: http}` reference resolved from the workload's inventory — all
+localhost-bound; the seaweedfs-admin console) — consumer-side
 published ports of services the bundles carry. The `boatyard/publish-port`
 annotation is live grammar (consumed by lbe-toolkit's livekit tier); no workload here
 carries one.
@@ -196,9 +212,16 @@ One authored source, two renderings — the deliberate differences, so nobody "f
   `secretKeyRef` wiring into `placeframe-secrets`. Each tier's native mechanism.
 - Liveness/readiness: chart probes (loki, grafana) on k8s vs compose healthchecks; the
   built workloads declare `boatyard/probe-adapter` and boatyard's built-in
-  template converts their httpGet probes into compose healthchecks.
+  template converts their httpGet probes into compose healthchecks. The listener
+  inventory is the workload's one port vocabulary: probe `httpGet.port` is authored as a
+  listener name — a `listeners` entry, with `internal: true` marking an
+  in-container port that is deliberately not a service port (e.g. keycloak's
+  `mgmt`) — never an integer, and workload variables reference the workload's own
+  listeners as `${listeners.<name>.port}`; the lens refuses anything else, and boatyard
+  rewrites both to the port at generation.
 - Host publishes ride the root config's `ports:` (api and lease-server localhost-bound
-  debug ports, the seaweedfs-admin console) and the `gateway_port:` key's door publish —
+  debug ports, the gpu-orchestrator's localhost-bound operator port, the
+  seaweedfs-admin console) and the `gateway_port:` key's door publish —
   all compose-only, all consumer config; the k8s edge is the Pulumi-owned Ingress
   (`PUBLIC_URL` host, cert-manager issuer — per-site and Secret-resident, un-committable
   in a deterministic artifact).
@@ -229,7 +252,10 @@ proliferate.
   `state`/`outputs`/`volumes`/`services`/`manifests` are authored as real YAML mappings and
   lists, compiled to score's YAML-in-a-string form in a per-run tempdir at generation —
   compiled output never goes back into a source. Single-key authoring markers ride in
-  provisioner manifests and chart values alike: `include:`/`include-yaml: <repo-root-relative
+  provisioner manifests and chart values alike: `listener: <workload>.<listener-name>`
+  and `route: <workload>` resolve another workload's declared listener port and claimed
+  route path at compile, refusing unknown workloads, unknown or internal listeners, and
+  claimless workloads; `include:`/`include-yaml: <repo-root-relative
   path>` inserts a file's bytes verbatim / parsed structure; `dockerfile: <repo-root-relative
   path>` composes the built-image reference (repository + directory stem + declared variant
   + the sha env slot) for provisioner `image:` fields; `lock: NAME`/`lock-image: NAME`
@@ -257,7 +283,12 @@ proliferate.
   materializes workload `files:` as binds into its state dir; boatyard's post-pass
   rewrites every bind into a top-level `configs.content` entry with each `$` doubled (compose
   interpolation would otherwise eat loki's `${VAR}` and caddy's `{$VAR}`). A bind surviving in
-  a generated compose is a bug.
+  a generated compose is   a bug — the one sanctioned exception is the gpu-orchestrator's
+  `/var/run/docker.sock` bind, emitted by boatyard's docker-socket patch template from the
+  workload's `boatyard/docker-socket` annotation (score's workload spec carries no volume
+  grammar, so the bind rides the template seam). The scoped assertion in
+  `scripts/tests/test_score_compose_generation.py` permits exactly that one bind on exactly
+  the `gpu-orchestrator` service; every other bind remains a failure.
 - **No secret resolves at generation time.** Compose provisioners emit literal `${VAR:?err}`
   slots that docker fills from the per-run env file at run time (boatyard.values.yaml is the single credential
   source, shared with the hand stack); k8s provisioners emit `encodeSecretRef` pointers into
@@ -379,11 +410,39 @@ proliferate.
   the NVIDIA device plugin and GPU-worker labeling live in infra, and renaming any of the
   three breaks scheduling, not generation. The annotation is org-namespaced; the
   nodeSelector label stays `placeframe.io/gpu`, exactly what Pulumi labels GPU nodes with.
+  Start policy is a separate annotation (`boatyard/autostart`, the bullet below) — the gpu
+  annotation answers "does this workload need GPU reservations?", never "does it start at
+  `up`?".
 - **Cross-workload URLs ride the native `service-port` resource** — `${resources.x.hostname}`
   resolves to the same string on both tiers (compose: the workload `hostname:` field, which
-  Docker's embedded DNS serves; k8s: the per-workload Service). The api's
-  `LOCALIZER_CONTAINER_URL` and the reconstructor's `LEASE_SERVER_URL` are wired this way;
-  no alias patch templates and no hardcoded `<workload>-<container>` names.
+  Docker's embedded DNS serves; k8s: the per-workload Service). The reconstructor's
+  `LEASE_SERVER_URL` is wired this way; no alias patch templates and no hardcoded
+  `<workload>-<container>` names. A workload referencing its own port needs no resource
+  at all — variables take `${listeners.<name>.port}` directly. The orchestrator's
+  `LOCALIZER_URL`/`LEASE_SERVER_URL` are service-ports too. The api's localizer wiring does not use a service-port: it
+  declares the `localizer-router` resource (`type: localizer-router`,
+  `stack/score/api.yaml`) and consumes two outputs — `address` (`LOCALIZER_ROUTER_ADDRESS`)
+  and `managed` (`LOCALIZER_ROUTER_MANAGED`). The provisioner pair is outputs-only on both
+  tiers: compose (`stack/score/compose/localizer-router.yaml`) templates the orchestrator's
+  listener through `{listener: gpu-orchestrator.http}` state and outputs
+  `http://gpu-orchestrator:8000` / `true`; k8s
+  (`stack/score/k8s/localizer-router.yaml`) includes the localizer workload itself and
+  outputs `http://localizer:8000` / `false`. The gpu-orchestrator is a compose-only
+  workload (absent from the k8s list, like the relay), carrying the
+  `boatyard/docker-socket` annotation for its container control; it gates on the
+  wait-for-resources barrier with every other workload.
+- **GPU workloads are held out of `up` via `boatyard/autostart: "false"`** — a start-policy
+  annotation separate from the gpu annotation (`boatyard/gpu` stays substrate-only: `"true"`,
+  the patch templates its one reader). A workload carrying the autostart annotation is
+  created stopped by `boatyard up` (`docker compose up -d --no-start`, then `docker compose
+  start` of everything unheld — the selective-start is `up` logic, not a patch template)
+  and is left for the gpu-orchestrator's reconcile loop: its first tick starts what the
+  demand policy wants — exactly one GPU container under contention, both when
+  uncontended — so the orchestrator is always the starter in every deployment. Any
+  service can carry the annotation, gpu or not; removing it
+  restores auto-start. The caveat: raw `docker compose up` (the pressure valve) starts
+  both GPU containers — the dual-start returns; use `boatyard up` or start services
+  selectively.
 - **KEDA scale-to-zero is declared as a workload resource** (`type: keda-scaled-object`): the
   k8s provisioner renders the ScaledObject (postgres trigger on queued reconstructions,
   300 s cooldown, `maxReplicaCount: 8` baked — per-cloud node caps stay in the ASG/MIG/CAS

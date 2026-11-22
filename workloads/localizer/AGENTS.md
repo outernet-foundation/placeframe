@@ -11,7 +11,7 @@ A Litestar ASGI service that answers `POST /localization`: given a query image p
 ```
 workloads/localizer/
   Dockerfile               FROM neural-networks-base; bakes LOCALIZER_SHA (build-context hash) late
-  entrypoint.sh            uvicorn src.main:app --host 0.0.0.0 --port 8000
+  entrypoint.sh            uvicorn src.main:app --host 0.0.0.0 --port ${SERVICE_PORT}
   pyproject.toml           pycolmap, faiss-cpu, scipy, litestar; torch undeclared
                            (DEP003 ignore — pulled in via neural-networks extras)
   src/
@@ -155,19 +155,20 @@ The current `global.json` is a placeholder: zeroed weights/intercepts, `alpha = 
 
 ### Deployment
 
-`stack/generated/compose/compose.cuda.yaml` (mirrored by `compose.rocm.yaml`):
+`stack/generated/compose/compose.core-cuda.yaml` (mirrored by `compose.core-rocm.yaml`):
 
 ```
-localizer-cuda:
-  image: ghcr.io/.../localizer-cuda:${LOCALIZER_SHA:?err}
-  expose: ["8000"]
-  networks: { default: { aliases: ["localizer"] } }   # api hits http://localizer:8000
-  gpus: all
+localizer:
+  image: ghcr.io/.../localizer-cuda:${CORE_CUDA__BOATYARD_TREE__LOCALIZER_SHA}
+  hostname: localizer                                      # api hits http://localizer:8000
+  deploy.resources.reservations.devices: [nvidia gpu]
+  depends_on: [wait-for-resources]
+  healthcheck: python urllib GET /version (5 s interval)
   environment:
     S3_ENDPOINT_URL, S3_ACCESS_KEY, S3_SECRET_KEY, RECONSTRUCTIONS_BUCKET
 ```
 
-No healthcheck. No `restart` policy. No `depends_on`. The API service treats the localizer as a best-effort backend and returns 502 if the `localize_image` round-trip raises a non-422 `ApiException`.
+The healthcheck hits `/version` — the same endpoint the 5 s compose healthcheck pings. No `restart` policy (compose default). The API service treats the localizer as a best-effort backend and returns 502 if the `localize_image` round-trip raises a non-422 `ApiException`.
 
 The Dockerfile bakes `LOCALIZER_SHA` in the *last* `ENV` layer, so only that layer invalidates when the build-context hash changes. `PYTORCH_ALLOC_CONF=expandable_segments:True` is set in the image — PyTorch's default caching allocator fragments under varying per-request peaks (query images of different sizes, varying top-K, varying keypoint counts) and eventually OOMs despite ample free memory. Expandable segments use CUDA virtual memory to grow segments on demand.
 

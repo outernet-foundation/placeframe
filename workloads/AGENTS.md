@@ -14,6 +14,7 @@ Placeframe's server-side stack: a set of cooperating microservices that ingest c
 | `lease-server` | `lease-server/` | Litestar (ASGI) | Control-plane work-queue: four lease endpoints (`request`, `progress`, `succeed`, `fail`) the reconstructor polls. Bound only to the compose-internal network — no gateway upstream, no auth middleware. |
 | `localizer` | `localizer/` | Litestar (ASGI) | Image-to-map localization (LightGlue feature matching + RANSAC). |
 | `reconstructor` | `reconstructor/` | Python + pycolmap | Builds sparse 3D maps from capture sessions. GPU-resident. Pulls work from `lease-server` via container DNS. |
+| `gpu-orchestrator` | `gpu-orchestrator/` | Litestar (ASGI) | Compose-only GPU control plane: a demand-driven reconcile loop that decides which of `localizer`/`reconstructor` runs (localization demand = requests to `/localizer-address`; batch demand = the lease-server's `/queue-state` counts) and converges the containers via the Docker SDK. Answers `/localizer-address` for the API's localization proxy. No gateway surface — the operator surface is the loopback port plus `uv run gpu-policy`. A compose-only score workload carrying the `boatyard/docker-socket` annotation for its container control; no k8s twin (both GPU workloads run on separate GPU nodes there). See `workloads/gpu-orchestrator/AGENTS.md`. |
 | `database-manager` | `database-manager/` | Python | Creates the database, the cluster-wide `placeframe_*` roles, everything pg-schema-diff cannot see (database ownership, extensions; schema usage and function-EXECUTE hardening in a post-bootstrap pass), and bootstraps the schema dir into a database it just created — then exits. Table grants live in `database/99_permissions.sql`; migrations against an existing database are the `database-migrator`'s job. |
 | `auth-initializer` | `auth-initializer/` | Python | Configures the Keycloak realm post-boot, then exits: polls keycloak's admin API, then creates or updates the realm from the committed export over the admin REST API, substituting the `KEYCLOAK_*`/`PUBLIC_URL` holes from env; when `SEED_TEST_USERS` (`username:password` pairs) is set, also create-or-updates those users. The old file-import path is gone; in the score tier the emitted `keycloak-configurator` service (compose) and realm Job (k8s) run it. |
 | `gateway` | — | (deleted) | The gateway workload, image, and entrypoint are gone: the edge is emitted by boatyard from the consumer config's routes (a pinned caddy whose Caddyfile renders at `up`), and auth-mode composition is the config's `auth`/`keycloak` option, not a container synthesizing a Caddyfile from mounted snippets. |
@@ -32,16 +33,35 @@ Placeframe's server-side stack: a set of cooperating microservices that ingest c
 phone --[tar]--> api --[row+blob]--> SeaweedFS
                                         ^
                                         |
-               reconstructor <--[lease]-- lease-server
-                        |
-                        '--[h5/pq/sfm]--> SeaweedFS
-                                          ^
-phone --[query img]--> localizer --[lookup]'
+                reconstructor <--[lease]-- lease-server
+                         |                  ^
+                         '--[h5/pq/sfm]--> SeaweedFS  |
+                                           ^            |
+phone --[query img]--> api --[address?]--> gpu-orchestrator --(null => 503 + Retry-After)
+                         |                     ^
+                         '----[address]-------->--> localizer --[lookup]'
 ```
+
+The orchestrator's two demand inputs are the diagram's two right-hand edges: every
+`/localizer-address` query from the api is a localization heartbeat (the router seam),
+and the orchestrator polls the lease-server's `GET /queue-state` for batch demand
+(the queue seam — `queued > 0 OR in_flight > 0`, computed orchestrator-side).
 
 1. **Capture**: the capture-tool phone app (in the [placeframe-capture-tool](https://github.com/outernet-foundation/placeframe-capture-tool) repo) records images + sensor data and POSTs a `.tar` to the API. The API stores the tar in `captures/<capture_session_id>.tar` and inserts a row at `queued`.
 2. **Reconstruction**: the `reconstructor` worker polls `lease-server`'s `POST /leases/request` over the compose network to claim queued work (no separate orchestrator service — it's a worker-pull architecture). On a successful claim, it downloads the tar, runs feature extraction → matching → OPQ/PQ training → geometric verification → SfM, uploads outputs to `reconstructions/<reconstruction_id>/`, then `PUT`s `/leases/<id>/succeed` (or `/fail`) to `lease-server`. Progress updates between phases go through `/leases/<id>/progress`.
-3. **Localization**: a Unity client posts a query image to `localizer`, which matches it against the stored map and estimates a 6-DOF pose via RANSAC / PnP.
+3. **Localization**: a Unity client posts a query image to the API's `/localize`, which asks
+   the localizer-router for the address at request time (`workloads/api/src/routers/localization.py`).
+   On compose (`LOCALIZER_ROUTER_MANAGED=true`) the router is the gpu-orchestrator: it returns the localizer's
+   address, or null while the orchestrator is swapping the GPU slot to the localizer — the API then answers
+   503 "Localization unavailable" with a `Retry-After` header echoed from the orchestrator (the status code
+   and the header are the wire contract; the shared 5xx handler masks the detail body). The swap is
+   demand-driven: the address query itself is the localization demand that triggers it, and the reconstructor
+   (if running) is stopped with its lease requeued. On k8s
+   (`managed=false`, localizer always-on) the API forwards straight to the router address, which
+   is the localizer itself. The localizer matches the query image against the stored map and
+   estimates a 6-DOF pose via RANSAC / PnP. There is no mode vocabulary anywhere: no gateway
+   route touches the orchestrator, and the operator surface is `uv run gpu-policy` against its
+   loopback port.
 4. **Georeferencing**: out of scope for this stack — map-to-world registration against Cesium tilesets was the (now-deleted) Map Registration Tool's job; the Cesium asset pipeline under `build/` remains for producing tilesets.
 
 ### Authentication and public URL
@@ -193,7 +213,7 @@ For repeated queries, use `uv run loki-query` (`scripts/AGENTS.md`) — it handl
 
 - **api** → Loki `service_name="api"`. Every HTTP request, including `/internal/leases/<id>/{progress,succeed,fail}` from the reconstructor.
 - **localizer** → Loki `service_name="localizer"` and `docker logs`. Pipeline events (model device, map downloads, per-batch matching, per-query timings/transform/metrics) and uvicorn request lines flow through `configure_logging("localizer", uvicorn_logger_handlers=True)` — the stderr output doubles as the docker-log view.
-- **reconstructor-cuda** → Loki `service_name="reconstructor-cuda"` and `docker logs`. Per-image progress, S3 put markers, lease lifecycle (`Acquired lease`, `Reconstruction succeeded`, `Reconstruction failed: …`). To observe end-to-end lease activity from the API side, query the **api** logs for `/internal/leases/` traffic — lease-request 404s mean "no work available", lease-progress 200s mean an active job is reporting in.
+- **reconstructor-cuda** → Loki `service_name="reconstructor-cuda"` and `docker logs`. Per-image progress, S3 put markers, lease lifecycle (`Acquired lease`, `Reconstruction succeeded`, `Reconstruction failed: …`). To observe end-to-end lease activity from the API side, query the **api** logs for `/internal/leases/` traffic — lease-request responses with a null `lease` field mean "no work available", lease-progress 200s mean an active job is reporting in.
 - **capture-tool** (phone) → Loki `service_name="capture-tool"`, pushed directly from the Unity app via the gateway. The app lives in the [placeframe-capture-tool](https://github.com/outernet-foundation/placeframe-capture-tool) repo; relay details are documented there.
 - **zed-capture** (ZED box) → Loki `service_name="zed-capture"`, but **only while the phone is AOA-connected and logged in**. The box has no direct backend link: its logs are drained from box-side `aoa-loki` by the phone's `LogDrainController` and pushed verbatim to the backend Loki. An empty `{service_name="zed-capture"}` result usually means the phone isn't draining (no AOA link, not logged in, or nothing newer than the drain cursor) — not that the box logged nothing. The whole box side of this drain (AOA link, box-Loki, SSH access) is capture-repo territory — see placeframe-capture-tool's `workloads/zed-capture/AGENTS.md`.
 
