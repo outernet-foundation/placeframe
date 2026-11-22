@@ -92,7 +92,6 @@ def run_reconstruction(
     capture_id: UUID,
     reconstruction_options: ReconstructionOptions,
     publisher: ReconstructionPublisher,
-    metrics: MetricsBuilder,
 ) -> ReconstructionMetrics:
 
     settings = get_settings()
@@ -247,6 +246,7 @@ def run_reconstruction(
     if cuda.is_available():
         cuda.empty_cache()
 
+    metrics_builder = MetricsBuilder()
     # Run COLMAP reconstruction
     sfm_output_path = WORK_DIR / "sfm_output"
     sfm_output_path.mkdir(parents=True, exist_ok=True)
@@ -255,7 +255,7 @@ def run_reconstruction(
         sfm_output_path,
         CAPTURE_SESSION_DIRECTORY,
         options,
-        metrics,
+        metrics_builder,
         rigs,
         keypoints,
         pairs,
@@ -267,7 +267,8 @@ def run_reconstruction(
 
     if reconstruction is None:
         print("Reconstruction failed, no model was created")
-        raise RuntimeError("No model was created")
+        metrics_builder.metrics.successful = False
+        return metrics_builder.metrics
 
     for file_path in sfm_output_path.rglob("*"):
         if file_path.is_file():
@@ -288,10 +289,11 @@ def run_reconstruction(
     )
 
     publisher.finalize_timings()
-    metrics.metrics.phase_timings = publisher.phase_timings
-    metrics.metrics.pipeline_version = environ["RECONSTRUCTOR_SHA"]
+    metrics_builder.metrics.phase_timings = publisher.phase_timings
+    metrics_builder.metrics.pipeline_version = environ["RECONSTRUCTOR_SHA"]
 
-    return metrics.metrics
+    metrics_builder.metrics.successful = True
+    return metrics_builder.metrics
 
 
 def _put_artifact(s3_client: Any, bucket: str, reconstruction_id: UUID, key: str, body: bytes) -> None:
