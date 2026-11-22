@@ -52,7 +52,11 @@ def log_http_exception(request: Request[Any, Any, Any], exception: HTTPException
             exc_info=exception,
         )
 
-        return Response(content={"detail": "Internal Server Error"}, status_code=exception.status_code)
+        return Response(
+            content={"detail": "Internal Server Error"},
+            status_code=exception.status_code,
+            headers=exception.headers,
+        )
 
     # Client Errors
     logger.info(
@@ -64,7 +68,7 @@ def log_http_exception(request: Request[Any, Any, Any], exception: HTTPException
     if isinstance(exception, ValidationException) and exception.extra:
         content["validation_errors"] = exception.extra
 
-    return Response(content=content, status_code=exception.status_code)
+    return Response(content=content, status_code=exception.status_code, headers=exception.headers)
 
 
 def log_unhandled_exception(request: Request[Any, Any, Any], exception: Exception) -> Response[dict[str, Any]]:
