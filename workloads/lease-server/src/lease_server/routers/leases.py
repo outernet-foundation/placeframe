@@ -23,10 +23,14 @@ MAX_REQUEUE_ATTEMPTS = 5
 TERMINAL_STATUSES = (ReconstructionStatus.SUCCEEDED, ReconstructionStatus.FAILED, ReconstructionStatus.CANCELLED)
 
 
-class LeaseResponse(BaseModel):
+class Lease(BaseModel):
     reconstruction_id: UUID
     capture_session_id: UUID
     options: ReconstructionOptions
+
+
+class LeaseResponse(BaseModel):
+    lease: Lease | None
 
 
 class ProgressUpdate(BaseModel):
@@ -61,7 +65,7 @@ async def request_lease(session: AsyncSession) -> LeaseResponse:
     # off-queue. Fail it only once it has exhausted its requeue budget; otherwise return it to the
     # queue so a fresh worker retries (the budget bounds retries so a job that always stalls can't
     # loop forever). Runs in its own transaction so the requeue/fail persists even when no job is
-    # granted below — the lease-grant path commits only on success and rolls back on the 404.
+    # granted below — the lease-grant path commits only on success and returns a null lease when no row is grantable.
     async with SessionLocal() as reaper_session, reaper_session.begin():
         await reaper_session.execute(
             update(Reconstruction)
@@ -97,7 +101,7 @@ async def request_lease(session: AsyncSession) -> LeaseResponse:
     row = result.scalar_one_or_none()
 
     if not row:
-        raise NotFoundException("No pending jobs")
+        return LeaseResponse(lease=None)
 
     # Validate the manifest BEFORE flipping status. If validation throws after the commit,
     # the row is already out of QUEUED but no worker has it, leaving it stuck in
@@ -115,9 +119,11 @@ async def request_lease(session: AsyncSession) -> LeaseResponse:
     assert row.capture_session_id is not None
 
     return LeaseResponse(
-        reconstruction_id=row.id,
-        capture_session_id=row.capture_session_id,
-        options=manifest.options,
+        lease=Lease(
+            reconstruction_id=row.id,
+            capture_session_id=row.capture_session_id,
+            options=manifest.options,
+        ),
     )
 
 
