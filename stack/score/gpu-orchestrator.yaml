@@ -1,0 +1,46 @@
+apiVersion: score.dev/v1b1
+metadata:
+  name: gpu-orchestrator
+  annotations:
+    # The reconcile loop starts and stops sibling services through the host daemon
+    boatyard/docker-socket: "true"
+    boatyard/probe-adapter: python-urllib
+boatyard:
+  dockerfile:
+    gpu-orchestrator: workloads/gpu-orchestrator/Dockerfile
+listeners:
+  http: 8000
+containers:
+  gpu-orchestrator:
+    variables:
+      LOCALIZER_URL: http://${resources.localizer.hostname}:${resources.localizer.port}
+      LEASE_SERVER_URL: http://${resources.lease-server.hostname}:${resources.lease-server.port}
+      SERVICE_PORT: ${listeners.http.port}
+      COMPOSE_PROJECT_NAME: ${resources.config.compose_project}
+      GPU_CONTENDED: ${resources.config.gpu_contended}
+      GPU_IDLE_WINDOW_S: ${resources.config.gpu_idle_window_s}
+      GPU_POLL_INTERVAL_S: ${resources.config.gpu_poll_interval_s}
+      GPU_RETRY_AFTER_SECONDS: ${resources.config.gpu_retry_after_seconds}
+    readinessProbe:
+      httpGet:
+        path: /state
+        port: http
+      # If /state responds, the reconcile loop has completed its first pass
+      initialDelaySeconds: 30
+      failureThreshold: 6
+resources:
+  localizer:
+    type: service-port
+    id: localizer-http
+    params:
+      workload: localizer
+      port: http
+  lease-server:
+    type: service-port
+    id: lease-server-http
+    params:
+      workload: lease-server
+      port: http
+  config:
+    type: placeframe-config
+    id: placeframe-config

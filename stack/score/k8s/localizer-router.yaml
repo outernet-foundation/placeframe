@@ -1,0 +1,9 @@
+# K8s twin of compose/localizer-router.yaml, outputs-only with the localizer always on
+- uri: template://placeframe/localizer-router-k8s
+  type: localizer-router
+  description: Degenerate router outputs — the always-on localizer, unmanaged.
+  state:
+    localizer_port: {listener: localizer.http}
+  outputs:
+    address: 'http://localizer:{{ .State.localizer_port }}'
+    managed: "false"

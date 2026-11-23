@@ -338,6 +338,29 @@
         },
         "deprecated": false
       }
+    },
+    "/queue-state": {
+      "get": {
+        "tags": [
+          "QueueState"
+        ],
+        "summary": "GetQueueState",
+        "operationId": "get_queue_state",
+        "responses": {
+          "200": {
+            "description": "Request fulfilled, document follows",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueState"
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
     }
   },
   "components": {
@@ -358,7 +381,7 @@
         ],
         "title": "FailLeaseRequest"
       },
-      "LeaseResponse": {
+      "Lease": {
         "properties": {
           "reconstruction_id": {
             "type": "string",
@@ -378,6 +401,17 @@
           "options",
           "reconstruction_id"
         ],
+        "title": "Lease"
+      },
+      "LeaseResponse": {
+        "properties": {
+          "lease": {
+            "nullable": true,
+            "$ref": "#/components/schemas/Lease"
+          }
+        },
+        "type": "object",
+        "required": [],
         "title": "LeaseResponse"
       },
       "PhaseTiming": {
@@ -427,8 +461,29 @@
         ],
         "title": "ProgressUpdate"
       },
+      "QueueState": {
+        "properties": {
+          "queued": {
+            "type": "integer"
+          },
+          "in_flight": {
+            "type": "integer"
+          }
+        },
+        "type": "object",
+        "required": [
+          "in_flight",
+          "queued"
+        ],
+        "title": "QueueState"
+      },
       "ReconstructionMetrics": {
         "properties": {
+          "successful": {
+            "type": "boolean",
+            "description": "True if the reconstruction produced a model, false otherwise.",
+            "default": false
+          },
           "reprojection_pixel_error_50th_percentile": {
             "description": "Median reprojection error in pixels across all valid 2D observations in registered images.",
             "nullable": true,

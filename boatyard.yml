@@ -1,4 +1,4 @@
-requires: ">=0.8"
+requires: ">=0.9.12"
 repository: ghcr.io/outernet-foundation/placeframe
 project_name: placeframe
 gateway_port: 8443
@@ -35,9 +35,11 @@ services:
       - lease-server.yaml
       - reconstructor.yaml
       - localizer.yaml
+      - gpu-orchestrator.yaml
     ports:
       - {service: api, host_ip: 127.0.0.1, published: 5679, target: 5678}
       - {service: lease-server, host_ip: 127.0.0.1, published: 5683, target: 5678}
+      - {service: gpu-orchestrator, host_ip: 127.0.0.1, published: 5687, target: {listener: http}}
       - {service: seaweedfs-admin, published: 59001, target: 59001}
   tunnel:
     options:

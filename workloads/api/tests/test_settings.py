@@ -15,7 +15,7 @@ REQUIRED_ENV = {
     "DATABASE_AUTH_USER_PASSWORD": "password",
     "DATABASE_ORCHESTRATION_USER": "placeframe_orchestration_user",
     "DATABASE_ORCHESTRATION_USER_PASSWORD": "password",
-    "LOCALIZER_CONTAINER_URL": "http://localizer:8000",
+    "LOCALIZER_ROUTER_ADDRESS": "http://gpu-orchestrator:8000",
     "LOKI_URL": "http://loki:3100",
     "RECONSTRUCTIONS_BUCKET": "dev-reconstructions",
     "CAPTURES_BUCKET": "captures",
@@ -37,7 +37,7 @@ def isolated_env(monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv(name, value)
     for name in AUTH_ENV:
         monkeypatch.delenv(name, raising=False)
-    for name in ("S3_ENDPOINT_URL", "S3_ACCESS_KEY", "S3_SECRET_KEY"):
+    for name in ("S3_ENDPOINT_URL", "S3_ACCESS_KEY", "S3_SECRET_KEY", "LOCALIZER_ROUTER_MANAGED"):
         monkeypatch.delenv(name, raising=False)
 
 
@@ -118,3 +118,24 @@ def test_audience_override_is_kept(monkeypatch: pytest.MonkeyPatch) -> None:
     settings = build_settings()
 
     assert settings.auth_audience == "https://api.example.com"
+
+
+def test_localizer_router_managed_defaults_to_false() -> None:
+    settings = build_settings()
+
+    assert settings.localizer_router_managed is False
+
+
+def test_localizer_router_managed_parses_env_strings(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("LOCALIZER_ROUTER_MANAGED", "true")
+    assert build_settings().localizer_router_managed is True
+
+    monkeypatch.setenv("LOCALIZER_ROUTER_MANAGED", "false")
+    assert build_settings().localizer_router_managed is False
+
+
+def test_router_address_is_required(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("LOCALIZER_ROUTER_ADDRESS", raising=False)
+
+    with pytest.raises(ValidationError):
+        build_settings()

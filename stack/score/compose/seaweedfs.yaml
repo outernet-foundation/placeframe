@@ -1,15 +1,6 @@
-# Custom Score provisioner: Placeframe SeaweedFS at the FIXED service names the stack's
-# baked-in references require — the entrypoint wrapper renders the fluent audit sink
-# pointing at `seaweedfs-audit`, and loki's config addresses `seaweedfs:8333` — with the
-# real buckets (captures, reconstructions, loki) converged by the real
-# s3-initializer image.
-# Declaring `type: s3` here overrides the built-in, because custom provisioners are
-# matched ahead of the defaults on a first-match policy.
-#
-# HERMETIC BY CONSTRUCTION: the credentials are literal ${VAR:-dev-default} placeholders,
-# matching the S3_ACCESS_KEY / S3_SECRET_KEY consumption everywhere else, so nothing is
-# resolved at generation time and .env stays the single source of truth for overrides.
+# Compose twin of k8s/seaweedfs.yaml
 - uri: template://placeframe/seaweedfs
+  # Declares s3 ahead of the built-in provisioner on the first-match policy
   type: s3
   description: Placeframe SeaweedFS at fixed names with the real buckets, credentials from .env.
   outputs:
@@ -37,9 +28,7 @@
         source: seaweedfs-data
         target: /data
       healthcheck:
-        # The readiness contract dependents gate on: master serving AND the S3 listener
-        # accepting connections. weed binds its listeners staggered, so a single-port
-        # check passes before S3 is reachable.
+        # Probe master and S3 both because weed binds its listeners staggered
         test:
           [
             "CMD-SHELL",
@@ -48,16 +37,14 @@
         interval: 1s
         retries: 60
         start_period: 90s
-    # weed's S3 audit log ships over the fluent protocol (no file/stdout mode), so this
-    # relay receives on 24224 and echoes to its own stdout for alloy.
+    # The relay exists because weed has no stdout mode for the audit log
     seaweedfs-audit:
       image: {lock: SEAWEEDFS_AUDIT_IMAGE}
       depends_on:
         seaweedfs:
           condition: service_healthy
       command: ["-i", "forward", "-p", "listen=0.0.0.0", "-p", "port=24224", "-o", "stdout", "-m", "*"]
-    # `weed admin` derives its worker gRPC port as HTTP port + 10000, which overflows the
-    # 16-bit port range at 59001 — pass an explicit -port.grpc.
+    # Pass an explicit gRPC port because the default derivation overflows 16 bits at 59002
     seaweedfs-admin:
       image: {dockerfile: workloads/seaweedfs/Dockerfile}
       entrypoint: /usr/local/bin/entrypoint-wrapper.sh
@@ -65,9 +52,6 @@
         seaweedfs:
           condition: service_healthy
       command: admin -ip=0.0.0.0 -port=59001 -port.grpc=59002 -master=seaweedfs:9333 -adminPassword="${S3_SECRET_KEY:-password}"
-    # Converges the required buckets (verify if present, create if missing) and retries
-    # until the S3 endpoint accepts connections — safe on both cold and warm volumes.
-    # Gated on seaweedfs health, which asserts S3 readiness.
     initialize-s3:
       image: {dockerfile: workloads/s3-initializer/Dockerfile}
       depends_on:

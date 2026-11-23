@@ -3,16 +3,15 @@ metadata:
   name: ngrok
   annotations:
     boatyard/restart: on-failure
-    boatyard/lock: ngrok=NGROK_IMAGE
+boatyard:
+  lock:
+    ngrok: NGROK_IMAGE
+listeners:
+  admin: 4040
 containers:
   ngrok:
-    # The shell wrapper is load-bearing twice over: score does not substitute
-    # resource refs inside command args, and score-compose $$-escapes ${...} in
-    # them to a docker-compose literal — so the shell expands the domain inside
-    # the container from NGROK_DOMAIN below, while the authtoken is read from
-    # the environment natively by ngrok itself. The forward target is the
-    # gateway — the emitted front door's reserved service name, listening :8443
-    # internally.
+    # Expand the domain in a shell because score substitutes nothing inside command args
+    # Forward to the gateway at its reserved service name on :8443
     command:
       - /bin/sh
       - -c
@@ -20,11 +19,6 @@ containers:
     variables:
       NGROK_AUTHTOKEN: ${resources.config.ngrok_authtoken}
       NGROK_DOMAIN: ${resources.config.ngrok_domain}
-service:
-  ports:
-    admin:
-      port: 4040
-      targetPort: 4040
 resources:
   config:
     type: tunnel-config

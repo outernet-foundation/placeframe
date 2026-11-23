@@ -3,7 +3,7 @@ set -euo pipefail
 
 cd /app/workloads/lease-server
 
-UVICORN_ARGS=( "src.main:app" "--host" "0.0.0.0" "--port" "8000" )
+UVICORN_ARGS=( "lease_server.main:app" "--host" "0.0.0.0" "--port" "${SERVICE_PORT:?err}" )
 
 echo "Starting lease-server"
 

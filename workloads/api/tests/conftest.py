@@ -7,6 +7,12 @@ from pathlib import Path
 import httpx
 import pytest
 
+from test_settings import REQUIRED_ENV
+
+# Provision the settings env because api modules validate it at import
+for _name, _value in REQUIRED_ENV.items():
+    os.environ.setdefault(_name, _value)
+
 DEFAULT_API_CONTAINER = "placeframe-api-1"
 DEFAULT_API_PORT = 8000
 DEFAULT_REALM = "placeframe-dev"

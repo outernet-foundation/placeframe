@@ -2,10 +2,13 @@ apiVersion: score.dev/v1b1
 metadata:
   name: reconstructor
   annotations:
-    # The GPU marker boatyard's built-in gpu patch templates key on; accelerator
-    # plumbing is generated, never hand-declared.
+    # Declare the GPU marker because boatyard derives all accelerator plumbing from it
     boatyard/gpu: "true"
-    boatyard/dockerfile: reconstructor=workloads/reconstructor/Dockerfile
+    # Hold this container out of boatyard up and let the gpu-orchestrator start it
+    boatyard/autostart: "false"
+boatyard:
+  dockerfile:
+    reconstructor: workloads/reconstructor/Dockerfile
 containers:
   reconstructor:
     variables:
@@ -35,7 +38,6 @@ resources:
     type: observability
     id: placeframe-observability
   autoscaling:
-    # Queue-driven scale-to-zero is a workload fact: the k8s provisioner renders the
-    # KEDA ScaledObject + TriggerAuthentication, the compose twin is the always-on no-op.
+    # Scale to zero from queue depth, rendered by the k8s provisioner only
     type: keda-scaled-object
     id: reconstructor-queued-depth

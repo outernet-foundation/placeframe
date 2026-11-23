@@ -3,7 +3,7 @@ set -euo pipefail
 
 cd /app/workloads/localizer
 
-UVICORN_ARGS=( "src.main:app" "--host" "0.0.0.0" "--port" "8000" )
+UVICORN_ARGS=( "src.main:app" "--host" "0.0.0.0" "--port" "${SERVICE_PORT:?err}" )
 
 echo "Starting Localize Service"
 

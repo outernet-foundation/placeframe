@@ -3,8 +3,14 @@ metadata:
   name: localizer
   annotations:
     boatyard/gpu: "true"
+    # Hold this container out of boatyard up and let the gpu-orchestrator start it
+    boatyard/autostart: "false"
     boatyard/probe-adapter: python-urllib
-    boatyard/dockerfile: localizer=workloads/localizer/Dockerfile
+boatyard:
+  dockerfile:
+    localizer: workloads/localizer/Dockerfile
+listeners:
+  http: 8000
 containers:
   localizer:
     variables:
@@ -13,21 +19,17 @@ containers:
       S3_SECRET_KEY: ${resources.bucket.secret_key}
       RECONSTRUCTIONS_BUCKET: ${resources.bucket.bucket}
       DEPLOYMENT_ENVIRONMENT: ${resources.config.deployment_environment}
+      SERVICE_PORT: ${listeners.http.port}
       SERVICE_VERSION: ${LOCALIZER_SHA}
       OTEL_EXPORTER_OTLP_ENDPOINT: ${resources.observability.otlp_endpoint}
     livenessProbe:
       httpGet:
         path: /version
-        port: 8000
+        port: http
     readinessProbe:
       httpGet:
         path: /version
-        port: 8000
-service:
-  ports:
-    http:
-      port: 8000
-      targetPort: 8000
+        port: http
 resources:
   bucket:
     type: s3

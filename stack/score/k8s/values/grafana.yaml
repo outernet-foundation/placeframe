@@ -1,10 +1,3 @@
-# Values for the grafana chart (ghcr.io/grafana/helm-charts/grafana,
-# digest-pinned in boatyard.yml). The Service keeps the fixed name and port
-# the gateway Caddyfile proxies (grafana:3000). No anonymous access on this tier
-# (unlike the compose dev stack): admin credentials are injected from the
-# externally managed placeframe-secrets Secret. Root URL uses grafana's
-# request-derived placeholders so no PUBLIC_URL needs to be composed at
-# generation; the OAuth block joins when the k8s keycloak edge lands.
 image:
   lock-image:
     key: GRAFANA_IMAGE
@@ -21,6 +14,7 @@ service:
   port: 3000
 env:
   GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+  # Request-derived placeholders because no PUBLIC_URL exists at generation
   GF_SERVER_ROOT_URL: "%(protocol)s://%(domain)s:%(http_port)s/grafana/"
 datasources:
   datasources.yaml:

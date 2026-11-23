@@ -18,9 +18,8 @@ import re  # noqa: F401
 import json
 
 from pydantic import BaseModel, ConfigDict
-from typing import Any, ClassVar, Dict, List
-from uuid import UUID
-from placeframe_lease_server_client.models.reconstruction_options import ReconstructionOptions
+from typing import Any, ClassVar, Dict, List, Optional
+from placeframe_lease_server_client.models.lease import Lease
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
@@ -29,11 +28,9 @@ class LeaseResponse(BaseModel):
     """
     LeaseResponse
     """ # noqa: E501
-    reconstruction_id: UUID
-    capture_session_id: UUID
-    options: ReconstructionOptions
+    lease: Optional[Lease] = None
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["reconstruction_id", "capture_session_id", "options"]
+    __properties: ClassVar[List[str]] = ["lease"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -76,9 +73,9 @@ class LeaseResponse(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
-        # override the default output from pydantic by calling `to_dict()` of options
-        if self.options:
-            _dict['options'] = self.options.to_dict()
+        # override the default output from pydantic by calling `to_dict()` of lease
+        if self.lease:
+            _dict['lease'] = self.lease.to_dict()
         # puts key-value pairs in additional_properties in the top level
         if self.additional_properties is not None:
             for _key, _value in self.additional_properties.items():
@@ -96,9 +93,7 @@ class LeaseResponse(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "reconstruction_id": obj.get("reconstruction_id"),
-            "capture_session_id": obj.get("capture_session_id"),
-            "options": ReconstructionOptions.from_dict(obj["options"]) if obj.get("options") is not None else None
+            "lease": Lease.from_dict(obj["lease"]) if obj.get("lease") is not None else None
         })
         # store additional fields in additional_properties
         for _key in obj.keys():

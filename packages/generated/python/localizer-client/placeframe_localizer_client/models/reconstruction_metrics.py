@@ -28,6 +28,7 @@ class ReconstructionMetrics(BaseModel):
     """
     ReconstructionMetrics
     """ # noqa: E501
+    successful: Optional[StrictBool] = Field(default=False, description="True if the reconstruction produced a model, false otherwise.")
     reprojection_pixel_error_50th_percentile: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Median reprojection error in pixels across all valid 2D observations in registered images.")
     reprojection_pixel_error_90th_percentile: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="90th percentile reprojection error in pixels across all valid 2D observations.")
     track_length_50th_percentile: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Median number of distinct images observing each 3D point.")
@@ -50,7 +51,7 @@ class ReconstructionMetrics(BaseModel):
     phase_timings: Optional[List[PhaseTiming]] = Field(default=None, description="Per-phase wall-clock durations in execution order, captured at each set_phase boundary.")
     pipeline_version: Optional[StrictStr] = Field(default=None, description="RECONSTRUCTOR_SHA of the image that produced this reconstruction.")
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["reprojection_pixel_error_50th_percentile", "reprojection_pixel_error_90th_percentile", "track_length_50th_percentile", "all_verified_matches", "all_verified_match_rate", "all_verified_match_inliers_mean", "all_verified_match_inliers_median", "stereo_verified_matches", "stereo_verified_match_rate", "stereo_verified_match_inliers_mean", "stereo_verified_match_inliers_median", "map_image_count", "map_point_count", "map_avg_track_length", "map_viewpoint_diversity", "gravity_aligned_in_map_frame", "gravity_sample_count", "prior_drift_residual_rms_m", "prior_drift_residual_max_m", "phase_timings", "pipeline_version"]
+    __properties: ClassVar[List[str]] = ["successful", "reprojection_pixel_error_50th_percentile", "reprojection_pixel_error_90th_percentile", "track_length_50th_percentile", "all_verified_matches", "all_verified_match_rate", "all_verified_match_inliers_mean", "all_verified_match_inliers_median", "stereo_verified_matches", "stereo_verified_match_rate", "stereo_verified_match_inliers_mean", "stereo_verified_match_inliers_median", "map_image_count", "map_point_count", "map_avg_track_length", "map_viewpoint_diversity", "gravity_aligned_in_map_frame", "gravity_sample_count", "prior_drift_residual_rms_m", "prior_drift_residual_max_m", "phase_timings", "pipeline_version"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -222,6 +223,7 @@ class ReconstructionMetrics(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
+            "successful": obj.get("successful") if obj.get("successful") is not None else False,
             "reprojection_pixel_error_50th_percentile": obj.get("reprojection_pixel_error_50th_percentile"),
             "reprojection_pixel_error_90th_percentile": obj.get("reprojection_pixel_error_90th_percentile"),
             "track_length_50th_percentile": obj.get("track_length_50th_percentile"),

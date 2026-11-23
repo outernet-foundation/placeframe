@@ -3,7 +3,11 @@ metadata:
   name: lease-server
   annotations:
     boatyard/probe-adapter: python-urllib
-    boatyard/dockerfile: lease-server=workloads/lease-server/Dockerfile
+boatyard:
+  dockerfile:
+    lease-server: workloads/lease-server/Dockerfile
+listeners:
+  http: 8000
 containers:
   lease-server:
     variables:
@@ -13,6 +17,7 @@ containers:
       DATABASE_ORCHESTRATION_USER_PASSWORD: ${resources.db.orchestration_password}
       DEPLOYMENT_ENVIRONMENT: ${resources.config.deployment_environment}
       OTEL_EXPORTER_OTLP_ENDPOINT: ${resources.observability.otlp_endpoint}
+      SERVICE_PORT: ${listeners.http.port}
       SERVICE_VERSION: ${LEASE_SERVER_SHA}
       RELOAD: "false"
       DEBUG_LEASE_SERVER: "false"
@@ -20,16 +25,11 @@ containers:
     livenessProbe:
       httpGet:
         path: /health
-        port: 8000
+        port: http
     readinessProbe:
       httpGet:
         path: /health
-        port: 8000
-service:
-  ports:
-    http:
-      port: 8000
-      targetPort: 8000
+        port: http
 resources:
   db:
     type: placeframe-postgres

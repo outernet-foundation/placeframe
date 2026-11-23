@@ -1,8 +1,4 @@
-# Kubernetes twin of compose/postgres.yaml. Emits a Service +
-# StatefulSet (real Placeframe postgres) + create/migrate Jobs. Secrets are NOT
-# generated or emitted here: every password is referenced from the externally
-# managed `placeframe-secrets` Secret (created by the Pulumi infra program), so the
-# generated manifests contain zero secret values and are safe to commit for GitOps.
+# K8s twin of compose/postgres.yaml
 - uri: template://placeframe/postgres-k8s
   type: placeframe-postgres
   description: Placeframe postgres with placeframe_* roles created by database-manager (Kubernetes).
@@ -67,11 +63,7 @@
                   secretKeyRef:
                     name: placeframe-secrets
                     key: POSTGRES_ADMIN_PASSWORD
-              # Mirrors the compose healthcheck: readiness gates the Service endpoints
-              # so cold-start consumers connect only once postgres accepts logins.
-              # -h localhost forces TCP: during first-init the postgres entrypoint runs
-              # a temporary server that answers on the unix socket only, so a socket
-              # probe reports ready while TCP 5432 refuses connections.
+              # -h localhost forces TCP because first-init answers on the unix socket only
               readinessProbe:
                 exec:
                   command:
@@ -94,12 +86,6 @@
       kind: Job
       metadata:
         name: "{{ .State.service }}-create"
-        # A Job's spec.template is immutable, so Argo CD cannot patch this in place once the image
-        # tag moves; without the hook the sync fails with "field is immutable" and selfHeal retries
-        # forever. As a Sync hook Argo CD deletes the previous Job before recreating it. Re-running
-        # is safe: --op create is idempotent, and the retry loop below still waits out postgres.
-        # The weights pin create strictly before migrate; without explicit weights Argo orders
-        # same-phase hooks alphabetically, which only coincidentally matches.
         annotations:
           argocd.argoproj.io/hook: Sync
           argocd.argoproj.io/hook-weight: "10"
@@ -150,9 +136,6 @@
       kind: Job
       metadata:
         name: "{{ .State.service }}-migrate"
-        # Same immutability constraint as the create Job. This one also has to re-run on every sync
-        # by design — it is what applies schema changes, and pg-schema-diff is a no-op when the
-        # live schema already matches. The weight runs it strictly after create.
         annotations:
           argocd.argoproj.io/hook: Sync
           argocd.argoproj.io/hook-weight: "20"

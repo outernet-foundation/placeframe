@@ -1,0 +1,9 @@
+# Compose twin of k8s/localizer-router.yaml, outputs-only over the gpu-orchestrator workload
+- uri: template://placeframe/localizer-router
+  type: localizer-router
+  description: GPU orchestrator routing localization to the running GPU container.
+  state:
+    orchestrator_port: {listener: gpu-orchestrator.http}
+  outputs:
+    address: http://gpu-orchestrator:{{ .State.orchestrator_port }}
+    managed: "true"

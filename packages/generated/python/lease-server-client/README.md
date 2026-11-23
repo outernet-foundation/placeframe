@@ -85,6 +85,7 @@ All URIs are relative to *http://lease-server:8000*
 Class | Method | HTTP request | Description
 ------------ | ------------- | ------------- | -------------
 *DefaultApi* | [**fail_lease**](docs/DefaultApi.md#fail_lease) | **POST** /leases/{id}/fail | FailLease
+*DefaultApi* | [**get_queue_state**](docs/DefaultApi.md#get_queue_state) | **GET** /queue-state | GetQueueState
 *DefaultApi* | [**request_lease**](docs/DefaultApi.md#request_lease) | **POST** /leases/request | RequestLease
 *DefaultApi* | [**requeue_lease**](docs/DefaultApi.md#requeue_lease) | **POST** /leases/{id}/requeue | RequeueLease
 *DefaultApi* | [**succeed_lease**](docs/DefaultApi.md#succeed_lease) | **POST** /leases/{id}/succeed | SucceedLease
@@ -94,9 +95,11 @@ Class | Method | HTTP request | Description
 ## Documentation For Models
 
  - [FailLeaseRequest](docs/FailLeaseRequest.md)
+ - [Lease](docs/Lease.md)
  - [LeaseResponse](docs/LeaseResponse.md)
  - [PhaseTiming](docs/PhaseTiming.md)
  - [ProgressUpdate](docs/ProgressUpdate.md)
+ - [QueueState](docs/QueueState.md)
  - [ReconstructionMetrics](docs/ReconstructionMetrics.md)
  - [ReconstructionOptions](docs/ReconstructionOptions.md)
  - [ReconstructionStatus](docs/ReconstructionStatus.md)
