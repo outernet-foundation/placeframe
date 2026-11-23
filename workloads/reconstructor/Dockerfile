@@ -8,6 +8,17 @@ FROM ${NEURAL_NETWORKS_BASE}
 # that fragmentation class.
 ENV PYTORCH_ALLOC_CONF=expandable_segments:True
 
+# glibc malloc keeps most of the memory a reconstruction frees: it is spread over per-thread arenas, with free blocks
+# between live ones that glibc never returns, and it accumulates over jobs, so a long-lived worker ends up holding
+# gigabytes while idle. jemalloc's background thread returns unused pages to the system after each job.
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends libjemalloc2=5.3.0-3 \
+    && rm -rf /var/lib/apt/lists/*
+ENV LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libjemalloc.so.2 \
+    MALLOC_CONF=background_thread:true
+
 WORKDIR /app/workloads/reconstructor
 
 ENV UV_TOOLS_ENVIRONMENT=/opt/uv/tools

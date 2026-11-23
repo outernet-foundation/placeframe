@@ -10,7 +10,8 @@ The reconstructor is a single-process GPU worker that turns capture sessions int
 
 ```
 workloads/reconstructor/
-|-- Dockerfile             FROM neural-networks-base; PYTORCH_ALLOC_CONF=expandable_segments:True
+|-- Dockerfile             FROM neural-networks-base; PYTORCH_ALLOC_CONF=expandable_segments:True;
+|                          jemalloc via LD_PRELOAD (MALLOC_CONF=background_thread:true)
 |-- entrypoint.sh          uv run reconstructor (debugpy when DEBUG=true)
 |-- pyproject.toml         core, common, placeframe-lease-server-client, pycolmap, scipy
 |-- src/reconstructor/
