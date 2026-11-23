@@ -1,4 +1,4 @@
-requires: ">=0.3.3"
+requires: ">=0.3.4"
 root_name: placeframe
 generated_root: packages/generated
 spec_command: uv run --project . python -m src.dump_openapi
