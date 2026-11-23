@@ -1737,7 +1737,7 @@ wheels = [
 
 [[package]]
 name = "openapi-client-codegen"
-version = "0.3.3"
+version = "0.3.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "bashrun" },
@@ -1746,9 +1746,9 @@ dependencies = [
     { name = "strictyaml" },
     { name = "typer" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/2f/bb/9f3f09548483e55300e2c9f82b46e2511b8eccd2dbb048d22800f7ce46ab/openapi_client_codegen-0.3.3.tar.gz", hash = "sha256:be047590cd4a23b08d4ebd0a9f8fb79e0b0f19d44a7b54c57b1fbc42cb44c1af", size = 56256, upload-time = "2026-11-19T16:16:24.48Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c7/32/e72de2a51610970dfc50744c3962b2749fc157f59246019ce1a81b672f53/openapi_client_codegen-0.3.4.tar.gz", hash = "sha256:c2050f79d9596d3c2c746ba149ea9401080ed22986c1cf65370813dab6a55ed7", size = 57322, upload-time = "2026-11-23T03:03:49.09Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/6d/73/9bb11110fa648f94dce4c42e43691dfb88ffea73a57eba994b2ae75eed6e/openapi_client_codegen-0.3.3-py3-none-any.whl", hash = "sha256:524342f8b5553100207b4dc9407241354acb58077b3a6e88777d07fea8fc7ff2", size = 24431, upload-time = "2026-11-19T16:16:23.102Z" },
+    { url = "https://files.pythonhosted.org/packages/9d/46/ec0c7058b3f957562f4edee54afc6b1ec1ea03137b818786719eab5a524f/openapi_client_codegen-0.3.4-py3-none-any.whl", hash = "sha256:edde2ce6ddbb62352c4c41be36c6fa7b0d083b1233a939e5981e0bba3af3312a", size = 24735, upload-time = "2026-11-23T03:03:48.153Z" },
 ]
 
 [[package]]
@@ -2952,7 +2952,7 @@ requires-dist = [
     { name = "datamodel-code-generator", specifier = ">=0.33.0" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "numpy", specifier = ">=2.1" },
-    { name = "openapi-client-codegen", specifier = ">=0.3.3" },
+    { name = "openapi-client-codegen", specifier = ">=0.3.4" },
     { name = "placeframe-api-client", editable = "packages/generated/python/api-client" },
     { name = "placeframe-core", editable = "packages/python/core" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2.10" },
