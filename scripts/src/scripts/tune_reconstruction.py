@@ -103,7 +103,7 @@ async def _run_cell(
         current = await api.get_reconstruction(id=recon.id)
         if current.status == ReconstructionStatus.SUCCEEDED:
             break
-        if current.status in (ReconstructionStatus.FAILED, ReconstructionStatus.CANCELLED):
+        if current.status == ReconstructionStatus.FAILED:
             echo(f"    {current.status.value}")
             return {
                 "capture_id": str(capture_id),

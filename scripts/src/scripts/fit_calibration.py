@@ -250,7 +250,7 @@ async def match_or_create_reconstruction(
         current = await api.get_reconstruction(id=created.id)
         if current.status == ReconstructionStatus.SUCCEEDED:
             break
-        if current.status in (ReconstructionStatus.FAILED, ReconstructionStatus.CANCELLED):
+        if current.status == ReconstructionStatus.FAILED:
             raise RuntimeError(f"Reconstruction {created.id} ended in {current.status.value}")
         if elapsed >= RECONSTRUCTION_TIMEOUT_S:
             raise RuntimeError(f"Reconstruction {created.id} did not succeed within {RECONSTRUCTION_TIMEOUT_S}s")
