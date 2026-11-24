@@ -10921,6 +10921,7 @@ class DefaultApi:
     async def import_reconstruction_tar(
         self,
         data: Union[StrictBytes, StrictStr, Tuple[StrictStr, StrictBytes]],
+        allow_missing_capture_session: Annotated[Optional[StrictBool], Field(description="Import the tar as a standalone map when the capture session it names is not on this backend")] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -10939,6 +10940,8 @@ class DefaultApi:
 
         :param data: (required)
         :type data: bytes
+        :param allow_missing_capture_session: Import the tar as a standalone map when the capture session it names is not on this backend
+        :type allow_missing_capture_session: bool
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -10963,6 +10966,7 @@ class DefaultApi:
 
         _param = self._import_reconstruction_tar_serialize(
             data=data,
+            allow_missing_capture_session=allow_missing_capture_session,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -10988,6 +10992,7 @@ class DefaultApi:
     async def import_reconstruction_tar_with_http_info(
         self,
         data: Union[StrictBytes, StrictStr, Tuple[StrictStr, StrictBytes]],
+        allow_missing_capture_session: Annotated[Optional[StrictBool], Field(description="Import the tar as a standalone map when the capture session it names is not on this backend")] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -11006,6 +11011,8 @@ class DefaultApi:
 
         :param data: (required)
         :type data: bytes
+        :param allow_missing_capture_session: Import the tar as a standalone map when the capture session it names is not on this backend
+        :type allow_missing_capture_session: bool
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -11030,6 +11037,7 @@ class DefaultApi:
 
         _param = self._import_reconstruction_tar_serialize(
             data=data,
+            allow_missing_capture_session=allow_missing_capture_session,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -11055,6 +11063,7 @@ class DefaultApi:
     async def import_reconstruction_tar_without_preload_content(
         self,
         data: Union[StrictBytes, StrictStr, Tuple[StrictStr, StrictBytes]],
+        allow_missing_capture_session: Annotated[Optional[StrictBool], Field(description="Import the tar as a standalone map when the capture session it names is not on this backend")] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -11073,6 +11082,8 @@ class DefaultApi:
 
         :param data: (required)
         :type data: bytes
+        :param allow_missing_capture_session: Import the tar as a standalone map when the capture session it names is not on this backend
+        :type allow_missing_capture_session: bool
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -11097,6 +11108,7 @@ class DefaultApi:
 
         _param = self._import_reconstruction_tar_serialize(
             data=data,
+            allow_missing_capture_session=allow_missing_capture_session,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -11117,6 +11129,7 @@ class DefaultApi:
     def _import_reconstruction_tar_serialize(
         self,
         data,
+        allow_missing_capture_session,
         _request_auth,
         _content_type,
         _headers,
@@ -11139,6 +11152,10 @@ class DefaultApi:
 
         # process the path parameters
         # process the query parameters
+        if allow_missing_capture_session is not None:
+            
+            _query_params.append(('allow_missing_capture_session', allow_missing_capture_session))
+            
         # process the header parameters
         # process the form parameters
         if data is not None:

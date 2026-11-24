@@ -344,6 +344,7 @@ export interface GetReconstructionsRequest {
 
 export interface ImportReconstructionTarRequest {
     data: Blob;
+    allowMissingCaptureSession?: boolean;
 }
 
 export interface ListLocalizationEvaluationsRequest {
@@ -2336,6 +2337,10 @@ export class DefaultApi extends runtime.BaseAPI {
         }
 
         const queryParameters: any = {};
+
+        if (requestParameters['allowMissingCaptureSession'] != null) {
+            queryParameters['allow_missing_capture_session'] = requestParameters['allowMissingCaptureSession'];
+        }
 
         const headerParameters: runtime.HTTPHeaders = {};
 
