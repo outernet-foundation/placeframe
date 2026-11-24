@@ -67,6 +67,57 @@
             "description": "Document created, URL follows",
             "headers": {}
           },
+          "409": {
+            "description": "The write was refused and changed nothing: reason `paused` means an operator paused the job, reason `superseded` means the row is terminal or owned by a different lease attempt. The worker abandons the job and leaves all artifacts untouched.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeaseRefusal"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Nothing matches the given URI",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status_code": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "anyOf": [
+                        {
+                          "type": "object"
+                        },
+                        {
+                          "type": "array",
+                          "items": {}
+                        }
+                      ],
+                      "nullable": true
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "description": "Not Found Exception",
+                  "example": {
+                    "status_code": 404,
+                    "detail": "Not Found",
+                    "extra": {}
+                  }
+                }
+              }
+            }
+          },
           "400": {
             "description": "Bad request syntax or unsupported method",
             "content": {
@@ -129,6 +180,17 @@
             },
             "required": true,
             "deprecated": false
+          },
+          {
+            "name": "lease_attempt",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true,
+            "deprecated": false,
+            "allowEmptyValue": false,
+            "allowReserved": false
           }
         ],
         "requestBody": {
@@ -145,6 +207,57 @@
           "201": {
             "description": "Document created, URL follows",
             "headers": {}
+          },
+          "409": {
+            "description": "The write was refused and changed nothing: reason `paused` means an operator paused the job, reason `superseded` means the row is terminal or owned by a different lease attempt. The worker abandons the job and leaves all artifacts untouched.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeaseRefusal"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Nothing matches the given URI",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status_code": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "anyOf": [
+                        {
+                          "type": "object"
+                        },
+                        {
+                          "type": "array",
+                          "items": {}
+                        }
+                      ],
+                      "nullable": true
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "description": "Not Found Exception",
+                  "example": {
+                    "status_code": 404,
+                    "detail": "Not Found",
+                    "extra": {}
+                  }
+                }
+              }
+            }
           },
           "400": {
             "description": "Bad request syntax or unsupported method",
@@ -208,6 +321,17 @@
             },
             "required": true,
             "deprecated": false
+          },
+          {
+            "name": "lease_attempt",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true,
+            "deprecated": false,
+            "allowEmptyValue": false,
+            "allowReserved": false
           }
         ],
         "requestBody": {
@@ -224,6 +348,57 @@
           "201": {
             "description": "Document created, URL follows",
             "headers": {}
+          },
+          "409": {
+            "description": "The write was refused and changed nothing: reason `paused` means an operator paused the job, reason `superseded` means the row is terminal or owned by a different lease attempt. The worker abandons the job and leaves all artifacts untouched.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeaseRefusal"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Nothing matches the given URI",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status_code": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "anyOf": [
+                        {
+                          "type": "object"
+                        },
+                        {
+                          "type": "array",
+                          "items": {}
+                        }
+                      ],
+                      "nullable": true
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "description": "Not Found Exception",
+                  "example": {
+                    "status_code": 404,
+                    "detail": "Not Found",
+                    "extra": {}
+                  }
+                }
+              }
+            }
           },
           "400": {
             "description": "Bad request syntax or unsupported method",
@@ -270,13 +445,154 @@
         "deprecated": false
       }
     },
-    "/leases/{id}/requeue": {
+    "/leases/{id}/error": {
       "post": {
         "tags": [
           "Leases"
         ],
-        "summary": "RequeueLease",
-        "operationId": "requeue_lease",
+        "summary": "ErrorLease",
+        "operationId": "error_lease",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "deprecated": false
+          },
+          {
+            "name": "lease_attempt",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true,
+            "deprecated": false,
+            "allowEmptyValue": false,
+            "allowReserved": false
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ErrorRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Document created, URL follows",
+            "headers": {}
+          },
+          "409": {
+            "description": "The write was refused and changed nothing: reason `paused` means an operator paused the job, reason `superseded` means the row is terminal or owned by a different lease attempt. The worker abandons the job and leaves all artifacts untouched.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeaseRefusal"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Nothing matches the given URI",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status_code": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "anyOf": [
+                        {
+                          "type": "object"
+                        },
+                        {
+                          "type": "array",
+                          "items": {}
+                        }
+                      ],
+                      "nullable": true
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "description": "Not Found Exception",
+                  "example": {
+                    "status_code": 404,
+                    "detail": "Not Found",
+                    "extra": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request syntax or unsupported method",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status_code": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "anyOf": [
+                        {
+                          "type": "object"
+                        },
+                        {
+                          "type": "array",
+                          "items": {}
+                        }
+                      ],
+                      "nullable": true
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "description": "Validation Exception",
+                  "example": {
+                    "status_code": 400,
+                    "detail": "Bad Request",
+                    "extra": {}
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/leases/{id}/preempt": {
+      "post": {
+        "tags": [
+          "Leases"
+        ],
+        "summary": "PreemptLease",
+        "operationId": "preempt_lease",
         "parameters": [
           {
             "name": "id",
@@ -289,10 +605,71 @@
             "deprecated": false
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreemptRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "201": {
             "description": "Document created, URL follows",
             "headers": {}
+          },
+          "409": {
+            "description": "The write was refused and changed nothing: reason `paused` means an operator paused the job, reason `superseded` means the row is terminal or owned by a different lease attempt. The worker abandons the job and leaves all artifacts untouched.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeaseRefusal"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Nothing matches the given URI",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status_code": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "anyOf": [
+                        {
+                          "type": "object"
+                        },
+                        {
+                          "type": "array",
+                          "items": {}
+                        }
+                      ],
+                      "nullable": true
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "description": "Not Found Exception",
+                  "example": {
+                    "status_code": 404,
+                    "detail": "Not Found",
+                    "extra": {}
+                  }
+                }
+              }
+            }
           },
           "400": {
             "description": "Bad request syntax or unsupported method",
@@ -365,6 +742,18 @@
   },
   "components": {
     "schemas": {
+      "ErrorRequest": {
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        },
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "title": "ErrorRequest"
+      },
       "FailLeaseRequest": {
         "properties": {
           "error": {
@@ -393,15 +782,35 @@
           },
           "options": {
             "$ref": "#/components/schemas/ReconstructionOptions"
+          },
+          "lease_attempt": {
+            "type": "integer"
           }
         },
         "type": "object",
         "required": [
           "capture_session_id",
+          "lease_attempt",
           "options",
           "reconstruction_id"
         ],
         "title": "Lease"
+      },
+      "LeaseRefusal": {
+        "properties": {
+          "reason": {
+            "type": "string",
+            "enum": [
+              "superseded",
+              "paused"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "reason"
+        ],
+        "title": "LeaseRefusal"
       },
       "LeaseResponse": {
         "properties": {
@@ -433,6 +842,18 @@
         ],
         "title": "PhaseTiming"
       },
+      "PreemptRequest": {
+        "properties": {
+          "lease_attempt": {
+            "type": "integer"
+          }
+        },
+        "type": "object",
+        "required": [
+          "lease_attempt"
+        ],
+        "title": "PreemptRequest"
+      },
       "ProgressUpdate": {
         "properties": {
           "status": {
@@ -453,10 +874,14 @@
           "error": {
             "nullable": true,
             "type": "string"
+          },
+          "lease_attempt": {
+            "type": "integer"
           }
         },
         "type": "object",
         "required": [
+          "lease_attempt",
           "status"
         ],
         "title": "ProgressUpdate"
@@ -732,11 +1157,10 @@
           "training_opq_matrix",
           "training_product_quantizer",
           "verifying_geometry",
-          "verifying_rig_geometry",
           "reconstructing",
           "succeeded",
           "failed",
-          "cancelled"
+          "paused"
         ],
         "title": "ReconstructionStatus"
       }

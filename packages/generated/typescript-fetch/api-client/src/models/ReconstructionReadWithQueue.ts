@@ -50,7 +50,13 @@ export interface ReconstructionReadWithQueue {
      * @type {number}
      * @memberof ReconstructionReadWithQueue
      */
-    requeueCount: number;
+    errorCount: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof ReconstructionReadWithQueue
+     */
+    leaseAttempt: number;
     /**
      * 
      * @type {{ [key: string]: any; }}
@@ -100,6 +106,12 @@ export interface ReconstructionReadWithQueue {
      */
     progressAttempt?: number | null;
     /**
+     * datetime with the constraint that the value must have timezone info
+     * @type {Date}
+     * @memberof ReconstructionReadWithQueue
+     */
+    leaseHeartbeatAt?: Date | null;
+    /**
      * 
      * @type {number}
      * @memberof ReconstructionReadWithQueue
@@ -122,7 +134,8 @@ export function instanceOfReconstructionReadWithQueue(value: object): value is R
     if (!('createdAt' in value) || value['createdAt'] === undefined) return false;
     if (!('updatedAt' in value) || value['updatedAt'] === undefined) return false;
     if (!('status' in value) || value['status'] === undefined) return false;
-    if (!('requeueCount' in value) || value['requeueCount'] === undefined) return false;
+    if (!('errorCount' in value) || value['errorCount'] === undefined) return false;
+    if (!('leaseAttempt' in value) || value['leaseAttempt'] === undefined) return false;
     if (!('manifest' in value) || value['manifest'] === undefined) return false;
     if (!('manifestVersion' in value) || value['manifestVersion'] === undefined) return false;
     if (!('id' in value) || value['id'] === undefined) return false;
@@ -142,7 +155,8 @@ export function ReconstructionReadWithQueueFromJSONTyped(json: any, ignoreDiscri
         'createdAt': (new Date(json['created_at'])),
         'updatedAt': (new Date(json['updated_at'])),
         'status': ReconstructionStatusFromJSON(json['status']),
-        'requeueCount': json['requeue_count'],
+        'errorCount': json['error_count'],
+        'leaseAttempt': json['lease_attempt'],
         'manifest': json['manifest'],
         'manifestVersion': json['manifest_version'],
         'id': json['id'],
@@ -151,6 +165,7 @@ export function ReconstructionReadWithQueueFromJSONTyped(json: any, ignoreDiscri
         'progressCurrent': json['progress_current'] == null ? undefined : json['progress_current'],
         'progressTotal': json['progress_total'] == null ? undefined : json['progress_total'],
         'progressAttempt': json['progress_attempt'] == null ? undefined : json['progress_attempt'],
+        'leaseHeartbeatAt': json['lease_heartbeat_at'] == null ? undefined : (new Date(json['lease_heartbeat_at'])),
         'queuePosition': json['queue_position'] == null ? undefined : json['queue_position'],
         'queueDepth': json['queue_depth'] == null ? undefined : json['queue_depth'],
     };
@@ -170,7 +185,8 @@ export function ReconstructionReadWithQueueToJSONTyped(value?: ReconstructionRea
         'created_at': value['createdAt'].toISOString(),
         'updated_at': value['updatedAt'].toISOString(),
         'status': ReconstructionStatusToJSON(value['status']),
-        'requeue_count': value['requeueCount'],
+        'error_count': value['errorCount'],
+        'lease_attempt': value['leaseAttempt'],
         'manifest': value['manifest'],
         'manifest_version': value['manifestVersion'],
         'id': value['id'],
@@ -179,6 +195,7 @@ export function ReconstructionReadWithQueueToJSONTyped(value?: ReconstructionRea
         'progress_current': value['progressCurrent'],
         'progress_total': value['progressTotal'],
         'progress_attempt': value['progressAttempt'],
+        'lease_heartbeat_at': value['leaseHeartbeatAt'] == null ? value['leaseHeartbeatAt'] : value['leaseHeartbeatAt'].toISOString(),
         'queue_position': value['queuePosition'],
         'queue_depth': value['queueDepth'],
     };

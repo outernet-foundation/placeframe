@@ -101,7 +101,8 @@ All URIs are relative to *http://localhost:8000*
 *DefaultApi* | [**importReconstructionTar**](docs/DefaultApi.md#importreconstructiontar) | **POST** /reconstructions/tar | ImportReconstructionTar
 *DefaultApi* | [**listLocalizationEvaluations**](docs/DefaultApi.md#listlocalizationevaluations) | **GET** /reconstructions/{reconstruction_id}/localization-evaluations | ListLocalizationEvaluations
 *DefaultApi* | [**localizeImage**](docs/DefaultApi.md#localizeimage) | **POST** /localize | LocalizeImage
-*DefaultApi* | [**retryReconstruction**](docs/DefaultApi.md#retryreconstruction) | **PUT** /reconstructions/{id}/retry | RetryReconstruction
+*DefaultApi* | [**pauseReconstruction**](docs/DefaultApi.md#pausereconstruction) | **POST** /reconstructions/{id}/pause | PauseReconstruction
+*DefaultApi* | [**resumeReconstruction**](docs/DefaultApi.md#resumereconstruction) | **POST** /reconstructions/{id}/resume | ResumeReconstruction
 *DefaultApi* | [**updateCaptureSession**](docs/DefaultApi.md#updatecapturesession) | **PATCH** /capture_sessions/{id} | UpdateCaptureSession
 *DefaultApi* | [**updateCaptureSessions**](docs/DefaultApi.md#updatecapturesessions) | **PATCH** /capture_sessions | UpdateCaptureSessions
 *DefaultApi* | [**updateGroups**](docs/DefaultApi.md#updategroups) | **PATCH** /groups | UpdateGroups

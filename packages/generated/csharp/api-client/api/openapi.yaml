@@ -547,6 +547,10 @@ paths:
   /reconstructions/{id}:
     delete:
       deprecated: false
+      description: "Delete the reconstruction and its artifact prefix. Deleting a\
+        \ row mid-flight is allowed: the prefix cascade discards any checkpointed\
+        \ work, and a still-running worker learns of the deletion as a 404 on its\
+        \ next write and stops."
       operationId: delete_reconstruction
       parameters:
       - deprecated: false
@@ -630,10 +634,10 @@ paths:
       summary: GetReconstructionLocalizationMap
       tags:
       - Default
-  /reconstructions/{id}/retry:
-    put:
+  /reconstructions/{id}/pause:
+    post:
       deprecated: false
-      operationId: retry_reconstruction
+      operationId: pause_reconstruction
       parameters:
       - deprecated: false
         explode: false
@@ -645,19 +649,49 @@ paths:
           type: string
         style: simple
       responses:
-        "200":
+        "201":
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ReconstructionReadWithQueue"
-          description: "Request fulfilled, document follows"
+          description: "Document created, URL follows"
         "400":
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/get_capture_sessions_400_response"
           description: Bad request syntax or unsupported method
-      summary: RetryReconstruction
+      summary: PauseReconstruction
+      tags:
+      - Default
+  /reconstructions/{id}/resume:
+    post:
+      deprecated: false
+      operationId: resume_reconstruction
+      parameters:
+      - deprecated: false
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReconstructionReadWithQueue"
+          description: "Document created, URL follows"
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: ResumeReconstruction
       tags:
       - Default
   /reconstructions/{id}/points:
@@ -2108,35 +2142,39 @@ components:
         - reconstructions:
           - reconstruction:
               capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-              queue_position: 2
+              queue_position: 7
               manifest:
                 key: ""
               created_at: 2000-01-23T04:56:07.000+00:00
+              error_count: 0
               error: error
-              progress_attempt: 5
-              progress_current: 1
+              progress_attempt: 2
+              lease_heartbeat_at: 2000-01-23T04:56:07.000+00:00
+              progress_current: 5
               updated_at: 2000-01-23T04:56:07.000+00:00
               progress_total: 5
-              manifest_version: 6
-              queue_depth: 7
-              requeue_count: 0
+              manifest_version: 1
+              lease_attempt: 6
+              queue_depth: 9
               id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
               status: queued
             localization_map_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
           - reconstruction:
               capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-              queue_position: 2
+              queue_position: 7
               manifest:
                 key: ""
               created_at: 2000-01-23T04:56:07.000+00:00
+              error_count: 0
               error: error
-              progress_attempt: 5
-              progress_current: 1
+              progress_attempt: 2
+              lease_heartbeat_at: 2000-01-23T04:56:07.000+00:00
+              progress_current: 5
               updated_at: 2000-01-23T04:56:07.000+00:00
               progress_total: 5
-              manifest_version: 6
-              queue_depth: 7
-              requeue_count: 0
+              manifest_version: 1
+              lease_attempt: 6
+              queue_depth: 9
               id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
               status: queued
             localization_map_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
@@ -2151,35 +2189,39 @@ components:
         - reconstructions:
           - reconstruction:
               capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-              queue_position: 2
+              queue_position: 7
               manifest:
                 key: ""
               created_at: 2000-01-23T04:56:07.000+00:00
+              error_count: 0
               error: error
-              progress_attempt: 5
-              progress_current: 1
+              progress_attempt: 2
+              lease_heartbeat_at: 2000-01-23T04:56:07.000+00:00
+              progress_current: 5
               updated_at: 2000-01-23T04:56:07.000+00:00
               progress_total: 5
-              manifest_version: 6
-              queue_depth: 7
-              requeue_count: 0
+              manifest_version: 1
+              lease_attempt: 6
+              queue_depth: 9
               id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
               status: queued
             localization_map_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
           - reconstruction:
               capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-              queue_position: 2
+              queue_position: 7
               manifest:
                 key: ""
               created_at: 2000-01-23T04:56:07.000+00:00
+              error_count: 0
               error: error
-              progress_attempt: 5
-              progress_current: 1
+              progress_attempt: 2
+              lease_heartbeat_at: 2000-01-23T04:56:07.000+00:00
+              progress_current: 5
               updated_at: 2000-01-23T04:56:07.000+00:00
               progress_total: 5
-              manifest_version: 6
-              queue_depth: 7
-              requeue_count: 0
+              manifest_version: 1
+              lease_attempt: 6
+              queue_depth: 9
               id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
               status: queued
             localization_map_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
@@ -2340,35 +2382,39 @@ components:
         reconstructions:
         - reconstruction:
             capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-            queue_position: 2
+            queue_position: 7
             manifest:
               key: ""
             created_at: 2000-01-23T04:56:07.000+00:00
+            error_count: 0
             error: error
-            progress_attempt: 5
-            progress_current: 1
+            progress_attempt: 2
+            lease_heartbeat_at: 2000-01-23T04:56:07.000+00:00
+            progress_current: 5
             updated_at: 2000-01-23T04:56:07.000+00:00
             progress_total: 5
-            manifest_version: 6
-            queue_depth: 7
-            requeue_count: 0
+            manifest_version: 1
+            lease_attempt: 6
+            queue_depth: 9
             id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
             status: queued
           localization_map_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         - reconstruction:
             capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-            queue_position: 2
+            queue_position: 7
             manifest:
               key: ""
             created_at: 2000-01-23T04:56:07.000+00:00
+            error_count: 0
             error: error
-            progress_attempt: 5
-            progress_current: 1
+            progress_attempt: 2
+            lease_heartbeat_at: 2000-01-23T04:56:07.000+00:00
+            progress_current: 5
             updated_at: 2000-01-23T04:56:07.000+00:00
             progress_total: 5
-            manifest_version: 6
-            queue_depth: 7
-            requeue_count: 0
+            manifest_version: 1
+            lease_attempt: 6
+            queue_depth: 9
             id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
             status: queued
           localization_map_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
@@ -2396,18 +2442,20 @@ components:
       example:
         reconstruction:
           capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-          queue_position: 2
+          queue_position: 7
           manifest:
             key: ""
           created_at: 2000-01-23T04:56:07.000+00:00
+          error_count: 0
           error: error
-          progress_attempt: 5
-          progress_current: 1
+          progress_attempt: 2
+          lease_heartbeat_at: 2000-01-23T04:56:07.000+00:00
+          progress_current: 5
           updated_at: 2000-01-23T04:56:07.000+00:00
           progress_total: 5
-          manifest_version: 6
-          queue_depth: 7
-          requeue_count: 0
+          manifest_version: 1
+          lease_attempt: 6
+          queue_depth: 9
           id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
           status: queued
         localization_map_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
@@ -3921,12 +3969,18 @@ components:
     ReconstructionCreate:
       example:
         capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-        requeue_count: 0
+        lease_heartbeat_at: 2000-01-23T04:56:07.000+00:00
+        lease_attempt: 6
         id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        error_count: 0
       properties:
-        requeue_count:
+        error_count:
           nullable: true
-          title: Requeue Count
+          title: Error Count
+          type: integer
+        lease_attempt:
+          nullable: true
+          title: Lease Attempt
           type: integer
         id:
           format: uuid
@@ -3938,35 +3992,44 @@ components:
           nullable: true
           title: Capture Session Id
           type: string
+        lease_heartbeat_at:
+          description: datetime with the constraint that the value must have timezone
+            info
+          format: date-time
+          nullable: true
+          title: Lease Heartbeat At
+          type: string
       title: ReconstructionCreate
       type: object
     ReconstructionCreateWithOptions:
       example:
         options:
-          ransac_max_error: 7.061401241503109
-          pair_vio_em_max_rotation_disagreement_deg: 1.4894159098541704
-          ransac_min_inlier_ratio: 9.301444243932576
+          ransac_max_error: 9.301444243932576
+          pair_vio_em_max_rotation_disagreement_deg: 6.84685269835264
+          ransac_min_inlier_ratio: 3.616076749251911
           held_out_frame_timestamps:
-          - 4
-          - 4
-          bundle_adjustment_global_function_tolerance: 1.2315135367772556
-          pair_vio_em_max_translation_direction_deg: 6.84685269835264
-          retrieval_min_score: 2.3021358869347655
-          pose_prior_position_sigma_m: 1.0246457001441578
-          deterministic_seed: 6
-          retrieval_neighbors: 5
-          pair_vio_em_min_baseline_m: 7.457744773683766
-          max_keypoints_per_image: 1
-          mapper_filter_max_reprojection_error: 4.145608029883936
-          keyframe_min_distance_m: 1.4658129805029452
-          triangulation_minimum_angle: 2.027123023002322
-          bundle_adjustment_global_frames_ratio: 7.386281948385884
-          two_view_min_num_inliers: 3
-          sequential_window_m: 5.962133916683182
+          - 5
+          - 5
+          bundle_adjustment_global_function_tolerance: 1.0246457001441578
+          pair_vio_em_max_translation_direction_deg: 7.457744773683766
+          retrieval_min_score: 7.061401241503109
+          pose_prior_position_sigma_m: 1.4894159098541704
+          deterministic_seed: 1
+          retrieval_neighbors: 2
+          pair_vio_em_min_baseline_m: 1.1730742509559433
+          max_keypoints_per_image: 4
+          mapper_filter_max_reprojection_error: 7.386281948385884
+          keyframe_min_distance_m: 5.962133916683182
+          triangulation_minimum_angle: 4.145608029883936
+          bundle_adjustment_global_frames_ratio: 1.2315135367772556
+          two_view_min_num_inliers: 2
+          sequential_window_m: 5.637376656633329
         create:
           capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-          requeue_count: 0
+          lease_heartbeat_at: 2000-01-23T04:56:07.000+00:00
+          lease_attempt: 6
           id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          error_count: 0
       properties:
         create:
           $ref: "#/components/schemas/ReconstructionCreate"
@@ -4122,26 +4185,26 @@ components:
       type: object
     ReconstructionOptions:
       example:
-        ransac_max_error: 7.061401241503109
-        pair_vio_em_max_rotation_disagreement_deg: 1.4894159098541704
-        ransac_min_inlier_ratio: 9.301444243932576
+        ransac_max_error: 9.301444243932576
+        pair_vio_em_max_rotation_disagreement_deg: 6.84685269835264
+        ransac_min_inlier_ratio: 3.616076749251911
         held_out_frame_timestamps:
-        - 4
-        - 4
-        bundle_adjustment_global_function_tolerance: 1.2315135367772556
-        pair_vio_em_max_translation_direction_deg: 6.84685269835264
-        retrieval_min_score: 2.3021358869347655
-        pose_prior_position_sigma_m: 1.0246457001441578
-        deterministic_seed: 6
-        retrieval_neighbors: 5
-        pair_vio_em_min_baseline_m: 7.457744773683766
-        max_keypoints_per_image: 1
-        mapper_filter_max_reprojection_error: 4.145608029883936
-        keyframe_min_distance_m: 1.4658129805029452
-        triangulation_minimum_angle: 2.027123023002322
-        bundle_adjustment_global_frames_ratio: 7.386281948385884
-        two_view_min_num_inliers: 3
-        sequential_window_m: 5.962133916683182
+        - 5
+        - 5
+        bundle_adjustment_global_function_tolerance: 1.0246457001441578
+        pair_vio_em_max_translation_direction_deg: 7.457744773683766
+        retrieval_min_score: 7.061401241503109
+        pose_prior_position_sigma_m: 1.4894159098541704
+        deterministic_seed: 1
+        retrieval_neighbors: 2
+        pair_vio_em_min_baseline_m: 1.1730742509559433
+        max_keypoints_per_image: 4
+        mapper_filter_max_reprojection_error: 7.386281948385884
+        keyframe_min_distance_m: 5.962133916683182
+        triangulation_minimum_angle: 4.145608029883936
+        bundle_adjustment_global_frames_ratio: 1.2315135367772556
+        two_view_min_num_inliers: 2
+        sequential_window_m: 5.637376656633329
       properties:
         deterministic_seed:
           description: PRNG seed and single-threaded gate for reproducible reconstructions;
@@ -4274,18 +4337,20 @@ components:
     ReconstructionReadWithQueue:
       example:
         capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-        queue_position: 2
+        queue_position: 7
         manifest:
           key: ""
         created_at: 2000-01-23T04:56:07.000+00:00
+        error_count: 0
         error: error
-        progress_attempt: 5
-        progress_current: 1
+        progress_attempt: 2
+        lease_heartbeat_at: 2000-01-23T04:56:07.000+00:00
+        progress_current: 5
         updated_at: 2000-01-23T04:56:07.000+00:00
         progress_total: 5
-        manifest_version: 6
-        queue_depth: 7
-        requeue_count: 0
+        manifest_version: 1
+        lease_attempt: 6
+        queue_depth: 9
         id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         status: queued
       properties:
@@ -4303,8 +4368,11 @@ components:
           type: string
         status:
           $ref: "#/components/schemas/ReconstructionStatus"
-        requeue_count:
-          title: Requeue Count
+        error_count:
+          title: Error Count
+          type: integer
+        lease_attempt:
+          title: Lease Attempt
           type: integer
         manifest:
           additionalProperties: {}
@@ -4338,6 +4406,13 @@ components:
           nullable: true
           title: Progress Attempt
           type: integer
+        lease_heartbeat_at:
+          description: datetime with the constraint that the value must have timezone
+            info
+          format: date-time
+          nullable: true
+          title: Lease Heartbeat At
+          type: string
         queue_position:
           nullable: true
           type: integer
@@ -4346,10 +4421,11 @@ components:
           type: integer
       required:
       - created_at
+      - error_count
       - id
+      - lease_attempt
       - manifest
       - manifest_version
-      - requeue_count
       - status
       - updated_at
       title: ReconstructionReadWithQueue
@@ -4362,11 +4438,10 @@ components:
       - training_opq_matrix
       - training_product_quantizer
       - verifying_geometry
-      - verifying_rig_geometry
       - reconstructing
       - succeeded
       - failed
-      - cancelled
+      - paused
       title: ReconstructionStatus
       type: string
     ReconstructionTarUploadRequest:

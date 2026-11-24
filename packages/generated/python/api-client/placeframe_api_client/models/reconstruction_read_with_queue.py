@@ -33,7 +33,8 @@ class ReconstructionReadWithQueue(BaseModel):
     created_at: datetime = Field(description="datetime with the constraint that the value must have timezone info")
     updated_at: datetime = Field(description="datetime with the constraint that the value must have timezone info")
     status: ReconstructionStatus
-    requeue_count: StrictInt
+    error_count: StrictInt
+    lease_attempt: StrictInt
     manifest: Dict[str, Any]
     manifest_version: StrictInt
     id: UUID
@@ -42,10 +43,11 @@ class ReconstructionReadWithQueue(BaseModel):
     progress_current: Optional[StrictInt] = None
     progress_total: Optional[StrictInt] = None
     progress_attempt: Optional[StrictInt] = None
+    lease_heartbeat_at: Optional[datetime] = Field(default=None, description="datetime with the constraint that the value must have timezone info")
     queue_position: Optional[StrictInt] = None
     queue_depth: Optional[StrictInt] = None
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["created_at", "updated_at", "status", "requeue_count", "manifest", "manifest_version", "id", "capture_session_id", "error", "progress_current", "progress_total", "progress_attempt", "queue_position", "queue_depth"]
+    __properties: ClassVar[List[str]] = ["created_at", "updated_at", "status", "error_count", "lease_attempt", "manifest", "manifest_version", "id", "capture_session_id", "error", "progress_current", "progress_total", "progress_attempt", "lease_heartbeat_at", "queue_position", "queue_depth"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -118,6 +120,11 @@ class ReconstructionReadWithQueue(BaseModel):
         if self.progress_attempt is None and "progress_attempt" in self.model_fields_set:
             _dict['progress_attempt'] = None
 
+        # set to None if lease_heartbeat_at (nullable) is None
+        # and model_fields_set contains the field
+        if self.lease_heartbeat_at is None and "lease_heartbeat_at" in self.model_fields_set:
+            _dict['lease_heartbeat_at'] = None
+
         # set to None if queue_position (nullable) is None
         # and model_fields_set contains the field
         if self.queue_position is None and "queue_position" in self.model_fields_set:
@@ -143,7 +150,8 @@ class ReconstructionReadWithQueue(BaseModel):
             "created_at": obj.get("created_at"),
             "updated_at": obj.get("updated_at"),
             "status": obj.get("status"),
-            "requeue_count": obj.get("requeue_count"),
+            "error_count": obj.get("error_count"),
+            "lease_attempt": obj.get("lease_attempt"),
             "manifest": obj.get("manifest"),
             "manifest_version": obj.get("manifest_version"),
             "id": obj.get("id"),
@@ -152,6 +160,7 @@ class ReconstructionReadWithQueue(BaseModel):
             "progress_current": obj.get("progress_current"),
             "progress_total": obj.get("progress_total"),
             "progress_attempt": obj.get("progress_attempt"),
+            "lease_heartbeat_at": obj.get("lease_heartbeat_at"),
             "queue_position": obj.get("queue_position"),
             "queue_depth": obj.get("queue_depth")
         })

@@ -360,7 +360,11 @@ export interface LocalizeImageRequest {
     ransacThreshold?: number | null;
 }
 
-export interface RetryReconstructionRequest {
+export interface PauseReconstructionRequest {
+    id: string;
+}
+
+export interface ResumeReconstructionRequest {
     id: string;
 }
 
@@ -1239,6 +1243,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
+     * Delete the reconstruction and its artifact prefix. Deleting a row mid-flight is allowed: the prefix cascade discards any checkpointed work, and a still-running worker learns of the deletion as a 404 on its next write and stops.
      * DeleteReconstruction
      */
     async deleteReconstructionRaw(requestParameters: DeleteReconstructionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
@@ -1249,6 +1254,7 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
+     * Delete the reconstruction and its artifact prefix. Deleting a row mid-flight is allowed: the prefix cascade discards any checkpointed work, and a still-running worker learns of the deletion as a 404 on its next write and stops.
      * DeleteReconstruction
      */
     async deleteReconstruction(requestParameters: DeleteReconstructionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
@@ -2545,13 +2551,13 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Creates request options for retryReconstruction without sending the request
+     * Creates request options for pauseReconstruction without sending the request
      */
-    async retryReconstructionRequestOpts(requestParameters: RetryReconstructionRequest): Promise<runtime.RequestOpts> {
+    async pauseReconstructionRequestOpts(requestParameters: PauseReconstructionRequest): Promise<runtime.RequestOpts> {
         if (requestParameters['id'] == null) {
             throw new runtime.RequiredError(
                 'id',
-                'Required parameter "id" was null or undefined when calling retryReconstruction().'
+                'Required parameter "id" was null or undefined when calling pauseReconstruction().'
             );
         }
 
@@ -2560,32 +2566,77 @@ export class DefaultApi extends runtime.BaseAPI {
         const headerParameters: runtime.HTTPHeaders = {};
 
 
-        let urlPath = `/reconstructions/{id}/retry`;
+        let urlPath = `/reconstructions/{id}/pause`;
         urlPath = urlPath.replace('{id}', encodeURIComponent(String(requestParameters['id'])));
 
         return {
             path: urlPath,
-            method: 'PUT',
+            method: 'POST',
             headers: headerParameters,
             query: queryParameters,
         };
     }
 
     /**
-     * RetryReconstruction
+     * PauseReconstruction
      */
-    async retryReconstructionRaw(requestParameters: RetryReconstructionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ReconstructionReadWithQueue>> {
-        const requestOptions = await this.retryReconstructionRequestOpts(requestParameters);
+    async pauseReconstructionRaw(requestParameters: PauseReconstructionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ReconstructionReadWithQueue>> {
+        const requestOptions = await this.pauseReconstructionRequestOpts(requestParameters);
         const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => ReconstructionReadWithQueueFromJSON(jsonValue));
     }
 
     /**
-     * RetryReconstruction
+     * PauseReconstruction
      */
-    async retryReconstruction(requestParameters: RetryReconstructionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ReconstructionReadWithQueue> {
-        const response = await this.retryReconstructionRaw(requestParameters, initOverrides);
+    async pauseReconstruction(requestParameters: PauseReconstructionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ReconstructionReadWithQueue> {
+        const response = await this.pauseReconstructionRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for resumeReconstruction without sending the request
+     */
+    async resumeReconstructionRequestOpts(requestParameters: ResumeReconstructionRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['id'] == null) {
+            throw new runtime.RequiredError(
+                'id',
+                'Required parameter "id" was null or undefined when calling resumeReconstruction().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/reconstructions/{id}/resume`;
+        urlPath = urlPath.replace('{id}', encodeURIComponent(String(requestParameters['id'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * ResumeReconstruction
+     */
+    async resumeReconstructionRaw(requestParameters: ResumeReconstructionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ReconstructionReadWithQueue>> {
+        const requestOptions = await this.resumeReconstructionRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ReconstructionReadWithQueueFromJSON(jsonValue));
+    }
+
+    /**
+     * ResumeReconstruction
+     */
+    async resumeReconstruction(requestParameters: ResumeReconstructionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ReconstructionReadWithQueue> {
+        const response = await this.resumeReconstructionRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

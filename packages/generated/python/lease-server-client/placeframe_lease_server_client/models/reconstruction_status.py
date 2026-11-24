@@ -32,11 +32,10 @@ class ReconstructionStatus(str, Enum):
     TRAINING_OPQ_MATRIX = 'training_opq_matrix'
     TRAINING_PRODUCT_QUANTIZER = 'training_product_quantizer'
     VERIFYING_GEOMETRY = 'verifying_geometry'
-    VERIFYING_RIG_GEOMETRY = 'verifying_rig_geometry'
     RECONSTRUCTING = 'reconstructing'
     SUCCEEDED = 'succeeded'
     FAILED = 'failed'
-    CANCELLED = 'cancelled'
+    PAUSED = 'paused'
 
     @classmethod
     def from_json(cls, json_str: str) -> Self:

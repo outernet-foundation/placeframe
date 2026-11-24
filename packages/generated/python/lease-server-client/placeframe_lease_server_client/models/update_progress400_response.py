@@ -19,7 +19,7 @@ import json
 
 from pydantic import BaseModel, ConfigDict, StrictInt, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional
-from placeframe_lease_server_client.models.update_progress400_response_extra import UpdateProgress400ResponseExtra
+from placeframe_lease_server_client.models.update_progress404_response_extra import UpdateProgress404ResponseExtra
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
@@ -30,7 +30,7 @@ class UpdateProgress400Response(BaseModel):
     """ # noqa: E501
     status_code: StrictInt
     detail: StrictStr
-    extra: Optional[UpdateProgress400ResponseExtra] = None
+    extra: Optional[UpdateProgress404ResponseExtra] = None
     additional_properties: Dict[str, Any] = {}
     __properties: ClassVar[List[str]] = ["status_code", "detail", "extra"]
 
@@ -102,7 +102,7 @@ class UpdateProgress400Response(BaseModel):
         _obj = cls.model_validate({
             "status_code": obj.get("status_code"),
             "detail": obj.get("detail"),
-            "extra": UpdateProgress400ResponseExtra.from_dict(obj["extra"]) if obj.get("extra") is not None else None
+            "extra": UpdateProgress404ResponseExtra.from_dict(obj["extra"]) if obj.get("extra") is not None else None
         })
         # store additional fields in additional_properties
         for _key in obj.keys():

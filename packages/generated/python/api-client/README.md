@@ -132,7 +132,8 @@ Class | Method | HTTP request | Description
 *DefaultApi* | [**import_reconstruction_tar**](docs/DefaultApi.md#import_reconstruction_tar) | **POST** /reconstructions/tar | ImportReconstructionTar
 *DefaultApi* | [**list_localization_evaluations**](docs/DefaultApi.md#list_localization_evaluations) | **GET** /reconstructions/{reconstruction_id}/localization-evaluations | ListLocalizationEvaluations
 *DefaultApi* | [**localize_image**](docs/DefaultApi.md#localize_image) | **POST** /localize | LocalizeImage
-*DefaultApi* | [**retry_reconstruction**](docs/DefaultApi.md#retry_reconstruction) | **PUT** /reconstructions/{id}/retry | RetryReconstruction
+*DefaultApi* | [**pause_reconstruction**](docs/DefaultApi.md#pause_reconstruction) | **POST** /reconstructions/{id}/pause | PauseReconstruction
+*DefaultApi* | [**resume_reconstruction**](docs/DefaultApi.md#resume_reconstruction) | **POST** /reconstructions/{id}/resume | ResumeReconstruction
 *DefaultApi* | [**update_capture_session**](docs/DefaultApi.md#update_capture_session) | **PATCH** /capture_sessions/{id} | UpdateCaptureSession
 *DefaultApi* | [**update_capture_sessions**](docs/DefaultApi.md#update_capture_sessions) | **PATCH** /capture_sessions | UpdateCaptureSessions
 *DefaultApi* | [**update_groups**](docs/DefaultApi.md#update_groups) | **PATCH** /groups | UpdateGroups

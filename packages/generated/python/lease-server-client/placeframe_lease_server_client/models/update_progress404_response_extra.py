@@ -23,11 +23,11 @@ from typing import Union, Any, List, Set, TYPE_CHECKING, Optional, Dict
 from typing_extensions import Literal, Self
 from pydantic import Field
 
-UPDATEPROGRESS400RESPONSEEXTRA_ANY_OF_SCHEMAS = ["List[object]", "object"]
+UPDATEPROGRESS404RESPONSEEXTRA_ANY_OF_SCHEMAS = ["List[object]", "object"]
 
-class UpdateProgress400ResponseExtra(BaseModel):
+class UpdateProgress404ResponseExtra(BaseModel):
     """
-    UpdateProgress400ResponseExtra
+    UpdateProgress404ResponseExtra
     """
 
     # data type: object
@@ -60,7 +60,7 @@ class UpdateProgress400ResponseExtra(BaseModel):
         if v is None:
             return v
 
-        instance = UpdateProgress400ResponseExtra.model_construct()
+        instance = UpdateProgress404ResponseExtra.model_construct()
         error_messages = []
         # validate data type: object
         try:
@@ -76,7 +76,7 @@ class UpdateProgress400ResponseExtra(BaseModel):
             error_messages.append(str(e))
         if error_messages:
             # no match
-            raise ValueError("No match found when setting the actual_instance in UpdateProgress400ResponseExtra with anyOf schemas: List[object], object. Details: " + ", ".join(error_messages))
+            raise ValueError("No match found when setting the actual_instance in UpdateProgress404ResponseExtra with anyOf schemas: List[object], object. Details: " + ", ".join(error_messages))
         else:
             return v
 
@@ -113,7 +113,7 @@ class UpdateProgress400ResponseExtra(BaseModel):
 
         if error_messages:
             # no match
-            raise ValueError("No match found when deserializing the JSON string into UpdateProgress400ResponseExtra with anyOf schemas: List[object], object. Details: " + ", ".join(error_messages))
+            raise ValueError("No match found when deserializing the JSON string into UpdateProgress404ResponseExtra with anyOf schemas: List[object], object. Details: " + ", ".join(error_messages))
         else:
             return instance
 

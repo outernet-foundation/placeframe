@@ -24,11 +24,10 @@ export const ReconstructionStatus = {
     TrainingOpqMatrix: 'training_opq_matrix',
     TrainingProductQuantizer: 'training_product_quantizer',
     VerifyingGeometry: 'verifying_geometry',
-    VerifyingRigGeometry: 'verifying_rig_geometry',
     Reconstructing: 'reconstructing',
     Succeeded: 'succeeded',
     Failed: 'failed',
-    Cancelled: 'cancelled'
+    Paused: 'paused'
 } as const;
 export type ReconstructionStatus = typeof ReconstructionStatus[keyof typeof ReconstructionStatus];
 

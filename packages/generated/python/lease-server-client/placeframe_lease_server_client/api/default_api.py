@@ -15,9 +15,12 @@ from pydantic import validate_call, Field, StrictFloat, StrictStr, StrictInt
 from typing import Any, Dict, List, Optional, Tuple, Union
 from typing_extensions import Annotated
 
+from pydantic import StrictInt
 from uuid import UUID
+from placeframe_lease_server_client.models.error_request import ErrorRequest
 from placeframe_lease_server_client.models.fail_lease_request import FailLeaseRequest
 from placeframe_lease_server_client.models.lease_response import LeaseResponse
+from placeframe_lease_server_client.models.preempt_request import PreemptRequest
 from placeframe_lease_server_client.models.progress_update import ProgressUpdate
 from placeframe_lease_server_client.models.queue_state import QueueState
 from placeframe_lease_server_client.models.reconstruction_metrics import ReconstructionMetrics
@@ -41,9 +44,321 @@ class DefaultApi:
 
 
     @validate_call
+    async def error_lease(
+        self,
+        id: UUID,
+        lease_attempt: StrictInt,
+        error_request: ErrorRequest,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> None:
+        """ErrorLease
+
+
+        :param id: (required)
+        :type id: UUID
+        :param lease_attempt: (required)
+        :type lease_attempt: int
+        :param error_request: (required)
+        :type error_request: ErrorRequest
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._error_lease_serialize(
+            id=id,
+            lease_attempt=lease_attempt,
+            error_request=error_request,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '201': None,
+            '409': "LeaseRefusal",
+            '404': "UpdateProgress404Response",
+            '400': "UpdateProgress400Response",
+        }
+        response_data = await self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        await response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        ).data
+
+
+    @validate_call
+    async def error_lease_with_http_info(
+        self,
+        id: UUID,
+        lease_attempt: StrictInt,
+        error_request: ErrorRequest,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> ApiResponse[None]:
+        """ErrorLease
+
+
+        :param id: (required)
+        :type id: UUID
+        :param lease_attempt: (required)
+        :type lease_attempt: int
+        :param error_request: (required)
+        :type error_request: ErrorRequest
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._error_lease_serialize(
+            id=id,
+            lease_attempt=lease_attempt,
+            error_request=error_request,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '201': None,
+            '409': "LeaseRefusal",
+            '404': "UpdateProgress404Response",
+            '400': "UpdateProgress400Response",
+        }
+        response_data = await self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        await response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        )
+
+
+    @validate_call
+    async def error_lease_without_preload_content(
+        self,
+        id: UUID,
+        lease_attempt: StrictInt,
+        error_request: ErrorRequest,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> RESTResponseType:
+        """ErrorLease
+
+
+        :param id: (required)
+        :type id: UUID
+        :param lease_attempt: (required)
+        :type lease_attempt: int
+        :param error_request: (required)
+        :type error_request: ErrorRequest
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._error_lease_serialize(
+            id=id,
+            lease_attempt=lease_attempt,
+            error_request=error_request,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '201': None,
+            '409': "LeaseRefusal",
+            '404': "UpdateProgress404Response",
+            '400': "UpdateProgress400Response",
+        }
+        response_data = await self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        return response_data.response
+
+
+    def _error_lease_serialize(
+        self,
+        id,
+        lease_attempt,
+        error_request,
+        _request_auth,
+        _content_type,
+        _headers,
+        _host_index,
+    ) -> RequestSerialized:
+
+        _host = None
+
+        _collection_formats: Dict[str, str] = {
+        }
+
+        _path_params: Dict[str, str] = {}
+        _query_params: List[Tuple[str, str]] = []
+        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _form_params: List[Tuple[str, str]] = []
+        _files: Dict[
+            str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
+        ] = {}
+        _body_params: Optional[bytes] = None
+
+        # process the path parameters
+        if id is not None:
+            _path_params['id'] = id
+        # process the query parameters
+        if lease_attempt is not None:
+            
+            _query_params.append(('lease_attempt', lease_attempt))
+            
+        # process the header parameters
+        # process the form parameters
+        # process the body parameter
+        if error_request is not None:
+            _body_params = error_request
+
+
+        # set the HTTP header `Accept`
+        if 'Accept' not in _header_params:
+            _header_params['Accept'] = self.api_client.select_header_accept(
+                [
+                    'application/json'
+                ]
+            )
+
+        # set the HTTP header `Content-Type`
+        if _content_type:
+            _header_params['Content-Type'] = _content_type
+        else:
+            _default_content_type = (
+                self.api_client.select_header_content_type(
+                    [
+                        'application/json'
+                    ]
+                )
+            )
+            if _default_content_type is not None:
+                _header_params['Content-Type'] = _default_content_type
+
+        # authentication setting
+        _auth_settings: List[str] = [
+        ]
+
+        return self.api_client.param_serialize(
+            method='POST',
+            resource_path='/leases/{id}/error',
+            path_params=_path_params,
+            query_params=_query_params,
+            header_params=_header_params,
+            body=_body_params,
+            post_params=_form_params,
+            files=_files,
+            auth_settings=_auth_settings,
+            collection_formats=_collection_formats,
+            _host=_host,
+            _request_auth=_request_auth
+        )
+
+
+
+
+    @validate_call
     async def fail_lease(
         self,
         id: UUID,
+        lease_attempt: StrictInt,
         fail_lease_request: FailLeaseRequest,
         _request_timeout: Union[
             None,
@@ -63,6 +378,8 @@ class DefaultApi:
 
         :param id: (required)
         :type id: UUID
+        :param lease_attempt: (required)
+        :type lease_attempt: int
         :param fail_lease_request: (required)
         :type fail_lease_request: FailLeaseRequest
         :param _request_timeout: timeout setting for this request. If one
@@ -89,6 +406,7 @@ class DefaultApi:
 
         _param = self._fail_lease_serialize(
             id=id,
+            lease_attempt=lease_attempt,
             fail_lease_request=fail_lease_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
@@ -98,6 +416,8 @@ class DefaultApi:
 
         _response_types_map: Dict[str, Optional[str]] = {
             '201': None,
+            '409': "LeaseRefusal",
+            '404': "UpdateProgress404Response",
             '400': "UpdateProgress400Response",
         }
         response_data = await self.api_client.call_api(
@@ -115,6 +435,7 @@ class DefaultApi:
     async def fail_lease_with_http_info(
         self,
         id: UUID,
+        lease_attempt: StrictInt,
         fail_lease_request: FailLeaseRequest,
         _request_timeout: Union[
             None,
@@ -134,6 +455,8 @@ class DefaultApi:
 
         :param id: (required)
         :type id: UUID
+        :param lease_attempt: (required)
+        :type lease_attempt: int
         :param fail_lease_request: (required)
         :type fail_lease_request: FailLeaseRequest
         :param _request_timeout: timeout setting for this request. If one
@@ -160,6 +483,7 @@ class DefaultApi:
 
         _param = self._fail_lease_serialize(
             id=id,
+            lease_attempt=lease_attempt,
             fail_lease_request=fail_lease_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
@@ -169,6 +493,8 @@ class DefaultApi:
 
         _response_types_map: Dict[str, Optional[str]] = {
             '201': None,
+            '409': "LeaseRefusal",
+            '404': "UpdateProgress404Response",
             '400': "UpdateProgress400Response",
         }
         response_data = await self.api_client.call_api(
@@ -186,6 +512,7 @@ class DefaultApi:
     async def fail_lease_without_preload_content(
         self,
         id: UUID,
+        lease_attempt: StrictInt,
         fail_lease_request: FailLeaseRequest,
         _request_timeout: Union[
             None,
@@ -205,6 +532,8 @@ class DefaultApi:
 
         :param id: (required)
         :type id: UUID
+        :param lease_attempt: (required)
+        :type lease_attempt: int
         :param fail_lease_request: (required)
         :type fail_lease_request: FailLeaseRequest
         :param _request_timeout: timeout setting for this request. If one
@@ -231,6 +560,7 @@ class DefaultApi:
 
         _param = self._fail_lease_serialize(
             id=id,
+            lease_attempt=lease_attempt,
             fail_lease_request=fail_lease_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
@@ -240,6 +570,8 @@ class DefaultApi:
 
         _response_types_map: Dict[str, Optional[str]] = {
             '201': None,
+            '409': "LeaseRefusal",
+            '404': "UpdateProgress404Response",
             '400': "UpdateProgress400Response",
         }
         response_data = await self.api_client.call_api(
@@ -252,6 +584,7 @@ class DefaultApi:
     def _fail_lease_serialize(
         self,
         id,
+        lease_attempt,
         fail_lease_request,
         _request_auth,
         _content_type,
@@ -277,6 +610,10 @@ class DefaultApi:
         if id is not None:
             _path_params['id'] = id
         # process the query parameters
+        if lease_attempt is not None:
+            
+            _query_params.append(('lease_attempt', lease_attempt))
+            
         # process the header parameters
         # process the form parameters
         # process the body parameter
@@ -571,6 +908,300 @@ class DefaultApi:
 
 
     @validate_call
+    async def preempt_lease(
+        self,
+        id: UUID,
+        preempt_request: PreemptRequest,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> None:
+        """PreemptLease
+
+
+        :param id: (required)
+        :type id: UUID
+        :param preempt_request: (required)
+        :type preempt_request: PreemptRequest
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._preempt_lease_serialize(
+            id=id,
+            preempt_request=preempt_request,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '201': None,
+            '409': "LeaseRefusal",
+            '404': "UpdateProgress404Response",
+            '400': "UpdateProgress400Response",
+        }
+        response_data = await self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        await response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        ).data
+
+
+    @validate_call
+    async def preempt_lease_with_http_info(
+        self,
+        id: UUID,
+        preempt_request: PreemptRequest,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> ApiResponse[None]:
+        """PreemptLease
+
+
+        :param id: (required)
+        :type id: UUID
+        :param preempt_request: (required)
+        :type preempt_request: PreemptRequest
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._preempt_lease_serialize(
+            id=id,
+            preempt_request=preempt_request,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '201': None,
+            '409': "LeaseRefusal",
+            '404': "UpdateProgress404Response",
+            '400': "UpdateProgress400Response",
+        }
+        response_data = await self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        await response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        )
+
+
+    @validate_call
+    async def preempt_lease_without_preload_content(
+        self,
+        id: UUID,
+        preempt_request: PreemptRequest,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> RESTResponseType:
+        """PreemptLease
+
+
+        :param id: (required)
+        :type id: UUID
+        :param preempt_request: (required)
+        :type preempt_request: PreemptRequest
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._preempt_lease_serialize(
+            id=id,
+            preempt_request=preempt_request,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '201': None,
+            '409': "LeaseRefusal",
+            '404': "UpdateProgress404Response",
+            '400': "UpdateProgress400Response",
+        }
+        response_data = await self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        return response_data.response
+
+
+    def _preempt_lease_serialize(
+        self,
+        id,
+        preempt_request,
+        _request_auth,
+        _content_type,
+        _headers,
+        _host_index,
+    ) -> RequestSerialized:
+
+        _host = None
+
+        _collection_formats: Dict[str, str] = {
+        }
+
+        _path_params: Dict[str, str] = {}
+        _query_params: List[Tuple[str, str]] = []
+        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _form_params: List[Tuple[str, str]] = []
+        _files: Dict[
+            str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
+        ] = {}
+        _body_params: Optional[bytes] = None
+
+        # process the path parameters
+        if id is not None:
+            _path_params['id'] = id
+        # process the query parameters
+        # process the header parameters
+        # process the form parameters
+        # process the body parameter
+        if preempt_request is not None:
+            _body_params = preempt_request
+
+
+        # set the HTTP header `Accept`
+        if 'Accept' not in _header_params:
+            _header_params['Accept'] = self.api_client.select_header_accept(
+                [
+                    'application/json'
+                ]
+            )
+
+        # set the HTTP header `Content-Type`
+        if _content_type:
+            _header_params['Content-Type'] = _content_type
+        else:
+            _default_content_type = (
+                self.api_client.select_header_content_type(
+                    [
+                        'application/json'
+                    ]
+                )
+            )
+            if _default_content_type is not None:
+                _header_params['Content-Type'] = _default_content_type
+
+        # authentication setting
+        _auth_settings: List[str] = [
+        ]
+
+        return self.api_client.param_serialize(
+            method='POST',
+            resource_path='/leases/{id}/preempt',
+            path_params=_path_params,
+            query_params=_query_params,
+            header_params=_header_params,
+            body=_body_params,
+            post_params=_form_params,
+            files=_files,
+            auth_settings=_auth_settings,
+            collection_formats=_collection_formats,
+            _host=_host,
+            _request_auth=_request_auth
+        )
+
+
+
+
+    @validate_call
     async def request_lease(
         self,
         _request_timeout: Union[
@@ -813,269 +1444,10 @@ class DefaultApi:
 
 
     @validate_call
-    async def requeue_lease(
-        self,
-        id: UUID,
-        _request_timeout: Union[
-            None,
-            Annotated[StrictFloat, Field(gt=0)],
-            Tuple[
-                Annotated[StrictFloat, Field(gt=0)],
-                Annotated[StrictFloat, Field(gt=0)]
-            ]
-        ] = None,
-        _request_auth: Optional[Dict[StrictStr, Any]] = None,
-        _content_type: Optional[StrictStr] = None,
-        _headers: Optional[Dict[StrictStr, Any]] = None,
-        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
-    ) -> None:
-        """RequeueLease
-
-
-        :param id: (required)
-        :type id: UUID
-        :param _request_timeout: timeout setting for this request. If one
-                                 number provided, it will be total request
-                                 timeout. It can also be a pair (tuple) of
-                                 (connection, read) timeouts.
-        :type _request_timeout: int, tuple(int, int), optional
-        :param _request_auth: set to override the auth_settings for an a single
-                              request; this effectively ignores the
-                              authentication in the spec for a single request.
-        :type _request_auth: dict, optional
-        :param _content_type: force content-type for the request.
-        :type _content_type: str, Optional
-        :param _headers: set to override the headers for a single
-                         request; this effectively ignores the headers
-                         in the spec for a single request.
-        :type _headers: dict, optional
-        :param _host_index: set to override the host_index for a single
-                            request; this effectively ignores the host_index
-                            in the spec for a single request.
-        :type _host_index: int, optional
-        :return: Returns the result object.
-        """ # noqa: E501
-
-        _param = self._requeue_lease_serialize(
-            id=id,
-            _request_auth=_request_auth,
-            _content_type=_content_type,
-            _headers=_headers,
-            _host_index=_host_index
-        )
-
-        _response_types_map: Dict[str, Optional[str]] = {
-            '201': None,
-            '400': "UpdateProgress400Response",
-        }
-        response_data = await self.api_client.call_api(
-            *_param,
-            _request_timeout=_request_timeout
-        )
-        await response_data.read()
-        return self.api_client.response_deserialize(
-            response_data=response_data,
-            response_types_map=_response_types_map,
-        ).data
-
-
-    @validate_call
-    async def requeue_lease_with_http_info(
-        self,
-        id: UUID,
-        _request_timeout: Union[
-            None,
-            Annotated[StrictFloat, Field(gt=0)],
-            Tuple[
-                Annotated[StrictFloat, Field(gt=0)],
-                Annotated[StrictFloat, Field(gt=0)]
-            ]
-        ] = None,
-        _request_auth: Optional[Dict[StrictStr, Any]] = None,
-        _content_type: Optional[StrictStr] = None,
-        _headers: Optional[Dict[StrictStr, Any]] = None,
-        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
-    ) -> ApiResponse[None]:
-        """RequeueLease
-
-
-        :param id: (required)
-        :type id: UUID
-        :param _request_timeout: timeout setting for this request. If one
-                                 number provided, it will be total request
-                                 timeout. It can also be a pair (tuple) of
-                                 (connection, read) timeouts.
-        :type _request_timeout: int, tuple(int, int), optional
-        :param _request_auth: set to override the auth_settings for an a single
-                              request; this effectively ignores the
-                              authentication in the spec for a single request.
-        :type _request_auth: dict, optional
-        :param _content_type: force content-type for the request.
-        :type _content_type: str, Optional
-        :param _headers: set to override the headers for a single
-                         request; this effectively ignores the headers
-                         in the spec for a single request.
-        :type _headers: dict, optional
-        :param _host_index: set to override the host_index for a single
-                            request; this effectively ignores the host_index
-                            in the spec for a single request.
-        :type _host_index: int, optional
-        :return: Returns the result object.
-        """ # noqa: E501
-
-        _param = self._requeue_lease_serialize(
-            id=id,
-            _request_auth=_request_auth,
-            _content_type=_content_type,
-            _headers=_headers,
-            _host_index=_host_index
-        )
-
-        _response_types_map: Dict[str, Optional[str]] = {
-            '201': None,
-            '400': "UpdateProgress400Response",
-        }
-        response_data = await self.api_client.call_api(
-            *_param,
-            _request_timeout=_request_timeout
-        )
-        await response_data.read()
-        return self.api_client.response_deserialize(
-            response_data=response_data,
-            response_types_map=_response_types_map,
-        )
-
-
-    @validate_call
-    async def requeue_lease_without_preload_content(
-        self,
-        id: UUID,
-        _request_timeout: Union[
-            None,
-            Annotated[StrictFloat, Field(gt=0)],
-            Tuple[
-                Annotated[StrictFloat, Field(gt=0)],
-                Annotated[StrictFloat, Field(gt=0)]
-            ]
-        ] = None,
-        _request_auth: Optional[Dict[StrictStr, Any]] = None,
-        _content_type: Optional[StrictStr] = None,
-        _headers: Optional[Dict[StrictStr, Any]] = None,
-        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
-    ) -> RESTResponseType:
-        """RequeueLease
-
-
-        :param id: (required)
-        :type id: UUID
-        :param _request_timeout: timeout setting for this request. If one
-                                 number provided, it will be total request
-                                 timeout. It can also be a pair (tuple) of
-                                 (connection, read) timeouts.
-        :type _request_timeout: int, tuple(int, int), optional
-        :param _request_auth: set to override the auth_settings for an a single
-                              request; this effectively ignores the
-                              authentication in the spec for a single request.
-        :type _request_auth: dict, optional
-        :param _content_type: force content-type for the request.
-        :type _content_type: str, Optional
-        :param _headers: set to override the headers for a single
-                         request; this effectively ignores the headers
-                         in the spec for a single request.
-        :type _headers: dict, optional
-        :param _host_index: set to override the host_index for a single
-                            request; this effectively ignores the host_index
-                            in the spec for a single request.
-        :type _host_index: int, optional
-        :return: Returns the result object.
-        """ # noqa: E501
-
-        _param = self._requeue_lease_serialize(
-            id=id,
-            _request_auth=_request_auth,
-            _content_type=_content_type,
-            _headers=_headers,
-            _host_index=_host_index
-        )
-
-        _response_types_map: Dict[str, Optional[str]] = {
-            '201': None,
-            '400': "UpdateProgress400Response",
-        }
-        response_data = await self.api_client.call_api(
-            *_param,
-            _request_timeout=_request_timeout
-        )
-        return response_data.response
-
-
-    def _requeue_lease_serialize(
-        self,
-        id,
-        _request_auth,
-        _content_type,
-        _headers,
-        _host_index,
-    ) -> RequestSerialized:
-
-        _host = None
-
-        _collection_formats: Dict[str, str] = {
-        }
-
-        _path_params: Dict[str, str] = {}
-        _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
-        _form_params: List[Tuple[str, str]] = []
-        _files: Dict[
-            str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
-        ] = {}
-        _body_params: Optional[bytes] = None
-
-        # process the path parameters
-        if id is not None:
-            _path_params['id'] = id
-        # process the query parameters
-        # process the header parameters
-        # process the form parameters
-        # process the body parameter
-
-
-        # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
-            _header_params['Accept'] = self.api_client.select_header_accept(
-                [
-                    'application/json'
-                ]
-            )
-
-
-        # authentication setting
-        _auth_settings: List[str] = [
-        ]
-
-        return self.api_client.param_serialize(
-            method='POST',
-            resource_path='/leases/{id}/requeue',
-            path_params=_path_params,
-            query_params=_query_params,
-            header_params=_header_params,
-            body=_body_params,
-            post_params=_form_params,
-            files=_files,
-            auth_settings=_auth_settings,
-            collection_formats=_collection_formats,
-            _host=_host,
-            _request_auth=_request_auth
-        )
-
-
-
-
-    @validate_call
     async def succeed_lease(
         self,
         id: UUID,
+        lease_attempt: StrictInt,
         reconstruction_metrics: ReconstructionMetrics,
         _request_timeout: Union[
             None,
@@ -1095,6 +1467,8 @@ class DefaultApi:
 
         :param id: (required)
         :type id: UUID
+        :param lease_attempt: (required)
+        :type lease_attempt: int
         :param reconstruction_metrics: (required)
         :type reconstruction_metrics: ReconstructionMetrics
         :param _request_timeout: timeout setting for this request. If one
@@ -1121,6 +1495,7 @@ class DefaultApi:
 
         _param = self._succeed_lease_serialize(
             id=id,
+            lease_attempt=lease_attempt,
             reconstruction_metrics=reconstruction_metrics,
             _request_auth=_request_auth,
             _content_type=_content_type,
@@ -1130,6 +1505,8 @@ class DefaultApi:
 
         _response_types_map: Dict[str, Optional[str]] = {
             '201': None,
+            '409': "LeaseRefusal",
+            '404': "UpdateProgress404Response",
             '400': "UpdateProgress400Response",
         }
         response_data = await self.api_client.call_api(
@@ -1147,6 +1524,7 @@ class DefaultApi:
     async def succeed_lease_with_http_info(
         self,
         id: UUID,
+        lease_attempt: StrictInt,
         reconstruction_metrics: ReconstructionMetrics,
         _request_timeout: Union[
             None,
@@ -1166,6 +1544,8 @@ class DefaultApi:
 
         :param id: (required)
         :type id: UUID
+        :param lease_attempt: (required)
+        :type lease_attempt: int
         :param reconstruction_metrics: (required)
         :type reconstruction_metrics: ReconstructionMetrics
         :param _request_timeout: timeout setting for this request. If one
@@ -1192,6 +1572,7 @@ class DefaultApi:
 
         _param = self._succeed_lease_serialize(
             id=id,
+            lease_attempt=lease_attempt,
             reconstruction_metrics=reconstruction_metrics,
             _request_auth=_request_auth,
             _content_type=_content_type,
@@ -1201,6 +1582,8 @@ class DefaultApi:
 
         _response_types_map: Dict[str, Optional[str]] = {
             '201': None,
+            '409': "LeaseRefusal",
+            '404': "UpdateProgress404Response",
             '400': "UpdateProgress400Response",
         }
         response_data = await self.api_client.call_api(
@@ -1218,6 +1601,7 @@ class DefaultApi:
     async def succeed_lease_without_preload_content(
         self,
         id: UUID,
+        lease_attempt: StrictInt,
         reconstruction_metrics: ReconstructionMetrics,
         _request_timeout: Union[
             None,
@@ -1237,6 +1621,8 @@ class DefaultApi:
 
         :param id: (required)
         :type id: UUID
+        :param lease_attempt: (required)
+        :type lease_attempt: int
         :param reconstruction_metrics: (required)
         :type reconstruction_metrics: ReconstructionMetrics
         :param _request_timeout: timeout setting for this request. If one
@@ -1263,6 +1649,7 @@ class DefaultApi:
 
         _param = self._succeed_lease_serialize(
             id=id,
+            lease_attempt=lease_attempt,
             reconstruction_metrics=reconstruction_metrics,
             _request_auth=_request_auth,
             _content_type=_content_type,
@@ -1272,6 +1659,8 @@ class DefaultApi:
 
         _response_types_map: Dict[str, Optional[str]] = {
             '201': None,
+            '409': "LeaseRefusal",
+            '404': "UpdateProgress404Response",
             '400': "UpdateProgress400Response",
         }
         response_data = await self.api_client.call_api(
@@ -1284,6 +1673,7 @@ class DefaultApi:
     def _succeed_lease_serialize(
         self,
         id,
+        lease_attempt,
         reconstruction_metrics,
         _request_auth,
         _content_type,
@@ -1309,6 +1699,10 @@ class DefaultApi:
         if id is not None:
             _path_params['id'] = id
         # process the query parameters
+        if lease_attempt is not None:
+            
+            _query_params.append(('lease_attempt', lease_attempt))
+            
         # process the header parameters
         # process the form parameters
         # process the body parameter
@@ -1418,6 +1812,8 @@ class DefaultApi:
 
         _response_types_map: Dict[str, Optional[str]] = {
             '201': None,
+            '409': "LeaseRefusal",
+            '404': "UpdateProgress404Response",
             '400': "UpdateProgress400Response",
         }
         response_data = await self.api_client.call_api(
@@ -1489,6 +1885,8 @@ class DefaultApi:
 
         _response_types_map: Dict[str, Optional[str]] = {
             '201': None,
+            '409': "LeaseRefusal",
+            '404': "UpdateProgress404Response",
             '400': "UpdateProgress400Response",
         }
         response_data = await self.api_client.call_api(
@@ -1560,6 +1958,8 @@ class DefaultApi:
 
         _response_types_map: Dict[str, Optional[str]] = {
             '201': None,
+            '409': "LeaseRefusal",
+            '404': "UpdateProgress404Response",
             '400': "UpdateProgress400Response",
         }
         response_data = await self.api_client.call_api(

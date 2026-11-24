@@ -68,7 +68,8 @@ namespace PlaceframeApiClient.Model
         /// <param name="createdAt">datetime with the constraint that the value must have timezone info (required).</param>
         /// <param name="updatedAt">datetime with the constraint that the value must have timezone info (required).</param>
         /// <param name="status">status (required).</param>
-        /// <param name="requeueCount">requeueCount (required).</param>
+        /// <param name="errorCount">errorCount (required).</param>
+        /// <param name="leaseAttempt">leaseAttempt (required).</param>
         /// <param name="manifest">manifest (required).</param>
         /// <param name="manifestVersion">manifestVersion (required).</param>
         /// <param name="id">id (required).</param>
@@ -77,14 +78,16 @@ namespace PlaceframeApiClient.Model
         /// <param name="progressCurrent">progressCurrent.</param>
         /// <param name="progressTotal">progressTotal.</param>
         /// <param name="progressAttempt">progressAttempt.</param>
+        /// <param name="leaseHeartbeatAt">datetime with the constraint that the value must have timezone info.</param>
         /// <param name="queuePosition">queuePosition.</param>
         /// <param name="queueDepth">queueDepth.</param>
-        public ReconstructionReadWithQueue(DateTime createdAt, DateTime updatedAt, ReconstructionStatus status, int requeueCount, Dictionary<string, Object> manifest, int manifestVersion, Guid id)
+        public ReconstructionReadWithQueue(DateTime createdAt, DateTime updatedAt, ReconstructionStatus status, int errorCount, int leaseAttempt, Dictionary<string, Object> manifest, int manifestVersion, Guid id)
         {
             this.CreatedAt = createdAt;
             this.UpdatedAt = updatedAt;
             this.Status = status;
-            this.RequeueCount = requeueCount;
+            this.ErrorCount = errorCount;
+            this.LeaseAttempt = leaseAttempt;
             // to ensure "manifest" is required (not null)
             if (manifest == null)
             {
@@ -146,28 +149,52 @@ namespace PlaceframeApiClient.Model
             return _flagUpdatedAt;
         }
         /// <summary>
-        /// Gets or Sets RequeueCount
+        /// Gets or Sets ErrorCount
         /// </summary>
-        [DataMember(Name = "requeue_count", IsRequired = true, EmitDefaultValue = true)]
-        public int RequeueCount
+        [DataMember(Name = "error_count", IsRequired = true, EmitDefaultValue = true)]
+        public int ErrorCount
         {
-            get{ return _RequeueCount;}
+            get{ return _ErrorCount;}
             set
             {
-                _RequeueCount = value;
-                _flagRequeueCount = true;
+                _ErrorCount = value;
+                _flagErrorCount = true;
             }
         }
-        private int _RequeueCount;
-        private bool _flagRequeueCount;
+        private int _ErrorCount;
+        private bool _flagErrorCount;
 
         /// <summary>
-        /// Returns false as RequeueCount should not be serialized given that it's read-only.
+        /// Returns false as ErrorCount should not be serialized given that it's read-only.
         /// </summary>
         /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeRequeueCount()
+        public bool ShouldSerializeErrorCount()
         {
-            return _flagRequeueCount;
+            return _flagErrorCount;
+        }
+        /// <summary>
+        /// Gets or Sets LeaseAttempt
+        /// </summary>
+        [DataMember(Name = "lease_attempt", IsRequired = true, EmitDefaultValue = true)]
+        public int LeaseAttempt
+        {
+            get{ return _LeaseAttempt;}
+            set
+            {
+                _LeaseAttempt = value;
+                _flagLeaseAttempt = true;
+            }
+        }
+        private int _LeaseAttempt;
+        private bool _flagLeaseAttempt;
+
+        /// <summary>
+        /// Returns false as LeaseAttempt should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeLeaseAttempt()
+        {
+            return _flagLeaseAttempt;
         }
         /// <summary>
         /// Gets or Sets Manifest
@@ -362,6 +389,31 @@ namespace PlaceframeApiClient.Model
             return _flagProgressAttempt;
         }
         /// <summary>
+        /// datetime with the constraint that the value must have timezone info
+        /// </summary>
+        /// <value>datetime with the constraint that the value must have timezone info</value>
+        [DataMember(Name = "lease_heartbeat_at", EmitDefaultValue = true)]
+        public DateTime? LeaseHeartbeatAt
+        {
+            get{ return _LeaseHeartbeatAt;}
+            set
+            {
+                _LeaseHeartbeatAt = value;
+                _flagLeaseHeartbeatAt = true;
+            }
+        }
+        private DateTime? _LeaseHeartbeatAt;
+        private bool _flagLeaseHeartbeatAt;
+
+        /// <summary>
+        /// Returns false as LeaseHeartbeatAt should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeLeaseHeartbeatAt()
+        {
+            return _flagLeaseHeartbeatAt;
+        }
+        /// <summary>
         /// Gets or Sets QueuePosition
         /// </summary>
         [DataMember(Name = "queue_position", EmitDefaultValue = true)]
@@ -420,7 +472,8 @@ namespace PlaceframeApiClient.Model
             sb.Append("  CreatedAt: ").Append(CreatedAt).Append("\n");
             sb.Append("  UpdatedAt: ").Append(UpdatedAt).Append("\n");
             sb.Append("  Status: ").Append(Status).Append("\n");
-            sb.Append("  RequeueCount: ").Append(RequeueCount).Append("\n");
+            sb.Append("  ErrorCount: ").Append(ErrorCount).Append("\n");
+            sb.Append("  LeaseAttempt: ").Append(LeaseAttempt).Append("\n");
             sb.Append("  Manifest: ").Append(Manifest).Append("\n");
             sb.Append("  ManifestVersion: ").Append(ManifestVersion).Append("\n");
             sb.Append("  Id: ").Append(Id).Append("\n");
@@ -429,6 +482,7 @@ namespace PlaceframeApiClient.Model
             sb.Append("  ProgressCurrent: ").Append(ProgressCurrent).Append("\n");
             sb.Append("  ProgressTotal: ").Append(ProgressTotal).Append("\n");
             sb.Append("  ProgressAttempt: ").Append(ProgressAttempt).Append("\n");
+            sb.Append("  LeaseHeartbeatAt: ").Append(LeaseHeartbeatAt).Append("\n");
             sb.Append("  QueuePosition: ").Append(QueuePosition).Append("\n");
             sb.Append("  QueueDepth: ").Append(QueueDepth).Append("\n");
             sb.Append("}\n");

@@ -17,7 +17,7 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, StrictInt
 from typing import Any, ClassVar, Dict, List
 from uuid import UUID
 from placeframe_lease_server_client.models.reconstruction_options import ReconstructionOptions
@@ -32,8 +32,9 @@ class Lease(BaseModel):
     reconstruction_id: UUID
     capture_session_id: UUID
     options: ReconstructionOptions
+    lease_attempt: StrictInt
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["reconstruction_id", "capture_session_id", "options"]
+    __properties: ClassVar[List[str]] = ["reconstruction_id", "capture_session_id", "options", "lease_attempt"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -98,7 +99,8 @@ class Lease(BaseModel):
         _obj = cls.model_validate({
             "reconstruction_id": obj.get("reconstruction_id"),
             "capture_session_id": obj.get("capture_session_id"),
-            "options": ReconstructionOptions.from_dict(obj["options"]) if obj.get("options") is not None else None
+            "options": ReconstructionOptions.from_dict(obj["options"]) if obj.get("options") is not None else None,
+            "lease_attempt": obj.get("lease_attempt")
         })
         # store additional fields in additional_properties
         for _key in obj.keys():

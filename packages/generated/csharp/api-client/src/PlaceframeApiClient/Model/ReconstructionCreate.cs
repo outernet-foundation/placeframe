@@ -34,36 +34,62 @@ namespace PlaceframeApiClient.Model
         /// <summary>
         /// Initializes a new instance of the <see cref="ReconstructionCreate" /> class.
         /// </summary>
-        /// <param name="requeueCount">requeueCount.</param>
+        /// <param name="errorCount">errorCount.</param>
+        /// <param name="leaseAttempt">leaseAttempt.</param>
         /// <param name="id">id.</param>
         /// <param name="captureSessionId">captureSessionId.</param>
+        /// <param name="leaseHeartbeatAt">datetime with the constraint that the value must have timezone info.</param>
         public ReconstructionCreate()
         {
         }
 
         /// <summary>
-        /// Gets or Sets RequeueCount
+        /// Gets or Sets ErrorCount
         /// </summary>
-        [DataMember(Name = "requeue_count", EmitDefaultValue = true)]
-        public int? RequeueCount
+        [DataMember(Name = "error_count", EmitDefaultValue = true)]
+        public int? ErrorCount
         {
-            get{ return _RequeueCount;}
+            get{ return _ErrorCount;}
             set
             {
-                _RequeueCount = value;
-                _flagRequeueCount = true;
+                _ErrorCount = value;
+                _flagErrorCount = true;
             }
         }
-        private int? _RequeueCount;
-        private bool _flagRequeueCount;
+        private int? _ErrorCount;
+        private bool _flagErrorCount;
 
         /// <summary>
-        /// Returns false as RequeueCount should not be serialized given that it's read-only.
+        /// Returns false as ErrorCount should not be serialized given that it's read-only.
         /// </summary>
         /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeRequeueCount()
+        public bool ShouldSerializeErrorCount()
         {
-            return _flagRequeueCount;
+            return _flagErrorCount;
+        }
+        /// <summary>
+        /// Gets or Sets LeaseAttempt
+        /// </summary>
+        [DataMember(Name = "lease_attempt", EmitDefaultValue = true)]
+        public int? LeaseAttempt
+        {
+            get{ return _LeaseAttempt;}
+            set
+            {
+                _LeaseAttempt = value;
+                _flagLeaseAttempt = true;
+            }
+        }
+        private int? _LeaseAttempt;
+        private bool _flagLeaseAttempt;
+
+        /// <summary>
+        /// Returns false as LeaseAttempt should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeLeaseAttempt()
+        {
+            return _flagLeaseAttempt;
         }
         /// <summary>
         /// Gets or Sets Id
@@ -114,6 +140,31 @@ namespace PlaceframeApiClient.Model
             return _flagCaptureSessionId;
         }
         /// <summary>
+        /// datetime with the constraint that the value must have timezone info
+        /// </summary>
+        /// <value>datetime with the constraint that the value must have timezone info</value>
+        [DataMember(Name = "lease_heartbeat_at", EmitDefaultValue = true)]
+        public DateTime? LeaseHeartbeatAt
+        {
+            get{ return _LeaseHeartbeatAt;}
+            set
+            {
+                _LeaseHeartbeatAt = value;
+                _flagLeaseHeartbeatAt = true;
+            }
+        }
+        private DateTime? _LeaseHeartbeatAt;
+        private bool _flagLeaseHeartbeatAt;
+
+        /// <summary>
+        /// Returns false as LeaseHeartbeatAt should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeLeaseHeartbeatAt()
+        {
+            return _flagLeaseHeartbeatAt;
+        }
+        /// <summary>
         /// Returns the string presentation of the object
         /// </summary>
         /// <returns>String presentation of the object</returns>
@@ -121,9 +172,11 @@ namespace PlaceframeApiClient.Model
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("class ReconstructionCreate {\n");
-            sb.Append("  RequeueCount: ").Append(RequeueCount).Append("\n");
+            sb.Append("  ErrorCount: ").Append(ErrorCount).Append("\n");
+            sb.Append("  LeaseAttempt: ").Append(LeaseAttempt).Append("\n");
             sb.Append("  Id: ").Append(Id).Append("\n");
             sb.Append("  CaptureSessionId: ").Append(CaptureSessionId).Append("\n");
+            sb.Append("  LeaseHeartbeatAt: ").Append(LeaseHeartbeatAt).Append("\n");
             sb.Append("}\n");
             return sb.ToString();
         }

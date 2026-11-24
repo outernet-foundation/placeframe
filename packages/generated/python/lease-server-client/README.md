@@ -68,13 +68,14 @@ async with placeframe_lease_server_client.ApiClient(configuration) as api_client
     # Create an instance of the API class
     api_instance = placeframe_lease_server_client.DefaultApi(api_client)
     id = UUID('38400000-8cf0-11bd-b23e-10b96e4ef00d') # UUID | 
-    fail_lease_request = placeframe_lease_server_client.FailLeaseRequest() # FailLeaseRequest | 
+    lease_attempt = 56 # int | 
+    error_request = placeframe_lease_server_client.ErrorRequest() # ErrorRequest | 
 
     try:
-        # FailLease
-        await api_instance.fail_lease(id, fail_lease_request)
+        # ErrorLease
+        await api_instance.error_lease(id, lease_attempt, error_request)
     except ApiException as e:
-        print("Exception when calling DefaultApi->fail_lease: %s\n" % e)
+        print("Exception when calling DefaultApi->error_lease: %s\n" % e)
 
 ```
 
@@ -84,27 +85,32 @@ All URIs are relative to *http://lease-server:8000*
 
 Class | Method | HTTP request | Description
 ------------ | ------------- | ------------- | -------------
+*DefaultApi* | [**error_lease**](docs/DefaultApi.md#error_lease) | **POST** /leases/{id}/error | ErrorLease
 *DefaultApi* | [**fail_lease**](docs/DefaultApi.md#fail_lease) | **POST** /leases/{id}/fail | FailLease
 *DefaultApi* | [**get_queue_state**](docs/DefaultApi.md#get_queue_state) | **GET** /queue-state | GetQueueState
+*DefaultApi* | [**preempt_lease**](docs/DefaultApi.md#preempt_lease) | **POST** /leases/{id}/preempt | PreemptLease
 *DefaultApi* | [**request_lease**](docs/DefaultApi.md#request_lease) | **POST** /leases/request | RequestLease
-*DefaultApi* | [**requeue_lease**](docs/DefaultApi.md#requeue_lease) | **POST** /leases/{id}/requeue | RequeueLease
 *DefaultApi* | [**succeed_lease**](docs/DefaultApi.md#succeed_lease) | **POST** /leases/{id}/succeed | SucceedLease
 *DefaultApi* | [**update_progress**](docs/DefaultApi.md#update_progress) | **POST** /leases/{id}/progress | UpdateProgress
 
 
 ## Documentation For Models
 
+ - [ErrorRequest](docs/ErrorRequest.md)
  - [FailLeaseRequest](docs/FailLeaseRequest.md)
  - [Lease](docs/Lease.md)
+ - [LeaseRefusal](docs/LeaseRefusal.md)
  - [LeaseResponse](docs/LeaseResponse.md)
  - [PhaseTiming](docs/PhaseTiming.md)
+ - [PreemptRequest](docs/PreemptRequest.md)
  - [ProgressUpdate](docs/ProgressUpdate.md)
  - [QueueState](docs/QueueState.md)
  - [ReconstructionMetrics](docs/ReconstructionMetrics.md)
  - [ReconstructionOptions](docs/ReconstructionOptions.md)
  - [ReconstructionStatus](docs/ReconstructionStatus.md)
  - [UpdateProgress400Response](docs/UpdateProgress400Response.md)
- - [UpdateProgress400ResponseExtra](docs/UpdateProgress400ResponseExtra.md)
+ - [UpdateProgress404Response](docs/UpdateProgress404Response.md)
+ - [UpdateProgress404ResponseExtra](docs/UpdateProgress404ResponseExtra.md)
 
 
 <a id="documentation-for-authorization"></a>

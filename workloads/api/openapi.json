@@ -1349,6 +1349,7 @@
           "Reconstructions"
         ],
         "summary": "DeleteReconstruction",
+        "description": "Delete the reconstruction and its artifact prefix. Deleting a row mid-flight is allowed: the prefix cascade discards any checkpointed work, and a still-running worker learns of the deletion as a 404 on its next write and stops.",
         "operationId": "delete_reconstruction",
         "parameters": [
           {
@@ -1489,13 +1490,13 @@
         "deprecated": false
       }
     },
-    "/reconstructions/{id}/retry": {
-      "put": {
+    "/reconstructions/{id}/pause": {
+      "post": {
         "tags": [
           "Reconstructions"
         ],
-        "summary": "RetryReconstruction",
-        "operationId": "retry_reconstruction",
+        "summary": "PauseReconstruction",
+        "operationId": "pause_reconstruction",
         "parameters": [
           {
             "name": "id",
@@ -1509,8 +1510,84 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "Request fulfilled, document follows",
+          "201": {
+            "description": "Document created, URL follows",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconstructionReadWithQueue"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request syntax or unsupported method",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status_code": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "anyOf": [
+                        {
+                          "type": "object"
+                        },
+                        {
+                          "type": "array",
+                          "items": {}
+                        }
+                      ],
+                      "nullable": true
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "description": "Validation Exception",
+                  "example": {
+                    "status_code": 400,
+                    "detail": "Bad Request",
+                    "extra": {}
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/reconstructions/{id}/resume": {
+      "post": {
+        "tags": [
+          "Reconstructions"
+        ],
+        "summary": "ResumeReconstruction",
+        "operationId": "resume_reconstruction",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "deprecated": false
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Document created, URL follows",
             "headers": {},
             "content": {
               "application/json": {
@@ -5996,8 +6073,13 @@
       },
       "ReconstructionCreate": {
         "properties": {
-          "requeue_count": {
-            "title": "Requeue Count",
+          "error_count": {
+            "title": "Error Count",
+            "nullable": true,
+            "type": "integer"
+          },
+          "lease_attempt": {
+            "title": "Lease Attempt",
             "nullable": true,
             "type": "integer"
           },
@@ -6012,6 +6094,13 @@
             "nullable": true,
             "type": "string",
             "format": "uuid"
+          },
+          "lease_heartbeat_at": {
+            "title": "Lease Heartbeat At",
+            "nullable": true,
+            "type": "string",
+            "format": "date-time",
+            "description": "datetime with the constraint that the value must have timezone info"
           }
         },
         "type": "object",
@@ -6298,9 +6387,13 @@
           "status": {
             "$ref": "#/components/schemas/ReconstructionStatus"
           },
-          "requeue_count": {
+          "error_count": {
             "type": "integer",
-            "title": "Requeue Count"
+            "title": "Error Count"
+          },
+          "lease_attempt": {
+            "type": "integer",
+            "title": "Lease Attempt"
           },
           "manifest": {
             "additionalProperties": {},
@@ -6342,6 +6435,13 @@
             "nullable": true,
             "type": "integer"
           },
+          "lease_heartbeat_at": {
+            "title": "Lease Heartbeat At",
+            "nullable": true,
+            "type": "string",
+            "format": "date-time",
+            "description": "datetime with the constraint that the value must have timezone info"
+          },
           "queue_position": {
             "nullable": true,
             "type": "integer"
@@ -6354,10 +6454,11 @@
         "type": "object",
         "required": [
           "created_at",
+          "error_count",
           "id",
+          "lease_attempt",
           "manifest",
           "manifest_version",
-          "requeue_count",
           "status",
           "updated_at"
         ],
@@ -6372,11 +6473,10 @@
           "training_opq_matrix",
           "training_product_quantizer",
           "verifying_geometry",
-          "verifying_rig_geometry",
           "reconstructing",
           "succeeded",
           "failed",
-          "cancelled"
+          "paused"
         ],
         "title": "ReconstructionStatus"
       },

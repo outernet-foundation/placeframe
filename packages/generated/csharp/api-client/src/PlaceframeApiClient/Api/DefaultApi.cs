@@ -330,6 +330,9 @@ namespace PlaceframeApiClient.Api
         /// <summary>
         /// DeleteReconstruction
         /// </summary>
+        /// <remarks>
+        /// Delete the reconstruction and its artifact prefix. Deleting a row mid-flight is allowed: the prefix cascade discards any checkpointed work, and a still-running worker learns of the deletion as a 404 on its next write and stops.
+        /// </remarks>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
         /// <returns></returns>
@@ -339,7 +342,7 @@ namespace PlaceframeApiClient.Api
         /// DeleteReconstruction
         /// </summary>
         /// <remarks>
-        /// 
+        /// Delete the reconstruction and its artifact prefix. Deleting a row mid-flight is allowed: the prefix cascade discards any checkpointed work, and a still-running worker learns of the deletion as a 404 on its next write and stops.
         /// </remarks>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
@@ -848,15 +851,15 @@ namespace PlaceframeApiClient.Api
         /// <returns>ApiResponse of List&lt;MapLocalization&gt;</returns>
         ApiResponse<List<MapLocalization>> LocalizeImageWithHttpInfo(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image, int? retrievalTopK = default, double? ransacThreshold = default);
         /// <summary>
-        /// RetryReconstruction
+        /// PauseReconstruction
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
         /// <returns>ReconstructionReadWithQueue</returns>
-        ReconstructionReadWithQueue RetryReconstruction(Guid id);
+        ReconstructionReadWithQueue PauseReconstruction(Guid id);
 
         /// <summary>
-        /// RetryReconstruction
+        /// PauseReconstruction
         /// </summary>
         /// <remarks>
         /// 
@@ -864,7 +867,25 @@ namespace PlaceframeApiClient.Api
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
         /// <returns>ApiResponse of ReconstructionReadWithQueue</returns>
-        ApiResponse<ReconstructionReadWithQueue> RetryReconstructionWithHttpInfo(Guid id);
+        ApiResponse<ReconstructionReadWithQueue> PauseReconstructionWithHttpInfo(Guid id);
+        /// <summary>
+        /// ResumeReconstruction
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <returns>ReconstructionReadWithQueue</returns>
+        ReconstructionReadWithQueue ResumeReconstruction(Guid id);
+
+        /// <summary>
+        /// ResumeReconstruction
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <returns>ApiResponse of ReconstructionReadWithQueue</returns>
+        ApiResponse<ReconstructionReadWithQueue> ResumeReconstructionWithHttpInfo(Guid id);
         /// <summary>
         /// UpdateCaptureSession
         /// </summary>
@@ -1418,7 +1439,7 @@ namespace PlaceframeApiClient.Api
         /// DeleteReconstruction
         /// </summary>
         /// <remarks>
-        /// 
+        /// Delete the reconstruction and its artifact prefix. Deleting a row mid-flight is allowed: the prefix cascade discards any checkpointed work, and a still-running worker learns of the deletion as a 404 on its next write and stops.
         /// </remarks>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
@@ -1430,7 +1451,7 @@ namespace PlaceframeApiClient.Api
         /// DeleteReconstruction
         /// </summary>
         /// <remarks>
-        /// 
+        /// Delete the reconstruction and its artifact prefix. Deleting a row mid-flight is allowed: the prefix cascade discards any checkpointed work, and a still-running worker learns of the deletion as a 404 on its next write and stops.
         /// </remarks>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
@@ -2070,7 +2091,7 @@ namespace PlaceframeApiClient.Api
         /// <returns>Task of ApiResponse (List&lt;MapLocalization&gt;)</returns>
         System.Threading.Tasks.Task<ApiResponse<List<MapLocalization>>> LocalizeImageWithHttpInfoAsync(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image, int? retrievalTopK = default, double? ransacThreshold = default, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
-        /// RetryReconstruction
+        /// PauseReconstruction
         /// </summary>
         /// <remarks>
         /// 
@@ -2079,10 +2100,10 @@ namespace PlaceframeApiClient.Api
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ReconstructionReadWithQueue</returns>
-        System.Threading.Tasks.Task<ReconstructionReadWithQueue> RetryReconstructionAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task<ReconstructionReadWithQueue> PauseReconstructionAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// RetryReconstruction
+        /// PauseReconstruction
         /// </summary>
         /// <remarks>
         /// 
@@ -2091,7 +2112,30 @@ namespace PlaceframeApiClient.Api
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (ReconstructionReadWithQueue)</returns>
-        System.Threading.Tasks.Task<ApiResponse<ReconstructionReadWithQueue>> RetryReconstructionWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task<ApiResponse<ReconstructionReadWithQueue>> PauseReconstructionWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+        /// <summary>
+        /// ResumeReconstruction
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ReconstructionReadWithQueue</returns>
+        System.Threading.Tasks.Task<ReconstructionReadWithQueue> ResumeReconstructionAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// ResumeReconstruction
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (ReconstructionReadWithQueue)</returns>
+        System.Threading.Tasks.Task<ApiResponse<ReconstructionReadWithQueue>> ResumeReconstructionWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// UpdateCaptureSession
         /// </summary>
@@ -4414,7 +4458,7 @@ namespace PlaceframeApiClient.Api
         }
 
         /// <summary>
-        /// DeleteReconstruction 
+        /// DeleteReconstruction Delete the reconstruction and its artifact prefix. Deleting a row mid-flight is allowed: the prefix cascade discards any checkpointed work, and a still-running worker learns of the deletion as a 404 on its next write and stops.
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
@@ -4425,7 +4469,7 @@ namespace PlaceframeApiClient.Api
         }
 
         /// <summary>
-        /// DeleteReconstruction 
+        /// DeleteReconstruction Delete the reconstruction and its artifact prefix. Deleting a row mid-flight is allowed: the prefix cascade discards any checkpointed work, and a still-running worker learns of the deletion as a 404 on its next write and stops.
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
@@ -4464,7 +4508,7 @@ namespace PlaceframeApiClient.Api
         }
 
         /// <summary>
-        /// DeleteReconstruction 
+        /// DeleteReconstruction Delete the reconstruction and its artifact prefix. Deleting a row mid-flight is allowed: the prefix cascade discards any checkpointed work, and a still-running worker learns of the deletion as a 404 on its next write and stops.
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
@@ -4476,7 +4520,7 @@ namespace PlaceframeApiClient.Api
         }
 
         /// <summary>
-        /// DeleteReconstruction 
+        /// DeleteReconstruction Delete the reconstruction and its artifact prefix. Deleting a row mid-flight is allowed: the prefix cascade discards any checkpointed work, and a still-running worker learns of the deletion as a 404 on its next write and stops.
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
@@ -7609,24 +7653,24 @@ namespace PlaceframeApiClient.Api
         }
 
         /// <summary>
-        /// RetryReconstruction 
+        /// PauseReconstruction 
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
         /// <returns>ReconstructionReadWithQueue</returns>
-        public ReconstructionReadWithQueue RetryReconstruction(Guid id)
+        public ReconstructionReadWithQueue PauseReconstruction(Guid id)
         {
-            PlaceframeApiClient.Client.ApiResponse<ReconstructionReadWithQueue> localVarResponse = RetryReconstructionWithHttpInfo(id);
+            PlaceframeApiClient.Client.ApiResponse<ReconstructionReadWithQueue> localVarResponse = PauseReconstructionWithHttpInfo(id);
             return localVarResponse.Data;
         }
 
         /// <summary>
-        /// RetryReconstruction 
+        /// PauseReconstruction 
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
         /// <returns>ApiResponse of ReconstructionReadWithQueue</returns>
-        public PlaceframeApiClient.Client.ApiResponse<ReconstructionReadWithQueue> RetryReconstructionWithHttpInfo(Guid id)
+        public PlaceframeApiClient.Client.ApiResponse<ReconstructionReadWithQueue> PauseReconstructionWithHttpInfo(Guid id)
         {
             PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
 
@@ -7648,11 +7692,11 @@ namespace PlaceframeApiClient.Api
 
 
             // make the HTTP request
-            var localVarResponse = this.Client.Put<ReconstructionReadWithQueue>("/reconstructions/{id}/retry", localVarRequestOptions, this.Configuration);
+            var localVarResponse = this.Client.Post<ReconstructionReadWithQueue>("/reconstructions/{id}/pause", localVarRequestOptions, this.Configuration);
 
             if (this.ExceptionFactory != null)
             {
-                Exception _exception = this.ExceptionFactory("RetryReconstruction", localVarResponse);
+                Exception _exception = this.ExceptionFactory("PauseReconstruction", localVarResponse);
                 if (_exception != null) throw _exception;
             }
 
@@ -7660,26 +7704,26 @@ namespace PlaceframeApiClient.Api
         }
 
         /// <summary>
-        /// RetryReconstruction 
+        /// PauseReconstruction 
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ReconstructionReadWithQueue</returns>
-        public async System.Threading.Tasks.Task<ReconstructionReadWithQueue> RetryReconstructionAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        public async System.Threading.Tasks.Task<ReconstructionReadWithQueue> PauseReconstructionAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlaceframeApiClient.Client.ApiResponse<ReconstructionReadWithQueue> localVarResponse = await RetryReconstructionWithHttpInfoAsync(id, cancellationToken).ConfigureAwait(false);
+            PlaceframeApiClient.Client.ApiResponse<ReconstructionReadWithQueue> localVarResponse = await PauseReconstructionWithHttpInfoAsync(id, cancellationToken).ConfigureAwait(false);
             return localVarResponse.Data;
         }
 
         /// <summary>
-        /// RetryReconstruction 
+        /// PauseReconstruction 
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (ReconstructionReadWithQueue)</returns>
-        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<ReconstructionReadWithQueue>> RetryReconstructionWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<ReconstructionReadWithQueue>> PauseReconstructionWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
         {
 
             PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
@@ -7704,11 +7748,118 @@ namespace PlaceframeApiClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.PutAsync<ReconstructionReadWithQueue>("/reconstructions/{id}/retry", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+            var localVarResponse = await this.AsynchronousClient.PostAsync<ReconstructionReadWithQueue>("/reconstructions/{id}/pause", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
 
             if (this.ExceptionFactory != null)
             {
-                Exception _exception = this.ExceptionFactory("RetryReconstruction", localVarResponse);
+                Exception _exception = this.ExceptionFactory("PauseReconstruction", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// ResumeReconstruction 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <returns>ReconstructionReadWithQueue</returns>
+        public ReconstructionReadWithQueue ResumeReconstruction(Guid id)
+        {
+            PlaceframeApiClient.Client.ApiResponse<ReconstructionReadWithQueue> localVarResponse = ResumeReconstructionWithHttpInfo(id);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// ResumeReconstruction 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <returns>ApiResponse of ReconstructionReadWithQueue</returns>
+        public PlaceframeApiClient.Client.ApiResponse<ReconstructionReadWithQueue> ResumeReconstructionWithHttpInfo(Guid id)
+        {
+            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.PathParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id)); // path parameter
+
+
+            // make the HTTP request
+            var localVarResponse = this.Client.Post<ReconstructionReadWithQueue>("/reconstructions/{id}/resume", localVarRequestOptions, this.Configuration);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("ResumeReconstruction", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// ResumeReconstruction 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ReconstructionReadWithQueue</returns>
+        public async System.Threading.Tasks.Task<ReconstructionReadWithQueue> ResumeReconstructionAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        {
+            PlaceframeApiClient.Client.ApiResponse<ReconstructionReadWithQueue> localVarResponse = await ResumeReconstructionWithHttpInfoAsync(id, cancellationToken).ConfigureAwait(false);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// ResumeReconstruction 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (ReconstructionReadWithQueue)</returns>
+        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<ReconstructionReadWithQueue>> ResumeReconstructionWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        {
+
+            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+
+            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.PathParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id)); // path parameter
+
+
+            // make the HTTP request
+
+            var localVarResponse = await this.AsynchronousClient.PostAsync<ReconstructionReadWithQueue>("/reconstructions/{id}/resume", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("ResumeReconstruction", localVarResponse);
                 if (_exception != null) throw _exception;
             }
 

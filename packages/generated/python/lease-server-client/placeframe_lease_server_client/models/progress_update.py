@@ -33,8 +33,9 @@ class ProgressUpdate(BaseModel):
     progress_total: Optional[StrictInt] = None
     progress_attempt: Optional[StrictInt] = None
     error: Optional[StrictStr] = None
+    lease_attempt: StrictInt
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["status", "progress_current", "progress_total", "progress_attempt", "error"]
+    __properties: ClassVar[List[str]] = ["status", "progress_current", "progress_total", "progress_attempt", "error", "lease_attempt"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -118,7 +119,8 @@ class ProgressUpdate(BaseModel):
             "progress_current": obj.get("progress_current"),
             "progress_total": obj.get("progress_total"),
             "progress_attempt": obj.get("progress_attempt"),
-            "error": obj.get("error")
+            "error": obj.get("error"),
+            "lease_attempt": obj.get("lease_attempt")
         })
         # store additional fields in additional_properties
         for _key in obj.keys():

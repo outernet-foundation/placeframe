@@ -24,7 +24,13 @@ export interface ReconstructionCreate {
      * @type {number}
      * @memberof ReconstructionCreate
      */
-    requeueCount?: number | null;
+    errorCount?: number | null;
+    /**
+     * 
+     * @type {number}
+     * @memberof ReconstructionCreate
+     */
+    leaseAttempt?: number | null;
     /**
      * 
      * @type {string}
@@ -37,6 +43,12 @@ export interface ReconstructionCreate {
      * @memberof ReconstructionCreate
      */
     captureSessionId?: string | null;
+    /**
+     * datetime with the constraint that the value must have timezone info
+     * @type {Date}
+     * @memberof ReconstructionCreate
+     */
+    leaseHeartbeatAt?: Date | null;
 }
 
 /**
@@ -56,9 +68,11 @@ export function ReconstructionCreateFromJSONTyped(json: any, ignoreDiscriminator
     }
     return {
         
-        'requeueCount': json['requeue_count'] == null ? undefined : json['requeue_count'],
+        'errorCount': json['error_count'] == null ? undefined : json['error_count'],
+        'leaseAttempt': json['lease_attempt'] == null ? undefined : json['lease_attempt'],
         'id': json['id'] == null ? undefined : json['id'],
         'captureSessionId': json['capture_session_id'] == null ? undefined : json['capture_session_id'],
+        'leaseHeartbeatAt': json['lease_heartbeat_at'] == null ? undefined : (new Date(json['lease_heartbeat_at'])),
     };
 }
 
@@ -73,9 +87,11 @@ export function ReconstructionCreateToJSONTyped(value?: ReconstructionCreate | n
 
     return {
         
-        'requeue_count': value['requeueCount'],
+        'error_count': value['errorCount'],
+        'lease_attempt': value['leaseAttempt'],
         'id': value['id'],
         'capture_session_id': value['captureSessionId'],
+        'lease_heartbeat_at': value['leaseHeartbeatAt'] == null ? value['leaseHeartbeatAt'] : value['leaseHeartbeatAt'].toISOString(),
     };
 }
 

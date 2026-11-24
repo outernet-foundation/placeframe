@@ -17,7 +17,8 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, StrictInt
+from datetime import datetime
+from pydantic import BaseModel, ConfigDict, Field, StrictInt
 from typing import Any, ClassVar, Dict, List, Optional
 from uuid import UUID
 from typing import Optional, Set
@@ -28,11 +29,13 @@ class ReconstructionCreate(BaseModel):
     """
     ReconstructionCreate
     """ # noqa: E501
-    requeue_count: Optional[StrictInt] = None
+    error_count: Optional[StrictInt] = None
+    lease_attempt: Optional[StrictInt] = None
     id: Optional[UUID] = None
     capture_session_id: Optional[UUID] = None
+    lease_heartbeat_at: Optional[datetime] = Field(default=None, description="datetime with the constraint that the value must have timezone info")
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["requeue_count", "id", "capture_session_id"]
+    __properties: ClassVar[List[str]] = ["error_count", "lease_attempt", "id", "capture_session_id", "lease_heartbeat_at"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -80,10 +83,15 @@ class ReconstructionCreate(BaseModel):
             for _key, _value in self.additional_properties.items():
                 _dict[_key] = _value
 
-        # set to None if requeue_count (nullable) is None
+        # set to None if error_count (nullable) is None
         # and model_fields_set contains the field
-        if self.requeue_count is None and "requeue_count" in self.model_fields_set:
-            _dict['requeue_count'] = None
+        if self.error_count is None and "error_count" in self.model_fields_set:
+            _dict['error_count'] = None
+
+        # set to None if lease_attempt (nullable) is None
+        # and model_fields_set contains the field
+        if self.lease_attempt is None and "lease_attempt" in self.model_fields_set:
+            _dict['lease_attempt'] = None
 
         # set to None if id (nullable) is None
         # and model_fields_set contains the field
@@ -94,6 +102,11 @@ class ReconstructionCreate(BaseModel):
         # and model_fields_set contains the field
         if self.capture_session_id is None and "capture_session_id" in self.model_fields_set:
             _dict['capture_session_id'] = None
+
+        # set to None if lease_heartbeat_at (nullable) is None
+        # and model_fields_set contains the field
+        if self.lease_heartbeat_at is None and "lease_heartbeat_at" in self.model_fields_set:
+            _dict['lease_heartbeat_at'] = None
 
         return _dict
 
@@ -107,9 +120,11 @@ class ReconstructionCreate(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "requeue_count": obj.get("requeue_count"),
+            "error_count": obj.get("error_count"),
+            "lease_attempt": obj.get("lease_attempt"),
             "id": obj.get("id"),
-            "capture_session_id": obj.get("capture_session_id")
+            "capture_session_id": obj.get("capture_session_id"),
+            "lease_heartbeat_at": obj.get("lease_heartbeat_at")
         })
         # store additional fields in additional_properties
         for _key in obj.keys():
