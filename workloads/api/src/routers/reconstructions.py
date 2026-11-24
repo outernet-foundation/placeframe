@@ -91,9 +91,7 @@ class ReconstructionReadWithQueue(ReconstructionRead):
     queue_depth: int | None = None
 
 
-# Carries only the reconstruction row; its relocalization inputs live in the S3 bucket, and the
-# capture session, localization map, camera positions and evaluations are per-backend state recreated
-# after import rather than transported.
+# Treat capture_session_id as a reference the import resolves, because the tar carries no capture state
 class ReconstructionTarManifest(BaseModel):
     tar_version: int = TAR_VERSION
     reconstruction: ReconstructionRead
@@ -428,6 +426,12 @@ async def export_reconstruction_tar(
 async def import_reconstruction_tar(
     session: AsyncSession,
     data: Annotated[ReconstructionTarUploadRequest, Body(media_type=RequestEncodingType.MULTI_PART)],
+    allow_missing_capture_session: Annotated[
+        bool,
+        Parameter(
+            description="Import the tar as a standalone map when the capture session it names is not on this backend"
+        ),
+    ] = False,
 ) -> ReconstructionReadWithQueue:
     fileobj = cast(BinaryIO, data.data.file)
     fileobj.seek(0)
@@ -459,6 +463,21 @@ async def import_reconstruction_tar(
             status_code=HTTP_409_CONFLICT, detail=f"Reconstruction with id {reconstruction_id} already exists"
         )
 
+    # Refuse a missing capture unless the caller allows a standalone import, because a
+    # reconstruction imported before its capture lands on a stand-in while the counts look right
+    capture_session_id = reconstruction.capture_session_id
+    capture_session_row = (
+        await session.get(CaptureSession, capture_session_id) if capture_session_id is not None else None
+    )
+    if capture_session_row is None and not allow_missing_capture_session:
+        named = (
+            "names no capture session"
+            if capture_session_id is None
+            else f"names capture session {capture_session_id}, which is not on this backend"
+        )
+        remedy = "so import the capture first or pass allow_missing_capture_session=true to import standalone"
+        raise HTTPException(status_code=HTTP_422_UNPROCESSABLE_ENTITY, detail=f"Tar {named}, {remedy}")
+
     # Upload before insert: a row pointing at missing artifacts looks healthy but breaks the localizer,
     # while orphaned artifacts under a known id are recoverable.
     storage = get_storage()
@@ -472,19 +491,17 @@ async def import_reconstruction_tar(
             settings.reconstructions_bucket, f"{prefix}{name}", cast(BinaryIO, member), "application/octet-stream"
         )
 
-    # An imported reconstruction has no source capture on this backend, but the capture tool only
-    # discovers reconstructions that hang off a capture session (via /capture_sessions/expanded) and
-    # only offers them for validation once a localization map exists. Synthesize a stand-in capture
-    # session and an identity-pose map so an imported map is immediately selectable on the validation
-    # page. The map name and capture-session name come from the uploaded tar's filename.
+    standalone = capture_session_row is None
     import_name = (data.data.filename or str(reconstruction_id)).removesuffix(".tar")
     inserted = False
     try:
-        capture_session_row = capture_session_from_dto(
-            CaptureSessionCreate(name=import_name, device_type=DeviceType.ZED)
-        )
-        session.add(capture_session_row)
-        await session.flush()
+        if capture_session_row is None:
+            # Synthesize a stand-in capture session, because the capture tool lists only reconstructions with one
+            capture_session_row = capture_session_from_dto(
+                CaptureSessionCreate(name=import_name, device_type=DeviceType.ZED)
+            )
+            session.add(capture_session_row)
+            await session.flush()
 
         reconstruction_row = reconstruction_from_dto(ReconstructionCreate(id=reconstruction_id))
         reconstruction_row.status = ReconstructionStatus.SUCCEEDED
@@ -494,23 +511,25 @@ async def import_reconstruction_tar(
         session.add(reconstruction_row)
         await session.flush()
 
-        map_row = localization_map_from_dto(
-            LocalizationMapCreate(
-                reconstruction_id=reconstruction_id,
-                name=import_name,
-                position_x=0.0,
-                position_y=0.0,
-                position_z=0.0,
-                rotation_x=0.0,
-                rotation_y=0.0,
-                rotation_z=0.0,
-                rotation_w=1.0,
-                color=0,
+        if standalone:
+            # Synthesize an identity-pose map, because the capture tool offers validation only once a map exists
+            map_row = localization_map_from_dto(
+                LocalizationMapCreate(
+                    reconstruction_id=reconstruction_id,
+                    name=import_name,
+                    position_x=0.0,
+                    position_y=0.0,
+                    position_z=0.0,
+                    rotation_x=0.0,
+                    rotation_y=0.0,
+                    rotation_z=0.0,
+                    rotation_w=1.0,
+                    color=0,
+                )
             )
-        )
-        session.add(map_row)
-        await session.flush()
-        await sync_camera_positions(session, map_row)
+            session.add(map_row)
+            await session.flush()
+            await sync_camera_positions(session, map_row)
         inserted = True
     finally:
         if not inserted:
