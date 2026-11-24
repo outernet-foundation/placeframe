@@ -2,14 +2,17 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping, cast
 
 from h5py import Dataset, File, Group
-from numpy import asarray, float32, uint8
+from numpy import asarray, float16, float32, uint8
 from numpy.typing import NDArray  # noqa: TID251 — tracked in PLE-233
 
 GLOBAL_DESCRIPTORS_DATASET_NAME = "global_descriptor"
 KEYPOINTS_DATASET_NAME = "keypoints"
+DESCRIPTORS_DATASET_NAME = "descriptors"
 PQ_CODES_DATASET_NAME = "pq_codes"
 GLOBAL_DESCRIPTORS_FILE = "global_descriptors.h5"
 FEATURES_FILE = "features.h5"
+KEYPOINTS_FILE = "keypoints.h5"
+DESCRIPTORS_FILE = "descriptors.h5"
 
 
 def write_global_descriptors(root_path: Path, global_descriptors: Mapping[str, NDArray[float32]]):
@@ -31,6 +34,27 @@ def write_features(root_path: Path, keypoints: Mapping[str, NDArray[float32]], p
             _create_dataset(group, PQ_CODES_DATASET_NAME, pq_codes[name])
 
     return FEATURES_FILE, path.read_bytes()
+
+
+def write_keypoints(root_path: Path, keypoints: Mapping[str, NDArray[float32]]):
+    path = root_path / KEYPOINTS_FILE
+    with File(str(path), "w") as file:
+        for name, image_keypoints in keypoints.items():
+            group = file.create_group(name)
+            _create_dataset(group, KEYPOINTS_DATASET_NAME, image_keypoints)
+
+    return KEYPOINTS_FILE, path.read_bytes()
+
+
+def write_descriptors(root_path: Path, descriptors: Mapping[str, NDArray[float32]]):
+    # Store float16 because descriptors are the largest intermediate and matching quality is insensitive
+    path = root_path / DESCRIPTORS_FILE
+    with File(str(path), "w") as file:
+        for name, image_descriptors in descriptors.items():
+            group = file.create_group(name)
+            _create_dataset(group, DESCRIPTORS_DATASET_NAME, image_descriptors.astype(float16, copy=False))
+
+    return DESCRIPTORS_FILE, path.read_bytes()
 
 
 def _create_dataset(group: Group, name: str, data: Any):
@@ -60,3 +84,24 @@ def read_features(
             pq_codes_by_name[name] = asarray(cast(Dataset, group[PQ_CODES_DATASET_NAME])[()], dtype=uint8)
 
     return keypoints_by_name, pq_codes_by_name
+
+
+def read_keypoints(root_path: Path, image_names: Iterable[str]) -> dict[str, NDArray[float32]]:
+    result: dict[str, NDArray[float32]] = {}
+    with File(str(root_path / KEYPOINTS_FILE), "r") as file:
+        for name in image_names:
+            group = cast(Group, file[name])
+            result[name] = asarray(cast(Dataset, group[KEYPOINTS_DATASET_NAME])[()], dtype=float32)
+
+    return result
+
+
+def read_descriptors(root_path: Path, image_names: Iterable[str]) -> dict[str, NDArray[float32]]:
+    # Cast back to float32 so callers receive the pipeline's working precision
+    result: dict[str, NDArray[float32]] = {}
+    with File(str(root_path / DESCRIPTORS_FILE), "r") as file:
+        for name in image_names:
+            group = cast(Group, file[name])
+            result[name] = asarray(cast(Dataset, group[DESCRIPTORS_DATASET_NAME])[()], dtype=float32)
+
+    return result
