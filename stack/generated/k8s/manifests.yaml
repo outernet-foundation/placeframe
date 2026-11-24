@@ -497,6 +497,16 @@ spec:
                 secretKeyRef:
                   key: DEPLOYMENT_ENVIRONMENT
                   name: placeframe-secrets
+            - name: LEASE_HEARTBEAT_CADENCE_S
+              valueFrom:
+                secretKeyRef:
+                  key: LEASE_HEARTBEAT_CADENCE_S
+                  name: placeframe-secrets
+            - name: LEASE_TIMEOUT_S
+              valueFrom:
+                secretKeyRef:
+                  key: LEASE_TIMEOUT_S
+                  name: placeframe-secrets
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: http://alloy:4317
             - name: POSTGRES_HOST
@@ -628,6 +638,11 @@ spec:
               valueFrom:
                 secretKeyRef:
                   key: DEPLOYMENT_ENVIRONMENT
+                  name: placeframe-secrets
+            - name: LEASE_HEARTBEAT_CADENCE_S
+              valueFrom:
+                secretKeyRef:
+                  key: LEASE_HEARTBEAT_CADENCE_S
                   name: placeframe-secrets
             - name: LEASE_SERVER_URL
               value: http://lease-server:8000

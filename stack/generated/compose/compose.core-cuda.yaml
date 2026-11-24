@@ -69,6 +69,8 @@ services:
       DEBUG_LEASE_SERVER: 'false'
       DEBUG_WAIT_LEASE_SERVER: 'false'
       DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-development}
+      LEASE_HEARTBEAT_CADENCE_S: ${LEASE_HEARTBEAT_CADENCE_S:-60}
+      LEASE_TIMEOUT_S: ${LEASE_TIMEOUT_S:-1800}
       OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4317
       POSTGRES_HOST: pf-postgres
       RELOAD: 'false'
@@ -105,6 +107,7 @@ services:
     environment:
       CAPTURES_BUCKET: captures
       DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-development}
+      LEASE_HEARTBEAT_CADENCE_S: ${LEASE_HEARTBEAT_CADENCE_S:-60}
       LEASE_SERVER_URL: http://lease-server:8000
       OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4317
       RECONSTRUCTIONS_BUCKET: reconstructions
