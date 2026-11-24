@@ -1,20 +1,15 @@
 from __future__ import annotations
 
-import inspect
 import sqlite3
-import subprocess
-import sys
-import time
+from io import BytesIO
+from json import dumps, loads
 from math import acos, pi
 from pathlib import Path
 from shutil import rmtree
-from typing import Any, Iterator, Self, ValuesView, cast
-from uuid import UUID
-
-import httpx
-from placeframe_lease_server_client import ReconstructionStatus
+from typing import Any, Iterator, ValuesView, cast
 
 from numpy import (
+    array,
     asarray,
     concatenate,
     diag,
@@ -22,8 +17,14 @@ from numpy import (
     eye,
     float32,
     float64,
+    full,
+    int32,
+    int64,
     intp,
+    isnan,
+    load,
     median,
+    nan,
     savez_compressed,
     sign,
     stack,
@@ -32,6 +33,7 @@ from numpy import (
 )
 from numpy.linalg import det, norm, svd
 from numpy.typing import NDArray  # noqa: TID251 — tracked in PLE-233
+from placeframe_lease_server_client import ReconstructionStatus
 from pycolmap import Camera as ColmapCamera
 from pycolmap import (
     Database,
@@ -42,6 +44,7 @@ from pycolmap import (
     PosePriorCoordinateSystem,
     Reconstruction,
     Rigid3d,
+    Rotation3d,
     SensorType,
     Sim3d,
     TwoViewGeometry,
@@ -59,96 +62,14 @@ from scipy.spatial.transform import Rotation
 from .metrics_builder import MetricsBuilder
 from .options_builder import OptionsBuilder, PairVioEssentialMatrixOptions
 from .pairs import Pair, PairSource
-from .progress_publisher import ReconstructionPublisher, SyncProgressFlusher
+from .progress_publisher import ReconstructionPublisher
 from .rig import FramePose, Rig
-from .settings import get_settings
+from .shards import SHARD_PAIRS_FILE, TWO_VIEW_GEOMETRIES_FILE, VERIFICATION_SHARD_PREFIX
+from .uploader import ArtifactUploader
 
 COLMAP_DB_FILE = "database.db"
 COLMAP_SFM_DIRECTORY = "sfm_model"
-
-
-class _VerificationProgressPoller:
-    # geometric_verification holds the GIL for its full duration, so progress is polled from a
-    # child subprocess that reads the COLMAP database's CALIBRATED_RIG row count and publishes
-    # ticks against the lease endpoint.
-
-    def __init__(
-        self,
-        database_path: Path,
-        total_pairs: int,
-        publisher: ReconstructionPublisher,
-        poll_interval_seconds: float = 0.5,
-    ) -> None:
-        self._database_path = database_path
-        self._total_pairs = total_pairs
-        self._publisher = publisher
-        self._poll_interval_seconds = poll_interval_seconds
-        self._process: subprocess.Popen[bytes] | None = None
-
-    def __enter__(self) -> Self:
-        script = (
-            "import sqlite3\n"
-            "import sys\n"
-            "import time\n"
-            "from uuid import UUID\n"
-            "import httpx\n"
-            "from placeframe_lease_server_client import ReconstructionStatus\n"
-            "from reconstructor.progress_publisher import ReconstructionPublisher, SyncProgressFlusher\n"
-            + inspect.getsource(_poll_verification)
-            + "_poll_verification(sys.argv[1], int(sys.argv[2]), float(sys.argv[3]), sys.argv[4], UUID(sys.argv[5]))\n"
-        )
-        self._process = subprocess.Popen(
-            [
-                sys.executable,
-                "-c",
-                script,
-                str(self._database_path),
-                str(self._total_pairs),
-                str(self._poll_interval_seconds),
-                str(get_settings().lease_server_url).rstrip("/"),
-                str(self._publisher.reconstruction_id),
-            ],
-        )
-        return self
-
-    def __exit__(self, *_: object) -> None:
-        if self._process is None:
-            return
-        self._process.terminate()
-        try:
-            self._process.wait(timeout=5.0)
-        except subprocess.TimeoutExpired:
-            self._process.kill()
-            self._process.wait(timeout=5.0)
-        connection = sqlite3.connect(str(self._database_path), isolation_level=None, timeout=1.0)
-        try:
-            connection.execute("PRAGMA query_only = 1")
-            row = connection.execute("SELECT COUNT(*) FROM two_view_geometries WHERE config = 9").fetchone()
-        finally:
-            connection.close()
-        final_count = int(row[0]) if row else 0
-        self._publisher.on_progress(min(final_count, self._total_pairs))
-
-
-def _poll_verification(
-    database_path: str, total_pairs: int, interval_seconds: float, api_url: str, reconstruction_id: UUID
-) -> None:
-    client = httpx.Client(timeout=5.0)
-    publisher = ReconstructionPublisher(SyncProgressFlusher(client, api_url), reconstruction_id)
-    publisher.set_phase(ReconstructionStatus.VERIFYING_GEOMETRY, total=total_pairs)
-    last_emitted = -1
-    while True:
-        connection = sqlite3.connect(database_path, isolation_level=None, timeout=1.0)
-        try:
-            connection.execute("PRAGMA query_only = 1")
-            row = connection.execute("SELECT COUNT(*) FROM two_view_geometries WHERE config = 9").fetchone()
-        finally:
-            connection.close()
-        count = int(row[0]) if row else 0
-        if count != last_emitted:
-            publisher.on_progress(min(count, total_pairs))
-            last_emitted = count
-        time.sleep(interval_seconds)
+VERIFY_SHARD_MAX_PAIRS = 4096
 
 
 def run_colmap_reconstruction(
@@ -162,6 +83,8 @@ def run_colmap_reconstruction(
     pairs: list[Pair],
     match_indices: dict[tuple[str, str], tuple[NDArray[intp], NDArray[intp]]],
     publisher: ReconstructionPublisher,
+    uploader: ArtifactUploader,
+    valid_verification_indexes: set[int],
 ):
     colmap_db_path = root_path / COLMAP_DB_FILE
     if colmap_db_path.exists():
@@ -176,7 +99,7 @@ def run_colmap_reconstruction(
     position_covariance = (options.pose_prior_position_sigma_m() ** 2) * eye(3, dtype=float64)
 
     # Create COLMAP database
-    database = Database.open(str(colmap_db_path))  # pyright: ignore[reportUnknownMemberType] — upstream stub uses unparameterized os.PathLike
+    database = open_colmap_database(colmap_db_path)
     # Write cameras, images, keypoints, and pose priors to database
     colmap_image_ids: dict[str, int] = {}
     image_cameras: dict[str, ColmapCamera] = {}
@@ -213,25 +136,44 @@ def run_colmap_reconstruction(
     # incremental BA loop can pin every rig's sensor_from_rig transform.
     constant_rigs = {rig.rig_id for rig in database.read_all_rigs()}
 
-    # Write matches to database
-    for pair in pairs:
-        (image_a_indices, image_b_indices) = match_indices[(pair.image_a, pair.image_b)]
-        database.write_matches(
-            colmap_image_ids[pair.image_a],
-            colmap_image_ids[pair.image_b],
-            stack((image_a_indices, image_b_indices), axis=1).astype(uint32, copy=False),
-        )
-
-    # Close database
     database.close()
 
-    publisher.set_phase(ReconstructionStatus.VERIFYING_GEOMETRY, total=len(pairs))
-    with _VerificationProgressPoller(colmap_db_path, len(pairs), publisher):
+    # Run the kernel once per shard with only that shard's match rows present, because the
+    # stock verifier never skips a pair that already has a two-view geometry
+    verification_shards = partition_verification_shards(pairs)
+    publisher.set_phase(ReconstructionStatus.VERIFYING_GEOMETRY, total=len(verification_shards))
+    for shard_index, shard_pairs in enumerate(verification_shards):
+        publisher.raise_if_lease_lost()
+        if shard_index in valid_verification_indexes:
+            database = open_colmap_database(colmap_db_path)
+            replay_verification_shard(root_path, shard_index, database, colmap_image_ids)
+            database.close()
+            publisher.on_progress(shard_index + 1)
+            continue
+
+        database = open_colmap_database(colmap_db_path)
+        write_match_rows(database, colmap_image_ids, shard_pairs, match_indices)
+        database.close()
         geometric_verification(
             database_path=str(colmap_db_path),
             verifier_options=GeometricVerifierOptions(rig_verification=True),
             two_view_geometry_options=options.two_view_geometry_options(),
         )
+        database = open_colmap_database(colmap_db_path)
+        shard_files = harvest_verification_shard_files(database, colmap_image_ids, shard_pairs)
+        uploader.put_shard(
+            f"{VERIFICATION_SHARD_PREFIX}/{shard_index:05d}",
+            shard_files,
+            {"shard_index": shard_index, "shard_count": len(verification_shards)},
+        )
+        database.close()
+        delete_match_rows(colmap_db_path)
+        publisher.on_progress(shard_index + 1)
+
+    # Restore every match row so the archived database.db keeps raw matches beside the two-view geometries
+    database = open_colmap_database(colmap_db_path)
+    write_match_rows(database, colmap_image_ids, pairs, match_indices)
+    database.close()
 
     _apply_vio_em_check(colmap_db_path, colmap_image_ids, pairs, rigs, options.pair_vio_essential_matrix_options())
 
@@ -347,6 +289,149 @@ def run_colmap_reconstruction(
     return best_reconstruction
 
 
+def partition_verification_shards(pairs: list[Pair]) -> list[list[Pair]]:
+    # Pack frame-pair groups into shards of at most VERIFY_SHARD_MAX_PAIRS pairs without ever
+    # splitting a group, because the kernel's rig pass aggregates every camera pair of a frame pair
+    groups: dict[tuple[tuple[str, str], tuple[str, str]], list[Pair]] = {}
+    for pair in pairs:
+        frame_a = _image_frame_key(pair.image_a)
+        frame_b = _image_frame_key(pair.image_b)
+        key = (frame_a, frame_b) if frame_a <= frame_b else (frame_b, frame_a)
+        groups.setdefault(key, []).append(pair)
+
+    shards: list[list[Pair]] = []
+    shard: list[Pair] = []
+    shard_pair_count = 0
+    for group in groups.values():
+        if shard and shard_pair_count + len(group) > VERIFY_SHARD_MAX_PAIRS:
+            shards.append(shard)
+            shard = []
+            shard_pair_count = 0
+        shard.extend(group)
+        shard_pair_count += len(group)
+    if shard:
+        shards.append(shard)
+    return shards
+
+
+def _image_frame_key(image_name: str) -> tuple[str, str]:
+    rig_id, _camera_id, frame_file = image_name.split("/", 2)
+    return rig_id, frame_file.rsplit(".", 1)[0]
+
+
+def replay_verification_shard(
+    root_path: Path,
+    shard_index: int,
+    database: Database,
+    colmap_image_ids: dict[str, int],
+) -> None:
+    # Insert each harvested geometry rather than update, because the database was rebuilt from
+    # scratch and update is a no-op on a missing row
+    shard_directory = root_path / VERIFICATION_SHARD_PREFIX / f"{shard_index:05d}"
+    shard_pairs: list[list[str]] = loads((shard_directory / SHARD_PAIRS_FILE).read_text())
+    with load(shard_directory / TWO_VIEW_GEOMETRIES_FILE) as data:
+        configs = asarray(data["config"], dtype=int32)
+        qvecs = asarray(data["qvec"], dtype=float64)
+        tvecs = asarray(data["tvec"], dtype=float64)
+        e_matrices = asarray(data["E"], dtype=float64)
+        f_matrices = asarray(data["F"], dtype=float64)
+        h_matrices = asarray(data["H"], dtype=float64)
+        inlier_matches = asarray(data["inlier_matches"], dtype=uint32).reshape(-1, 2)
+        inlier_offsets = asarray(data["inlier_offsets"], dtype=int64)
+        for row_index, (image_a, image_b) in enumerate(shard_pairs):
+            # Leave each NaN field unset, because the pose and each of E/F/H are independently optional
+            qvec = qvecs[row_index]
+            tvec = tvecs[row_index]
+            e_matrix = e_matrices[row_index]
+            f_matrix = f_matrices[row_index]
+            h_matrix = h_matrices[row_index]
+            tvg = TwoViewGeometry()
+            tvg.config = TwoViewGeometryConfiguration(int(configs[row_index]))
+            if not isnan(qvec).any():
+                tvg.cam2_from_cam1 = Rigid3d(rotation=Rotation3d(qvec), translation=tvec)
+            if not isnan(e_matrix).any():
+                tvg.E = e_matrix
+            if not isnan(f_matrix).any():
+                tvg.F = f_matrix
+            if not isnan(h_matrix).any():
+                tvg.H = h_matrix
+            tvg.inlier_matches = inlier_matches[int(inlier_offsets[row_index]) : int(inlier_offsets[row_index + 1])]
+            database.write_two_view_geometry(colmap_image_ids[image_a], colmap_image_ids[image_b], tvg)
+
+
+def write_match_rows(
+    database: Database,
+    colmap_image_ids: dict[str, int],
+    pairs: list[Pair],
+    match_indices: dict[tuple[str, str], tuple[NDArray[intp], NDArray[intp]]],
+) -> None:
+    for pair in pairs:
+        (image_a_indices, image_b_indices) = match_indices[(pair.image_a, pair.image_b)]
+        database.write_matches(
+            colmap_image_ids[pair.image_a],
+            colmap_image_ids[pair.image_b],
+            stack((image_a_indices, image_b_indices), axis=1).astype(uint32, copy=False),
+        )
+
+
+def harvest_verification_shard_files(
+    database: Database,
+    colmap_image_ids: dict[str, int],
+    shard_pairs: list[Pair],
+) -> dict[str, bytes]:
+    pair_count = len(shard_pairs)
+    configs = empty(pair_count, dtype=int32)
+    qvecs = full((pair_count, 4), nan)
+    tvecs = full((pair_count, 3), nan)
+    e_matrices = full((pair_count, 3, 3), nan)
+    f_matrices = full((pair_count, 3, 3), nan)
+    h_matrices = full((pair_count, 3, 3), nan)
+    inlier_parts: list[NDArray[uint32]] = []
+    inlier_offsets = [0]
+    for row_index, pair in enumerate(shard_pairs):
+        tvg = database.read_two_view_geometry(colmap_image_ids[pair.image_a], colmap_image_ids[pair.image_b])
+        configs[row_index] = int(tvg.config)
+        if tvg.cam2_from_cam1 is not None:
+            qvecs[row_index] = asarray(tvg.cam2_from_cam1.rotation.quat, dtype=float64).reshape(4)
+            tvecs[row_index] = asarray(tvg.cam2_from_cam1.translation, dtype=float64).reshape(3)
+        if tvg.E is not None:
+            e_matrices[row_index] = asarray(tvg.E, dtype=float64).reshape(3, 3)
+        if tvg.F is not None:
+            f_matrices[row_index] = asarray(tvg.F, dtype=float64).reshape(3, 3)
+        if tvg.H is not None:
+            h_matrices[row_index] = asarray(tvg.H, dtype=float64).reshape(3, 3)
+        inliers = asarray(tvg.inlier_matches, dtype=uint32).reshape(-1, 2)  # pyright: ignore[reportUnknownMemberType] — upstream stub leaves the inlier_matches row dimension unknown
+        inlier_parts.append(inliers)
+        inlier_offsets.append(inlier_offsets[-1] + len(inliers))
+
+    buffer = BytesIO()
+    savez_compressed(
+        buffer,
+        config=configs,
+        qvec=qvecs,
+        tvec=tvecs,
+        E=e_matrices,
+        F=f_matrices,
+        H=h_matrices,
+        inlier_matches=concatenate(inlier_parts),
+        inlier_offsets=array(inlier_offsets, dtype=int64),
+    )
+    return {
+        TWO_VIEW_GEOMETRIES_FILE: buffer.getvalue(),
+        SHARD_PAIRS_FILE: dumps([[pair.image_a, pair.image_b] for pair in shard_pairs]).encode("utf-8"),
+    }
+
+
+def delete_match_rows(colmap_db_path: Path) -> None:
+    # Clear the matches table between kernel calls, because the match shards are the record
+    connection = sqlite3.connect(str(colmap_db_path))
+    try:
+        connection.execute("DELETE FROM matches")
+        connection.commit()
+    finally:
+        connection.close()
+
+
 def _registered_frames(
     rigs: dict[str, Rig],
     colmap_image_ids: dict[str, int],
@@ -390,7 +475,7 @@ def _apply_vio_em_check(
         for frame_id, pose in rig.frame_poses.items()
     }
 
-    database = Database.open(str(colmap_db_path))  # pyright: ignore[reportUnknownMemberType] — upstream stub uses unparameterized os.PathLike
+    database = open_colmap_database(colmap_db_path)
     checked = 0
     skipped_no_vio = 0
     rejected_rotation = 0
@@ -448,6 +533,10 @@ def _apply_vio_em_check(
         f"[vio_em_check] checked={checked} rejected_rotation={rejected_rotation} "
         f"rejected_translation={rejected_translation} skipped_no_vio={skipped_no_vio}"
     )
+
+
+def open_colmap_database(colmap_db_path: Path) -> Database:
+    return Database.open(str(colmap_db_path))  # pyright: ignore[reportUnknownMemberType] — upstream stub uses unparameterized os.PathLike
 
 
 class _IncrementalMappingProgress:
