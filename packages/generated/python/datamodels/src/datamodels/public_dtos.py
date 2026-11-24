@@ -336,26 +336,34 @@ class LocalizationSessionRead(BaseModel):
 
 
 class ReconstructionCreate(BaseModel):
-    requeue_count: int | None = Field(default=None, title="Requeue Count")
+    error_count: int | None = Field(default=None, title="Error Count")
+    lease_attempt: int | None = Field(default=None, title="Lease Attempt")
     id: UUID | None = Field(default=None, title="Id")
     capture_session_id: UUID | None = Field(default=None, title="Capture Session Id")
+    lease_heartbeat_at: AwareDatetime | None = Field(default=None, title="Lease Heartbeat At")
 
 
 class ReconstructionBatchCreate(BaseModel):
-    requeue_count: int | None = Field(default=None, title="Requeue Count")
+    error_count: int | None = Field(default=None, title="Error Count")
+    lease_attempt: int | None = Field(default=None, title="Lease Attempt")
     id: UUID = Field(..., title="Id")
     capture_session_id: UUID | None = Field(default=None, title="Capture Session Id")
+    lease_heartbeat_at: AwareDatetime | None = Field(default=None, title="Lease Heartbeat At")
 
 
 class ReconstructionUpdate(BaseModel):
-    requeue_count: int | None = Field(default=None, title="Requeue Count")
+    error_count: int | None = Field(default=None, title="Error Count")
+    lease_attempt: int | None = Field(default=None, title="Lease Attempt")
     capture_session_id: UUID | None = Field(default=None, title="Capture Session Id")
+    lease_heartbeat_at: AwareDatetime | None = Field(default=None, title="Lease Heartbeat At")
 
 
 class ReconstructionBatchUpdate(BaseModel):
-    requeue_count: int | None = Field(default=None, title="Requeue Count")
+    error_count: int | None = Field(default=None, title="Error Count")
+    lease_attempt: int | None = Field(default=None, title="Lease Attempt")
     id: UUID = Field(..., title="Id")
     capture_session_id: UUID | None = Field(default=None, title="Capture Session Id")
+    lease_heartbeat_at: AwareDatetime | None = Field(default=None, title="Lease Heartbeat At")
 
 
 class SpatialRefSyCreate(BaseModel):
@@ -574,7 +582,8 @@ class ReconstructionRead(BaseModel):
     created_at: AwareDatetime = Field(..., title="Created At")
     updated_at: AwareDatetime = Field(..., title="Updated At")
     status: ReconstructionStatus
-    requeue_count: int = Field(..., title="Requeue Count")
+    error_count: int = Field(..., title="Error Count")
+    lease_attempt: int = Field(..., title="Lease Attempt")
     manifest: dict[str, Any] = Field(..., title="Manifest")
     manifest_version: int = Field(..., title="Manifest Version")
     id: UUID = Field(..., title="Id")
@@ -583,6 +592,7 @@ class ReconstructionRead(BaseModel):
     progress_current: int | None = Field(default=None, title="Progress Current")
     progress_total: int | None = Field(default=None, title="Progress Total")
     progress_attempt: int | None = Field(default=None, title="Progress Attempt")
+    lease_heartbeat_at: AwareDatetime | None = Field(default=None, title="Lease Heartbeat At")
 
 
 def capture_session_from_dto(create: CaptureSessionCreate) -> CaptureSession:

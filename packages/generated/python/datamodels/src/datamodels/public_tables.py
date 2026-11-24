@@ -57,11 +57,10 @@ class ReconstructionStatus(enum.Enum):
     TRAINING_OPQ_MATRIX = "training_opq_matrix"
     TRAINING_PRODUCT_QUANTIZER = "training_product_quantizer"
     VERIFYING_GEOMETRY = "verifying_geometry"
-    VERIFYING_RIG_GEOMETRY = "verifying_rig_geometry"
     RECONSTRUCTING = "reconstructing"
     SUCCEEDED = "succeeded"
     FAILED = "failed"
-    CANCELLED = "cancelled"
+    PAUSED = "paused"
 
 
 class Base(DeclarativeBase):
@@ -286,7 +285,8 @@ class Reconstruction(Base):
         nullable=False,
         server_default=text("'queued'::reconstruction_status"),
     )
-    requeue_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
+    error_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
+    lease_attempt: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
     manifest: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
     manifest_version: Mapped[int] = mapped_column(SmallInteger, nullable=False)
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("uuid_generate_v4()"))
@@ -295,6 +295,7 @@ class Reconstruction(Base):
     progress_current: Mapped[Optional[int]] = mapped_column(Integer)
     progress_total: Mapped[Optional[int]] = mapped_column(Integer)
     progress_attempt: Mapped[Optional[int]] = mapped_column(Integer)
+    lease_heartbeat_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime(True))
 
     capture_session: Mapped[Optional["CaptureSession"]] = relationship(
         "CaptureSession", back_populates="reconstructions"
