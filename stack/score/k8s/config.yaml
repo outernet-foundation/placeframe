@@ -10,3 +10,5 @@
     auth_authorization_endpoint: '{{ encodeSecretRef "placeframe-secrets" "AUTH_AUTHORIZATION_ENDPOINT" }}'
     auth_token_endpoint: '{{ encodeSecretRef "placeframe-secrets" "AUTH_TOKEN_ENDPOINT" }}'
     deployment_environment: '{{ encodeSecretRef "placeframe-secrets" "DEPLOYMENT_ENVIRONMENT" }}'
+    lease_timeout_s: '{{ encodeSecretRef "placeframe-secrets" "LEASE_TIMEOUT_S" }}'
+    lease_heartbeat_cadence_s: '{{ encodeSecretRef "placeframe-secrets" "LEASE_HEARTBEAT_CADENCE_S" }}'

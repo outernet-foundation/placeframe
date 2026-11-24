@@ -19,6 +19,7 @@ containers:
       CAPTURES_BUCKET: ${resources.bucket.captures_bucket}
       RECONSTRUCTIONS_BUCKET: ${resources.bucket.bucket}
       DEPLOYMENT_ENVIRONMENT: ${resources.config.deployment_environment}
+      LEASE_HEARTBEAT_CADENCE_S: ${resources.config.lease_heartbeat_cadence_s}
       SERVICE_VERSION: ${RECONSTRUCTOR_SHA}
       OTEL_EXPORTER_OTLP_ENDPOINT: ${resources.observability.otlp_endpoint}
 resources:
