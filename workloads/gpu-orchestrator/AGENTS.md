@@ -59,6 +59,8 @@ models — `QueueSample` doubles as the wire validation of the lease-server's
   observe demand itself (observed live: a restart mid-traffic re-arbitrates from scratch).
   Batch demand is the queue seam: plain-httpx `GET /queue-state` on the lease-server
   (`queued > 0 OR in_flight > 0`, computed here — the endpoint is a dumb attribute read).
+  A paused job counts in neither bucket, so it exerts no batch demand: the orchestrator
+  will not start a reconstructor for a job an operator has put on hold.
   Poll failure holds the last successful sample with an Info log; reading "unreachable"
   as no-demand would preempt a running reconstruction during every lease-server restart.
   The cached sample is never null: it starts as a zero sample at boot (no batch demand,
@@ -78,14 +80,15 @@ models — `QueueSample` doubles as the wire validation of the lease-server's
   resolves from the project name it was invoked with, so the launcher is the
   authority on which assembly this orchestrator belongs to. The orchestrator never
   identifies its own container, and boot requires the managed pair to exist in the
-  injected project before the loop starts. Stop-first ordering
+  injected project before the loop starts.   Stop-first ordering
   frees the GPU slot before the winner starts; transitions
   serialize and run to completion inside their pass. The localizer (interactive class)
   drains ~700 ms before stopping; the reconstructor (batch class) stops with
-  `stop(timeout=60)` so a future checkpoint-on-SIGTERM fits the budget — docker's 10 s
-  default would SIGKILL mid-checkpoint (until checkpoint/resume lands, preemption
-  costs the reconstructor's SIGTERM requeue-and-restart, which is exactly the shipped
-  behavior).
+  `stop(timeout=60)` because preemption costs a checkpoint cycle inside that budget —
+  the worker drains its shard-upload queue (55 s budget), preempts its own lease back
+  to `QUEUED`, and exits; the next grant resumes from shard markers. Docker's 10 s
+  default would SIGKILL mid-drain. The orchestrator itself still only stops containers
+  and reads `queue-state`; it never writes to the job lifecycle.
 - **The HTTP surface** — `GET /localizer-address` → `{address, retry_after_seconds}`
   (the field is meaningful only on the null answer); contractually reserved to the
   API's localize path — nothing else may poll it. `GET /state` → open object (running
