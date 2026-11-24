@@ -6,6 +6,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     lease_server_url: AnyHttpUrl = Field()
+    lease_heartbeat_cadence_s: int = 60
 
     s3_endpoint_url: AnyHttpUrl | None = None
     s3_access_key: str | None = None
