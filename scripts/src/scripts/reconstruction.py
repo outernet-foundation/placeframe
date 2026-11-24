@@ -64,8 +64,11 @@ async def _export(reconstruction_id: UUID) -> bytes:
 async def _import(tar_bytes: bytes, tar_name: str) -> UUID:
     async with authenticated_api_client() as api:
         try:
+            # Allow a missing capture session, because this verb imports a single tar without its capture
             reconstruction = await api.import_reconstruction_tar(
-                data=(tar_name, tar_bytes), _request_timeout=REQUEST_TIMEOUT
+                data=(tar_name, tar_bytes),
+                allow_missing_capture_session=True,
+                _request_timeout=REQUEST_TIMEOUT,
             )
             return reconstruction.id
         except ApiException as exception:
