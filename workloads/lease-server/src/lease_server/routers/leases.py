@@ -1,32 +1,55 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import Optional
+from logging import getLogger
+from typing import Literal, Optional
 from uuid import UUID
 
 from placeframe_core.reconstruction_manifest import MANIFEST_VERSION, Manifest
 from placeframe_core.reconstruction_metrics import ReconstructionMetrics
 from placeframe_core.reconstruction_options import ReconstructionOptions
 from datamodels.public_tables import Reconstruction, ReconstructionStatus
-from litestar import Router, post
+from litestar import Request, Response, Router, post
+from litestar.datastructures import State
 from litestar.di import Provide
-from litestar.exceptions import NotFoundException
+from litestar.exceptions import HTTPException, NotFoundException
+from litestar.openapi.datastructures import ResponseSpec
+from litestar.status_codes import HTTP_409_CONFLICT, HTTP_422_UNPROCESSABLE_ENTITY
 from pydantic import BaseModel
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import func
 
 from ..database import SessionLocal, get_session
+from ..settings import get_settings
 
-LEASE_TIMEOUT = timedelta(minutes=30)
-MAX_REQUEUE_ATTEMPTS = 5
-TERMINAL_STATUSES = (ReconstructionStatus.SUCCEEDED, ReconstructionStatus.FAILED, ReconstructionStatus.CANCELLED)
+logger = getLogger("lease-server")
+
+MAX_ERROR_ATTEMPTS = 5
+TERMINAL_STATUSES = (ReconstructionStatus.SUCCEEDED, ReconstructionStatus.FAILED)
+# QUEUED, PAUSED, and terminal rows hold no lease a worker may write
+NON_WORKING_STATUSES = (ReconstructionStatus.QUEUED, ReconstructionStatus.PAUSED, *TERMINAL_STATUSES)
+
+RefusalReason = Literal["superseded", "paused"]
+
+
+class LeaseRefusal(BaseModel):
+    reason: RefusalReason
+
+
+class LeaseRefusalException(HTTPException):
+    status_code = HTTP_409_CONFLICT
+
+    def __init__(self, reason: RefusalReason) -> None:
+        super().__init__(detail=f"Lease refused: the row is {reason}")
+        self.reason = reason
 
 
 class Lease(BaseModel):
     reconstruction_id: UUID
     capture_session_id: UUID
     options: ReconstructionOptions
+    lease_attempt: int
 
 
 class LeaseResponse(BaseModel):
@@ -39,6 +62,7 @@ class ProgressUpdate(BaseModel):
     progress_total: Optional[int] = None
     progress_attempt: Optional[int] = None
     error: Optional[str] = None
+    lease_attempt: int
 
 
 class FailLeaseRequest(BaseModel):
@@ -46,33 +70,51 @@ class FailLeaseRequest(BaseModel):
     metrics: Optional[ReconstructionMetrics] = None
 
 
+class ErrorRequest(BaseModel):
+    error: str
+
+
+class PreemptRequest(BaseModel):
+    lease_attempt: int
+
+
+REFUSAL_RESPONSE = ResponseSpec(
+    data_container=LeaseRefusal,
+    # The example generator embeds a LeaseRefusal instance the codegen spec dump cannot serialize
+    generate_examples=False,
+    description=(
+        "The write was refused and changed nothing: reason `paused` means an operator paused the job, "
+        "reason `superseded` means the row is terminal or owned by a different lease attempt. "
+        "The worker abandons the job and leaves all artifacts untouched."
+    ),
+)
+
+
+def render_lease_refusal(
+    request: Request[None, None, State], exception: LeaseRefusalException
+) -> Response[dict[str, str]]:
+    logger.info("Lease refusal on %s %s: reason=%s", request.method, request.url.path, exception.reason)
+    return Response(content={"reason": exception.reason}, status_code=HTTP_409_CONFLICT)
+
+
 @post("/request")
 async def request_lease(session: AsyncSession) -> LeaseResponse:
-    # Reap stale leases — a worker crash skips complete_lease and would otherwise stall the queue.
-    # A lease is "stale" when it has been off the queued list for longer than LEASE_TIMEOUT
-    # without any updated_at refresh (every progress write touches updated_at via the trigger).
+    settings = get_settings()
+
+    # Stale means a working row whose lease_heartbeat_at is older than the lease timeout
     stale_filter = (
-        ~Reconstruction.status.in_((
-            ReconstructionStatus.SUCCEEDED,
-            ReconstructionStatus.FAILED,
-            ReconstructionStatus.CANCELLED,
-            ReconstructionStatus.QUEUED,
-        )),
-        Reconstruction.updated_at < func.now() - LEASE_TIMEOUT,
+        ~Reconstruction.status.in_(NON_WORKING_STATUSES),
+        Reconstruction.lease_heartbeat_at < func.now() - timedelta(seconds=settings.lease_timeout_s),
     )
 
-    # A worker that died without SIGTERM (e.g. a spot node force-killed) leaves its lease stuck
-    # off-queue. Fail it only once it has exhausted its requeue budget; otherwise return it to the
-    # queue so a fresh worker retries (the budget bounds retries so a job that always stalls can't
-    # loop forever). Runs in its own transaction so the requeue/fail persists even when no job is
-    # granted below — the lease-grant path commits only on success and returns a null lease when no row is grantable.
+    # Reap a dead worker's lease in its own transaction so it persists even when no row is granted
     async with SessionLocal() as reaper_session, reaper_session.begin():
         await reaper_session.execute(
             update(Reconstruction)
-            .where(*stale_filter, Reconstruction.requeue_count >= MAX_REQUEUE_ATTEMPTS)
+            .where(*stale_filter, Reconstruction.error_count >= MAX_ERROR_ATTEMPTS)
             .values(
                 status=ReconstructionStatus.FAILED,
-                error=f"Lease timed out after {MAX_REQUEUE_ATTEMPTS} requeue attempts",
+                error=func.coalesce(Reconstruction.error, "lease timed out"),
                 progress_current=None,
                 progress_total=None,
                 progress_attempt=None,
@@ -80,11 +122,11 @@ async def request_lease(session: AsyncSession) -> LeaseResponse:
         )
         await reaper_session.execute(
             update(Reconstruction)
-            .where(*stale_filter, Reconstruction.requeue_count < MAX_REQUEUE_ATTEMPTS)
+            .where(*stale_filter, Reconstruction.error_count < MAX_ERROR_ATTEMPTS)
             .values(
                 status=ReconstructionStatus.QUEUED,
-                requeue_count=Reconstruction.requeue_count + 1,
-                error=None,
+                error_count=Reconstruction.error_count + 1,
+                error="lease timed out",
                 progress_current=None,
                 progress_total=None,
                 progress_attempt=None,
@@ -103,17 +145,20 @@ async def request_lease(session: AsyncSession) -> LeaseResponse:
     if not row:
         return LeaseResponse(lease=None)
 
-    # Validate the manifest BEFORE flipping status. If validation throws after the commit,
-    # the row is already out of QUEUED but no worker has it, leaving it stuck in
-    # EXTRACTING_FEATURES until LEASE_TIMEOUT reaps it 30 minutes later.
+    # Validate the manifest before flipping status, because a failure after the commit strands the row
     manifest = Manifest.model_validate(row.manifest)
 
-    # Flip out of QUEUED so subsequent request_lease polls skip this row. The reconstructor's
-    # pre-extraction setup (tar download, manifest parse, rig build, pair gen) runs under
-    # EXTRACTING_FEATURES with no progress until the per-image loop sets the real total.
-    row.status = ReconstructionStatus.EXTRACTING_FEATURES
+    # Claim the row and stamp its first heartbeat, because pre-extraction setup reports no progress
+    await session.execute(
+        update(Reconstruction)
+        .where(Reconstruction.id == row.id)
+        .values(
+            status=ReconstructionStatus.EXTRACTING_FEATURES,
+            lease_attempt=Reconstruction.lease_attempt + 1,
+            lease_heartbeat_at=func.now(),
+        )
+    )
 
-    await session.flush()
     await session.commit()
 
     assert row.capture_session_id is not None
@@ -123,36 +168,52 @@ async def request_lease(session: AsyncSession) -> LeaseResponse:
             reconstruction_id=row.id,
             capture_session_id=row.capture_session_id,
             options=manifest.options,
+            lease_attempt=row.lease_attempt + 1,
         ),
     )
 
 
-@post("/{id:uuid}/progress")
+@post("/{id:uuid}/progress", raises=[LeaseRefusalException, NotFoundException], responses={409: REFUSAL_RESPONSE})
 async def update_progress(session: AsyncSession, id: UUID, data: ProgressUpdate) -> None:
-    row = await session.get(Reconstruction, id)
+    await _fenced_row(session, id, data.lease_attempt)
 
-    if not row:
-        raise NotFoundException("Reconstruction not found")
+    if data.status in NON_WORKING_STATUSES:
+        raise HTTPException(
+            status_code=HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Status {data.status.value} is outside the working family a lease may report",
+        )
 
-    # Progress writes are fire-and-forget from the worker and can land after the job reached a
-    # terminal status; dropping them stops a late write from flipping a finished job back to in-progress.
-    if row.status in TERMINAL_STATUSES:
-        return
+    # A core UPDATE, because SQLAlchemy skips ORM updates with no changed column and a
+    # repeat write must still refresh the heartbeat
+    await session.execute(
+        update(Reconstruction)
+        .where(
+            Reconstruction.id == id,
+            Reconstruction.lease_attempt == data.lease_attempt,
+            ~Reconstruction.status.in_(NON_WORKING_STATUSES),
+        )
+        .values(
+            status=data.status,
+            progress_current=data.progress_current,
+            progress_total=data.progress_total,
+            progress_attempt=data.progress_attempt,
+            error=data.error,
+            lease_heartbeat_at=func.now(),
+        )
+    )
 
-    row.status = data.status
-    row.progress_current = data.progress_current
-    row.progress_total = data.progress_total
-    row.progress_attempt = data.progress_attempt
-    row.error = data.error
-
-    await session.flush()
     await session.commit()
 
 
-@post("/{id:uuid}/succeed")
-async def succeed_lease(session: AsyncSession, id: UUID, data: ReconstructionMetrics) -> None:
-    row = await _finalize_lease(session, id, ReconstructionStatus.SUCCEEDED)
+@post("/{id:uuid}/succeed", raises=[LeaseRefusalException, NotFoundException], responses={409: REFUSAL_RESPONSE})
+async def succeed_lease(session: AsyncSession, id: UUID, data: ReconstructionMetrics, lease_attempt: int) -> None:
+    row = await _fenced_row(session, id, lease_attempt)
+
+    row.status = ReconstructionStatus.SUCCEEDED
     row.error = None
+    row.progress_current = None
+    row.progress_total = None
+    row.progress_attempt = None
 
     existing = Manifest.model_validate(row.manifest)
     merged = Manifest(options=existing.options, metrics=data)
@@ -163,10 +224,15 @@ async def succeed_lease(session: AsyncSession, id: UUID, data: ReconstructionMet
     await session.commit()
 
 
-@post("/{id:uuid}/fail")
-async def fail_lease(session: AsyncSession, id: UUID, data: FailLeaseRequest) -> None:
-    row = await _finalize_lease(session, id, ReconstructionStatus.FAILED)
+@post("/{id:uuid}/fail", raises=[LeaseRefusalException, NotFoundException], responses={409: REFUSAL_RESPONSE})
+async def fail_lease(session: AsyncSession, id: UUID, data: FailLeaseRequest, lease_attempt: int) -> None:
+    row = await _fenced_row(session, id, lease_attempt)
+
+    row.status = ReconstructionStatus.FAILED
     row.error = data.error
+    row.progress_current = None
+    row.progress_total = None
+    row.progress_attempt = None
 
     if data.metrics is not None:
         existing = Manifest.model_validate(row.manifest)
@@ -178,23 +244,16 @@ async def fail_lease(session: AsyncSession, id: UUID, data: FailLeaseRequest) ->
     await session.commit()
 
 
-@post("/{id:uuid}/requeue")
-async def requeue_lease(session: AsyncSession, id: UUID) -> None:
-    row = await session.get(Reconstruction, id)
+@post("/{id:uuid}/error", raises=[LeaseRefusalException, NotFoundException], responses={409: REFUSAL_RESPONSE})
+async def error_lease(session: AsyncSession, id: UUID, data: ErrorRequest, lease_attempt: int) -> None:
+    row = await _fenced_row(session, id, lease_attempt)
 
-    if not row:
-        raise NotFoundException("Reconstruction not found")
-
-    if row.status in TERMINAL_STATUSES:
-        return
-
-    if row.requeue_count >= MAX_REQUEUE_ATTEMPTS:
+    row.error = data.error
+    if row.error_count >= MAX_ERROR_ATTEMPTS:
         row.status = ReconstructionStatus.FAILED
-        row.error = f"Exceeded {MAX_REQUEUE_ATTEMPTS} requeue attempts"
-    else:
+    if row.error_count < MAX_ERROR_ATTEMPTS:
         row.status = ReconstructionStatus.QUEUED
-        row.error = None
-        row.requeue_count += 1
+        row.error_count = row.error_count + 1
 
     row.progress_current = None
     row.progress_total = None
@@ -204,17 +263,37 @@ async def requeue_lease(session: AsyncSession, id: UUID) -> None:
     await session.commit()
 
 
-async def _finalize_lease(session: AsyncSession, id: UUID, status: ReconstructionStatus) -> Reconstruction:
-    row = await session.get(Reconstruction, id)
+@post("/{id:uuid}/preempt", raises=[LeaseRefusalException, NotFoundException], responses={409: REFUSAL_RESPONSE})
+async def preempt_lease(session: AsyncSession, id: UUID, data: PreemptRequest) -> None:
+    row = await _fenced_row(session, id, data.lease_attempt)
 
-    if not row:
-        raise NotFoundException("Reconstruction not found")
-
-    row.status = status
-    # Clear progress fields on terminal transition so callers don't see stale phase numbers.
+    # Return the row to QUEUED without counting an error and without failing the job
+    row.status = ReconstructionStatus.QUEUED
+    row.error = None
     row.progress_current = None
     row.progress_total = None
     row.progress_attempt = None
+
+    await session.flush()
+    await session.commit()
+
+
+async def _fenced_row(session: AsyncSession, id: UUID, echoed_attempt: int) -> Reconstruction:
+    row = await session.get(Reconstruction, id)
+
+    if row is None:
+        raise NotFoundException("Reconstruction not found")
+
+    # Refuse the write when the lease is gone: the row is paused or terminal, the echoed
+    # attempt is stale, or a QUEUED row's matching attempt is owned by nobody until the next grant
+    if row.status == ReconstructionStatus.PAUSED:
+        raise LeaseRefusalException("paused")
+    if row.status in TERMINAL_STATUSES:
+        raise LeaseRefusalException("superseded")
+    if echoed_attempt != row.lease_attempt:
+        raise LeaseRefusalException("superseded")
+    if row.status == ReconstructionStatus.QUEUED:
+        raise LeaseRefusalException("superseded")
 
     return row
 
@@ -223,5 +302,6 @@ router = Router(
     path="/leases",
     tags=["Leases"],
     dependencies={"session": Provide(get_session)},
-    route_handlers=[request_lease, update_progress, succeed_lease, fail_lease, requeue_lease],
+    route_handlers=[request_lease, update_progress, succeed_lease, fail_lease, error_lease, preempt_lease],
+    exception_handlers={LeaseRefusalException: render_lease_refusal},
 )

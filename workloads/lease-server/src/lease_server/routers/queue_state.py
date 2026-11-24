@@ -11,10 +11,8 @@ from sqlalchemy.sql import func
 from ..database import get_session
 from .leases import TERMINAL_STATUSES
 
-# in_flight is the active-lease population: every status except the terminal
-# triple and QUEUED itself — the same classification the stale-lease reaper
-# filters on.
-NON_ACTIVE_STATUSES = (*TERMINAL_STATUSES, ReconstructionStatus.QUEUED)
+# The statuses in_flight excludes, the same set the stale-lease reaper filters on
+NON_ACTIVE_STATUSES = (*TERMINAL_STATUSES, ReconstructionStatus.QUEUED, ReconstructionStatus.PAUSED)
 
 
 class QueueState(BaseModel):
