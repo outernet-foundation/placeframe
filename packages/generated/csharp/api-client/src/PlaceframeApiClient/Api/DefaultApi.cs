@@ -786,8 +786,9 @@ namespace PlaceframeApiClient.Api
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="data"></param>
+        /// <param name="allowMissingCaptureSession">Import the tar as a standalone map when the capture session it names is not on this backend (optional, default to false)</param>
         /// <returns>ReconstructionReadWithQueue</returns>
-        ReconstructionReadWithQueue ImportReconstructionTar(FileParameter data);
+        ReconstructionReadWithQueue ImportReconstructionTar(FileParameter data, bool? allowMissingCaptureSession = default);
 
         /// <summary>
         /// ImportReconstructionTar
@@ -797,8 +798,9 @@ namespace PlaceframeApiClient.Api
         /// </remarks>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="data"></param>
+        /// <param name="allowMissingCaptureSession">Import the tar as a standalone map when the capture session it names is not on this backend (optional, default to false)</param>
         /// <returns>ApiResponse of ReconstructionReadWithQueue</returns>
-        ApiResponse<ReconstructionReadWithQueue> ImportReconstructionTarWithHttpInfo(FileParameter data);
+        ApiResponse<ReconstructionReadWithQueue> ImportReconstructionTarWithHttpInfo(FileParameter data, bool? allowMissingCaptureSession = default);
         /// <summary>
         /// ListLocalizationEvaluations
         /// </summary>
@@ -1996,9 +1998,10 @@ namespace PlaceframeApiClient.Api
         /// </remarks>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="data"></param>
+        /// <param name="allowMissingCaptureSession">Import the tar as a standalone map when the capture session it names is not on this backend (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ReconstructionReadWithQueue</returns>
-        System.Threading.Tasks.Task<ReconstructionReadWithQueue> ImportReconstructionTarAsync(FileParameter data, System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task<ReconstructionReadWithQueue> ImportReconstructionTarAsync(FileParameter data, bool? allowMissingCaptureSession = default, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// ImportReconstructionTar
@@ -2008,9 +2011,10 @@ namespace PlaceframeApiClient.Api
         /// </remarks>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="data"></param>
+        /// <param name="allowMissingCaptureSession">Import the tar as a standalone map when the capture session it names is not on this backend (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (ReconstructionReadWithQueue)</returns>
-        System.Threading.Tasks.Task<ApiResponse<ReconstructionReadWithQueue>> ImportReconstructionTarWithHttpInfoAsync(FileParameter data, System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task<ApiResponse<ReconstructionReadWithQueue>> ImportReconstructionTarWithHttpInfoAsync(FileParameter data, bool? allowMissingCaptureSession = default, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// ListLocalizationEvaluations
         /// </summary>
@@ -7164,10 +7168,11 @@ namespace PlaceframeApiClient.Api
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="data"></param>
+        /// <param name="allowMissingCaptureSession">Import the tar as a standalone map when the capture session it names is not on this backend (optional, default to false)</param>
         /// <returns>ReconstructionReadWithQueue</returns>
-        public ReconstructionReadWithQueue ImportReconstructionTar(FileParameter data)
+        public ReconstructionReadWithQueue ImportReconstructionTar(FileParameter data, bool? allowMissingCaptureSession = default)
         {
-            PlaceframeApiClient.Client.ApiResponse<ReconstructionReadWithQueue> localVarResponse = ImportReconstructionTarWithHttpInfo(data);
+            PlaceframeApiClient.Client.ApiResponse<ReconstructionReadWithQueue> localVarResponse = ImportReconstructionTarWithHttpInfo(data, allowMissingCaptureSession);
             return localVarResponse.Data;
         }
 
@@ -7176,8 +7181,9 @@ namespace PlaceframeApiClient.Api
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="data"></param>
+        /// <param name="allowMissingCaptureSession">Import the tar as a standalone map when the capture session it names is not on this backend (optional, default to false)</param>
         /// <returns>ApiResponse of ReconstructionReadWithQueue</returns>
-        public PlaceframeApiClient.Client.ApiResponse<ReconstructionReadWithQueue> ImportReconstructionTarWithHttpInfo(FileParameter data)
+        public PlaceframeApiClient.Client.ApiResponse<ReconstructionReadWithQueue> ImportReconstructionTarWithHttpInfo(FileParameter data, bool? allowMissingCaptureSession = default)
         {
             // verify the required parameter 'data' is set
             if (data == null)
@@ -7200,6 +7206,10 @@ namespace PlaceframeApiClient.Api
             var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
             if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
 
+            if (allowMissingCaptureSession != null)
+            {
+                localVarRequestOptions.QueryParameters.Add(PlaceframeApiClient.Client.ClientUtils.ParameterToMultiMap("", "allow_missing_capture_session", allowMissingCaptureSession));
+            }
             localVarRequestOptions.FileParameters.Add("data", data);
 
 
@@ -7220,11 +7230,12 @@ namespace PlaceframeApiClient.Api
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="data"></param>
+        /// <param name="allowMissingCaptureSession">Import the tar as a standalone map when the capture session it names is not on this backend (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ReconstructionReadWithQueue</returns>
-        public async System.Threading.Tasks.Task<ReconstructionReadWithQueue> ImportReconstructionTarAsync(FileParameter data, System.Threading.CancellationToken cancellationToken = default)
+        public async System.Threading.Tasks.Task<ReconstructionReadWithQueue> ImportReconstructionTarAsync(FileParameter data, bool? allowMissingCaptureSession = default, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlaceframeApiClient.Client.ApiResponse<ReconstructionReadWithQueue> localVarResponse = await ImportReconstructionTarWithHttpInfoAsync(data, cancellationToken).ConfigureAwait(false);
+            PlaceframeApiClient.Client.ApiResponse<ReconstructionReadWithQueue> localVarResponse = await ImportReconstructionTarWithHttpInfoAsync(data, allowMissingCaptureSession, cancellationToken).ConfigureAwait(false);
             return localVarResponse.Data;
         }
 
@@ -7233,9 +7244,10 @@ namespace PlaceframeApiClient.Api
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="data"></param>
+        /// <param name="allowMissingCaptureSession">Import the tar as a standalone map when the capture session it names is not on this backend (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (ReconstructionReadWithQueue)</returns>
-        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<ReconstructionReadWithQueue>> ImportReconstructionTarWithHttpInfoAsync(FileParameter data, System.Threading.CancellationToken cancellationToken = default)
+        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<ReconstructionReadWithQueue>> ImportReconstructionTarWithHttpInfoAsync(FileParameter data, bool? allowMissingCaptureSession = default, System.Threading.CancellationToken cancellationToken = default)
         {
             // verify the required parameter 'data' is set
             if (data == null)
@@ -7260,6 +7272,10 @@ namespace PlaceframeApiClient.Api
             var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
             if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
 
+            if (allowMissingCaptureSession != null)
+            {
+                localVarRequestOptions.QueryParameters.Add(PlaceframeApiClient.Client.ClientUtils.ParameterToMultiMap("", "allow_missing_capture_session", allowMissingCaptureSession));
+            }
             localVarRequestOptions.FileParameters.Add("data", data);
 
 

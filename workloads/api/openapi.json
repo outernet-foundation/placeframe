@@ -1903,6 +1903,22 @@
         ],
         "summary": "ImportReconstructionTar",
         "operationId": "import_reconstruction_tar",
+        "parameters": [
+          {
+            "name": "allow_missing_capture_session",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "description": "Import the tar as a standalone map when the capture session it names is not on this backend",
+              "default": false
+            },
+            "description": "Import the tar as a standalone map when the capture session it names is not on this backend",
+            "required": false,
+            "deprecated": false,
+            "allowEmptyValue": false,
+            "allowReserved": false
+          }
+        ],
         "requestBody": {
           "content": {
             "multipart/form-data": {

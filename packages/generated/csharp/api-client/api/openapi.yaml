@@ -809,6 +809,22 @@ paths:
     post:
       deprecated: false
       operationId: import_reconstruction_tar
+      parameters:
+      - allowEmptyValue: false
+        allowReserved: false
+        deprecated: false
+        description: Import the tar as a standalone map when the capture session it
+          names is not on this backend
+        explode: true
+        in: query
+        name: allow_missing_capture_session
+        required: false
+        schema:
+          default: false
+          description: Import the tar as a standalone map when the capture session
+            it names is not on this backend
+          type: boolean
+        style: form
       requestBody:
         content:
           multipart/form-data:
