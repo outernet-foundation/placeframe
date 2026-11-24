@@ -5,11 +5,10 @@ CREATE TYPE reconstruction_status AS ENUM (
   'training_opq_matrix',
   'training_product_quantizer',
   'verifying_geometry',
-  'verifying_rig_geometry',
   'reconstructing',
   'succeeded',
   'failed',
-  'cancelled'
+  'paused'
 );
 
 CREATE TABLE reconstructions(
@@ -35,9 +34,14 @@ CREATE TABLE reconstructions(
   progress_total integer,
   progress_attempt integer,
 
-  requeue_count integer
+  error_count integer
     NOT NULL
     DEFAULT 0,
+
+  lease_attempt integer
+    NOT NULL
+    DEFAULT 0,
+  lease_heartbeat_at timestamptz,
 
   manifest jsonb NOT NULL,
   manifest_version smallint NOT NULL,
