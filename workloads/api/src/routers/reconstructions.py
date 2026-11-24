@@ -40,7 +40,7 @@ from datamodels.public_tables import (
     Reconstruction,
     ReconstructionStatus,
 )
-from litestar import Request, Router, delete, get, post, put
+from litestar import Request, Router, delete, get, post
 from litestar.datastructures import UploadFile
 from litestar.di import Provide
 from litestar.enums import RequestEncodingType
@@ -65,8 +65,11 @@ logger = getLogger(__name__)
 TAR_VERSION = 1
 METADATA_MEMBER = "metadata.json"
 DATABASE_ARTIFACT = "database.db"
+SHARD_ARTIFACT_PREFIX = "shards/"
 TAR_BLOCK = 512
 ARTIFACT_CHUNK = 1024 * 1024
+TERMINAL_STATUSES = (ReconstructionStatus.SUCCEEDED, ReconstructionStatus.FAILED)
+RESUME_ENTRY_STATUSES = (ReconstructionStatus.QUEUED, ReconstructionStatus.PAUSED, ReconstructionStatus.FAILED)
 
 
 s3_client = create_s3_client(
@@ -170,7 +173,14 @@ async def create_reconstruction(
     return to_reconstruction_with_queue(*result.one())
 
 
-@delete("/{id:uuid}")
+@delete(
+    "/{id:uuid}",
+    description=(
+        "Delete the reconstruction and its artifact prefix. Deleting a row mid-flight is allowed: "
+        "the prefix cascade discards any checkpointed work, and a still-running worker learns of "
+        "the deletion as a 404 on its next write and stops."
+    ),
+)
 async def delete_reconstruction(session: AsyncSession, id: UUID) -> None:
     row = await session.get(Reconstruction, id)
 
@@ -272,24 +282,56 @@ async def get_reconstruction_localization_map(session: AsyncSession, id: UUID) -
     return localization_map
 
 
-@put("/{id:uuid}/retry")
-async def retry_reconstruction(session: AsyncSession, id: UUID) -> ReconstructionReadWithQueue:
+@post("/{id:uuid}/pause")
+async def pause_reconstruction(session: AsyncSession, id: UUID) -> ReconstructionReadWithQueue:
     row = await session.get(Reconstruction, id)
 
     if not row:
         raise NotFoundException(f"Reconstruction with id {id} not found")
 
-    if row.status not in (ReconstructionStatus.FAILED, ReconstructionStatus.CANCELLED):
+    if row.status in TERMINAL_STATUSES:
         raise HTTPException(
             status_code=HTTP_409_CONFLICT,
-            detail=f"Reconstruction with id {id} is in state {row.status.value} and cannot be retried",
+            detail=f"Reconstruction with id {id} is in state {row.status.value} and cannot be paused",
         )
 
-    row.status = ReconstructionStatus.QUEUED
-    row.error = None
-    row.progress_current = None
-    row.progress_total = None
-    row.progress_attempt = None
+    # Pause the row by moving only the status, so history and progress survive the pause
+    row.status = ReconstructionStatus.PAUSED
+
+    await session.flush()
+
+    result = await session.execute(select_reconstructions_with_queue().where(Reconstruction.id == row.id))
+    return to_reconstruction_with_queue(*result.one())
+
+
+@post("/{id:uuid}/resume")
+async def resume_reconstruction(session: AsyncSession, id: UUID) -> ReconstructionReadWithQueue:
+    row = await session.get(Reconstruction, id)
+
+    if not row:
+        raise NotFoundException(f"Reconstruction with id {id} not found")
+
+    if row.status == ReconstructionStatus.SUCCEEDED:
+        raise HTTPException(
+            status_code=HTTP_409_CONFLICT,
+            detail=f"Reconstruction with id {id} is in state {row.status.value} and cannot be resumed. "
+            "A finished job is not resumed, so build a new row",
+        )
+
+    if row.status not in RESUME_ENTRY_STATUSES:
+        raise HTTPException(
+            status_code=HTTP_409_CONFLICT,
+            detail=f"Reconstruction with id {id} is in state {row.status.value} and cannot be resumed",
+        )
+
+    if row.status != ReconstructionStatus.QUEUED:
+        # Reset the error budget and progress but never lease_attempt, because it is the lease's monotonic identity
+        row.status = ReconstructionStatus.QUEUED
+        row.error_count = 0
+        row.error = None
+        row.progress_current = None
+        row.progress_total = None
+        row.progress_attempt = None
 
     await session.flush()
 
@@ -530,7 +572,7 @@ def iter_reconstruction_tar(reconstruction_id: UUID, metadata_bytes: bytes) -> I
 
     for key, size in storage.list_objects(settings.reconstructions_bucket, prefix):
         relative = key[len(prefix) :]
-        if not relative or relative == DATABASE_ARTIFACT:
+        if not relative or relative == DATABASE_ARTIFACT or relative.startswith(SHARD_ARTIFACT_PREFIX):
             continue
 
         body = storage.get_object(settings.reconstructions_bucket, key)["Body"]
@@ -562,7 +604,8 @@ router = Router(
         get_reconstructions,
         get_reconstruction,
         get_reconstruction_localization_map,
-        retry_reconstruction,
+        pause_reconstruction,
+        resume_reconstruction,
         get_reconstruction_points,
         get_reconstruction_frame_poses,
         get_reconstruction_metrics,
