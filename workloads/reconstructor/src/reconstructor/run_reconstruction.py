@@ -32,7 +32,7 @@ from placeframe_core.reconstruction_options import ReconstructionOptions
 from placeframe_core.model_wrappers import RetrievalDim
 from placeframe_core.tensor_types import TT
 from neural_networks.models import load_aliked, load_DIR, load_lightglue
-from numpy import asarray, ascontiguousarray, float32, float64, random, vstack
+from numpy import asarray, ascontiguousarray, dtype, float32, float64, ndarray, random, vstack
 from numpy.typing import NDArray  # noqa: TID251 — tracked in PLE-233
 from placeframe_lease_server_client import ReconstructionStatus
 from pycolmap._core import set_random_seed  # noqa: PLC2701 — no public API
@@ -183,7 +183,7 @@ def run_reconstruction(
 
         global_descriptors[image_name] = image_descriptor.cpu().numpy().astype(float32, copy=False)
         keypoints[image_name] = image_keypoints.cpu().numpy().astype(float32, copy=False)
-        descriptors[image_name] = image_descriptors.cpu().numpy().astype(float32, copy=False)
+        descriptors[image_name] = image_descriptors.cpu().numpy().astype(options.local_descriptor_dtype(), copy=False)
         sizes[image_name] = (image.height, image.width)
 
     # Write global descriptors to storage
@@ -202,8 +202,8 @@ def run_reconstruction(
     file_name, file_bytes = write_pairs_with_source(pairs, WORK_DIR)
     _put_artifact(s3_client, settings.reconstructions_bucket, reconstruction_id, file_name, file_bytes)
 
-    # Combine all descriptors into a single array for training OPQ and PQ
-    descriptor_array = ascontiguousarray(vstack([descriptor for descriptor in descriptors.values()]), dtype=float32)
+    # Train OPQ and PQ on a sample of the descriptors drawn evenly from all images
+    descriptor_array = _training_sample(descriptors, OPQ_TRAINING_DESCRIPTORS)
 
     # Train OPQ matrix
     publisher.set_phase(ReconstructionStatus.TRAINING_OPQ_MATRIX)
@@ -294,6 +294,20 @@ def run_reconstruction(
 
     metrics_builder.metrics.successful = True
     return metrics_builder.metrics
+
+
+# The compression (OPQ rotation, product quantizer) is trained on at most this many descriptors: training on every
+# descriptor of a large map needed a float32 copy of all of them (~12 GB for 9,000 images) for no benefit in the
+# trained codebooks.
+OPQ_TRAINING_DESCRIPTORS = 1_000_000
+
+
+def _training_sample(descriptors: DescriptorsArrays, limit: int) -> ndarray[tuple[int, int], dtype[float32]]:
+    total = sum(len(d) for d in descriptors.values())
+    keep = min(1.0, limit / max(total, 1))
+    rng = random.default_rng(0)
+    parts = [d if keep >= 1.0 else d[rng.random(len(d)) < keep] for d in descriptors.values()]
+    return ascontiguousarray(vstack(parts), dtype=float32)
 
 
 def _put_artifact(s3_client: Any, bucket: str, reconstruction_id: UUID, key: str, body: bytes) -> None:

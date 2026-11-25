@@ -710,6 +710,11 @@
             "description": "Maximum ALIKED keypoints retained per image.",
             "default": 2500
           },
+          "half_precision_descriptors": {
+            "type": "boolean",
+            "description": "Keep each image's local (ALIKED) descriptors in half precision (float16) from feature extraction to matching, which halves the reconstructor's largest memory use; LightGlue and FAISS still compute in float32. False keeps them in full precision (float32).",
+            "default": true
+          },
           "held_out_frame_timestamps": {
             "description": "Frame timestamps (ms) to exclude from this reconstruction so they can later be localized as held-out queries.",
             "nullable": true,

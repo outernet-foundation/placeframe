@@ -3979,6 +3979,7 @@ components:
           bundle_adjustment_global_frames_ratio: 7.386281948385884
           two_view_min_num_inliers: 3
           sequential_window_m: 5.962133916683182
+          half_precision_descriptors: true
         create:
           capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
           requeue_count: 0
@@ -4158,6 +4159,7 @@ components:
         bundle_adjustment_global_frames_ratio: 7.386281948385884
         two_view_min_num_inliers: 3
         sequential_window_m: 5.962133916683182
+        half_precision_descriptors: true
       properties:
         deterministic_seed:
           description: PRNG seed and single-threaded gate for reproducible reconstructions;
@@ -4278,6 +4280,13 @@ components:
           default: 2500
           description: Maximum ALIKED keypoints retained per image.
           type: integer
+        half_precision_descriptors:
+          default: true
+          description: "Keep each image's local (ALIKED) descriptors in half precision\
+            \ (float16) from feature extraction to matching, which halves the reconstructor's\
+            \ largest memory use; LightGlue and FAISS still compute in float32. False\
+            \ keeps them in full precision (float32)."
+          type: boolean
         held_out_frame_timestamps:
           description: Frame timestamps (ms) to exclude from this reconstruction so
             they can later be localized as held-out queries.

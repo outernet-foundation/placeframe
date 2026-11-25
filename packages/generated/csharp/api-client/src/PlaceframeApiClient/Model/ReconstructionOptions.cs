@@ -51,6 +51,7 @@ namespace PlaceframeApiClient.Model
         /// <param name="pairVioEmMaxTranslationDirectionDeg">Companion to pair_vio_em_max_rotation_disagreement_deg: bounds the angle between the essential-matrix translation direction (camera-1 origin direction in camera-2) and the VIO-implied translation direction for the same camera pair. Skipped when the essential-matrix baseline is below pair_vio_em_min_baseline_m, where translation direction is ill-conditioned. 0 disables. (default to 60.0D).</param>
         /// <param name="pairVioEmMinBaselineM">Essential-matrix-baseline floor below which the VIO-vs-essential-matrix translation-direction component is skipped. Near-co-located camera pairs (intra-rig stereo timing jitter, hover frames in slow motion) have ill-defined essential-matrix translation direction; the rotation component still applies. (default to 0.3D).</param>
         /// <param name="maxKeypointsPerImage">Maximum ALIKED keypoints retained per image. (default to 2500).</param>
+        /// <param name="halfPrecisionDescriptors">Keep each image&#39;s local (ALIKED) descriptors in half precision (float16) from feature extraction to matching, which halves the reconstructor&#39;s largest memory use; LightGlue and FAISS still compute in float32. False keeps them in full precision (float32). (default to true).</param>
         /// <param name="heldOutFrameTimestamps">Frame timestamps (ms) to exclude from this reconstruction so they can later be localized as held-out queries..</param>
         public ReconstructionOptions()
         {
@@ -482,6 +483,31 @@ namespace PlaceframeApiClient.Model
             return _flagMaxKeypointsPerImage;
         }
         /// <summary>
+        /// Keep each image&#39;s local (ALIKED) descriptors in half precision (float16) from feature extraction to matching, which halves the reconstructor&#39;s largest memory use; LightGlue and FAISS still compute in float32. False keeps them in full precision (float32).
+        /// </summary>
+        /// <value>Keep each image&#39;s local (ALIKED) descriptors in half precision (float16) from feature extraction to matching, which halves the reconstructor&#39;s largest memory use; LightGlue and FAISS still compute in float32. False keeps them in full precision (float32).</value>
+        [DataMember(Name = "half_precision_descriptors", EmitDefaultValue = true)]
+        public bool HalfPrecisionDescriptors
+        {
+            get{ return _HalfPrecisionDescriptors;}
+            set
+            {
+                _HalfPrecisionDescriptors = value;
+                _flagHalfPrecisionDescriptors = true;
+            }
+        }
+        private bool _HalfPrecisionDescriptors = true;
+        private bool _flagHalfPrecisionDescriptors;
+
+        /// <summary>
+        /// Returns false as HalfPrecisionDescriptors should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeHalfPrecisionDescriptors()
+        {
+            return _flagHalfPrecisionDescriptors;
+        }
+        /// <summary>
         /// Frame timestamps (ms) to exclude from this reconstruction so they can later be localized as held-out queries.
         /// </summary>
         /// <value>Frame timestamps (ms) to exclude from this reconstruction so they can later be localized as held-out queries.</value>
@@ -531,6 +557,7 @@ namespace PlaceframeApiClient.Model
             sb.Append("  PairVioEmMaxTranslationDirectionDeg: ").Append(PairVioEmMaxTranslationDirectionDeg).Append("\n");
             sb.Append("  PairVioEmMinBaselineM: ").Append(PairVioEmMinBaselineM).Append("\n");
             sb.Append("  MaxKeypointsPerImage: ").Append(MaxKeypointsPerImage).Append("\n");
+            sb.Append("  HalfPrecisionDescriptors: ").Append(HalfPrecisionDescriptors).Append("\n");
             sb.Append("  HeldOutFrameTimestamps: ").Append(HeldOutFrameTimestamps).Append("\n");
             sb.Append("}\n");
             return sb.ToString();

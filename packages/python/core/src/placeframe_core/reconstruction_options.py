@@ -74,6 +74,10 @@ class ReconstructionOptions(BaseModel):
         default=2500,
         description="Maximum ALIKED keypoints retained per image.",
     )
+    half_precision_descriptors: bool = Field(
+        default=True,
+        description="Keep each image's local (ALIKED) descriptors in half precision (float16) from feature extraction to matching, which halves the reconstructor's largest memory use; LightGlue and FAISS still compute in float32. False keeps them in full precision (float32).",
+    )
     held_out_frame_timestamps: Optional[list[int]] = Field(
         default=None,
         description="Frame timestamps (ms) to exclude from this reconstruction so they can later be localized as held-out queries.",

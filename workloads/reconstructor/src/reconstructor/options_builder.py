@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from numpy import float16, float32
 from placeframe_core.reconstruction_options import ReconstructionOptions
 from pycolmap import BundleAdjustmentOptions, IncrementalPipelineOptions, TwoViewGeometryOptions
 
@@ -56,6 +57,9 @@ class OptionsBuilder:
 
     def max_keypoints_per_image(self):
         return self.options.max_keypoints_per_image
+
+    def local_descriptor_dtype(self) -> type[float16 | float32]:
+        return float16 if self.options.half_precision_descriptors else float32
 
     def incremental_pipeline_options(self, constant_rigs: set[int]):
         incremental_pipeline_options = IncrementalPipelineOptions()
